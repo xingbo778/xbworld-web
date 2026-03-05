@@ -106,12 +106,9 @@ export function getRandomInt(min: number, max: number): number {
  */
 export function isRightMouseSelectionSupported(): boolean {
   if (isTouchDevice()) return false;
-  const platform = (globalThis as any).platform;
-  if (platform && platform.description) {
-    const desc = platform.description as string;
-    if (desc.indexOf('Mac OS X') > 0 || desc.indexOf('Chrome OS') > 0 || desc.indexOf('CrOS') > 0) {
-      return false;
-    }
+  const ua = navigator.userAgent;
+  if (ua.includes('Mac OS X') || ua.includes('CrOS')) {
+    return false;
   }
   return true;
 }

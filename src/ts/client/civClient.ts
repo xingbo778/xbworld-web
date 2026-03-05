@@ -130,7 +130,7 @@ export function civClientInit(): void {
   (window as any).sounds_enabled = (window as any).simpleStorage.get('sndFX');
   if ((window as any).sounds_enabled == null) {
     // Default to true, except when known to be problematic.
-    (window as any).sounds_enabled = ((window as any).platform?.name === 'Safari') ? false : true;
+    (window as any).sounds_enabled = navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome') ? false : true;
   }
 
   /* Initialise audio.js music player */
