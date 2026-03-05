@@ -45,7 +45,7 @@ const ORDER_PERFORM_ACTION = Order.PERFORM_ACTION;
 const EXTRA_HUT = (window as any).EXTRA_HUT;
 
 declare const $: any;
-declare const swal: any;
+const swal = (window as any).swal;
 
 // ---------------------------------------------------------------------------
 // Public API

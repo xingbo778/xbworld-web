@@ -31,17 +31,15 @@ import { CLAUSE_VISION } from '../ui/diplomacy';
 import { mapview } from '../renderer/mapviewCommon';
 
 declare const $: any;
-declare const sprites: Record<string, any>;
 
 // ---------------------------------------------------------------------------
 // Global variable initialisation (replaces var declarations in nation.js)
 // ---------------------------------------------------------------------------
 // nation_groups and diplstates are written by packhandlers.ts via window.*
 // selected_player is read/written by the nation-screen functions below.
-const _w = window as any;
-if (!_w['nation_groups']) _w['nation_groups'] = [];
-if (!_w['diplstates'])    _w['diplstates']    = {};
-if (_w['selected_player'] === undefined) _w['selected_player'] = -1;
+if (!(window as any)['nation_groups']) (window as any)['nation_groups'] = [];
+if (!(window as any)['diplstates'])    (window as any)['diplstates']    = {};
+if ((window as any)['selected_player'] === undefined) (window as any)['selected_player'] = -1;
 
 // ---------------------------------------------------------------------------
 // Helpers to access shared window globals
@@ -279,8 +277,8 @@ export function updateNationScreen(): void {
     if (flag_canvas.length > 0) {
       const flag_canvas_ctx = flag_canvas[0].getContext('2d');
       const tag = 'f.' + store.nations[pplayer['nation']]['graphic_str'];
-      if (flag_canvas_ctx != null && sprites[tag] != null) {
-        flag_canvas_ctx.drawImage(sprites[tag], 0, 0);
+      if (flag_canvas_ctx != null && (window as any).sprites[tag] != null) {
+        flag_canvas_ctx.drawImage((window as any).sprites[tag], 0, 0);
       }
     }
   }

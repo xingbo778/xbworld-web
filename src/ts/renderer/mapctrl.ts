@@ -18,8 +18,7 @@
 ***********************************************************************/
 
 declare const $: any;
-declare const client: any;
-declare const map: any;
+import { store } from '../data/store';
 
 import { canvas_pos_to_tile, mapview } from './mapviewCommon';
 import { mapPosToTile } from '../data/map';
@@ -189,7 +188,7 @@ export function mapview_touch_move(e: any): void {
     mapview['gui_y0'] = (mapview['gui_y0'] ?? 0) + diff_y;
   }
 
-  if (client.conn.playing == null) return;
+  if (store.client.conn.playing == null) return;
 
   /* Request preview goto path */
   // goto_preview_active is only used locally, just set a local flag
@@ -285,7 +284,7 @@ export function map_select_units(canvas_x: number, canvas_y: number): void {
     if (cunits == null) continue;
     for (let i = 0; i < cunits.length; i++) {
       const aunit = cunits[i];
-      if (aunit['owner'] == client.conn.playing.playerno) {
+      if (aunit['owner'] == store.client.conn.playing.playerno) {
         selected_units.push(aunit);
       }
     }
@@ -307,19 +306,19 @@ export function recenter_button_pressed(canvas_x: number, canvas_y: number): voi
   const orig_tile = ptile;
 
   /* Prevent the user from scrolling outside the map. */
-  if (ptile != null && ptile['y'] > (map['ysize'] - map_scroll_border)
-      && map['xsize'] > big_map_size && map['ysize'] > big_map_size) {
-    ptile = map_pos_to_tile(ptile['x'], map['ysize'] - map_scroll_border);
+  if (ptile != null && ptile['y'] > ((store.mapInfo as any)['ysize'] - map_scroll_border)
+      && (store.mapInfo as any)['xsize'] > big_map_size && (store.mapInfo as any)['ysize'] > big_map_size) {
+    ptile = map_pos_to_tile(ptile['x'], (store.mapInfo as any)['ysize'] - map_scroll_border);
   }
   if (ptile != null && ptile['y'] < map_scroll_border
-      && map['xsize'] > big_map_size && map['ysize'] > big_map_size) {
+      && (store.mapInfo as any)['xsize'] > big_map_size && (store.mapInfo as any)['ysize'] > big_map_size) {
     ptile = map_pos_to_tile(ptile['x'], map_scroll_border);
   }
 
   if (can_client_change_view() && ptile != null && orig_tile != null) {
     const sunit = find_visible_unit(orig_tile);
     if (!client_is_observer() && sunit != null
-        && sunit['owner'] == client.conn.playing.playerno) {
+        && sunit['owner'] == store.client.conn.playing.playerno) {
       /* the user right-clicked on own unit, show context menu instead of recenter. */
       if (current_focus.length <= 1) set_unit_focus(sunit);
       $("#canvas").contextMenu(true);
@@ -363,7 +362,7 @@ export function handle_web_info_text_message(packet: any): void {
         pplayer = player_by_full_username(split_txt[2]);
       }
       if (pplayer != null && split_txt != null &&
-          (client.conn.playing == null || pplayer != client.conn.playing)) {
+          (store.client.conn.playing == null || pplayer != store.client.conn.playing)) {
         lines[i] = split_txt[1]
                  + "<a href='#' onclick='javascript:nation_table_select_player("
                  + pplayer['playerno']

@@ -19,9 +19,6 @@ import { get_treaty_agree_thumb_up, get_treaty_disagree_thumb_down } from '../re
 import { DiplState } from '../data/player';
 
 declare const $: any;
-declare const Handlebars: any;
-
-const _w = window as any;
 
 export const CLAUSE_ADVANCE = 0;
 export const CLAUSE_GOLD = 1;
@@ -54,7 +51,7 @@ export function diplomacy_init_meeting_req(counterpart: any): void {
 **************************************************************************/
 export function show_diplomacy_dialog(counterpart: any): void {
   const pplayer = store.players[counterpart];
-  create_diplomacy_dialog(pplayer, Handlebars.templates['diplomacy_meeting']);
+  create_diplomacy_dialog(pplayer, (window as any).Handlebars.templates['diplomacy_meeting']);
 }
 
 /**************************************************************************
@@ -394,7 +391,7 @@ export function meeting_paint_custom_flag(nation: any, flag_canvas: HTMLCanvasEl
   const flag_canvas_ctx = flag_canvas.getContext("2d");
   if (flag_canvas_ctx) {
     flag_canvas_ctx.scale(1.5, 1.5);
-    flag_canvas_ctx.drawImage(_w.sprites[tag], 0, 0);
+    flag_canvas_ctx.drawImage((window as any).sprites[tag], 0, 0);
   }
 }
 

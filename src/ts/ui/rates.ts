@@ -21,10 +21,8 @@ declare const $: any;
 const Slider = (window as any).Slider;
 const swal = (window as any).swal;
 
-// TODO: import these from appropriate modules
-declare const client: any;
+import { store } from '../data/store';
 import { governmentMaxRate as government_max_rate } from "../data/government";
-declare const governments: any;
 import { packet_player_rates } from "../net/packetConstants"; // TODO: adjust import path and name
 import { send_request } from "../net/connection"; // TODO: adjust import path and name
 import { isSmallScreen as is_small_screen } from "../utils/helpers"; // TODO: adjust import path and name
@@ -87,17 +85,17 @@ export function show_tax_rates_dialog(): void {
 export function update_rates_dialog(): void {
   if (client_is_observer()) return;
 
-  maxrate = government_max_rate(client.conn.playing['government']);
+  maxrate = government_max_rate(store.client.conn.playing['government']);
 
   $("#slider-tax").html("<input class='slider-input' id='slider-tax-input' name='slider-tax-input'/>");
   $("#slider-lux").html("<input class='slider-input' id='slider-lux-input' name='slider-lux-input'/>");
   $("#slider-sci").html("<input class='slider-input' id='slider-sci-input' name='slider-sci-input'/>");
 
-  create_rates_dialog(client.conn.playing['tax'],
-                      client.conn.playing['luxury'],
-                      client.conn.playing['science'], maxrate);
+  create_rates_dialog(store.client.conn.playing['tax'],
+                      store.client.conn.playing['luxury'],
+                      store.client.conn.playing['science'], maxrate);
 
-  const govt = governments[client.conn.playing['government']];
+  const govt = store.governments[store.client.conn.playing['government']];
 
   $("#max_tax_rate").html("<i>" + govt['name'] + " max rate: " + maxrate + "</i>");
   update_net_income();
@@ -105,9 +103,9 @@ export function update_rates_dialog(): void {
 }
 
 export function update_net_income(): void {
-  let net_income: string | number = client.conn.playing['expected_income'];
-  if (client.conn.playing['expected_income'] > 0) {
-    net_income = "+" + client.conn.playing['expected_income'];
+  let net_income: string | number = store.client.conn.playing['expected_income'];
+  if (store.client.conn.playing['expected_income'] > 0) {
+    net_income = "+" + store.client.conn.playing['expected_income'];
   }
   $("#income_info").html(net_income);
 }

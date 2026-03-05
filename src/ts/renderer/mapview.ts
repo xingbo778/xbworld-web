@@ -21,9 +21,6 @@ const DIR8_EAST = 4;
 const DIR8_SOUTH = 6;
 const DIR8_WEST = 3;
 
-// Runtime globals accessed via window
-const _win = window as any;
-
 let mapview_canvas_ctx: CanvasRenderingContext2D | null = null;
 let mapview_canvas: HTMLCanvasElement | null = null;
 let buffer_canvas_ctx: CanvasRenderingContext2D | null = null;
@@ -75,10 +72,9 @@ export function init_mapview(): void {
   buffer_canvas_ctx = buffer_canvas.getContext('2d');
 
   // Expose canvas contexts on window so mapviewCommon (and other modules) can access them
-  const _w = window as any;
-  _w.mapview_canvas_ctx = mapview_canvas_ctx;
-  _w.buffer_canvas = buffer_canvas;
-  _w.mapview_canvas = mapview_canvas;
+  (window as any).mapview_canvas_ctx = mapview_canvas_ctx;
+  (window as any).buffer_canvas = buffer_canvas;
+  (window as any).mapview_canvas = mapview_canvas;
 
   if (mapview_canvas_ctx && "imageSmoothingEnabled" in mapview_canvas_ctx) {
     // if this Boolean value is false, images won't be smoothed when scaled. This property is true by default.
@@ -86,7 +82,7 @@ export function init_mapview(): void {
   }
   if (mapview_canvas_ctx) {
     dashedSupport = ("setLineDash" in mapview_canvas_ctx);
-    _w.dashedSupport = dashedSupport;
+    (window as any).dashedSupport = dashedSupport;
   }
 
   _win.setup_window_size();

@@ -17,16 +17,11 @@ import { set_city_mapview_active } from '../renderer/mapview';
 import { center_tile_mapcanvas } from '../core/control';
 import { update_map_canvas, update_map_canvas_full, mapview } from '../renderer/mapviewCommon';
 import { setDefaultMapviewActive as set_default_mapview_active } from '../client/clientMain';
-declare const EventAggregator: any; // legacy JS lib
 import { request_unit_do_action } from '../core/control';
 import { ACTION_FOUND_CITY } from '../data/fcTypes';
 import { act_sel_queue_done } from '../ui/actionDialog';
 
 declare const $: any;
-declare const Handlebars: any;
-declare const swal: any;
-
-const _w = window as any;
 
 export let citydlg_map_width: number = 384;      // default values for most rulesets
 export let citydlg_map_height: number = 192;     // default value for most rulesets
@@ -65,8 +60,8 @@ export const INCITE_IMPOSSIBLE_COST: number = (1000 * 1000 * 1000);
 export let city_tab_index: number = 0;
 export let city_prod_clicks: number = 0;
 
-export const city_screen_updater: any = new EventAggregator(update_city_screen, 250,
-                                              EventAggregator.DP_NONE,
+export const city_screen_updater: any = new (window as any).EventAggregator(update_city_screen, 250,
+                                              (window as any).EventAggregator.DP_NONE,
                                               250, 3, 250);
 
 /* Information for mapping workable tiles of a city to local index */
@@ -103,7 +98,7 @@ export function show_city_dialog(pcity: any): void {
 
   const city_data: any = {};
 
-  $("#city_dialog").html(Handlebars.templates['city'](city_data));
+  $("#city_dialog").html((window as any).Handlebars.templates['city'](city_data));
 
   $("#city_canvas").click(city_mapview_mouse_click);
 
@@ -181,13 +176,13 @@ export function show_city_dialog(pcity: any): void {
 
   city_worklist_dialog(pcity);
 
-  const orig_renderer: any = _w.renderer;
-  // _w.renderer = RENDERER_2DCANVAS; // This line is commented out in the original JS, so it's commented here too.
+  const orig_renderer: any = (window as any).renderer;
+  // (window as any).renderer = RENDERER_2DCANVAS; // This line is commented out in the original JS, so it's commented here too.
   set_citydlg_dimensions(pcity);
   set_city_mapview_active();
   center_tile_mapcanvas(city_tile(pcity));
   update_map_canvas(0, 0, mapview['store_width'] ?? 0, mapview['store_height'] ?? 0);
-  // _w.renderer = orig_renderer; // This line is commented out in the original JS, so it's commented here too.
+  // (window as any).renderer = orig_renderer; // This line is commented out in the original JS, so it's commented here too.
 
   let governor_text: string = "";
   if (typeof pcity['cma_enabled'] !== 'undefined') {
@@ -330,8 +325,8 @@ export function show_city_dialog(pcity: any): void {
   }
 
   for (let u = 0; u < pcity['specialists_size']; u++) {
-    const spec_type_name: string = _w.specialists[u]['plural_name'];
-    const spec_gfx_key: string = "specialist." + _w.specialists[u]['rule_name'] + "_0";
+    const spec_type_name: string = (window as any).specialists[u]['plural_name'];
+    const spec_gfx_key: string = "specialist." + (window as any).specialists[u]['rule_name'] + "_0";
     for (let j = 0; j < pcity['specialists'][u]; j++) {
       sprite = get_specialist_image_sprite(spec_gfx_key);
       specialist_html = specialist_html +
@@ -339,7 +334,7 @@ export function show_city_dialog(pcity: any): void {
            + sprite['image-src'] +
            ");background-position:-" + sprite['tileset-x'] + "px -" + sprite['tileset-y']
            + "px;  width: " + sprite['width'] + "px;height: " + sprite['height'] + "px;float:left; '"
-           + " onclick='city_change_specialist(" + pcity['id'] + "," + _w.specialists[u]['id'] + ");'"
+           + " onclick='city_change_specialist(" + pcity['id'] + "," + (window as any).specialists[u]['id'] + ");'"
            +" title='" + spec_type_name + " (click to change)'></div>";
 
     }
@@ -469,12 +464,12 @@ export function city_dialog_close_handler(): void {
       *       Both those duplicate calls and the stopping of map updates due
       *       to the 2D rendered being used to draw the minimap should go.
       */
-    if (_w.renderer == RENDERER_2DCANVAS) {
+    if ((window as any).renderer == RENDERER_2DCANVAS) {
       update_map_canvas_full();
     }
 
   }
-  // _w.keyboard_input=true; // This is a global variable, not a local one.
+  // (window as any).keyboard_input=true; // This is a global variable, not a local one.
   worklist_dialog_active = false;
 }
 
@@ -516,14 +511,14 @@ export function city_name_dialog(suggested_name: string, unit_id: number): void 
 			modal: true,
 			width: "300",
 			close: function() {
-				// _w.keyboard_input=true; // This is a global variable, not a local one.
+				// (window as any).keyboard_input=true; // This is a global variable, not a local one.
                 act_sel_queue_done(unit_id);
 			},
 			buttons: [	{
 					text: "Cancel",
 				        click: function() {
 						$("#city_name_dialog").remove();
-                        // _w.keyboard_input=true; // This is a global variable, not a local one.
+                        // (window as any).keyboard_input=true; // This is a global variable, not a local one.
                         act_sel_queue_done(unit_id);
 					}
 				},{
@@ -532,7 +527,7 @@ export function city_name_dialog(suggested_name: string, unit_id: number): void 
 						const name: string = $("#city_name_req").val();
 						if (name.length == 0 || name.length >= MAX_LEN_CITYNAME - 6
 						    || encodeURIComponent(name).length  >= MAX_LEN_CITYNAME - 6) {
-						  swal("City name is invalid. Please try a different shorter name.");
+						  (window as any).swal("City name is invalid. Please try a different shorter name.");
 						  return;
 						}
 
@@ -541,7 +536,7 @@ export function city_name_dialog(suggested_name: string, unit_id: number): void 
                           unit_id, actor_unit['tile'], 0,
                           encodeURIComponent(name));
 						$("#city_name_dialog").remove();
-						// _w.keyboard_input=true; // This is a global variable, not a local one.
+						// (window as any).keyboard_input=true; // This is a global variable, not a local one.
                         act_sel_queue_done(unit_id);
 					}
 					}
@@ -559,13 +554,13 @@ export function city_name_dialog(suggested_name: string, unit_id: number): void 
       request_unit_do_action(ACTION_FOUND_CITY,
         unit_id, actor_unit['tile'], 0, encodeURIComponent(name));
 	  $("#city_name_dialog").remove();
-      // _w.keyboard_input=true; // This is a global variable, not a local one.
+      // (window as any).keyboard_input=true; // This is a global variable, not a local one.
       act_sel_queue_done(unit_id);
     }
   });
 
   blur_input_on_touchdevice();
-  // _w.keyboard_input=false; // This is a global variable, not a local one.
+  // (window as any).keyboard_input=false; // This is a global variable, not a local one.
 
 }
 
@@ -647,13 +642,13 @@ export function rename_city(): void {
 			modal: true,
 			width: "300",
 			close: function() {
-				// _w.keyboard_input=true; // This is a global variable, not a local one.
+				// (window as any).keyboard_input=true; // This is a global variable, not a local one.
 			},
 			buttons: [	{
 					text: "Cancel",
 				        click: function() {
 						$("#city_name_dialog").remove();
-        					// _w.keyboard_input=true; // This is a global variable, not a local one.
+        					// (window as any).keyboard_input=true; // This is a global variable, not a local one.
 					}
 				},{
 					text: "Ok",
@@ -661,14 +656,14 @@ export function rename_city(): void {
 						const name: string = $("#city_name_req").val();
 						if (name.length == 0 || name.length >= MAX_LEN_NAME - 4
 						    || encodeURIComponent(name).length  >= MAX_LEN_NAME - 4) {
-						  swal("City name is invalid");
+						  (window as any).swal("City name is invalid");
 						  return;
 						}
 
 						const packet: any = {"pid" : packet_city_rename, "name" : encodeURIComponent(name), "city_id" : active_city['id'] };
 						sendRequest(JSON.stringify(packet));
 						$("#city_name_dialog").remove();
-						// _w.keyboard_input=true; // This is a global variable, not a local one.
+						// (window as any).keyboard_input=true; // This is a global variable, not a local one.
 					}
 					}
 				]
@@ -683,7 +678,7 @@ export function rename_city(): void {
       const packet: any = {"pid" : packet_city_rename, "name" : encodeURIComponent(name), "city_id" : active_city['id'] };
       sendRequest(JSON.stringify(packet));
       $("#city_name_dialog").remove();
-      // _w.keyboard_input=true; // This is a global variable, not a local one.
+      // (window as any).keyboard_input=true; // This is a global variable, not a local one.
     }
   });
 }
@@ -1205,7 +1200,7 @@ export function city_worklist_task_remove(): void {
 }
 
 export function update_city_screen(): void {
-  if (_w.observing) return;
+  if ((window as any).observing) return;
 
   const sortList: any[] = [];
   const headers: any = $('#city_table thead th');
@@ -1271,7 +1266,7 @@ export function get_city_state(pcity: any): string | undefined {
 
 export function city_keyboard_listener(ev: any): void {
   // Check if focus is in chat field, where these keyboard events are ignored.
-  if ($('input:focus').length > 0 || !_w.keyboard_input) return;
+  if ($('input:focus').length > 0 || !(window as any).keyboard_input) return;
 
   if (C_S_RUNNING != client_state()) return;
 

@@ -5,8 +5,6 @@ import { store } from '../data/store';
 declare const $: any;
 
 const client = store.client;
-const _w = window as any;
-
 export let observing: boolean = false;
 export let update_player_info_pregame_queued: boolean = false;
 
@@ -39,20 +37,20 @@ export function update_game_info_pregame(): void {
 
   let game_info_html = "";
 
-  if (_w.scenario_info != null && _w.scenario_info['is_scenario']) {
+  if ((window as any).scenario_info != null && (window as any).scenario_info['is_scenario']) {
     game_info_html += "<p>";
-    game_info_html += _w.scenario_info['description'].replace(/\n/g, "<br>");
+    game_info_html += (window as any).scenario_info['description'].replace(/\n/g, "<br>");
     game_info_html += "</p>";
 
-    if (_w.scenario_info['authors']) {
+    if ((window as any).scenario_info['authors']) {
       game_info_html += "<p>Scenario by ";
-      game_info_html += _w.scenario_info['authors'].replace(/\n/g, "<br>");
+      game_info_html += (window as any).scenario_info['authors'].replace(/\n/g, "<br>");
       game_info_html += "</p>";
     }
 
-    if (_w.scenario_info['prevent_new_cities']) {
+    if ((window as any).scenario_info['prevent_new_cities']) {
       game_info_html += "<p>";
-      game_info_html += _w.scenario_info['name'] + " forbids the founding of new cities.";
+      game_info_html += (window as any).scenario_info['name'] + " forbids the founding of new cities.";
       game_info_html += "</p>";
     }
   }
@@ -103,8 +101,8 @@ export function update_player_info_pregame_real(): void {
       if (flag_canvas == null) continue;
       const flag_canvas_ctx = flag_canvas.getContext("2d");
       const tag = "f." + store.nations[player['nation']]['graphic_str'];
-      if (_w.sprites[tag] != null && flag_canvas_ctx != null) {
-        flag_canvas_ctx.drawImage(_w.sprites[tag], 0, 0);
+      if ((window as any).sprites[tag] != null && flag_canvas_ctx != null) {
+        flag_canvas_ctx.drawImage((window as any).sprites[tag], 0, 0);
       }
     }
     if (player['is_ready'] === true) {

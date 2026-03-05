@@ -45,8 +45,7 @@ export function mouse_moved_cb(e: MouseEvent): void {
     }
   }
 
-  const _w = window as any;
-  if (RENDERER_2DCANVAS && active_city == null && _w.mapview_canvas != null
+  if (RENDERER_2DCANVAS && active_city == null && (window as any).mapview_canvas != null
     && $("#canvas").length) {
     S.setMouseX(S.mouse_x - $("#canvas").offset().left);
     S.setMouseY(S.mouse_y - $("#canvas").offset().top);
@@ -60,7 +59,7 @@ export function mouse_moved_cb(e: MouseEvent): void {
       setTouchStart(S.mouse_x, S.mouse_y);
       update_mouse_cursor();
     }
-  } else if (active_city != null && _w.city_canvas != null
+  } else if (active_city != null && (window as any).city_canvas != null
     && $("#city_canvas").length) {
     S.setMouseX(S.mouse_x - $("#city_canvas").offset().left);
     S.setMouseY(S.mouse_y - $("#city_canvas").offset().top);

@@ -18,7 +18,7 @@
 ***********************************************************************/
 
 declare const $: any;
-declare const Handlebars: any;
+const Handlebars = (window as any).Handlebars;
 
 import { store } from '../data/store';
 import { player_capital, get_diplstate_text, research_get, DiplState } from '../data/player';

@@ -17,10 +17,9 @@
 
 ***********************************************************************/
 
-const _w = window as any;
-const sounds_enabled_get = (): boolean => _w.sounds_enabled ?? false;
-const soundset_get = (): Record<string, any> => _w.soundset ?? {};
-const is_unit_visible = (punit: any): boolean => _w.is_unit_visible?.(punit) ?? false;
+const sounds_enabled_get = (): boolean => (window as any).sounds_enabled ?? false;
+const soundset_get = (): Record<string, any> => (window as any).soundset ?? {};
+const is_unit_visible = (punit: any): boolean => (window as any).is_unit_visible?.(punit) ?? false;
 
 export let sound_path: string = "/sounds/";
 
@@ -93,7 +92,7 @@ export function play_sound(sound_file: string): void {
 }
 
 export function sound_error_handler(err: any): void {
-  _w.sounds_enabled = false;
+  (window as any).sounds_enabled = false;
   if (window.trackJs) {
     window.trackJs.console.log(err);
     window.trackJs.track("Sound problem");

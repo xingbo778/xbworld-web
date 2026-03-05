@@ -21,10 +21,6 @@ import { freeciv_wiki_docs } from '../data/wikiDoc';
 import { mouse_x, mouse_y } from '../core/control/controlState';
 
 declare const $: any;
-declare const EventAggregator: any;
-
-// Window globals accessed at runtime
-const _w = window as any;
 
 export const techs: { [key: string]: any } = {};
 export const techcoststyle1: { [key: string]: any } = {};
@@ -82,8 +78,8 @@ export const tech_item_height: number = 52;
 export let maxleft: number = 0;
 export let clicked_tech_id: number | null = null;
 
-export const bulbs_output_updater: any = new EventAggregator(update_bulbs_output_info, 250,
-                                               EventAggregator.DP_NONE,
+export const bulbs_output_updater: any = new (window as any).EventAggregator(update_bulbs_output_info, 250,
+                                               (window as any).EventAggregator.DP_NONE,
                                                250, 3, 250);
 
 /**************************************************************************
@@ -266,7 +262,7 @@ export function update_tech_tree(): void {
     for (let i: number = 0; i < prunits.length; i++) {
       const utype = prunits[i];
       const tag2 = tileset_unit_type_graphic_tag(utype);
-      const sprite = tag2 != null ? _w.sprites[tag2] : null;
+      const sprite = tag2 != null ? (window as any).sprites[tag2] : null;
       if (sprite != null) {
         tech_canvas_ctx.drawImage(sprite, x + 50 + ((tech_things++) * 30), y + 23, 28, 24);
       }
@@ -276,7 +272,7 @@ export function update_tech_tree(): void {
     for (let i: number = 0; i < primprovements.length; i++) {
       const pimpr = primprovements[i];
       const tag3 = tileset_building_graphic_tag(pimpr);
-      const sprite = tag3 != null ? _w.sprites[tag3] : null;
+      const sprite = tag3 != null ? (window as any).sprites[tag3] : null;
       if (sprite != null) {
         tech_canvas_ctx.drawImage(sprite, x + 50 + ((tech_things++) * 30), y + 23, 28, 24);
       }
@@ -440,12 +436,12 @@ export function get_tech_infobox_html(tech_id: number): string | null {
   const tag = tileset_tech_graphic_tag(ptech);
 
   if (tag == null) return null;
-  const tileset_x: number = _w.tileset[tag][0];
-  const tileset_y: number = _w.tileset[tag][1];
-  const width: number = _w.tileset[tag][2];
-  const height: number = _w.tileset[tag][3];
-  const i: number = _w.tileset[tag][4];
-  const image_src: string = "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i + get_tileset_file_extention() + "?ts=" + _w.ts;
+  const tileset_x: number = (window as any).tileset[tag][0];
+  const tileset_y: number = (window as any).tileset[tag][1];
+  const width: number = (window as any).tileset[tag][2];
+  const height: number = (window as any).tileset[tag][3];
+  const i: number = (window as any).tileset[tag][4];
+  const image_src: string = "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i + get_tileset_file_extention() + "?ts=" + (window as any).ts;
   if (is_small_screen()) {
     infobox_html += "<div class='specific_tech' onclick='send_player_research(" + tech_id + ");' title='"
       + get_advances_text(tech_id).replace(/(<([^>]+)>)/ig, "") + "'>"
