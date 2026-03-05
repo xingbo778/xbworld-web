@@ -91,7 +91,7 @@ export function show_help(): void {
 ...
 **************************************************************************/
 export function show_help_intro(): void {
-  $.get("/docs/help_intro.txt", function(data: string) {
+  fetch("/docs/help_intro.txt").then(r => r.text()).then(data => {
     $("#help_info_page").html(data);
   });
 }
@@ -206,11 +206,11 @@ export function handle_help_menu_select(ui: any): void {
   if (selected_tag.indexOf("help_gen") !== -1) {
     generate_help_text(selected_tag);
   } else if (selected_tag === "help_copying") {
-    $.get("/docs/LICENSE.txt", function(data: string) {
+    fetch("/docs/LICENSE.txt").then(r => r.text()).then(data => {
       $("#help_info_page").html("<h1>Freeciv-Web License</h1>" + data.replace(/\n/g, "<br>"));
     });
   } else if (selected_tag === "help_controls") {
-    $.get("/docs/controls.txt", function(data: string) {
+    fetch("/docs/controls.txt").then(r => r.text()).then(data => {
       $("#help_info_page").html(data.replace(/\n/g, "<br>"));
     });
   } else {
