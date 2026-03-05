@@ -19,27 +19,21 @@
 
 declare const $: any;
 declare const Handlebars: any;
-declare let selected_player: number;
 
-import { player_capital, get_diplstate_text, research_get } from '../data/player';
+import { store } from '../data/store';
+import { player_capital, get_diplstate_text, research_get, DiplState } from '../data/player';
 import { TECH_KNOWN } from '../data/tech';
 import { clientIsObserver as client_is_observer } from '../client/clientState';
 import { showDialogMessage as show_dialog_message } from '../client/civClient';
-
-// Globals from window
-declare const client: any;
-declare const players: any;
-declare const governments: any;
-declare const techs: any;
-declare const nations: any;
-declare const DS_NO_CONTACT: number;
+import { governments } from '../ui/governmentDialog';
 
 export function show_intelligence_report_dialog(): void {
+  const selected_player = (window as any).selected_player;
   if (selected_player === -1) return;
-  const pplayer: any = players[selected_player];
+  const pplayer: any = store.players[selected_player];
 
   if (client_is_observer()
-      || client.conn.playing['real_embassy'].isSet(selected_player)) {
+      || store.client.conn.playing!['real_embassy'].isSet(selected_player)) {
     show_intelligence_report_embassy(pplayer);
   } else {
     show_intelligence_report_hearsay(pplayer);
@@ -56,8 +50,8 @@ export function show_intelligence_report_hearsay(pplayer: any): void {
     msg += "Gold: " + pplayer['gold'] + "<br>";
   }
 
-  if (pplayer['researching'] != null && pplayer['researching'] > 0 && techs[pplayer['researching']] != null) {
-    msg += "Researching: " + techs[pplayer['researching']]['name'] + "<br>";
+  if (pplayer['researching'] != null && pplayer['researching'] > 0 && store.techs[pplayer['researching']] != null) {
+    msg += "Researching: " + store.techs[pplayer['researching']]['name'] + "<br>";
   }
 
   msg += "<br><br>Establishing an embassy will show a detailed intelligence report.";
@@ -90,7 +84,7 @@ export function show_intelligence_report_embassy(pplayer: any): void {
   // TODO: future techs
   const research: any = research_get(pplayer);
   if (research !== undefined) {
-    const researching: any = techs[research['researching']];
+    const researching: any = store.techs[research['researching']];
     if (researching !== undefined) {
       intel_data['researching'] = researching['name'] + ' ('
                                 + research['bulbs_researched'] + '/'
@@ -100,11 +94,11 @@ export function show_intelligence_report_embassy(pplayer: any): void {
     }
     const myresearch: any = client_is_observer()
                      ? null
-                     : research_get(client.conn.playing)['inventions'];
-    for (const tech_id in techs) {
+                     : research_get(store.client.conn.playing)['inventions'];
+    for (const tech_id in store.techs) {
       if (research['inventions'][tech_id] === TECH_KNOWN) {
         intel_data['tech'].push({
-          name: techs[tech_id]['name'],
+          name: store.techs[tech_id]['name'],
           who: (myresearch != null && myresearch[tech_id] === TECH_KNOWN)
                            ? 'both' : 'them'
         });
@@ -114,7 +108,7 @@ export function show_intelligence_report_embassy(pplayer: any): void {
 
   if (pplayer['diplstates'] !== undefined) {
     pplayer['diplstates'].forEach(function (st: any, i: number) {
-      if (st['state'] !== DS_NO_CONTACT && i !== pplayer['playerno']) {
+      if (st['state'] !== DiplState.DS_NO_CONTACT && i !== pplayer['playerno']) {
         let dplst: any = intel_data['dipl'][st['state']];
         if (dplst === undefined) {
           dplst = {
@@ -123,7 +117,7 @@ export function show_intelligence_report_embassy(pplayer: any): void {
           };
           intel_data['dipl'][st['state']] = dplst;
         }
-        dplst['nations'].push(nations[players[i]['nation']]['adjective']);
+        dplst['nations'].push(store.nations[store.players[i]['nation']]['adjective']);
       }
     });
   }
@@ -133,7 +127,7 @@ export function show_intelligence_report_embassy(pplayer: any): void {
     bgiframe: true,
     modal: true,
     title: "Foreign Intelligence: "
-                             + nations[pplayer['nation']]['adjective']
+                             + store.nations[pplayer['nation']]['adjective']
                              + " Empire",
     width: "auto"
   });

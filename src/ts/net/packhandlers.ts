@@ -13,10 +13,68 @@
  *   - terrain_control, roads[], bases[], page_msg{}
  */
 
-import { packet_client_info } from './packetConstants';
-import { GUI_WEB } from '../data/fcTypes';
-
-const _w = window as any;
+import { packet_client_info, packet_conn_pong, packet_unit_get_actions } from './packetConstants';
+import { send_request, clinet_debug_collect } from './connection';
+import {
+  GUI_WEB,
+  ACTION_ATTACK, ACTION_SUICIDE_ATTACK,
+  ACTION_NUKE_UNITS, ACTION_NUKE_CITY, ACTION_NUKE,
+  ACTION_SPY_BRIBE_UNIT, ACTION_SPY_INCITE_CITY, ACTION_SPY_INCITE_CITY_ESC,
+  ACTION_UPGRADE_UNIT, ACTION_COUNT,
+  VUT_ADVANCE, REQ_RANGE_PLAYER,
+  EC_BASE, EC_ROAD,
+} from '../data/fcTypes';
+import { TECH_KNOWN, A_NONE } from '../data/tech';
+import { EXTRA_NONE, isExtraCausedBy } from '../data/extra';
+import { IDENTITY_NUMBER_ZERO, RENDERER_2DCANVAS } from '../core/constants';
+import { E_SCRIPT, E_UNDEFINED } from '../data/eventConstants';
+import { store } from '../data/store';
+import { BitVector } from '../utils/bitvector';
+import { stringUnqualify } from '../utils/helpers';
+import { freelog } from '../core/log';
+import { set_client_state, C_S_RUNNING, C_S_PREPARING, C_S_OVER, clientState, clientIsObserver } from '../client/clientState';
+import { set_client_page, get_client_page, PAGE_MAIN, PAGE_NETWORK, PAGE_START } from '../core/pages';
+import { valid_player_by_number, player_find_unit_by_id } from '../data/player';
+import { game_find_city_by_number, game_find_unit_by_number, update_game_status_panel } from '../data/game';
+import {
+  unit_owner, client_remove_unit, update_tile_unit, clear_tile_unit,
+  unit_type, update_unit_anim_list, reset_unit_anim_list, is_unit_visible,
+} from '../data/unit';
+import { utype_can_do_action } from '../data/unittype';
+import { improvements_init } from '../data/improvement';
+import { mark_tile_dirty, mark_all_dirty, mapdeco_init, update_map_canvas_check } from '../renderer/mapviewCommon';
+import { assign_nation_color } from '../renderer/tilespec';
+import { play_sound } from '../audio/sounds';
+import { add_chatbox_text, chatbox_clip_messages, wait_for_text } from '../core/messages';
+import { update_player_info_pregame, update_game_info_pregame } from '../core/pregame';
+import {
+  should_ask_server_for_actions,
+  action_selection_no_longer_in_progress,
+  action_decision_clear_want,
+  action_selection_next_in_focus,
+  action_decision_request,
+} from '../core/control/actionSelection';
+import {
+  get_units_in_focus, update_unit_focus, update_unit_order_commands,
+  auto_center_on_focus_unit, update_active_units_dialog,
+} from '../core/control/unitFocus';
+import { request_unit_do_action } from '../core/control/unitCommands';
+import { update_goto_path } from '../core/control/mapClick';
+import { update_net_income } from '../ui/rates';
+import { show_city_dialog_by_id, city_name_dialog } from '../ui/cityDialog';
+import { update_tech_screen, queue_tech_gained_dialog } from '../ui/techDialog';
+import {
+  show_diplomacy_dialog, accept_treaty, cancel_meeting,
+  discard_diplomacy_dialogs, show_diplomacy_clauses, remove_clause,
+} from '../ui/diplomacy';
+import {
+  act_sel_queue_done, popup_action_selection, popup_bribe_dialog,
+  popup_incite_dialog, popup_unit_upgrade_dlg, popup_sabotage_dialog,
+  action_selection_actor_unit, action_selection_target_city,
+  action_selection_target_unit, action_selection_target_tile,
+  action_selection_target_extra, action_selection_refresh,
+  action_selection_close,
+} from '../ui/actionDialog';
 
 // ============================================================================
 // Module-local state (was var in packhand.js)
@@ -29,8 +87,8 @@ let page_msg: any = {};
 // Also expose these so legacy JS can access them
 // Constants (were const in packhand.js)
 const auto_attack_actions = [
-  w.ACTION_ATTACK, w.ACTION_SUICIDE_ATTACK,
-  w.ACTION_NUKE_UNITS, w.ACTION_NUKE_CITY, w.ACTION_NUKE
+  ACTION_ATTACK, ACTION_SUICIDE_ATTACK,
+  ACTION_NUKE_UNITS, ACTION_NUKE_CITY, ACTION_NUKE
 ];
 const REQEST_PLAYER_INITIATED = 0;
 const REQEST_BACKGROUND_REFRESH = 1;
@@ -41,30 +99,30 @@ const REQEST_BACKGROUND_FAST_AUTO_ATTACK = 2;
 // ============================================================================
 
 export function handle_processing_started(_packet: any): void {
-  w.client_frozen = true;
+  (window as any).client_frozen = true;
 }
 
 export function handle_processing_finished(_packet: any): void {
-  w.client_frozen = false;
+  (window as any).client_frozen = false;
 }
 
 export function handle_investigate_started(_packet: any): void { /* no-op */ }
 export function handle_investigate_finished(_packet: any): void { /* no-op */ }
 
 export function handle_freeze_hint(_packet: any): void {
-  w.client_frozen = true;
+  (window as any).client_frozen = true;
 }
 
 export function handle_thaw_hint(_packet: any): void {
-  w.client_frozen = false;
+  (window as any).client_frozen = false;
 }
 
 export function handle_freeze_client(_packet: any): void {
-  w.client_frozen = true;
+  (window as any).client_frozen = true;
 }
 
 export function handle_thaw_client(_packet: any): void {
-  w.client_frozen = false;
+  (window as any).client_frozen = false;
 }
 
 // ============================================================================
@@ -74,85 +132,85 @@ export function handle_thaw_client(_packet: any): void {
 export function handle_ruleset_terrain(packet: any): void {
   if (packet['name'] === 'Lake') packet['graphic_str'] = packet['graphic_alt'];
   if (packet['name'] === 'Glacier') packet['graphic_str'] = 'tundra';
-  w.terrains[packet['id']] = packet;
+  store.terrains[packet['id']] = packet;
 }
 
 export function handle_ruleset_resource(packet: any): void {
-  w.resources[packet['id']] = packet;
+  (window as any).resources[packet['id']] = packet;
 }
 
 export function handle_ruleset_game(packet: any): void {
-  w.game_rules = packet;
+  (window as any).game_rules = packet;
 }
 
 export function handle_ruleset_specialist(packet: any): void {
-  w.specialists[packet['id']] = packet;
+  (window as any).specialists[packet['id']] = packet;
 }
 
 export function handle_ruleset_nation_groups(packet: any): void {
-  w.nation_groups = packet['groups'];
+  (window as any).nation_groups = packet['groups'];
 }
 
 export function handle_ruleset_nation(packet: any): void {
-  w.nations[packet['id']] = packet;
+  store.nations[packet['id']] = packet;
 }
 
 export function handle_ruleset_city(packet: any): void {
-  w.city_rules[packet['style_id']] = packet;
+  (window as any).city_rules[packet['style_id']] = packet;
 }
 
 export function handle_ruleset_government(packet: any): void {
-  w.governments[packet['id']] = packet;
+  store.governments[packet['id']] = packet;
 }
 
 export function handle_ruleset_summary(packet: any): void {
-  w.ruleset_summary = packet['text'];
+  (window as any).ruleset_summary = packet['text'];
 }
 
 export function handle_ruleset_description_part(packet: any): void {
-  if (w.ruleset_description == null) {
-    w.ruleset_description = packet['text'];
+  if ((window as any).ruleset_description == null) {
+    (window as any).ruleset_description = packet['text'];
   } else {
-    w.ruleset_description += packet['text'];
+    (window as any).ruleset_description += packet['text'];
   }
 }
 
 export function handle_ruleset_action(packet: any): void {
-  w.actions[packet['id']] = packet;
+  (window as any).actions[packet['id']] = packet;
   packet['enablers'] = [];
 }
 
 export function handle_ruleset_goods(packet: any): void {
-  w.goods[packet['id']] = packet;
+  (window as any).goods[packet['id']] = packet;
 }
 
 export function handle_ruleset_clause(packet: any): void {
-  w.clause_infos[packet['type']] = packet;
+  (window as any).clause_infos[packet['type']] = packet;
 }
 
 export function handle_game_info(packet: any): void {
-  w.game_info = packet;
+  store.gameInfo = packet;
 
   // When joining an already-running game (turn > 0), the server does NOT send
   // start_phase (pid 126).  Detect this case and force-transition to C_S_RUNNING
   // so the game page is displayed.
   if (
     packet.turn > 0 &&
-    typeof w.client_state === 'function' &&
-    w.client_state() !== w.C_S_RUNNING
+    typeof clientState === 'function' &&
+    clientState() !== C_S_RUNNING
   ) {
     // Defer slightly so that remaining init packets (players, tiles) arrive first.
     setTimeout(() => {
-      if (w.client_state() !== w.C_S_RUNNING) {
-        w.observing = true;
-        w.set_client_state(w.C_S_RUNNING);
+      if (clientState() !== C_S_RUNNING) {
+        (window as any).observing = true;
+        set_client_state(C_S_RUNNING);
       }
     }, 2000);
   }
 }
 
 export function handle_calendar_info(packet: any): void {
-  w.calendar_info = packet;
+  store.calendarInfo = packet;
 }
 
 export function handle_spaceship_info(_packet: any): void {
@@ -160,37 +218,37 @@ export function handle_spaceship_info(_packet: any): void {
 }
 
 export function handle_ruleset_effect(packet: any): void {
-  if (w.effects[packet['effect_type']] == null) {
-    w.effects[packet['effect_type']] = [];
+  if ((window as any).effects[packet['effect_type']] == null) {
+    (window as any).effects[packet['effect_type']] = [];
   }
-  w.effects[packet['effect_type']].push(packet);
+  (window as any).effects[packet['effect_type']].push(packet);
 }
 
 export function handle_new_year(packet: any): void {
-  w.game_info['year'] = packet['year'];
-  w.game_info['fragments'] = packet['fragments'];
-  w.game_info['turn'] = packet['turn'];
+  store.gameInfo['year'] = packet['year'];
+  store.gameInfo['fragments'] = packet['fragments'];
+  store.gameInfo['turn'] = packet['turn'];
 }
 
 export function handle_timeout_info(packet: any): void {
-  w.last_turn_change_time = Math.ceil(packet['last_turn_change_time']);
-  w.seconds_to_phasedone = Math.floor(packet['seconds_to_phasedone']);
-  w.seconds_to_phasedone_sync = new Date().getTime();
+  (window as any).last_turn_change_time = Math.ceil(packet['last_turn_change_time']);
+  (window as any).seconds_to_phasedone = Math.floor(packet['seconds_to_phasedone']);
+  (window as any).seconds_to_phasedone_sync = new Date().getTime();
 }
 
 export function handle_trade_route_info(packet: any): void {
-  if (w.city_trade_routes[packet['city']] == null) {
-    w.city_trade_routes[packet['city']] = {};
+  if ((window as any).city_trade_routes[packet['city']] == null) {
+    (window as any).city_trade_routes[packet['city']] = {};
   }
-  w.city_trade_routes[packet['city']][packet['index']] = packet;
+  (window as any).city_trade_routes[packet['city']][packet['index']] = packet;
 }
 
 export function handle_endgame_player(packet: any): void {
-  w.endgame_player_info.push(packet);
+  (window as any).endgame_player_info.push(packet);
 }
 
 export function handle_unknown_research(packet: any): void {
-  delete w.research_data[packet['id']];
+  delete (window as any).research_data[packet['id']];
 }
 
 // ============================================================================
@@ -201,17 +259,17 @@ export function handle_ruleset_unit(packet: any): void {
   if (packet['name'] != null && packet['name'].indexOf('?unit:') === 0) {
     packet['name'] = packet['name'].replace('?unit:', '');
   }
-  packet['flags'] = new w.BitVector(packet['flags']);
-  w.unit_types[packet['id']] = packet;
+  packet['flags'] = new BitVector(packet['flags']);
+  store.unitTypes[packet['id']] = packet;
 }
 
 export function handle_web_ruleset_unit_addition(packet: any): void {
   // Convert utype_actions array to BitVector (matches legacy webclient.min.js behaviour)
   if (packet['utype_actions'] != null) {
-    packet['utype_actions'] = new w.BitVector(packet['utype_actions']);
+    packet['utype_actions'] = new BitVector(packet['utype_actions']);
   }
-  if (w.unit_types[packet['id']] != null) {
-    Object.assign(w.unit_types[packet['id']], packet);
+  if (store.unitTypes[packet['id']] != null) {
+    Object.assign(store.unitTypes[packet['id']], packet);
   }
 }
 
@@ -224,8 +282,8 @@ export function recreate_old_tech_req(packet: any): void {
   if (packet['research_reqs']) {
     for (let i = 0; i < packet['research_reqs'].length; i++) {
       const requirement = packet['research_reqs'][i];
-      if (requirement.kind === w.VUT_ADVANCE
-          && requirement.range === w.REQ_RANGE_PLAYER
+      if (requirement.kind === VUT_ADVANCE
+          && requirement.range === REQ_RANGE_PLAYER
           && requirement.present) {
         packet['req'].push(requirement.value);
       }
@@ -233,7 +291,7 @@ export function recreate_old_tech_req(packet: any): void {
   }
   // Fill in A_NONE just in case XBWorld assumes its size is 2.
   while (packet['req'].length < 2) {
-    packet['req'].push(w.A_NONE ?? 0);
+    packet['req'].push(A_NONE ?? 0);
   }
 }
 
@@ -241,7 +299,7 @@ export function handle_ruleset_tech(packet: any): void {
   if (packet['name'] != null && packet['name'].indexOf('?tech:') === 0) {
     packet['name'] = packet['name'].replace('?tech:', '');
   }
-  w.techs[packet['id']] = packet;
+  store.techs[packet['id']] = packet;
   recreate_old_tech_req(packet);
 }
 
@@ -250,17 +308,17 @@ export function handle_ruleset_tech_flag(_packet: any): void { /* TODO */ }
 
 export function handle_ruleset_terrain_control(packet: any): void {
   terrain_control = packet;
-  w.terrain_control = packet;
-  w.SINGLE_MOVE = packet['move_fragments'];
+  (window as any).terrain_control = packet;
+  (window as any).SINGLE_MOVE = packet['move_fragments'];
 }
 
 export function handle_ruleset_building(packet: any): void {
-  w.improvements[packet['id']] = packet;
+  store.improvements[packet['id']] = packet;
 }
 
 export function handle_ruleset_unit_class(packet: any): void {
-  packet['flags'] = new w.BitVector(packet['flags']);
-  w.unit_classes[packet['id']] = packet;
+  packet['flags'] = new BitVector(packet['flags']);
+  (window as any).unit_classes[packet['id']] = packet;
 }
 
 export function handle_ruleset_disaster(_packet: any): void { /* TODO */ }
@@ -276,11 +334,11 @@ export function handle_ruleset_impr_flag(_packet: any): void { /* TODO */ }
 export function handle_ruleset_government_ruler_title(_packet: any): void { /* TODO */ }
 
 export function handle_ruleset_base(packet: any): void {
-  for (let i = 0; i < w.ruleset_control['num_extra_types']; i++) {
-    if (w.is_extra_caused_by(w.extras[i], w.EC_BASE)
-        && w.extras[i]['base'] == null) {
-      w.extras[i]['base'] = packet;
-      w.extras[w.extras[i]['rule_name']]['base'] = packet;
+  for (let i = 0; i < store.rulesControl['num_extra_types']; i++) {
+    if (isExtraCausedBy(store.extras[i], EC_BASE)
+        && store.extras[i]['base'] == null) {
+      store.extras[i]['base'] = packet;
+      (store.extras as any)[store.extras[i]['rule_name']]['base'] = packet;
       return;
     }
   }
@@ -289,11 +347,11 @@ export function handle_ruleset_base(packet: any): void {
 }
 
 export function handle_ruleset_road(packet: any): void {
-  for (let i = 0; i < w.ruleset_control['num_extra_types']; i++) {
-    if (w.is_extra_caused_by(w.extras[i], w.EC_ROAD)
-        && w.extras[i]['road'] == null) {
-      w.extras[i]['road'] = packet;
-      w.extras[w.extras[i]['rule_name']]['road'] = packet;
+  for (let i = 0; i < store.rulesControl['num_extra_types']; i++) {
+    if (isExtraCausedBy(store.extras[i], EC_ROAD)
+        && store.extras[i]['road'] == null) {
+      store.extras[i]['road'] = packet;
+      (store.extras as any)[store.extras[i]['rule_name']]['road'] = packet;
       return;
     }
   }
@@ -302,7 +360,7 @@ export function handle_ruleset_road(packet: any): void {
 }
 
 export function handle_ruleset_action_enabler(packet: any): void {
-  const paction = w.actions[packet.enabled_action];
+  const paction = (window as any).actions[packet.enabled_action];
   if (paction === undefined) {
     console.log("Unknown action " + packet.action + " for enabler ");
     console.log(packet);
@@ -312,22 +370,22 @@ export function handle_ruleset_action_enabler(packet: any): void {
 }
 
 export function handle_ruleset_extra(packet: any): void {
-  packet['causes'] = new w.BitVector(packet['causes']);
-  packet['rmcauses'] = new w.BitVector(packet['rmcauses']);
-  packet['name'] = w.string_unqualify(packet['name']);
-  w.extras[packet['id']] = packet;
-  w.extras[packet['rule_name']] = packet;
+  packet['causes'] = new BitVector(packet['causes']);
+  packet['rmcauses'] = new BitVector(packet['rmcauses']);
+  packet['name'] = stringUnqualify(packet['name']);
+  store.extras[packet['id']] = packet;
+  (store.extras as any)[packet['rule_name']] = packet;
 
-  if (w.is_extra_caused_by(packet, w.EC_ROAD) && packet['buildable']) {
+  if (isExtraCausedBy(packet, EC_ROAD) && packet['buildable']) {
     roads.push(packet);
   }
-  if (w.is_extra_caused_by(packet, w.EC_BASE) && packet['buildable']) {
+  if (isExtraCausedBy(packet, EC_BASE) && packet['buildable']) {
     bases.push(packet);
   }
 
-  if (packet['rule_name'] === 'Railroad') w['EXTRA_RAIL'] = packet['id'];
-  else if (packet['rule_name'] === 'Oil Well') w['EXTRA_OIL_WELL'] = packet['id'];
-  else w['EXTRA_' + packet['rule_name'].toUpperCase()] = packet['id'];
+  if (packet['rule_name'] === 'Railroad') (window as any)['EXTRA_RAIL'] = packet['id'];
+  else if (packet['rule_name'] === 'Oil Well') (window as any)['EXTRA_OIL_WELL'] = packet['id'];
+  else (window as any)['EXTRA_' + packet['rule_name'].toUpperCase()] = packet['id'];
 }
 
 export function handle_ruleset_counter(_packet: any): void { /* TODO */ }
@@ -351,12 +409,12 @@ export function handle_play_music(_packet: any): void { /* TODO */ }
 
 export function handle_server_join_reply(packet: any): void {
   if (packet['you_can_join']) {
-    w.client.conn.established = true;
-    w.client.conn.id = packet['conn_id'];
+    store.client.conn.established = true;
+    store.client.conn.id = packet['conn_id'];
 
-    if (w.get_client_page() === w.PAGE_MAIN
-        || w.get_client_page() === w.PAGE_NETWORK) {
-      w.set_client_page(w.PAGE_START);
+    if (get_client_page() === PAGE_MAIN
+        || get_client_page() === PAGE_NETWORK) {
+      set_client_page(PAGE_START);
     }
 
     const client_info = {
@@ -365,28 +423,28 @@ export function handle_server_join_reply(packet: any): void {
       'emerg_version': 0,
       'distribution': ''
     };
-    w.send_request(JSON.stringify(client_info));
-    w.set_client_state(w.C_S_PREPARING);
+    send_request(JSON.stringify(client_info));
+    set_client_state(C_S_PREPARING);
 
-    const urlAction = w.$.getUrlVar('action');
-    const urlRuleset = w.$.getUrlVar('ruleset');
+    const urlAction = (window as any).$.getUrlVar('action');
+    const urlRuleset = (window as any).$.getUrlVar('ruleset');
     if ((urlAction === 'new' || urlAction === 'hack') && urlRuleset != null) {
-      w.change_ruleset(urlRuleset);
+      (window as any).change_ruleset(urlRuleset);
     }
 
-    if (w.autostart) {
-      if (w.loadTimerId === -1) {
-        w.wait_for_text('You are logged in as', w.pregame_start_game);
+    if ((window as any).autostart) {
+      if ((window as any).loadTimerId === -1) {
+        wait_for_text('You are logged in as', (window as any).pregame_start_game);
       } else {
-        w.wait_for_text('Load complete', w.pregame_start_game);
+        wait_for_text('Load complete', (window as any).pregame_start_game);
       }
-    } else if (w.observing) {
-      w.wait_for_text('You are logged in as', w.request_observe_game);
+    } else if ((window as any).observing) {
+      wait_for_text('You are logged in as', (window as any).request_observe_game);
     }
   } else {
-    w.swal('You were rejected from the game.', (packet['message'] || ''), 'error');
-    w.client.conn.id = -1;
-    w.set_client_page(w.PAGE_MAIN);
+    (window as any).swal('You were rejected from the game.', (packet['message'] || ''), 'error');
+    store.client.conn.id = -1;
+    set_client_page(PAGE_MAIN);
   }
 }
 
@@ -395,40 +453,40 @@ export function handle_conn_info(packet: any): void {
 
   if (packet['used'] === false) {
     if (pconn == null) {
-      w.freelog(w.LOG_VERBOSE, 'Server removed unknown connection ' + packet['id']);
+      freelog((window as any).LOG_VERBOSE, 'Server removed unknown connection ' + packet['id']);
       return;
     }
     client_remove_cli_conn(pconn);
     pconn = null;
   } else {
-    const pplayer = w.valid_player_by_number(packet['player_num']);
+    const pplayer = valid_player_by_number(packet['player_num']);
     packet['playing'] = pplayer;
 
-    if (packet['id'] === w.client.conn.id) {
-      if (w.client.conn.player_num == null
-          || w.client.conn.player_num !== packet['player_num']) {
-        w.discard_diplomacy_dialogs();
+    if (packet['id'] === store.client.conn.id) {
+      if (store.client.conn.player_num == null
+          || store.client.conn.player_num !== packet['player_num']) {
+        discard_diplomacy_dialogs();
       }
-      w.client.conn = packet;
+      store.client.conn = packet;
     }
     conn_list_append(packet);
   }
 
-  if (packet['id'] === w.client.conn.id) {
-    if (w.client.conn.playing !== packet['playing']) {
-      w.set_client_state(w.C_S_PREPARING);
+  if (packet['id'] === store.client.conn.id) {
+    if (store.client.conn.playing !== packet['playing']) {
+      set_client_state(C_S_PREPARING);
     }
   }
 }
 
 export function handle_tile_info(packet: any): void {
-  if (w.tiles != null) {
-    packet['extras'] = new w.BitVector(packet['extras']);
+  if (store.tiles != null) {
+    packet['extras'] = new BitVector(packet['extras']);
 
-    Object.assign(w.tiles[packet['tile']], packet);
+    Object.assign(store.tiles[packet['tile']], packet);
 
-    if (typeof w.mark_tile_dirty === 'function') {
-      w.mark_tile_dirty(packet['tile']);
+    if (typeof mark_tile_dirty === 'function') {
+      mark_tile_dirty(packet['tile']);
     }
   }
 }
@@ -440,20 +498,20 @@ export function handle_chat_msg(packet: any): void {
   const ptile = packet['tile'];
 
   if (message == null) return;
-  if (event == null || event < 0 || event >= w.E_UNDEFINED) {
+  if (event == null || event < 0 || event >= E_UNDEFINED) {
     console.log('Undefined message event type');
     console.log(packet);
-    packet['event'] = w.E_UNDEFINED;
+    packet['event'] = E_UNDEFINED;
   }
 
-  if (w.connections[conn_id] != null) {
-    if (!w.is_longturn()) {
-      message = '<b>' + w.connections[conn_id]['username'] + ':</b>' + message;
+  if (store.connections[conn_id] != null) {
+    if (!(window as any).is_longturn()) {
+      message = '<b>' + store.connections[conn_id]['username'] + ':</b>' + message;
     }
-  } else if (packet['event'] === w.E_SCRIPT) {
+  } else if (packet['event'] === E_SCRIPT) {
     const regxp = /\n/gi;
     message = message.replace(regxp, '<br>\n');
-    w.show_dialog_message('Message for you:', message);
+    (window as any).show_dialog_message('Message for you:', message);
     return;
   } else {
     if (message.indexOf('/metamessage') !== -1) return;
@@ -466,7 +524,7 @@ export function handle_chat_msg(packet: any): void {
   }
 
   packet['message'] = message;
-  w.add_chatbox_text(packet);
+  add_chatbox_text(packet);
 }
 
 export function handle_early_chat_msg(packet: any): void {
@@ -474,72 +532,72 @@ export function handle_early_chat_msg(packet: any): void {
 }
 
 export function handle_city_info(packet: any): void {
-  if (typeof w.mark_tile_dirty === 'function' && packet['tile'] != null) {
-    w.mark_tile_dirty(packet['tile']);
+  if (typeof mark_tile_dirty === 'function' && packet['tile'] != null) {
+    mark_tile_dirty(packet['tile']);
   }
 
   packet['name'] = decodeURIComponent(packet['name']);
-  packet['improvements'] = new w.BitVector(packet['improvements']);
-  packet['city_options'] = new w.BitVector(packet['city_options']);
-  packet['unhappy'] = w.city_unhappy(packet);
+  packet['improvements'] = new BitVector(packet['improvements']);
+  packet['city_options'] = new BitVector(packet['city_options']);
+  packet['unhappy'] = (window as any).city_unhappy(packet);
 
-  if (w.cities[packet['id']] == null) {
+  if (store.cities[packet['id']] == null) {
     const pcity = packet;
-    w.cities[packet['id']] = packet;
-    if (w.C_S_RUNNING === w.client_state() && !w.observing && w.benchmark_start === 0
-        && !w.client_is_observer() && packet['owner'] === w.client.conn.playing.playerno) {
-      w.show_city_dialog_by_id(packet['id']);
+    store.cities[packet['id']] = packet;
+    if (C_S_RUNNING === clientState() && !(window as any).observing && (window as any).benchmark_start === 0
+        && !clientIsObserver() && packet['owner'] === store.client.conn.playing.playerno) {
+      show_city_dialog_by_id(packet['id']);
     }
   } else {
-    Object.assign(w.cities[packet['id']], packet);
+    Object.assign(store.cities[packet['id']], packet);
   }
 
-  const pcity = w.cities[packet['id']];
+  const pcity = store.cities[packet['id']];
   // shield_stock / production changes tracked for animation
   pcity['shield_stock_changed'] = false;
   pcity['production_changed'] = false;
 }
 
 export function handle_city_nationalities(packet: any): void {
-  if (w.cities[packet['id']] != null) {
-    Object.assign(w.cities[packet['id']], packet);
+  if (store.cities[packet['id']] != null) {
+    Object.assign(store.cities[packet['id']], packet);
   }
 }
 
 export function handle_city_rally_point(packet: any): void {
-  if (w.cities[packet['id']] != null) {
-    Object.assign(w.cities[packet['id']], packet);
+  if (store.cities[packet['id']] != null) {
+    Object.assign(store.cities[packet['id']], packet);
   }
 }
 
 export function handle_web_city_info_addition(packet: any): void {
-  if (w.cities[packet['id']] != null) {
-    Object.assign(w.cities[packet['id']], packet);
+  if (store.cities[packet['id']] != null) {
+    Object.assign(store.cities[packet['id']], packet);
   }
   // Trigger UI update after city info is complete
-  if (typeof w.update_city_info_dialog === 'function') {
-    w.update_city_info_dialog();
+  if (typeof (window as any).update_city_info_dialog === 'function') {
+    (window as any).update_city_info_dialog();
   }
 }
 
 export function handle_city_short_info(packet: any): void {
-  if (typeof w.mark_tile_dirty === 'function' && packet['tile'] != null) {
-    w.mark_tile_dirty(packet['tile']);
+  if (typeof mark_tile_dirty === 'function' && packet['tile'] != null) {
+    mark_tile_dirty(packet['tile']);
   }
 
   packet['name'] = decodeURIComponent(packet['name']);
-  packet['improvements'] = new w.BitVector(packet['improvements']);
+  packet['improvements'] = new BitVector(packet['improvements']);
 
-  if (w.cities[packet['id']] == null) {
-    w.cities[packet['id']] = packet;
+  if (store.cities[packet['id']] == null) {
+    store.cities[packet['id']] = packet;
   } else {
-    Object.assign(w.cities[packet['id']], packet);
+    Object.assign(store.cities[packet['id']], packet);
   }
 }
 
 export function handle_city_update_counters(packet: any): void {
-  if (w.cities[packet['id']] != null) {
-    w.cities[packet['id']]['counters'] = packet['counters'];
+  if (store.cities[packet['id']] != null) {
+    store.cities[packet['id']]['counters'] = packet['counters'];
   }
 }
 
@@ -551,84 +609,84 @@ export function handle_player_info(packet: any): void {
     packet['name'] = decodeURIComponent(packet['name']);
   }
 
-  w.players[packet['playerno']] = Object.assign(
-    w.players[packet['playerno']] || {},
+  store.players[packet['playerno']] = Object.assign(
+    store.players[packet['playerno']] || {},
     packet
   );
 
   // Convert bitfield arrays to BitVector so legacy JS can call .isSet().
   // The server sends these as plain arrays; without conversion, nation.js
   // (and control.js / hotseat.js) crash with "flags.isSet is not a function".
-  const p = w.players[packet['playerno']];
-  if (p['flags'] != null && !(p['flags'] instanceof w.BitVector)) {
-    p['flags'] = new w.BitVector(p['flags']);
+  const p = store.players[packet['playerno']];
+  if (p['flags'] != null && !(p['flags'] instanceof BitVector)) {
+    p['flags'] = new BitVector(p['flags']);
   }
-  if (p['gives_shared_vision'] != null && !(p['gives_shared_vision'] instanceof w.BitVector)) {
-    p['gives_shared_vision'] = new w.BitVector(p['gives_shared_vision']);
+  if (p['gives_shared_vision'] != null && !(p['gives_shared_vision'] instanceof BitVector)) {
+    p['gives_shared_vision'] = new BitVector(p['gives_shared_vision']);
   }
 
-  if (w.client.conn.playing != null
-      && packet['playerno'] === w.client.conn.playing['playerno']) {
-    w.client.conn.playing = w.players[packet['playerno']];
+  if (store.client.conn.playing != null
+      && packet['playerno'] === store.client.conn.playing['playerno']) {
+    store.client.conn.playing = store.players[packet['playerno']];
   }
 }
 
 export function handle_web_player_info_addition(packet: any): void {
-  Object.assign(w.players[packet['playerno']], packet);
+  Object.assign(store.players[packet['playerno']], packet);
 
-  if (w.client.conn.playing != null) {
-    if (packet['playerno'] === w.client.conn.playing['playerno']) {
-      w.client.conn.playing = w.players[packet['playerno']];
-      w.update_game_status_panel();
-      w.update_net_income();
+  if (store.client.conn.playing != null) {
+    if (packet['playerno'] === store.client.conn.playing['playerno']) {
+      store.client.conn.playing = store.players[packet['playerno']];
+      update_game_status_panel();
+      update_net_income();
     }
   }
-  w.update_player_info_pregame();
+  update_player_info_pregame();
 
-  if (w.is_tech_tree_init && w.tech_dialog_active) w.update_tech_screen();
+  if ((window as any).is_tech_tree_init && (window as any).tech_dialog_active) update_tech_screen();
 
-  w.assign_nation_color(w.players[packet['playerno']]['nation']);
+  assign_nation_color(store.players[packet['playerno']]['nation']);
 }
 
 export function handle_player_remove(packet: any): void {
-  delete w.players[packet['playerno']];
-  w.update_player_info_pregame();
+  delete store.players[packet['playerno']];
+  update_player_info_pregame();
 }
 
 export function handle_conn_ping(packet: any): void {
-  w.ping_last = new Date().getTime();
-  const pong_packet = { 'pid': w.packet_conn_pong };
-  w.send_request(JSON.stringify(pong_packet));
+  (window as any).ping_last = new Date().getTime();
+  const pong_packet = { 'pid': packet_conn_pong };
+  send_request(JSON.stringify(pong_packet));
 }
 
 export function handle_set_topology(_packet: any): void { /* TODO */ }
 
 export function handle_map_info(packet: any): void {
-  w.map = packet;
-  w.map_init_topology(false);
-  w.map_allocate();
-  w.mapdeco_init();
+  store.mapInfo = packet;
+  (window as any).map_init_topology(false);
+  (window as any).map_allocate();
+  mapdeco_init();
 
 }
 
 export function handle_authentication_req(packet: any): void {
-  w.show_auth_dialog(packet);
+  (window as any).show_auth_dialog(packet);
 }
 
 export function handle_server_shutdown(_packet: any): void { /* TODO */ }
 
 export function handle_nuke_tile_info(packet: any): void {
-  const ptile = w.index_to_tile(packet['tile']);
+  const ptile = (window as any).index_to_tile(packet['tile']);
   ptile['nuke'] = 60;
-  w.play_sound('LrgExpl.ogg');
+  play_sound('LrgExpl.ogg');
 }
 
 export function handle_city_remove(packet: any): void {
-  w.remove_city(packet['city_id']);
+  (window as any).remove_city(packet['city_id']);
 }
 
 export function handle_connect_msg(packet: any): void {
-  w.add_chatbox_text(packet);
+  add_chatbox_text(packet);
 }
 
 export function handle_server_info(packet: any): void {
@@ -645,17 +703,17 @@ export function handle_server_info(packet: any): void {
 
 export function handle_city_name_suggestion_info(packet: any): void {
   packet['name'] = decodeURIComponent(packet['name']);
-  w.city_name_dialog(packet['name'], packet['unit_id']);
+  city_name_dialog(packet['name'], packet['unit_id']);
 }
 
 export function handle_city_sabotage_list(packet: any): void {
   if (packet['request_kind'] !== REQEST_PLAYER_INITIATED) {
     console.log('handle_city_sabotage_list(): was asked to not disturb the player. Unimplemented.');
   }
-  w.popup_sabotage_dialog(
-    w.game_find_unit_by_number(packet['actor_id']),
-    w.game_find_city_by_number(packet['city_id']),
-    new w.BitVector(packet['improvements']),
+  popup_sabotage_dialog(
+    game_find_unit_by_number(packet['actor_id']),
+    game_find_city_by_number(packet['city_id']),
+    new BitVector(packet['improvements']),
     packet['act_id']
   );
 }
@@ -663,39 +721,39 @@ export function handle_city_sabotage_list(packet: any): void {
 export function handle_player_attribute_chunk(_packet: any): void { /* no-op */ }
 
 export function handle_unit_remove(packet: any): void {
-  const punit = w.game_find_unit_by_number(packet['unit_id']);
+  const punit = game_find_unit_by_number(packet['unit_id']);
   if (punit == null) return;
 
-  if (typeof w.mark_tile_dirty === 'function' && punit['tile'] != null) {
-    w.mark_tile_dirty(punit['tile']);
+  if (typeof mark_tile_dirty === 'function' && punit['tile'] != null) {
+    mark_tile_dirty(punit['tile']);
   }
 
-  if (w.action_selection_in_progress_for === punit.id) {
-    w.action_selection_close();
-    w.action_selection_next_in_focus(punit.id);
+  if ((window as any).action_selection_in_progress_for === punit.id) {
+    action_selection_close();
+    action_selection_next_in_focus(punit.id);
   }
 
-  w.clear_tile_unit(punit);
-  w.client_remove_unit(punit);
+  clear_tile_unit(punit);
+  client_remove_unit(punit);
 }
 
 export function handle_unit_info(packet: any): void {
-  if (typeof w.mark_tile_dirty === 'function' && packet['tile'] != null) {
-    w.mark_tile_dirty(packet['tile']);
-    const old_unit = w.units[packet['id']];
+  if (typeof mark_tile_dirty === 'function' && packet['tile'] != null) {
+    mark_tile_dirty(packet['tile']);
+    const old_unit = store.units[packet['id']];
     if (old_unit != null && old_unit['tile'] !== packet['tile']) {
-      w.mark_tile_dirty(old_unit['tile']);
+      mark_tile_dirty(old_unit['tile']);
     }
   }
   handle_unit_packet_common(packet);
 }
 
 export function handle_unit_short_info(packet: any): void {
-  if (typeof w.mark_tile_dirty === 'function' && packet['tile'] != null) {
-    w.mark_tile_dirty(packet['tile']);
-    const old_unit = w.units[packet['id']];
+  if (typeof mark_tile_dirty === 'function' && packet['tile'] != null) {
+    mark_tile_dirty(packet['tile']);
+    const old_unit = store.units[packet['id']];
     if (old_unit != null && old_unit['tile'] !== packet['tile']) {
-      w.mark_tile_dirty(old_unit['tile']);
+      mark_tile_dirty(old_unit['tile']);
     }
   }
   handle_unit_packet_common(packet);
@@ -708,20 +766,20 @@ export function handle_unit_short_info(packet: any): void {
 export function action_decision_handle(punit: any): void {
   for (let a = 0; a < auto_attack_actions.length; a++) {
     const action = auto_attack_actions[a];
-    if (w.utype_can_do_action(w.unit_type(punit), action) && w.auto_attack) {
+    if (utype_can_do_action(unit_type(punit), action) && (window as any).auto_attack) {
       const packet = {
-        'pid':             w.packet_unit_get_actions,
+        'pid':             packet_unit_get_actions,
         'actor_unit_id':   punit['id'],
-        'target_unit_id':  w.IDENTITY_NUMBER_ZERO,
+        'target_unit_id':  IDENTITY_NUMBER_ZERO,
         'target_tile_id':  punit['action_decision_tile'],
-        'target_extra_id': w.EXTRA_NONE,
+        'target_extra_id': EXTRA_NONE,
         'request_kind':    REQEST_BACKGROUND_FAST_AUTO_ATTACK,
       };
-      w.send_request(JSON.stringify(packet));
+      send_request(JSON.stringify(packet));
       return;
     }
   }
-  w.action_decision_request(punit);
+  action_decision_request(punit);
 }
 
 /**
@@ -735,99 +793,99 @@ export function action_decision_maybe_auto(
 ): void {
   for (let a = 0; a < auto_attack_actions.length; a++) {
     const action = auto_attack_actions[a];
-    if (w.action_prob_possible(action_probabilities[action]) && w.auto_attack) {
+    if ((window as any).action_prob_possible(action_probabilities[action]) && (window as any).auto_attack) {
       let target = target_tile['index'];
-      if (action === w.ACTION_NUKE_CITY) {
-        const tc = w.tile_city(target_tile);
+      if (action === ACTION_NUKE_CITY) {
+        const tc = (window as any).tile_city(target_tile);
         if (!tc) continue;
         target = tc['id'];
       }
-      w.request_unit_do_action(action, actor_unit['id'], target);
+      request_unit_do_action(action, actor_unit['id'], target);
       return;
     }
   }
-  w.action_decision_request(actor_unit);
+  action_decision_request(actor_unit);
 }
 
 /**
  * Simple wrapper: update_client_state -> set_client_state.
  */
 export function update_client_state(value: any): void {
-  w.set_client_state(value);
+  set_client_state(value);
 }
 
 export function handle_unit_packet_common(packet_unit: any): void {
-  const punit = w.player_find_unit_by_id(
-    w.unit_owner(packet_unit), packet_unit['id']
+  const punit = player_find_unit_by_id(
+    unit_owner(packet_unit), packet_unit['id']
   );
 
   // Clear old tile reference before updating
-  if (typeof w.clear_tile_unit === 'function') {
-    w.clear_tile_unit(punit);
+  if (typeof clear_tile_unit === 'function') {
+    clear_tile_unit(punit);
   }
 
-  if (punit == null && w.game_find_unit_by_number(packet_unit['id']) != null) {
+  if (punit == null && game_find_unit_by_number(packet_unit['id']) != null) {
     // Unit changed owner — delete old and recreate
-    w.handle_unit_remove(packet_unit['id']);
+    handle_unit_remove(packet_unit['id']);
   }
 
   let old_tile: any = null;
-  if (punit != null) old_tile = w.index_to_tile(punit['tile']);
+  if (punit != null) old_tile = (window as any).index_to_tile(punit['tile']);
 
-  if (w.units[packet_unit['id']] == null) {
+  if (store.units[packet_unit['id']] == null) {
     // New unit
-    if (w.should_ask_server_for_actions(packet_unit)) {
+    if (should_ask_server_for_actions(packet_unit)) {
       action_decision_handle(packet_unit);
     }
     packet_unit['anim_list'] = [];
-    w.units[packet_unit['id']] = packet_unit;
-    w.units[packet_unit['id']]['facing'] = 6;
+    store.units[packet_unit['id']] = packet_unit;
+    store.units[packet_unit['id']]['facing'] = 6;
   } else {
     // Existing unit update
     if ((punit['action_decision_want'] !== packet_unit['action_decision_want']
          || punit['action_decision_tile'] !== packet_unit['action_decision_tile'])
-        && w.should_ask_server_for_actions(packet_unit)) {
+        && should_ask_server_for_actions(packet_unit)) {
       action_decision_handle(packet_unit);
     }
-    if (typeof w.update_unit_anim_list === 'function') {
-      w.update_unit_anim_list(w.units[packet_unit['id']], packet_unit);
+    if (typeof update_unit_anim_list === 'function') {
+      update_unit_anim_list(store.units[packet_unit['id']], packet_unit);
     }
-    Object.assign(w.units[packet_unit['id']], packet_unit);
+    Object.assign(store.units[packet_unit['id']], packet_unit);
     // Also update current_focus references
-    if (w.current_focus != null) {
-      for (let i = 0; i < w.current_focus.length; i++) {
-        if (w.current_focus[i]['id'] === packet_unit['id']) {
-          Object.assign(w.current_focus[i], packet_unit);
+    if ((window as any).current_focus != null) {
+      for (let i = 0; i < (window as any).current_focus.length; i++) {
+        if ((window as any).current_focus[i]['id'] === packet_unit['id']) {
+          Object.assign((window as any).current_focus[i], packet_unit);
         }
       }
     }
   }
 
-  w.update_tile_unit(w.units[packet_unit['id']]);
+  update_tile_unit(store.units[packet_unit['id']]);
 
-  if (w.current_focus != null && w.current_focus.length > 0
-      && w.current_focus[0]['id'] === packet_unit['id']) {
-    w.update_active_units_dialog();
-    w.update_unit_order_commands();
+  if ((window as any).current_focus != null && (window as any).current_focus.length > 0
+      && (window as any).current_focus[0]['id'] === packet_unit['id']) {
+    update_active_units_dialog();
+    update_unit_order_commands();
 
-    if (w.current_focus[0]['done_moving'] !== packet_unit['done_moving']) {
-      w.update_unit_focus();
+    if ((window as any).current_focus[0]['done_moving'] !== packet_unit['done_moving']) {
+      update_unit_focus();
     }
   }
 
 }
 
 export function handle_unit_combat_info(packet: any): void {
-  const attacker = w.units[packet['attacker_unit_id']];
-  const defender = w.units[packet['defender_unit_id']];
+  const attacker = store.units[packet['attacker_unit_id']];
+  const defender = store.units[packet['defender_unit_id']];
   const attacker_hp = packet['attacker_hp'];
   const defender_hp = packet['defender_hp'];
 
-  if (attacker_hp === 0 && w.is_unit_visible(attacker)) {
-    w.explosion_anim_map[attacker['tile']] = 25;
+  if (attacker_hp === 0 && is_unit_visible(attacker)) {
+    (window as any).explosion_anim_map[attacker['tile']] = 25;
   }
-  if (defender_hp === 0 && w.is_unit_visible(defender)) {
-    w.explosion_anim_map[defender['tile']] = 25;
+  if (defender_hp === 0 && is_unit_visible(defender)) {
+    (window as any).explosion_anim_map[defender['tile']] = 25;
   }
 }
 
@@ -837,13 +895,13 @@ export function handle_unit_action_answer(packet: any): void {
   const cost = packet['cost'];
   const action_type = packet['action_type'];
 
-  const target_city = w.game_find_city_by_number(target_id);
-  const target_unit = w.game_find_unit_by_number(target_id);
-  const actor_unit = w.game_find_unit_by_number(diplomat_id);
+  const target_city = game_find_city_by_number(target_id);
+  const target_unit = game_find_unit_by_number(target_id);
+  const actor_unit = game_find_unit_by_number(diplomat_id);
 
   if (actor_unit == null) {
     console.log('Bad actor unit (' + diplomat_id + ') in unit action answer.');
-    w.act_sel_queue_done(diplomat_id);
+    act_sel_queue_done(diplomat_id);
     return;
   }
 
@@ -851,37 +909,37 @@ export function handle_unit_action_answer(packet: any): void {
     console.log('handle_unit_action_answer(): was asked to not disturb the player. Unimplemented.');
   }
 
-  if (action_type === w.ACTION_SPY_BRIBE_UNIT) {
+  if (action_type === ACTION_SPY_BRIBE_UNIT) {
     if (target_unit == null) {
       console.log('Bad target unit (' + target_id + ') in unit action answer.');
-      w.act_sel_queue_done(diplomat_id);
+      act_sel_queue_done(diplomat_id);
     } else {
-      w.popup_bribe_dialog(actor_unit, target_unit, cost, action_type);
+      popup_bribe_dialog(actor_unit, target_unit, cost, action_type);
     }
     return;
-  } else if (action_type === w.ACTION_SPY_INCITE_CITY
-             || action_type === w.ACTION_SPY_INCITE_CITY_ESC) {
+  } else if (action_type === ACTION_SPY_INCITE_CITY
+             || action_type === ACTION_SPY_INCITE_CITY_ESC) {
     if (target_city == null) {
       console.log('Bad target city (' + target_id + ') in unit action answer.');
-      w.act_sel_queue_done(diplomat_id);
+      act_sel_queue_done(diplomat_id);
     } else {
-      w.popup_incite_dialog(actor_unit, target_city, cost, action_type);
+      popup_incite_dialog(actor_unit, target_city, cost, action_type);
     }
     return;
-  } else if (action_type === w.ACTION_UPGRADE_UNIT) {
+  } else if (action_type === ACTION_UPGRADE_UNIT) {
     if (target_city == null) {
       console.log('Bad target city (' + target_id + ') in unit action answer.');
-      w.act_sel_queue_done(diplomat_id);
+      act_sel_queue_done(diplomat_id);
     } else {
-      w.popup_unit_upgrade_dlg(actor_unit, target_city, cost, action_type);
+      popup_unit_upgrade_dlg(actor_unit, target_city, cost, action_type);
     }
     return;
-  } else if (action_type === w.ACTION_COUNT) {
+  } else if (action_type === ACTION_COUNT) {
     console.log('unit_action_answer: Server refused to respond.');
   } else {
     console.log('unit_action_answer: Invalid answer.');
   }
-  w.act_sel_queue_done(diplomat_id);
+  act_sel_queue_done(diplomat_id);
 }
 
 export function handle_unit_actions(packet: any): void {
@@ -892,17 +950,17 @@ export function handle_unit_actions(packet: any): void {
   const target_extra_id = packet['target_extra_id'];
   const action_probabilities = packet['action_probabilities'];
 
-  const pdiplomat = w.game_find_unit_by_number(actor_unit_id);
-  const target_unit = w.game_find_unit_by_number(target_unit_id);
-  const target_city = w.game_find_city_by_number(target_city_id);
-  const ptile = w.index_to_tile(target_tile_id);
-  const target_extra = w.extra_by_number(target_extra_id);
+  const pdiplomat = game_find_unit_by_number(actor_unit_id);
+  const target_unit = game_find_unit_by_number(target_unit_id);
+  const target_city = game_find_city_by_number(target_city_id);
+  const ptile = (window as any).index_to_tile(target_tile_id);
+  const target_extra = (window as any).extra_by_number(target_extra_id);
 
   let hasActions = false;
 
   if (pdiplomat != null && ptile != null) {
     action_probabilities.forEach(function(prob: any) {
-      if (w.action_prob_possible(prob)) {
+      if ((window as any).action_prob_possible(prob)) {
         hasActions = true;
       }
     });
@@ -911,22 +969,22 @@ export function handle_unit_actions(packet: any): void {
   switch (packet['request_kind']) {
   case REQEST_PLAYER_INITIATED:
     if (hasActions) {
-      w.popup_action_selection(pdiplomat, action_probabilities,
+      popup_action_selection(pdiplomat, action_probabilities,
                                ptile, target_extra, target_unit, target_city);
     } else {
-      w.action_selection_no_longer_in_progress(actor_unit_id);
-      w.action_decision_clear_want(actor_unit_id);
-      w.action_selection_next_in_focus(actor_unit_id);
+      action_selection_no_longer_in_progress(actor_unit_id);
+      action_decision_clear_want(actor_unit_id);
+      action_selection_next_in_focus(actor_unit_id);
     }
     break;
   case REQEST_BACKGROUND_REFRESH:
-    w.action_selection_refresh(pdiplomat,
+    action_selection_refresh(pdiplomat,
                                target_city, target_unit, ptile,
                                target_extra,
                                action_probabilities);
     break;
   case REQEST_BACKGROUND_FAST_AUTO_ATTACK:
-    w.action_decision_maybe_auto(pdiplomat, action_probabilities,
+    action_decision_maybe_auto(pdiplomat, action_probabilities,
                                  ptile, target_extra,
                                  target_unit, target_city);
     break;
@@ -938,30 +996,30 @@ export function handle_unit_actions(packet: any): void {
 }
 
 export function handle_diplomacy_init_meeting(packet: any): void {
-  w.diplomacy_clause_map[packet['counterpart']] = [];
-  w.show_diplomacy_dialog(packet['counterpart']);
-  w.show_diplomacy_clauses(packet['counterpart']);
+  (window as any).diplomacy_clause_map[packet['counterpart']] = [];
+  show_diplomacy_dialog(packet['counterpart']);
+  show_diplomacy_clauses(packet['counterpart']);
 }
 
 export function handle_diplomacy_cancel_meeting(packet: any): void {
-  w.cancel_meeting(packet['counterpart']);
+  cancel_meeting(packet['counterpart']);
 }
 
 export function handle_diplomacy_create_clause(packet: any): void {
   const counterpart_id = packet['counterpart'];
-  if (w.diplomacy_clause_map[counterpart_id] == null) {
-    w.diplomacy_clause_map[counterpart_id] = [];
+  if ((window as any).diplomacy_clause_map[counterpart_id] == null) {
+    (window as any).diplomacy_clause_map[counterpart_id] = [];
   }
-  w.diplomacy_clause_map[counterpart_id].push(packet);
-  w.show_diplomacy_clauses(counterpart_id);
+  (window as any).diplomacy_clause_map[counterpart_id].push(packet);
+  show_diplomacy_clauses(counterpart_id);
 }
 
 export function handle_diplomacy_remove_clause(packet: any): void {
-  w.remove_clause(packet);
+  remove_clause(packet);
 }
 
 export function handle_diplomacy_accept_treaty(packet: any): void {
-  w.accept_treaty(packet['counterpart'],
+  accept_treaty(packet['counterpart'],
                   packet['I_accepted'],
                   packet['other_accepted']);
 }
@@ -981,83 +1039,83 @@ export function handle_page_msg_part(packet: any): void {
   if (page_msg['missing_parts'] === 0) {
     const regxp = /\n/gi;
     page_msg['message'] = page_msg['message'].replace(regxp, '<br>\n');
-    w.show_dialog_message(page_msg['headline'], page_msg['message']);
+    (window as any).show_dialog_message(page_msg['headline'], page_msg['message']);
     page_msg = {};
   }
 }
 
 export function handle_conn_ping_info(packet: any): void {
-  if (w.debug_active) {
-    w.conn_ping_info = packet;
-    w.debug_ping_list.push(packet['ping_time'][0] * 1000);
+  if ((window as any).debug_active) {
+    (window as any).conn_ping_info = packet;
+    (window as any).debug_ping_list.push(packet['ping_time'][0] * 1000);
   }
 }
 
 export function handle_end_phase(_packet: any): void {
-  w.chatbox_clip_messages();
+  chatbox_clip_messages();
 }
 
 export function handle_start_phase(_packet: any): void {
-  w.set_client_state(w.C_S_RUNNING);
-  w.set_phase_start();
-  w.saved_this_turn = false;
+  set_client_state(C_S_RUNNING);
+  (window as any).set_phase_start();
+  (window as any).saved_this_turn = false;
 }
 
 export function handle_ruleset_control(packet: any): void {
-  w.ruleset_control = packet;
-  w.set_client_state(w.C_S_PREPARING);
+  store.rulesControl = packet;
+  set_client_state(C_S_PREPARING);
 
-  w.effects = {};
-  w.ruleset_summary = null;
-  w.ruleset_description = null;
-  w.game_rules = null;
-  w.nation_groups = [];
-  w.nations = {};
-  w.specialists = {};
-  w.techs = {};
-  w.governments = {};
+  (window as any).effects = {};
+  (window as any).ruleset_summary = null;
+  (window as any).ruleset_description = null;
+  (window as any).game_rules = null;
+  (window as any).nation_groups = [];
+  store.nations = {};
+  (window as any).specialists = {};
+  store.techs = {};
+  store.governments = {};
   terrain_control = {};
-  w.terrain_control = {};
-  w.SINGLE_MOVE = undefined;
-  w.unit_types = {};
-  w.unit_classes = {};
-  w.city_rules = {};
-  w.terrains = {};
-  w.resources = {};
-  w.goods = {};
-  w.actions = {};
+  (window as any).terrain_control = {};
+  (window as any).SINGLE_MOVE = undefined;
+  store.unitTypes = {};
+  (window as any).unit_classes = {};
+  (window as any).city_rules = {};
+  store.terrains = {};
+  (window as any).resources = {};
+  (window as any).goods = {};
+  (window as any).actions = {};
 
-  w.improvements_init();
+  improvements_init();
 
-  for (const extra in w.extras) {
-    const ename = w.extras[extra]['rule_name'];
-    if (ename === 'Railroad') delete w['EXTRA_RAIL'];
-    else if (ename === 'Oil Well') delete w['EXTRA_OIL_WELL'];
-    else delete w['EXTRA_' + ename.toUpperCase()];
+  for (const extra in store.extras) {
+    const ename = (store.extras as any)[extra]['rule_name'];
+    if (ename === 'Railroad') delete (window as any)['EXTRA_RAIL'];
+    else if (ename === 'Oil Well') delete (window as any)['EXTRA_OIL_WELL'];
+    else delete (window as any)['EXTRA_' + ename.toUpperCase()];
   }
-  w.extras = {};
+  store.extras = {};
   roads = [];
   bases = [];
 
-  w.clause_infos = {};
+  (window as any).clause_infos = {};
 }
 
 export function handle_endgame_report(_packet: any): void {
-  w.set_client_state(w.C_S_OVER);
+  set_client_state(C_S_OVER);
 }
 
 export function handle_scenario_info(packet: any): void {
-  w.scenario_info = packet;
+  (window as any).scenario_info = packet;
 }
 
 export function handle_scenario_description(packet: any): void {
-  w.scenario_info['description'] = packet['description'];
-  w.update_game_info_pregame();
+  (window as any).scenario_info['description'] = packet['description'];
+  update_game_info_pregame();
 }
 
 export function handle_single_want_hack_reply(packet: any): void {
-  if (typeof w.handle_single_want_hack_reply_orig === 'function') {
-    w.handle_single_want_hack_reply_orig(packet);
+  if (typeof (window as any).handle_single_want_hack_reply_orig === 'function') {
+    (window as any).handle_single_want_hack_reply_orig(packet);
   }
 }
 
@@ -1070,28 +1128,28 @@ export function handle_edit_startpos_full(_packet: any): void { /* no-op */ }
 export function handle_edit_object_created(_packet: any): void { /* no-op */ }
 
 export function handle_server_setting_const(packet: any): void {
-  w.server_settings[packet['id']] = packet;
-  w.server_settings[packet['name']] = packet;
+  store.serverSettings[packet['id']] = packet;
+  store.serverSettings[packet['name']] = packet;
 }
 
 export function handle_server_setting_int(packet: any): void {
-  Object.assign(w.server_settings[packet['id']], packet);
+  Object.assign(store.serverSettings[packet['id']], packet);
 }
 
 export function handle_server_setting_enum(packet: any): void {
-  Object.assign(w.server_settings[packet['id']], packet);
+  Object.assign(store.serverSettings[packet['id']], packet);
 }
 
 export function handle_server_setting_bitwise(packet: any): void {
-  Object.assign(w.server_settings[packet['id']], packet);
+  Object.assign(store.serverSettings[packet['id']], packet);
 }
 
 export function handle_server_setting_bool(packet: any): void {
-  Object.assign(w.server_settings[packet['id']], packet);
+  Object.assign(store.serverSettings[packet['id']], packet);
 }
 
 export function handle_server_setting_str(packet: any): void {
-  Object.assign(w.server_settings[packet['id']], packet);
+  Object.assign(store.serverSettings[packet['id']], packet);
 }
 
 export function handle_server_setting_control(_packet: any): void { /* TODO */ }
@@ -1099,108 +1157,108 @@ export function handle_server_setting_control(_packet: any): void { /* TODO */ }
 export function handle_player_diplstate(packet: any): void {
   let need_players_dialog_update = false;
 
-  if (w.client == null || w.client.conn.playing == null) return;
+  if (store.client == null || store.client.conn.playing == null) return;
 
-  if (packet['plr2'] === w.client.conn.playing['playerno']) {
-    const ds = w.players[packet['plr1']].diplstates;
+  if (packet['plr2'] === store.client.conn.playing['playerno']) {
+    const ds = store.players[packet['plr1']].diplstates;
     if (ds != undefined && ds[packet['plr2']] != undefined
         && ds[packet['plr2']]['state'] !== packet['type']) {
       need_players_dialog_update = true;
     }
   }
 
-  if (packet['type'] === w.DS_WAR && packet['plr2'] === w.client.conn.playing['playerno']
-      && w.diplstates[packet['plr1']] !== w.DS_WAR && w.diplstates[packet['plr1']] !== w.DS_NO_CONTACT) {
-    w.alert_war(packet['plr1']);
-  } else if (packet['type'] === w.DS_WAR && packet['plr1'] === w.client.conn.playing['playerno']
-      && w.diplstates[packet['plr2']] !== w.DS_WAR && w.diplstates[packet['plr2']] !== w.DS_NO_CONTACT) {
-    w.alert_war(packet['plr2']);
+  if (packet['type'] === (window as any).DS_WAR && packet['plr2'] === store.client.conn.playing['playerno']
+      && (window as any).diplstates[packet['plr1']] !== (window as any).DS_WAR && (window as any).diplstates[packet['plr1']] !== (window as any).DS_NO_CONTACT) {
+    (window as any).alert_war(packet['plr1']);
+  } else if (packet['type'] === (window as any).DS_WAR && packet['plr1'] === store.client.conn.playing['playerno']
+      && (window as any).diplstates[packet['plr2']] !== (window as any).DS_WAR && (window as any).diplstates[packet['plr2']] !== (window as any).DS_NO_CONTACT) {
+    (window as any).alert_war(packet['plr2']);
   }
 
-  if (packet['plr1'] === w.client.conn.playing['playerno']) {
-    w.diplstates[packet['plr2']] = packet['type'];
-  } else if (packet['plr2'] === w.client.conn.playing['playerno']) {
-    w.diplstates[packet['plr1']] = packet['type'];
+  if (packet['plr1'] === store.client.conn.playing['playerno']) {
+    (window as any).diplstates[packet['plr2']] = packet['type'];
+  } else if (packet['plr2'] === store.client.conn.playing['playerno']) {
+    (window as any).diplstates[packet['plr1']] = packet['type'];
   }
 
-  if (w.players[packet['plr1']].diplstates === undefined) {
-    w.players[packet['plr1']].diplstates = [];
+  if (store.players[packet['plr1']].diplstates === undefined) {
+    store.players[packet['plr1']].diplstates = [];
   }
-  w.players[packet['plr1']].diplstates[packet['plr2']] = {
+  store.players[packet['plr1']].diplstates[packet['plr2']] = {
     state: packet['type'],
     turns_left: packet['turns_left'],
     contact_turns_left: packet['contact_turns_left']
   };
 
   if (need_players_dialog_update
-      && w.action_selection_actor_unit() !== w.IDENTITY_NUMBER_ZERO) {
+      && action_selection_actor_unit() !== IDENTITY_NUMBER_ZERO) {
     let tgt_tile: any;
     let tgt_unit: any;
     let tgt_city: any;
 
-    if ((w.action_selection_target_unit() !== w.IDENTITY_NUMBER_ZERO
-         && ((tgt_unit = w.game_find_unit_by_number(w.action_selection_target_unit())))
+    if ((action_selection_target_unit() !== IDENTITY_NUMBER_ZERO
+         && ((tgt_unit = game_find_unit_by_number(action_selection_target_unit())))
          && tgt_unit['owner'] === packet['plr1'])
-        || (w.action_selection_target_city() !== w.IDENTITY_NUMBER_ZERO
-            && ((tgt_city = w.game_find_city_by_number(w.action_selection_target_city())))
+        || (action_selection_target_city() !== IDENTITY_NUMBER_ZERO
+            && ((tgt_city = game_find_city_by_number(action_selection_target_city())))
             && tgt_city['owner'] === packet['plr1'])
-        || ((tgt_tile = w.index_to_tile(w.action_selection_target_tile()))
-            && w.tile_owner(tgt_tile) === packet['plr1'])) {
+        || ((tgt_tile = (window as any).index_to_tile(action_selection_target_tile()))
+            && (window as any).tile_owner(tgt_tile) === packet['plr1'])) {
       const refresh_packet = {
-        'pid': w.packet_unit_get_actions,
-        'actor_unit_id': w.action_selection_actor_unit(),
-        'target_unit_id': w.action_selection_target_unit(),
-        'target_tile_id': w.action_selection_target_tile(),
-        'target_extra_id': w.action_selection_target_extra(),
+        'pid': packet_unit_get_actions,
+        'actor_unit_id': action_selection_actor_unit(),
+        'target_unit_id': action_selection_target_unit(),
+        'target_tile_id': action_selection_target_tile(),
+        'target_extra_id': action_selection_target_extra(),
         'request_kind': REQEST_BACKGROUND_REFRESH,
       };
-      w.send_request(JSON.stringify(refresh_packet));
+      send_request(JSON.stringify(refresh_packet));
     }
   }
 }
 
 export function handle_web_goto_path(packet: any): void {
-  if (w.goto_active) {
-    w.update_goto_path(packet);
+  if ((window as any).goto_active) {
+    update_goto_path(packet);
   }
 }
 
 export function handle_research_info(packet: any): void {
   let old_inventions: any = null;
-  if (w.research_data[packet['id']] != null) {
-    old_inventions = w.research_data[packet['id']]['inventions'];
+  if ((window as any).research_data[packet['id']] != null) {
+    old_inventions = (window as any).research_data[packet['id']]['inventions'];
   }
 
-  w.research_data[packet['id']] = packet;
+  (window as any).research_data[packet['id']] = packet;
 
-  if (w.game_info['team_pooled_research']) {
-    for (const player_id in w.players) {
-      const pplayer = w.players[player_id];
+  if (store.gameInfo['team_pooled_research']) {
+    for (const player_id in store.players) {
+      const pplayer = store.players[player_id];
       if (pplayer['team'] === packet['id']) {
         Object.assign(pplayer, packet);
         delete pplayer['id'];
       }
     }
   } else {
-    const pplayer = w.players[packet['id']];
+    const pplayer = store.players[packet['id']];
     Object.assign(pplayer, packet);
     delete pplayer['id'];
   }
 
-  if (!w.client_is_observer() && old_inventions != null
-      && w.client.conn.playing != null
-      && w.client.conn.playing['playerno'] === packet['id']) {
+  if (!clientIsObserver() && old_inventions != null
+      && store.client.conn.playing != null
+      && store.client.conn.playing['playerno'] === packet['id']) {
     for (let i = 0; i < packet['inventions'].length; i++) {
       if (packet['inventions'][i] !== old_inventions[i]
-          && packet['inventions'][i] === w.TECH_KNOWN) {
-        w.queue_tech_gained_dialog(i);
+          && packet['inventions'][i] === TECH_KNOWN) {
+        queue_tech_gained_dialog(i);
         break;
       }
     }
   }
 
-  if (w.is_tech_tree_init && w.tech_dialog_active) w.update_tech_screen();
-  w.bulbs_output_updater.update();
+  if ((window as any).is_tech_tree_init && (window as any).tech_dialog_active) update_tech_screen();
+  (window as any).bulbs_output_updater.update();
 }
 
 // ============================================================================
@@ -1208,37 +1266,37 @@ export function handle_research_info(packet: any): void {
 // ============================================================================
 
 export function handle_begin_turn(_packet: any): void {
-  if (typeof w.mark_all_dirty === 'function') w.mark_all_dirty();
+  if (typeof mark_all_dirty === 'function') mark_all_dirty();
 
-  if (!w.observing) {
+  if (!(window as any).observing) {
     const btn = document.getElementById('turn_done_button') as HTMLButtonElement | null;
     if (btn) {
       btn.disabled = false;
       btn.textContent = 'Turn Done';
     }
     // Also try jQuery in case button widget is initialized
-    try { w.$('#turn_done_button').button('option', 'disabled', false); } catch (_e) { /* ok */ }
-    try { w.$('#turn_done_button').button('option', 'label', 'Turn Done'); } catch (_e) { /* ok */ }
+    try { (window as any).$('#turn_done_button').button('option', 'disabled', false); } catch (_e) { /* ok */ }
+    try { (window as any).$('#turn_done_button').button('option', 'label', 'Turn Done'); } catch (_e) { /* ok */ }
   }
-  w.waiting_units_list = [];
-  w.update_unit_focus();
-  w.update_active_units_dialog();
-  w.update_game_status_panel();
+  (window as any).waiting_units_list = [];
+  update_unit_focus();
+  update_active_units_dialog();
+  update_game_status_panel();
 
-  const funits = w.get_units_in_focus();
+  const funits = get_units_in_focus();
   if (funits != null && funits.length === 0) {
-    w.auto_center_on_focus_unit();
+    auto_center_on_focus_unit();
   }
 
-  if (w.is_tech_tree_init && w.tech_dialog_active) w.update_tech_screen();
+  if ((window as any).is_tech_tree_init && (window as any).tech_dialog_active) update_tech_screen();
 }
 
 export function handle_end_turn(_packet: any): void {
-  w.reset_unit_anim_list();
-  if (!w.observing) {
+  reset_unit_anim_list();
+  if (!(window as any).observing) {
     const btn = document.getElementById('turn_done_button') as HTMLButtonElement | null;
     if (btn) btn.disabled = true;
-    try { w.$('#turn_done_button').button('option', 'disabled', true); } catch (_e) { /* ok */ }
+    try { (window as any).$('#turn_done_button').button('option', 'disabled', true); } catch (_e) { /* ok */ }
   }
 }
 
@@ -1391,8 +1449,8 @@ export const packet_hand_table: Record<number, (packet: any) => void> = {
 };
 
 // Register handle_web_info_text_message from legacy mapctrl.js (loaded before TS bundle)
-if (typeof w.handle_web_info_text_message === 'function') {
-  packet_hand_table[290] = w.handle_web_info_text_message;
+if (typeof (window as any).handle_web_info_text_message === 'function') {
+  packet_hand_table[290] = (window as any).handle_web_info_text_message;
 }
 
 /**
@@ -1413,8 +1471,8 @@ export function client_handle_packet(packets: any[]): void {
       }
     }
     if (packets.length > 0) {
-      if (w.debug_active) w.clinet_debug_collect();
-      if (w.renderer === w.RENDERER_2DCANVAS) w.update_map_canvas_check();
+      if ((window as any).debug_active) clinet_debug_collect();
+      if ((window as any).renderer === RENDERER_2DCANVAS) update_map_canvas_check();
     }
   } catch (e) {
     console.error(e);
@@ -1452,15 +1510,15 @@ export function register_packet_handler(pid: number, handler: (packet: any) => v
 // Packet dispatch
 // Connection management (migrated from connection.js)
 export function find_conn_by_id(id: number): any {
-  return w.connections[id];
+  return store.connections[id];
 }
 
 export function client_remove_cli_conn(connection: any): void {
-  delete w.connections[connection['id']];
+  delete store.connections[connection['id']];
 }
 
 export function conn_list_append(connection: any): void {
-  w.connections[connection['id']] = connection;
+  store.connections[connection['id']] = connection;
 }
 
 // Module-local state exposed for legacy access

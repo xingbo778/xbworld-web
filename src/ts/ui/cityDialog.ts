@@ -4,10 +4,9 @@ import { get_supported_units } from '../data/unit';
 import { get_unit_city_info } from '../data/unit';
 import { get_unit_image_sprite } from '../renderer/tilespec';
 import { game_find_unit_by_number } from '../data/game';
-declare const unit_types: any;
-import { VUT_UTYPE, VUT_IMPROVEMENT } from '../data/fcTypes';
+import { VUT_UTYPE, VUT_IMPROVEMENT, FC_INFINITY, O_FOOD, O_SHIELD, O_TRADE, O_GOLD, O_LUXURY, O_SCIENCE, MAX_LEN_CITYNAME, MAX_LEN_NAME } from '../data/fcTypes';
 import { get_improvement_image_sprite } from '../renderer/tilespec';
-declare const improvements: any;
+import { RENDERER_2DCANVAS } from '../core/constants';
 import { tile_units } from '../data/unit';
 import { clientState as client_state, C_S_RUNNING, clientIsObserver } from '../client/clientState';
 import { send_request as sendRequest } from '../net/connection';
@@ -18,30 +17,16 @@ import { set_city_mapview_active } from '../renderer/mapview';
 import { center_tile_mapcanvas } from '../core/control';
 import { update_map_canvas, update_map_canvas_full, mapview } from '../renderer/mapviewCommon';
 import { setDefaultMapviewActive as set_default_mapview_active } from '../client/clientMain';
-declare const EventAggregator: any;
+declare const EventAggregator: any; // legacy JS lib
 import { request_unit_do_action } from '../core/control';
 import { ACTION_FOUND_CITY } from '../data/fcTypes';
 import { act_sel_queue_done } from '../ui/actionDialog';
 
 declare const $: any;
 declare const Handlebars: any;
-declare const ruleset_control: any;
-declare const specialists: any;
-declare const client: any;
-declare const FC_INFINITY: any;
-declare const O_FOOD: any;
-declare const O_SHIELD: any;
-declare const O_TRADE: any;
-declare const O_GOLD: any;
-declare const O_LUXURY: any;
-declare const O_SCIENCE: any;
-declare const MAX_LEN_CITYNAME: any;
-declare const MAX_LEN_NAME: any;
 declare const swal: any;
-declare const keyboard_input: boolean;
-declare const renderer: any;
-declare const RENDERER_2DCANVAS: any;
-declare const observing: boolean;
+
+const _w = window as any;
 
 export let citydlg_map_width: number = 384;      // default values for most rulesets
 export let citydlg_map_height: number = 192;     // default value for most rulesets
@@ -196,13 +181,13 @@ export function show_city_dialog(pcity: any): void {
 
   city_worklist_dialog(pcity);
 
-  const orig_renderer: any = renderer;
-  // renderer = RENDERER_2DCANVAS; // This line is commented out in the original JS, so it's commented here too.
+  const orig_renderer: any = _w.renderer;
+  // _w.renderer = RENDERER_2DCANVAS; // This line is commented out in the original JS, so it's commented here too.
   set_citydlg_dimensions(pcity);
   set_city_mapview_active();
   center_tile_mapcanvas(city_tile(pcity));
   update_map_canvas(0, 0, mapview['store_width'] ?? 0, mapview['store_height'] ?? 0);
-  // renderer = orig_renderer; // This line is commented out in the original JS, so it's commented here too.
+  // _w.renderer = orig_renderer; // This line is commented out in the original JS, so it's commented here too.
 
   let governor_text: string = "";
   if (typeof pcity['cma_enabled'] !== 'undefined') {
@@ -226,9 +211,9 @@ export function show_city_dialog(pcity: any): void {
   }
 
   let improvements_html: string = "";
-  for (let z = 0; z < ruleset_control.num_impr_types; z ++) {
+  for (let z = 0; z < store.rulesControl.num_impr_types; z ++) {
     if (pcity['improvements'] != null && pcity['improvements'].isSet(z)) {
-       sprite = get_improvement_image_sprite(improvements[z]);
+       sprite = get_improvement_image_sprite(store.improvements[z]);
        if (sprite == null) {
          console.log("Missing sprite for improvement " + z);
          continue;
@@ -239,9 +224,9 @@ export function show_city_dialog(pcity: any): void {
            + sprite['image-src'] +
            ");background-position:-" + sprite['tileset-x'] + "px -" + sprite['tileset-y']
            + "px;  width: " + sprite['width'] + "px;height: " + sprite['height'] + "px;float:left; '"
-           + "title=\"" + improvements[z]['helptext'] + "\" "
+           + "title=\"" + store.improvements[z]['helptext'] + "\" "
 	   + "onclick='city_sell_improvement(" + z + ");'>"
-           +"</div>" + improvements[z]['name'] + "</div>";
+           +"</div>" + store.improvements[z]['name'] + "</div>";
     }
   }
   $("#city_improvements_list").html(improvements_html);
@@ -345,8 +330,8 @@ export function show_city_dialog(pcity: any): void {
   }
 
   for (let u = 0; u < pcity['specialists_size']; u++) {
-    const spec_type_name: string = specialists[u]['plural_name'];
-    const spec_gfx_key: string = "specialist." + specialists[u]['rule_name'] + "_0";
+    const spec_type_name: string = _w.specialists[u]['plural_name'];
+    const spec_gfx_key: string = "specialist." + _w.specialists[u]['rule_name'] + "_0";
     for (let j = 0; j < pcity['specialists'][u]; j++) {
       sprite = get_specialist_image_sprite(spec_gfx_key);
       specialist_html = specialist_html +
@@ -354,7 +339,7 @@ export function show_city_dialog(pcity: any): void {
            + sprite['image-src'] +
            ");background-position:-" + sprite['tileset-x'] + "px -" + sprite['tileset-y']
            + "px;  width: " + sprite['width'] + "px;height: " + sprite['height'] + "px;float:left; '"
-           + " onclick='city_change_specialist(" + pcity['id'] + "," + specialists[u]['id'] + ");'"
+           + " onclick='city_change_specialist(" + pcity['id'] + "," + _w.specialists[u]['id'] + ");'"
            +" title='" + spec_type_name + " (click to change)'></div>";
 
     }
@@ -395,7 +380,7 @@ export function show_city_dialog(pcity: any): void {
 export function request_city_buy(): void {
   if (clientIsObserver()) return;
   const pcity: any = active_city;
-  const pplayer: any = client.conn.playing;
+  const pplayer: any = store.client.conn.playing;
 
   // reset dialog page.
   $("#dialog").remove();
@@ -404,13 +389,13 @@ export function request_city_buy(): void {
   let buy_question_string: string = "";
 
   if (pcity['production_kind'] == VUT_UTYPE) {
-    const punit_type: any = unit_types[pcity['production_value']];
+    const punit_type: any = store.unitTypes[pcity['production_value']];
     if (punit_type != null) {
       buy_price_string = punit_type['name'] + " costs " + pcity['buy_cost'] + " gold.";
       buy_question_string = "Buy " + punit_type['name'] + " for " + pcity['buy_cost'] + " gold?";
     }
   } else {
-    const improvement: any = improvements[pcity['production_value']];
+    const improvement: any = store.improvements[pcity['production_value']];
     if (improvement != null) {
       buy_price_string = improvement['name'] + " costs " + pcity['buy_cost'] + " gold.";
       buy_question_string = "Buy " + improvement['name'] + " for " + pcity['buy_cost'] + " gold?";
@@ -484,12 +469,12 @@ export function city_dialog_close_handler(): void {
       *       Both those duplicate calls and the stopping of map updates due
       *       to the 2D rendered being used to draw the minimap should go.
       */
-    if (renderer == RENDERER_2DCANVAS) {
+    if (_w.renderer == RENDERER_2DCANVAS) {
       update_map_canvas_full();
     }
 
   }
-  // keyboard_input=true; // This is a global variable, not a local one.
+  // _w.keyboard_input=true; // This is a global variable, not a local one.
   worklist_dialog_active = false;
 }
 
@@ -531,14 +516,14 @@ export function city_name_dialog(suggested_name: string, unit_id: number): void 
 			modal: true,
 			width: "300",
 			close: function() {
-				// keyboard_input=true; // This is a global variable, not a local one.
+				// _w.keyboard_input=true; // This is a global variable, not a local one.
                 act_sel_queue_done(unit_id);
 			},
 			buttons: [	{
 					text: "Cancel",
 				        click: function() {
 						$("#city_name_dialog").remove();
-                        // keyboard_input=true; // This is a global variable, not a local one.
+                        // _w.keyboard_input=true; // This is a global variable, not a local one.
                         act_sel_queue_done(unit_id);
 					}
 				},{
@@ -556,7 +541,7 @@ export function city_name_dialog(suggested_name: string, unit_id: number): void 
                           unit_id, actor_unit['tile'], 0,
                           encodeURIComponent(name));
 						$("#city_name_dialog").remove();
-						// keyboard_input=true; // This is a global variable, not a local one.
+						// _w.keyboard_input=true; // This is a global variable, not a local one.
                         act_sel_queue_done(unit_id);
 					}
 					}
@@ -574,18 +559,18 @@ export function city_name_dialog(suggested_name: string, unit_id: number): void 
       request_unit_do_action(ACTION_FOUND_CITY,
         unit_id, actor_unit['tile'], 0, encodeURIComponent(name));
 	  $("#city_name_dialog").remove();
-      // keyboard_input=true; // This is a global variable, not a local one.
+      // _w.keyboard_input=true; // This is a global variable, not a local one.
       act_sel_queue_done(unit_id);
     }
   });
 
   blur_input_on_touchdevice();
-  // keyboard_input=false; // This is a global variable, not a local one.
+  // _w.keyboard_input=false; // This is a global variable, not a local one.
 
 }
 
 export function next_city(): void {
-  if (!client.conn.playing) return;
+  if (!store.client.conn.playing) return;
 
   city_screen_updater.fireNow();
 
@@ -602,7 +587,7 @@ export function next_city(): void {
 }
 
 export function previous_city(): void {
-  if (!client.conn.playing) return;
+  if (!store.client.conn.playing) return;
 
   city_screen_updater.fireNow();
 
@@ -662,13 +647,13 @@ export function rename_city(): void {
 			modal: true,
 			width: "300",
 			close: function() {
-				// keyboard_input=true; // This is a global variable, not a local one.
+				// _w.keyboard_input=true; // This is a global variable, not a local one.
 			},
 			buttons: [	{
 					text: "Cancel",
 				        click: function() {
 						$("#city_name_dialog").remove();
-        					// keyboard_input=true; // This is a global variable, not a local one.
+        					// _w.keyboard_input=true; // This is a global variable, not a local one.
 					}
 				},{
 					text: "Ok",
@@ -683,7 +668,7 @@ export function rename_city(): void {
 						const packet: any = {"pid" : packet_city_rename, "name" : encodeURIComponent(name), "city_id" : active_city['id'] };
 						sendRequest(JSON.stringify(packet));
 						$("#city_name_dialog").remove();
-						// keyboard_input=true; // This is a global variable, not a local one.
+						// _w.keyboard_input=true; // This is a global variable, not a local one.
 					}
 					}
 				]
@@ -698,7 +683,7 @@ export function rename_city(): void {
       const packet: any = {"pid" : packet_city_rename, "name" : encodeURIComponent(name), "city_id" : active_city['id'] };
       sendRequest(JSON.stringify(packet));
       $("#city_name_dialog").remove();
-      // keyboard_input=true; // This is a global variable, not a local one.
+      // _w.keyboard_input=true; // This is a global variable, not a local one.
     }
   });
 }
@@ -717,7 +702,7 @@ export function city_worklist_dialog(pcity: any): void {
       value = work_item['value'];
       if (kind == null || value == null || work_item.length == 0) continue;
       if (kind == VUT_IMPROVEMENT) {
-        const pimpr: any = improvements[value];
+        const pimpr: any = store.improvements[value];
 	let build_cost: any = pimpr['build_cost'];
 	if (pimpr['name'] == "Coinage") build_cost = "-";
 	universals_list.push({"name" : pimpr['name'],
@@ -727,7 +712,7 @@ export function city_worklist_dialog(pcity: any): void {
 		"build_cost" : build_cost,
 		"sprite" : get_improvement_image_sprite(pimpr)});
       } else if (kind == VUT_UTYPE) {
-        const putype: any = unit_types[value];
+        const putype: any = store.unitTypes[value];
         universals_list.push({"name" : putype['name'],
 		"kind" : kind,
 		"value" : value,
@@ -1220,7 +1205,7 @@ export function city_worklist_task_remove(): void {
 }
 
 export function update_city_screen(): void {
-  if (observing) return;
+  if (_w.observing) return;
 
   const sortList: any[] = [];
   const headers: any = $('#city_table thead th');
@@ -1238,7 +1223,7 @@ export function update_city_screen(): void {
   let count: number = 0;
   for (const city_id in cities){
     const pcity: any = cities[city_id];
-    if (client.conn.playing != null && city_owner(pcity) != null && city_owner(pcity).playerno == client.conn.playing.playerno) {
+    if (store.client.conn.playing != null && city_owner(pcity) != null && city_owner(pcity).playerno == store.client.conn.playing.playerno) {
       count++; 
       const prod_type: any = get_city_production_type(pcity);
       let turns_to_complete_str: string;
@@ -1286,7 +1271,7 @@ export function get_city_state(pcity: any): string | undefined {
 
 export function city_keyboard_listener(ev: any): void {
   // Check if focus is in chat field, where these keyboard events are ignored.
-  if ($('input:focus').length > 0 || !keyboard_input) return;
+  if ($('input:focus').length > 0 || !_w.keyboard_input) return;
 
   if (C_S_RUNNING != client_state()) return;
 

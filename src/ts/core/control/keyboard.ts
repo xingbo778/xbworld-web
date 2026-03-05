@@ -6,7 +6,17 @@
  */
 
 import { clientState as client_state, C_S_RUNNING, clientIsObserver } from '../../client/clientState';
-import { isTouchDevice as is_touch_device } from '../../utils/helpers';
+import { isTouchDevice as is_touch_device, civclient_benchmark } from '../../utils/helpers';
+import { showDebugInfo } from '../../client/clientDebug';
+import { clearGotoTiles } from '../../data/map';
+import { tileCity } from '../../data/tile';
+import { show_city_dialog } from '../../ui/cityDialog';
+import { setMapSelectActive, setMapSelectCheck } from '../../renderer/mapctrl';
+import {
+  RENDERER_2DCANVAS,
+  DIR8_SOUTH, DIR8_SOUTHEAST, DIR8_EAST, DIR8_SOUTHWEST,
+  DIR8_NORTHEAST, DIR8_WEST, DIR8_NORTHWEST, DIR8_NORTH,
+} from '../constants';
 import * as S from './controlState';
 // Circular imports — OK, only used inside functions
 import { find_a_focus_unit_tile_to_center_on, auto_center_on_focus_unit, set_unit_focus_and_redraw, update_active_units_dialog } from './unitFocus';
@@ -22,25 +32,6 @@ import {
 } from './unitCommands';
 
 declare const $: any;
-declare const renderer: number;
-declare const RENDERER_2DCANVAS: number;
-declare let map_select_active: any;
-declare let map_select_check: any;
-declare function civclient_benchmark(n: number): void;
-declare function show_debug_info(): void;
-declare function clear_goto_tiles(): void;
-declare function show_city_dialog(pcity: any): void;
-declare function tile_city(ptile: any): any;
-
-// Direction constants
-declare const DIR8_SOUTH: number;
-declare const DIR8_SOUTHEAST: number;
-declare const DIR8_EAST: number;
-declare const DIR8_SOUTHWEST: number;
-declare const DIR8_NORTHEAST: number;
-declare const DIR8_WEST: number;
-declare const DIR8_NORTHWEST: number;
-declare const DIR8_NORTH: number;
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -61,7 +52,7 @@ export function global_keyboard_listener(ev: KeyboardEvent) {
   }
   civclient_handle_key(keyboard_key, ev.keyCode, ev['ctrlKey'], ev['altKey'], ev['shiftKey'], ev);
 
-  if (renderer == RENDERER_2DCANVAS) $("#canvas").contextMenu('hide');
+  if ((window as any).renderer == RENDERER_2DCANVAS) $("#canvas").contextMenu('hide');
 }
 
 export function civclient_handle_key(keyboard_key: string, key_code: number, ctrl: boolean, alt: boolean, shift: boolean, the_event: KeyboardEvent) {
@@ -72,7 +63,7 @@ export function civclient_handle_key(keyboard_key: string, key_code: number, ctr
 
     case 'D':
       if ((!shift) && (alt || ctrl)) {
-        show_debug_info();
+        showDebugInfo();
       }
       break;
 
@@ -257,12 +248,12 @@ export function map_handle_key(keyboard_key: string, key_code: number, ctrl: boo
 
       deactivate_goto(false);
 
-      map_select_active = false;
-      map_select_check = false;
+      setMapSelectActive(false);
+      setMapSelectCheck(false);
       S.setMapviewMouseMovement(false);
 
       S.setContextMenuActive(true);
-      if (renderer == RENDERER_2DCANVAS) {
+      if ((window as any).renderer == RENDERER_2DCANVAS) {
         $("#canvas").contextMenu(true);
       } else {
         $("#canvas_div").contextMenu(true);
@@ -279,7 +270,7 @@ export function map_handle_key(keyboard_key: string, key_code: number, ctrl: boo
       $("#canvas_div").css("cursor", "default");
       S.setGotoRequestMap({});
       S.setGotoTurnsRequestMap({});
-      clear_goto_tiles();
+      clearGotoTiles();
       update_active_units_dialog();
 
       break;
@@ -424,7 +415,7 @@ export function handle_context_menu_callback(key: string) {
     case "show_city":
       const stile = find_a_focus_unit_tile_to_center_on();
       if (stile != null) {
-        show_city_dialog(tile_city(stile));
+        show_city_dialog(tileCity(stile));
       }
       break;
   }

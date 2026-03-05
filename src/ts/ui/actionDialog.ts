@@ -3,17 +3,11 @@ import { clientIsObserver } from '../client/clientState';
 import { game_find_city_by_number as find_city_by_number } from '../data/game';
 import { unit_owner, get_unit_homecity_name, unit_can_do_action, tile_units } from '../data/unit';
 import { game_find_unit_by_number as find_unit_by_number } from '../data/game';
-declare const unit_types: any;
 import { playerInventionState as player_invention_state } from '../data/tech';
-declare const game_info: any;
-declare const nations: any;
-declare const improvements: any;
 import { actionProbPossible as action_prob_possible } from '../data/actions';
-declare const actions: any;
 import { isExtraRemovedBy as is_extra_removed_by, isExtraCausedBy as is_extra_caused_by, extraOwner as extra_owner } from '../data/extra';
 import { tileHasExtra as tile_has_extra } from '../data/tile';
 import { indexToTile as index_to_tile } from '../data/map';
-declare const extras: any;
 
 import { send_request as sendRequest } from '../net/connection';
 import {
@@ -30,7 +24,6 @@ import {
   set_is_more_user_input_needed,
   request_unit_do_action,
 } from '../core/control';
-declare const client: any;
 export function select_tgt_unit(actor_unit: any, target_tile: any, potential_tgt_units: any[]): void {
   // TODO: implement
 }
@@ -169,7 +162,7 @@ export function format_action_probability(probability: any): string {
   Format the label of an action selection button.
 **************************************************************************/
 export function format_action_label(action_id: number, action_probabilities: any): string {
-  return actions[action_id]['ui_name'].replace("%s", "").replace("%s",
+  return (window as any).actions[action_id]['ui_name'].replace("%s", "").replace("%s",
     format_action_probability(action_probabilities[action_id]));
 }
 
@@ -313,7 +306,7 @@ export function popup_action_selection(actor_unit: any, action_probabilities: an
   let dhtml: string = "";
 
   if (target_city != null) {
-    dhtml += "Your " + unit_types[actor_unit['type']]['name'];
+    dhtml += "Your " + store.unitTypes[actor_unit['type']]['name'];
 
     /* Some units don't have a home city. */
     if (actor_homecity != null) {
@@ -323,12 +316,12 @@ export function popup_action_selection(actor_unit: any, action_probabilities: an
     dhtml += " has arrived at " + decodeURIComponent(target_city['name'])
       + ". What is your command?";
   } else if (target_unit != null) {
-    dhtml += "Your " + unit_types[actor_unit['type']]['name']
+    dhtml += "Your " + store.unitTypes[actor_unit['type']]['name']
       + " is ready to act against "
-      + nations[unit_owner(target_unit)!['nation']]['adjective']
-      + " " + unit_types[target_unit['type']]['name'] + ".";
+      + store.nations[unit_owner(target_unit)!['nation']]['adjective']
+      + " " + store.unitTypes[target_unit['type']]['name'] + ".";
   } else {
-    dhtml += "Your " + unit_types[actor_unit['type']]['name']
+    dhtml += "Your " + store.unitTypes[actor_unit['type']]['name']
       + " is waiting for your command.";
   }
 
@@ -388,7 +381,7 @@ export function popup_action_selection(actor_unit: any, action_probabilities: an
     }
 
     for (let action_id = 0; action_id < ACTION_COUNT; action_id++) {
-      if (actions[action_id]['tgt_kind'] == tgt_kind
+      if ((window as any).actions[action_id]['tgt_kind'] == tgt_kind
         && action_prob_possible(
           action_probabilities[action_id])) {
         buttons.push(create_act_sel_button(id, actor_unit['id'],
@@ -471,7 +464,7 @@ export function popup_action_selection(actor_unit: any, action_probabilities: an
   });
 
   $(id).attr("title",
-    "Choose Your " + unit_types[actor_unit['type']]['name']
+    "Choose Your " + store.unitTypes[actor_unit['type']]['name']
     + "'s Strategy");
   $(id).dialog({
     bgiframe: true,
@@ -505,8 +498,8 @@ export function popup_bribe_dialog(actor_unit: any, target_unit: any, cost: numb
 
   dhtml += "Treasury contains " + unit_owner(actor_unit)!['gold'] + " gold. ";
   dhtml += "The price of bribing "
-    + nations[unit_owner(target_unit)!['nation']]['adjective']
-    + " " + unit_types[target_unit['type']]['name']
+    + store.nations[unit_owner(target_unit)!['nation']]['adjective']
+    + " " + store.unitTypes[target_unit['type']]['name']
     + " is " + cost + ". ";
 
   bribe_possible = cost <= unit_owner(actor_unit)!['gold'];
@@ -627,7 +620,7 @@ export function popup_unit_upgrade_dlg(actor_unit: any, target_city: any, cost: 
   dhtml += "Treasury contains " + unit_owner(actor_unit)!['gold'] + " gold.";
   dhtml += " ";
   dhtml += "The price of upgrading our "
-    + unit_types[actor_unit['type']]['name']
+    + store.unitTypes[actor_unit['type']]['name']
     + " is " + cost + ".";
 
   upgrade_possible = cost <= unit_owner(actor_unit)!['gold'];
@@ -703,7 +696,7 @@ export function popup_steal_tech_selection_dialog(actor_unit: any, target_city: 
     const tech = store.techs[tech_id];
 
     /* Actor and target player tech known state. */
-    const act_kn = player_invention_state(client.conn.playing, tech['id']);
+    const act_kn = player_invention_state(store.client.conn.playing, tech['id']);
     const tgt_kn = player_invention_state(target_city['owner'], tech['id']);
 
     /* Can steal a tech if the target player knows it and the actor player
@@ -711,7 +704,7 @@ export function popup_steal_tech_selection_dialog(actor_unit: any, target_city: 
      * techs the player don't know the prereqs of. */
     if ((tgt_kn == TECH_KNOWN)
       && ((act_kn == TECH_PREREQS_KNOWN)
-        || (game_info['tech_steal_allow_holes']
+        || ((store.gameInfo as any)['tech_steal_allow_holes']
           && (act_kn == TECH_UNKNOWN)))) {
       /* Add a button for stealing this tech to the dialog. */
       buttons.push(create_steal_tech_button(id, tech,
@@ -735,7 +728,7 @@ export function popup_steal_tech_selection_dialog(actor_unit: any, target_city: 
       act_probs[untargeted_action_id])) {
     /* Untargeted tech theft may be legal. Add it as an alternative. */
     buttons.push({
-      text: "At " + unit_types[actor_unit['type']]['name']
+      text: "At " + store.unitTypes[actor_unit['type']]['name']
         + "'s Discretion",
       click: function () {
         request_unit_do_action(untargeted_action_id,
@@ -804,7 +797,7 @@ export function popup_sabotage_dialog(actor_unit: any, target_city: any, city_im
 
   /* List the alternatives */
   for (let i = 0; i < ((store.rulesControl as any)?.['num_impr_types'] ?? 0); i++) {
-    const improvement = improvements[i];
+    const improvement = store.improvements[i];
 
     if (city_imprs.isSet(i)
       && improvement['sabotage'] > 0) {
@@ -852,14 +845,14 @@ export function create_select_tgt_unit_button(parent_id: string, actor_unit_id: 
 
   const target_unit = store.units[target_unit_id];
 
-  text += unit_types[target_unit['type']]['name'];
+  text += store.unitTypes[target_unit['type']]['name'];
 
   if (get_unit_homecity_name(target_unit) != null) {
     text += " from " + get_unit_homecity_name(target_unit);
   }
 
   text += " (";
-  text += nations[unit_owner(target_unit)!['nation']]['adjective'];
+  text += store.nations[unit_owner(target_unit)!['nation']]['adjective'];
   text += ")";
 
   button = {
@@ -900,7 +893,7 @@ export function create_select_tgt_unit_button(parent_id: string, actor_unit_id: 
 //   $("<div id='" + rid + "'></div>").appendTo("div#game_page");
 
 //   dhtml += "Select target unit for your ";
-//   dhtml += unit_types[actor_unit['type']]['name'];
+//   dhtml += store.unitTypes[actor_unit['type']]['name'];
 
 //   $(id).html(dhtml);
 
@@ -932,7 +925,7 @@ export function list_potential_target_extras(act_unit: any, target_tile: any): a
   const potential_targets: any[] = [];
 
   for (let i = 0; i < ((store.rulesControl as any)?.num_extra_types ?? 0); i++) {
-    const pextra = extras[i];
+    const pextra = store.extras[i];
 
     if (tile_has_extra(target_tile, pextra.id)) {
       /* This extra is at the tile. Can anything be done to it? */
@@ -976,12 +969,12 @@ export function create_select_tgt_extra_button(parent_id: string, actor_unit_id:
 
   const target_tile = index_to_tile(target_tile_id);
 
-  text += extras[target_extra_id]['name'];
+  text += store.extras[target_extra_id]['name'];
 
   text += " (";
   if (tile_has_extra(target_tile, target_extra_id)) {
     if (extra_owner(target_tile) != null) {
-      text += nations[extra_owner(target_tile)['nation']]['adjective'];
+      text += store.nations[extra_owner(target_tile)['nation']]['adjective'];
     } else {
       text += "target";
     }
@@ -1029,12 +1022,12 @@ export function create_select_tgt_extra_button(parent_id: string, actor_unit_id:
 //   $("<div id='" + rid + "'></div>").appendTo("div#game_page");
 
 //   dhtml += "Select target extra for your ";
-//   dhtml += unit_types[actor_unit['type']]['name'];
+//   dhtml += store.unitTypes[actor_unit['type']]['name'];
 
 //   $(id).html(dhtml);
 
 //   for (i = 0; i < potential_tgt_extras.length; i++) {
-//     const tgt_extra = potential_tgt_extras[i];
+//     const tgt_extra = potential_tgt_store.extras[i];
 
 //     buttons.push(create_select_tgt_extra_button(id, actor_unit['id'],
 //       target_unit == null ?

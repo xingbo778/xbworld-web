@@ -5,9 +5,9 @@
  */
 
 import { store } from '../../data/store';
-import { cityOwnerPlayerId as city_owner_player_id, cityTile as city_tile } from '../../data/city';
+import { cityOwnerPlayerId as city_owner_player_id, cityTile as city_tile, cityHasBuilding as city_has_building } from '../../data/city';
 import { unit_type, unit_list_size, unit_list_without, get_unit_homecity_name, get_unit_moves_left } from '../../data/unit';
-import { game_find_unit_by_number as _game_find_unit_by_number } from '../../data/game';
+import { game_find_unit_by_number } from '../../data/game';
 import { get_unit_image_sprite } from '../../renderer/tilespec';
 import { utype_can_do_action, utype_can_do_action_result, can_player_build_unit_direct } from '../../data/unittype';
 import { mapPosToTile as map_pos_to_tile, indexToTile as index_to_tile } from '../../data/map';
@@ -17,15 +17,26 @@ import { tileTerrain as tile_terrain } from '../../data/terrain';
 import { playerInventionState as player_invention_state, techIdByName as tech_id_by_name, TECH_UNKNOWN, TECH_KNOWN } from '../../data/tech';
 import { clientIsObserver as client_is_observer, clientState as client_state, C_S_RUNNING } from '../../client/clientState';
 import { improvement_id_by_name, B_AIRPORT_NAME } from '../../data/improvement';
-import { ACTIVITY_IDLE } from '../../data/fcTypes';
+import {
+  ACTIVITY_IDLE,
+  ACTION_FOUND_CITY as FC_ACTION_FOUND_CITY,
+  ACTION_JOIN_CITY as FC_ACTION_JOIN_CITY,
+  ACTION_NUKE as FC_ACTION_NUKE,
+  ACTION_TRANSFORM_TERRAIN as FC_ACTION_TRANSFORM_TERRAIN,
+  ACTRES_PARADROP as FC_ACTRES_PARADROP,
+  ACTRES_PARADROP_CONQUER as FC_ACTRES_PARADROP_CONQUER,
+} from '../../data/fcTypes';
 import { EXTRA_NONE } from '../../data/extra';
 import { IDENTITY_NUMBER_ZERO } from '../../core/constants';
 import { ServerSideAgent } from '../../data/unit';
 import { isTouchDevice as is_touch_device, stringUnqualify as string_unqualify } from '../../utils/helpers';
-import { close_city_dialog } from '../../ui/cityDialog';
+import { close_city_dialog, active_city } from '../../ui/cityDialog';
 import { message_log } from '../../core/messages';
 import { E_BEGINNER_HELP } from '../../data/eventConstants';
 import { get_what_can_unit_pillage_from } from '../../data/unit';
+import { normal_tile_height } from '../../renderer/tilesetConfig';
+import { observing } from '../../core/pregame';
+import { auto_center_on_unit } from '../../ui/options';
 import * as S from './controlState';
 // Circular imports — OK, only used inside functions
 import { should_ask_server_for_actions, can_ask_server_for_actions, action_selection_next_in_focus } from './actionSelection';
@@ -41,43 +52,25 @@ const FC_TECH_UNKNOWN = TECH_UNKNOWN;
 const FC_TECH_KNOWN = TECH_KNOWN;
 
 declare const $: any;
-declare const client: any;
-declare const game_info: any;
-declare const active_city: any;
-declare const observing: boolean;
-declare const auto_center_on_unit: boolean;
-declare const terrain_control: any;
-declare const EXTRA_ROAD: number;
-declare const EXTRA_RIVER: number;
-declare const EXTRA_RAIL: number;
-declare const EXTRA_MAGLEV: number;
-declare const EXTRA_MINE: number;
-declare const EXTRA_POLLUTION: number;
-declare const EXTRA_FALLOUT: number;
-declare function update_unit_position(ptile: any): void;
-declare const normal_tile_height: number;
+
+const _w = window as any;
+
 // tile_units is already imported from data/unit — alias for readability
 const tile_units_func = tile_units;
 // map_city_tile is the same as city_tile
 const map_city_tile = city_tile;
 
-// Action constants accessed as globals
-declare const FC_ACTION_FOUND_CITY: number;
-declare const FC_ACTION_JOIN_CITY: number;
-declare const FC_ACTION_NUKE: number;
-declare const FC_ACTION_TRANSFORM_TERRAIN: number;
-declare const FC_ACTRES_PARADROP: number;
-declare const FC_ACTRES_PARADROP_CONQUER: number;
-declare const FC_EXTRA_IRRIGATION: number;
-declare const FC_EXTRA_FARMLAND: number;
-
-const FC_EXTRA_ROAD = typeof EXTRA_ROAD !== 'undefined' ? EXTRA_ROAD : 0;
-const FC_EXTRA_RIVER = typeof EXTRA_RIVER !== 'undefined' ? EXTRA_RIVER : 1;
-const FC_EXTRA_RAIL = typeof EXTRA_RAIL !== 'undefined' ? EXTRA_RAIL : 2;
-const FC_EXTRA_MAGLEV = typeof EXTRA_MAGLEV !== 'undefined' ? EXTRA_MAGLEV : 3;
-const FC_EXTRA_MINE = typeof EXTRA_MINE !== 'undefined' ? EXTRA_MINE : 4;
-const FC_EXTRA_POLLUTION = typeof EXTRA_POLLUTION !== 'undefined' ? EXTRA_POLLUTION : 5;
-const FC_EXTRA_FALLOUT = typeof EXTRA_FALLOUT !== 'undefined' ? EXTRA_FALLOUT : 6;
+// Runtime extra IDs assigned by server — accessed from window globals.
+// These are read lazily at call time since they are set after module init.
+function FC_EXTRA_ROAD(): number { return _w.EXTRA_ROAD ?? 0; }
+function FC_EXTRA_RIVER(): number { return _w.EXTRA_RIVER ?? 1; }
+function FC_EXTRA_RAIL(): number { return _w.EXTRA_RAIL ?? 2; }
+function FC_EXTRA_MAGLEV(): number { return _w.EXTRA_MAGLEV ?? 3; }
+function FC_EXTRA_MINE(): number { return _w.EXTRA_MINE ?? 4; }
+function FC_EXTRA_POLLUTION(): number { return _w.EXTRA_POLLUTION ?? 5; }
+function FC_EXTRA_FALLOUT(): number { return _w.EXTRA_FALLOUT ?? 6; }
+function FC_EXTRA_IRRIGATION(): number { return _w.EXTRA_IRRIGATION ?? 7; }
+function FC_EXTRA_FARMLAND(): number { return _w.EXTRA_FARMLAND ?? 8; }
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -216,11 +209,11 @@ export function advance_unit_focus(): void {
     update_active_units_dialog();
     $("#game_unit_orders_default").hide();
 
-    if (game_info['turn'] <= 1) {
+    if (_w.game_info && _w.game_info['turn'] <= 1) {
       for (const city_id_str in store.cities) {
         const city_id = parseInt(city_id_str);
         const pcity = store.cities[city_id];
-        if (city_owner_player_id(pcity) == client.conn.playing.playerno) {
+        if (city_owner_player_id(pcity) == _w.client.conn.playing.playerno) {
           center_tile_mapcanvas(map_city_tile(pcity));
           break;
         }
@@ -297,29 +290,29 @@ export function update_unit_order_commands(): { [key: string]: any } {
       if (ptype['name'] == "Workers") unit_actions["autoworkers"] = { name: "Auto workers (A)" };
       if (ptype['name'] == "Engineers") unit_actions["autoworkers"] = { name: "Auto engineers (A)" };
 
-      if (!tile_has_extra(ptile, FC_EXTRA_ROAD)) {
+      if (!tile_has_extra(ptile, FC_EXTRA_ROAD())) {
         $("#order_railroad").hide();
         $("#order_maglev").hide();
-        if (!(tile_has_extra(ptile, FC_EXTRA_RIVER)
-          && player_invention_state(client.conn.playing, tech_id_by_name('Bridge Building') as unknown as number) == FC_TECH_UNKNOWN)) {
+        if (!(tile_has_extra(ptile, FC_EXTRA_RIVER())
+          && player_invention_state(_w.client.conn.playing, tech_id_by_name('Bridge Building') as unknown as number) == FC_TECH_UNKNOWN)) {
           unit_actions["road"] = { name: "Build road (R)" };
           $("#order_road").show();
         } else {
           $("#order_road").hide();
         }
-      } else if (!tile_has_extra(ptile, FC_EXTRA_RAIL)
-        && player_invention_state(client.conn.playing,
+      } else if (!tile_has_extra(ptile, FC_EXTRA_RAIL())
+        && player_invention_state(_w.client.conn.playing,
           tech_id_by_name('Railroad') as unknown as number) == FC_TECH_KNOWN
-        && tile_has_extra(ptile, FC_EXTRA_ROAD)) {
+        && tile_has_extra(ptile, FC_EXTRA_ROAD())) {
         $("#order_road").hide();
         $("#order_maglev").hide();
         $("#order_railroad").show();
         unit_actions['railroad'] = { name: "Build railroad (R)" };
-      } else if (typeof FC_EXTRA_MAGLEV !== 'undefined'
-        && !tile_has_extra(ptile, FC_EXTRA_MAGLEV)
-        && player_invention_state(client.conn.playing,
+      } else if (typeof _w.EXTRA_MAGLEV !== 'undefined'
+        && !tile_has_extra(ptile, FC_EXTRA_MAGLEV())
+        && player_invention_state(_w.client.conn.playing,
           tech_id_by_name('Superconductors') as unknown as number) == FC_TECH_KNOWN
-        && tile_has_extra(ptile, FC_EXTRA_RAIL)) {
+        && tile_has_extra(ptile, FC_EXTRA_RAIL())) {
         $("#order_road").hide();
         $("#order_railroad").hide();
         $("#order_maglev").show();
@@ -335,7 +328,7 @@ export function update_unit_order_commands(): { [key: string]: any } {
       $("#order_explore").hide();
       $("#order_auto_workers").show();
       $("#order_clean").show();
-      if (!tile_has_extra(ptile, FC_EXTRA_MINE)
+      if (!tile_has_extra(ptile, FC_EXTRA_MINE())
         && (tile_terrain(ptile) as any)['mining_time'] > 0) {
         $("#order_mine").show();
         unit_actions["mine"] = { name: "Mine (M)" };
@@ -343,8 +336,8 @@ export function update_unit_order_commands(): { [key: string]: any } {
         $("#order_mine").hide();
       }
 
-      if (tile_has_extra(ptile, FC_EXTRA_POLLUTION)
-        || tile_has_extra(ptile, FC_EXTRA_FALLOUT)) {
+      if (tile_has_extra(ptile, FC_EXTRA_POLLUTION())
+        || tile_has_extra(ptile, FC_EXTRA_FALLOUT())) {
         $("#order_clean").show();
         unit_actions["clean"] = { name: "Remove pollution (P)" };
       } else {
@@ -358,11 +351,11 @@ export function update_unit_order_commands(): { [key: string]: any } {
         $("#order_forest_remove").hide();
       }
       if ((tile_terrain(ptile) as any)['irrigation_time'] > 0) {
-        if (!tile_has_extra(ptile, FC_EXTRA_IRRIGATION)) {
+        if (!tile_has_extra(ptile, FC_EXTRA_IRRIGATION())) {
           $("#order_irrigate").show();
           $("#order_build_farmland").hide();
           unit_actions["irrigation"] = { name: "Irrigation (I)" };
-        } else if (!tile_has_extra(ptile, FC_EXTRA_FARMLAND) && player_invention_state(client.conn.playing, tech_id_by_name('Refrigeration') as unknown as number) == FC_TECH_KNOWN) {
+        } else if (!tile_has_extra(ptile, FC_EXTRA_FARMLAND()) && player_invention_state(_w.client.conn.playing, tech_id_by_name('Refrigeration') as unknown as number) == FC_TECH_KNOWN) {
           $("#order_build_farmland").show();
           $("#order_irrigate").hide();
           unit_actions["irrigation"] = { name: "Build farmland (I)" };
@@ -380,12 +373,12 @@ export function update_unit_order_commands(): { [key: string]: any } {
       } else {
         $("#order_forest_add").hide();
       }
-      if (player_invention_state(client.conn.playing, tech_id_by_name('Construction') as unknown as number) == FC_TECH_KNOWN) {
-        unit_actions["fortress"] = { name: string_unqualify(terrain_control['gui_type_base0']) + " (Shift-F)" };
+      if (player_invention_state(_w.client.conn.playing, tech_id_by_name('Construction') as unknown as number) == FC_TECH_KNOWN) {
+        unit_actions["fortress"] = { name: string_unqualify(_w.terrain_control['gui_type_base0']) + " (Shift-F)" };
       }
 
-      if (player_invention_state(client.conn.playing, tech_id_by_name('Radio') as unknown as number) == FC_TECH_KNOWN) {
-        unit_actions["airbase"] = { name: string_unqualify(terrain_control['gui_type_base1']) + " (E)" };
+      if (player_invention_state(_w.client.conn.playing, tech_id_by_name('Radio') as unknown as number) == FC_TECH_KNOWN) {
+        unit_actions["airbase"] = { name: string_unqualify(_w.terrain_control['gui_type_base1']) + " (E)" };
       }
 
     } else {
@@ -426,9 +419,9 @@ export function update_unit_order_commands(): { [key: string]: any } {
       $("#order_paradrop").hide();
     }
 
-    if (!client_is_observer() && client.conn.playing != null
+    if (!client_is_observer() && _w.client.conn.playing != null
       && get_what_can_unit_pillage_from(punit, ptile).length > 0
-      && (pcity == null || city_owner_player_id(pcity) !== client.conn.playing.playerno)) {
+      && (pcity == null || city_owner_player_id(pcity) !== _w.client.conn.playing.playerno)) {
       $("#order_pillage").show();
       unit_actions["pillage"] = { name: "Pillage (Shift-P)" };
     } else {
@@ -446,7 +439,7 @@ export function update_unit_order_commands(): { [key: string]: any } {
       unit_actions["airlift"] = { name: "Airlift (Shift-L)" };
     }
 
-    if (pcity != null && ptype != null && store.unitTypes[ptype['obsoleted_by']] != null && can_player_build_unit_direct(client.conn.playing, store.unitTypes[ptype['obsoleted_by']])) {
+    if (pcity != null && ptype != null && store.unitTypes[ptype['obsoleted_by']] != null && can_player_build_unit_direct(_w.client.conn.playing, store.unitTypes[ptype['obsoleted_by']])) {
       unit_actions["upgrade"] = { name: "Upgrade unit (U)" };
     }
     if (ptype != null && ptype['name'] != "Explorer") {
@@ -542,7 +535,7 @@ export function find_best_focus_candidate(accept_current: boolean): any {
   for (const unit_id_str in store.units) {
     const unit_id = parseInt(unit_id_str);
     punit = store.units[unit_id];
-    if (client.conn.playing != null && punit['owner'] == client.conn.playing.playerno) {
+    if (_w.client.conn.playing != null && punit['owner'] == _w.client.conn.playing.playerno) {
       sorted_units.push(punit);
     }
   }
@@ -551,8 +544,8 @@ export function find_best_focus_candidate(accept_current: boolean): any {
   for (i = 0; i < sorted_units.length; i++) {
     punit = sorted_units[i];
     if ((!unit_is_in_focus(punit) || accept_current)
-      && client.conn.playing != null
-      && punit['owner'] == client.conn.playing.playerno
+      && _w.client.conn.playing != null
+      && punit['owner'] == _w.client.conn.playing.playerno
       && ((punit['activity'] == FC_ACTIVITY_IDLE
         && !punit['done_moving']
         && punit['movesleft'] > 0)
@@ -637,7 +630,7 @@ export function auto_center_on_focus_unit(): void {
 
   if (ptile != null && auto_center_on_unit) {
     center_tile_mapcanvas(ptile);
-    update_unit_position(ptile);
+    _w.update_unit_position?.(ptile);
   }
 }
 
@@ -787,6 +780,3 @@ export function update_active_units_dialog(): void {
   }
   $("#active_unit_info").tooltip();
 }
-
-// Declared globally (from legacy JS)
-declare function city_has_building(city: any, improvement_id: number): boolean;

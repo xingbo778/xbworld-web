@@ -5,21 +5,24 @@
  */
 
 import { store } from '../../data/store';
-import { unit_type, tile_units } from '../../data/unit';
-import { indexToTile as index_to_tile, mapPosToTile as map_pos_to_tile } from '../../data/map';
-import { tileCity as tile_city } from '../../data/tile';
+import { unit_type, tile_units, Order, UnitSSDataType } from '../../data/unit';
+import { indexToTile as index_to_tile, mapPosToTile as map_pos_to_tile, mapstep, clearGotoTiles as clear_goto_tiles } from '../../data/map';
+import { tileCity as tile_city, tileGetKnown as tile_get_known, TILE_UNKNOWN } from '../../data/tile';
 import { cityTile as city_tile } from '../../data/city';
 import { actionByNumber as action_by_number, actionHasResult as action_has_result } from '../../data/actions';
 import { utype_can_do_action } from '../../data/unittype';
-import { ACTIVITY_IDLE } from '../../data/fcTypes';
-import { ACTION_COUNT } from '../../core/constants';
+import { ACTIVITY_IDLE, ACTIVITY_LAST, ACTRES_PARADROP, ACTRES_PARADROP_CONQUER, ACTION_AIRLIFT } from '../../data/fcTypes';
+import { ACTION_COUNT, RENDERER_2DCANVAS } from '../../core/constants';
 import { send_request } from '../../net/connection';
+import { packet_unit_orders, packet_unit_sscs_set, packet_web_goto_path_req, packet_web_info_text_req } from '../../net/packetConstants';
 import { isTouchDevice as is_touch_device } from '../../utils/helpers';
 import { clientIsObserver as client_is_observer } from '../../client/clientState';
 import { message_log } from '../../core/messages';
-import { E_BEGINNER_HELP } from '../../data/eventConstants';
-import { canvas_pos_to_tile } from '../../renderer/mapviewCommon';
-import { UnitSSDataType } from '../../data/unit';
+import { E_BEGINNER_HELP, E_BAD_COMMAND } from '../../data/eventConstants';
+import { canvas_pos_to_tile, center_tile_mapcanvas_2d } from '../../renderer/mapviewCommon';
+import { unit_move_sound_play } from '../../audio/sounds';
+import { showDialogMessage as show_dialog_message } from '../../client/civClient';
+import { show_city_dialog } from '../../ui/cityDialog';
 import * as S from './controlState';
 // Circular imports — OK, only used inside functions
 import { set_unit_focus_and_redraw, set_unit_focus_and_activate, update_unit_focus, update_active_units_dialog, find_visible_unit, find_a_focus_unit_tile_to_center_on } from './unitFocus';
@@ -27,57 +30,32 @@ import { request_unit_do_action, request_unit_act_sel_vs } from './unitCommands'
 import { update_mouse_cursor } from './mouse';
 
 const USSDT_QUEUE = UnitSSDataType.QUEUE;
+const ORDER_LAST = Order.LAST;
+const ORDER_MOVE = Order.MOVE;
+const ORDER_ACTION_MOVE = Order.ACTION_MOVE;
+const ORDER_FULL_MP = Order.FULL_MP;
 
 type packet_type_t = Record<string, any>;
 
 declare const $: any;
-declare const client: any;
-declare const actions: any;
-declare const renderer: number;
-declare const RENDERER_2DCANVAS: number;
-declare function mapstep(tile: any, dir: number): any;
-declare function center_tile_mapcanvas_2d(ptile: any): void;
-declare function show_dialog_message(title: string, message: string): void;
-declare function show_city_dialog(pcity: any): void;
-declare function clear_goto_tiles(): void;
-declare function unit_move_sound_play(punit: any): void;
-declare function tile_get_known(ptile: any): number;
-declare const TILE_UNKNOWN: number;
-declare const packet_unit_orders: number;
-declare const packet_unit_sscs_set: number;
-declare const packet_web_goto_path_req: number;
-declare const packet_web_info_text_req: number;
-declare const ORDER_LAST: number;
-declare const ORDER_MOVE: number;
-declare const ORDER_ACTION_MOVE: number;
-declare const ORDER_FULL_MP: number;
-declare const ACTIVITY_LAST: number;
-declare const E_BAD_COMMAND: number;
-declare const FC_ACTRES_PARADROP: number;
-declare const FC_ACTRES_PARADROP_CONQUER: number;
-declare const ACTION_AIRLIFT: number;
 
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
 export function order_wants_direction(order: number, act_id: number, ptile: any): boolean {
-  const action = actions[act_id];
+  const action = (window as any).actions[act_id];
 
   if (order == S.goto_last_order && action == null) {
     console.log("Asked to put invalid action " + act_id + " in an order.");
     return false;
   }
 
-  const FC_ORDER_PERFORM_ACTION = (window as any).ORDER_PERFORM_ACTION;
-  const FC_ORDER_MOVE = (window as any).ORDER_MOVE;
-  const FC_ORDER_ACTION_MOVE = (window as any).ORDER_ACTION_MOVE;
-
   switch (order) {
-    case FC_ORDER_MOVE:
-    case FC_ORDER_ACTION_MOVE:
+    case ORDER_MOVE:
+    case ORDER_ACTION_MOVE:
       return true;
-    case FC_ORDER_PERFORM_ACTION:
+    case Order.PERFORM_ACTION:
       if (action['min_distance'] > 0) {
         return true;
       }
@@ -102,8 +80,8 @@ export function do_unit_paradrop_to(punit: any, ptile: any): void {
   for (act_id = 0; act_id < FC_ACTION_COUNT; act_id++) {
     const paction = action_by_number(act_id);
 
-    if (!(action_has_result(paction, FC_ACTRES_PARADROP_CONQUER)
-      || action_has_result(paction, FC_ACTRES_PARADROP))) {
+    if (!(action_has_result(paction, ACTRES_PARADROP_CONQUER)
+      || action_has_result(paction, ACTRES_PARADROP))) {
       continue;
     }
 
@@ -139,7 +117,7 @@ export function do_map_click(ptile: any, qtype: any, first_time_called: boolean)
     if (S.goto_active && !is_touch_device()) {
       deactivate_goto(false);
     }
-    if (renderer == RENDERER_2DCANVAS) {
+    if ((window as any).renderer == RENDERER_2DCANVAS) {
       $("#canvas").contextMenu();
     } else {
       $("#canvas_div").contextMenu();
@@ -283,7 +261,7 @@ export function do_map_click(ptile: any, qtype: any, first_time_called: boolean)
         if (sunits != null && sunits.length > 0
           && sunits[0]['activity'] == ACTIVITY_IDLE) {
           set_unit_focus_and_redraw(sunits[0]);
-          if (renderer == RENDERER_2DCANVAS) {
+          if ((window as any).renderer == RENDERER_2DCANVAS) {
             $("#canvas").contextMenu();
           } else {
             $("#canvas_div").contextMenu();
@@ -309,7 +287,7 @@ export function do_map_click(ptile: any, qtype: any, first_time_called: boolean)
         }
 
         if (is_touch_device()) {
-          if (renderer == RENDERER_2DCANVAS) {
+          if ((window as any).renderer == RENDERER_2DCANVAS) {
             $("#canvas").contextMenu();
           } else {
             $("#canvas_div").contextMenu();

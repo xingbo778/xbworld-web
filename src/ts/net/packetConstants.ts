@@ -47,6 +47,7 @@ export const packet_unit_do_action = 84;
 export const packet_unit_get_actions = 87;
 export const packet_unit_change_activity = 222;
 export const packet_diplomacy_init_meeting_req = 95;
+export const packet_diplomacy_cancel_meeting_req = 97;
 export const packet_diplomacy_create_clause_req = 99;
 export const packet_diplomacy_remove_clause_req = 101;
 export const packet_diplomacy_accept_treaty_req = 103;
@@ -125,6 +126,7 @@ const allPacketConstants: Record<string, number> = {
   packet_unit_get_actions,
   packet_unit_change_activity,
   packet_diplomacy_init_meeting_req,
+  packet_diplomacy_cancel_meeting_req,
   packet_diplomacy_create_clause_req,
   packet_diplomacy_remove_clause_req,
   packet_diplomacy_accept_treaty_req,

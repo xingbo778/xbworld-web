@@ -4,8 +4,16 @@ import { game_find_city_by_number as find_city_by_number } from '../data/game';
 import { tileset_unit_type_graphic_tag } from '../renderer/tilespec';
 import { tileset_ruleset_entity_tag_str_or_alt, get_city_flag_sprite, get_city_occupied_sprite } from '../renderer/tilespec';
 import { orientation_changed } from '../utils/mobile';
-import { mark_all_dirty, update_map_canvas_full, update_map_canvas, map_to_gui_pos, update_map_canvas_check } from './mapviewCommon';
-import { tileset_tile_width, tileset_tile_height, normal_tile_width } from './tilesetConfig';
+import { mapview, mapview_slide, mark_all_dirty, update_map_canvas_full, update_map_canvas, map_to_gui_pos, update_map_canvas_check } from './mapviewCommon';
+import { tileset_tile_width, tileset_tile_height, normal_tile_width, tileset_image_count, tileset_name } from './tilesetConfig';
+import { RENDERER_2DCANVAS } from '../core/constants';
+import { active_city, citydlg_map_width, citydlg_map_height } from '../ui/cityDialog';
+import { resize_enabled } from '../core/control/controlState';
+import { overview_active } from '../core/overview';
+import { chatbox_active } from '../core/messages';
+import { VUT_UTYPE } from '../data/fcTypes';
+
+declare const $: any; // jQuery
 
 // DIR8 constants - must match map.ts Direction enum ordering
 const DIR8_NORTH = 1;
@@ -13,29 +21,8 @@ const DIR8_EAST = 4;
 const DIR8_SOUTH = 6;
 const DIR8_WEST = 3;
 
-// setup_window_size is a global function
-declare function setup_window_size(): void;
-
-declare const $: any; // jQuery
-declare const swal: any; // SweetAlert
-declare const tileset_image_count: number;
-declare const tileset_name: string;
-declare const get_tileset_file_extention: () => string;
-declare const ts: any; // Timestamp or similar
-declare const tileset: any; // Tileset configuration object
-declare const mapview: any; // Global mapview object
-declare let MAPVIEW_REFRESH_INTERVAL: number;
-declare const renderer: any; // Renderer type
-declare const RENDERER_2DCANVAS: any; // Renderer type constant
-declare const active_city: any; // Active city object
-declare const resize_enabled: boolean;
-declare const citydlg_map_width: number;
-declare const citydlg_map_height: number;
-declare const overview_active: boolean;
-declare const chatbox_active: boolean;
-declare const mapview_slide: any; // mapview_slide object
-declare const VUT_UTYPE: any; // Unit type constant
-declare const nations: any; // Nations data
+// Runtime globals accessed via window
+const _win = window as any;
 
 let mapview_canvas_ctx: CanvasRenderingContext2D | null = null;
 let mapview_canvas: HTMLCanvasElement | null = null;
@@ -102,7 +89,7 @@ export function init_mapview(): void {
     _w.dashedSupport = dashedSupport;
   }
 
-  setup_window_size();
+  _win.setup_window_size();
 
   mapview['gui_x0'] = 0;
   mapview['gui_y0'] = 0;
@@ -130,7 +117,7 @@ export function init_mapview(): void {
   }
   (window as any).fullfog = fullfog;
 
-  if (is_small_screen()) MAPVIEW_REFRESH_INTERVAL = 12;
+  if (is_small_screen()) _win.MAPVIEW_REFRESH_INTERVAL = 12;
 
   orientation_changed();
   init_sprites();
@@ -166,7 +153,7 @@ export function init_sprites(): void {
       const tileset_image = new Image();
       tileset_image.onload = preload_check;
       tileset_image.src = '/tileset/freeciv-web-tileset-'
-        + tileset_name + '-' + i + get_tileset_file_extention() + '?ts=' + ts;
+        + tileset_name + '-' + i + _win.get_tileset_file_extention() + '?ts=' + _win.ts;
       tileset_images[i] = tileset_image;
     }
   } else {
@@ -194,18 +181,18 @@ export function preload_check(): void {
 export function init_cache_sprites(): void {
   try {
 
-    if (typeof tileset === 'undefined') {
-      swal("Tileset not generated correctly. Run sync.sh in "
+    if (typeof _win.tileset === 'undefined') {
+      _win.swal("Tileset not generated correctly. Run sync.sh in "
         + "freeciv-img-extract and recompile.");
       return;
     }
 
-    for (const tile_tag in tileset) {
-      const x = tileset[tile_tag][0];
-      const y = tileset[tile_tag][1];
-      const w = tileset[tile_tag][2];
-      const h = tileset[tile_tag][3];
-      const i = tileset[tile_tag][4];
+    for (const tile_tag in _win.tileset) {
+      const x = _win.tileset[tile_tag][0];
+      const y = _win.tileset[tile_tag][1];
+      const w = _win.tileset[tile_tag][2];
+      const h = _win.tileset[tile_tag][3];
+      const i = _win.tileset[tile_tag][4];
 
       const newCanvas = document.createElement('canvas');
       newCanvas.height = h;
@@ -236,8 +223,8 @@ export function init_cache_sprites(): void {
 **************************************************************************/
 export function mapview_window_resized(): void {
   if (active_city != null || !resize_enabled) return;
-  setup_window_size();
-  if (renderer == RENDERER_2DCANVAS) {
+  _win.setup_window_size();
+  if (_win.renderer == RENDERER_2DCANVAS) {
     if (typeof mark_all_dirty === 'function') mark_all_dirty();
     update_map_canvas_full();
   }
@@ -293,7 +280,7 @@ export function canvas_put_select_rectangle(canvas_context: CanvasRenderingConte
 export function mapview_put_city_bar(pcanvas: CanvasRenderingContext2D, city: any, canvas_x: number, canvas_y: number): void {
   const text: string = decodeURIComponent(city['name']).toUpperCase();
   const size: number = city['size'];
-  const color: string = nations[city_owner(city)['nation']]['color'];
+  const color: string = _win.nations[city_owner(city)['nation']]['color'];
   const prod_type: any = get_city_production_type(city);
 
   const txt_measure = pcanvas.measureText(text);

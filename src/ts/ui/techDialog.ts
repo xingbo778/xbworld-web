@@ -1,41 +1,30 @@
 import { store } from '../data/store';
 import { playerInventionState as player_invention_state, techIdByName as tech_id_by_name, TECH_KNOWN, TECH_UNKNOWN, TECH_PREREQS_KNOWN } from '../data/tech';
 import { getCurrentBulbsOutput as get_current_bulbs_output, getCurrentBulbsOutputText as get_current_bulbs_output_text } from '../data/tech';
+import { isTechReqForGoal as is_tech_req_for_goal, isTechReqForTech as is_tech_req_for_tech } from '../data/tech';
 import { update_net_bulbs } from '../ui/rates';
 import { tileset_tech_graphic_tag, tileset_unit_type_graphic_tag, tileset_building_graphic_tag } from '../renderer/tilespec';
 import { tileset_name } from '../renderer/tilesetConfig';
-declare const tileset: any;
-declare const get_tileset_file_extention: any;
+import { getTilesetFileExtension as get_tileset_file_extention } from '../utils/helpers';
 import { mapview_put_tile } from '../renderer/mapview';
 import { send_request as sendRequest } from '../net/connection';
 import { packet_player_research, packet_player_tech_goal } from '../net/packetConstants';
 import { clientState as client_state, C_S_RUNNING } from '../client/clientState';
 import { clientIsObserver as client_is_observer } from '../client/clientState';
-declare const client: any;
 import { isSmallScreen as is_small_screen } from '../utils/helpers';
 import { move_points_text } from '../data/unit';
-declare const EventAggregator: any;
-declare const unit_types: any;
-declare const improvements: any;
-declare const nations: any;
+import { get_units_from_tech } from '../data/unittype';
+import { get_improvements_from_tech } from '../data/improvement';
 import { research_get } from '../data/player';
-declare const players: any;
-
+import { reqtree, reqtree_civ2civ3, reqtree_multiplayer } from '../data/reqtree';
+import { freeciv_wiki_docs } from '../data/wikiDoc';
+import { mouse_x, mouse_y } from '../core/control/controlState';
 
 declare const $: any;
-declare const reqtree: any; // Assuming reqtree is globally available or imported from somewhere
-declare const reqtree_civ2civ3: any;
-declare const reqtree_multiplayer: any;
-declare const freeciv_wiki_docs: any;
-declare const simpleStorage: any;
-declare const mouse_x: any;
-declare const mouse_y: any;
-declare const sprites: any;
-declare const ts: any; // timestamp for cache busting
-declare function is_tech_req_for_goal(tech_id: number, goal_id: number): boolean;
-declare function is_tech_req_for_tech(tech_id: number, req_id: number): boolean;
-declare function get_units_from_tech(tech_id: number): any[];
-declare function get_improvements_from_tech(tech_id: number): any[];
+declare const EventAggregator: any;
+
+// Window globals accessed at runtime
+const _w = window as any;
 
 export const techs: { [key: string]: any } = {};
 export const techcoststyle1: { [key: string]: any } = {};
@@ -205,7 +194,7 @@ export function update_tech_tree(): void {
     const y: number = reqtree[tech_id + '']['y'] + 2;
 
     /* KNOWN TECHNOLOGY */
-    if (player_invention_state(client.conn.playing, ptech['id']) == TECH_KNOWN) {
+    if (player_invention_state(store.client.conn.playing, ptech['id']) == TECH_KNOWN) {
 
       const tag = tileset_tech_graphic_tag(ptech);
       tech_canvas_ctx.fillStyle = 'rgb(255, 255, 255)';
@@ -222,9 +211,9 @@ export function update_tech_tree(): void {
 
 
       /* TECH WITH KNOWN PREREQS. */
-    } else if (player_invention_state(client.conn.playing, ptech['id']) == TECH_PREREQS_KNOWN) {
-      let bgcolor: string = (client.conn.playing != null && is_tech_req_for_goal(ptech['id'], client.conn.playing['tech_goal'])) ? "rgb(131, 170, 101)" : "rgb(91, 130, 61)";
-      if (client.conn.playing['researching'] == ptech['id']) {
+    } else if (player_invention_state(store.client.conn.playing, ptech['id']) == TECH_PREREQS_KNOWN) {
+      let bgcolor: string = (store.client.conn.playing != null && is_tech_req_for_goal(ptech['id'], store.client.conn.playing['tech_goal'])) ? "rgb(131, 170, 101)" : "rgb(91, 130, 61)";
+      if (store.client.conn.playing['researching'] == ptech['id']) {
         bgcolor = "rgb(161, 200, 131)";
         tech_canvas_ctx.lineWidth = 6;
       }
@@ -238,7 +227,7 @@ export function update_tech_tree(): void {
       tech_canvas_ctx.lineWidth = 2;
       mapview_put_tile(tech_canvas_ctx, tag ?? '', x + 1, y);
 
-      if (client.conn.playing['researching'] == ptech['id']) {
+      if (store.client.conn.playing['researching'] == ptech['id']) {
         tech_canvas_ctx.fillStyle = 'rgb(0, 0, 0)';
         tech_canvas_ctx.font = "Bold " + tech_canvas_text_font;
       } else {
@@ -248,9 +237,9 @@ export function update_tech_tree(): void {
       tech_canvas_ctx.fillText(ptech['name'], x + 51, y + 16);
 
       /* UNKNOWN TECHNOLOGY. */
-    } else if (player_invention_state(client.conn.playing, ptech['id']) == TECH_UNKNOWN) {
-      let bgcolor: string = (client.conn.playing != null && is_tech_req_for_goal(ptech['id'], client.conn.playing['tech_goal'])) ? "rgb(111, 141, 180)" : "rgb(61, 95, 130)";
-      if (client.conn.playing['tech_goal'] == ptech['id']) {
+    } else if (player_invention_state(store.client.conn.playing, ptech['id']) == TECH_UNKNOWN) {
+      let bgcolor: string = (store.client.conn.playing != null && is_tech_req_for_goal(ptech['id'], store.client.conn.playing['tech_goal'])) ? "rgb(111, 141, 180)" : "rgb(61, 95, 130)";
+      if (store.client.conn.playing['tech_goal'] == ptech['id']) {
         tech_canvas_ctx.lineWidth = 6;
       }
 
@@ -262,7 +251,7 @@ export function update_tech_tree(): void {
       tech_canvas_ctx.lineWidth = 2;
       mapview_put_tile(tech_canvas_ctx, tag ?? '', x + 1, y);
 
-      if (client.conn.playing['tech_goal'] == ptech['id']) {
+      if (store.client.conn.playing['tech_goal'] == ptech['id']) {
         tech_canvas_ctx.fillStyle = 'rgb(0, 0, 0)';
         tech_canvas_ctx.font = "Bold " + tech_canvas_text_font;
       } else {
@@ -277,7 +266,7 @@ export function update_tech_tree(): void {
     for (let i: number = 0; i < prunits.length; i++) {
       const utype = prunits[i];
       const tag2 = tileset_unit_type_graphic_tag(utype);
-      const sprite = tag2 != null ? sprites[tag2] : null;
+      const sprite = tag2 != null ? _w.sprites[tag2] : null;
       if (sprite != null) {
         tech_canvas_ctx.drawImage(sprite, x + 50 + ((tech_things++) * 30), y + 23, 28, 24);
       }
@@ -287,7 +276,7 @@ export function update_tech_tree(): void {
     for (let i: number = 0; i < primprovements.length; i++) {
       const pimpr = primprovements[i];
       const tag3 = tileset_building_graphic_tag(pimpr);
-      const sprite = tag3 != null ? sprites[tag3] : null;
+      const sprite = tag3 != null ? _w.sprites[tag3] : null;
       if (sprite != null) {
         tech_canvas_ctx.drawImage(sprite, x + 50 + ((tech_things++) * 30), y + 23, 28, 24);
       }
@@ -297,7 +286,7 @@ export function update_tech_tree(): void {
 
 export function update_tech_screen(): void {
 
-  if (client_is_observer() || client.conn.playing == null) {
+  if (client_is_observer() || store.client.conn.playing == null) {
     show_observer_tech_dialog();
     return;
   }
@@ -307,30 +296,30 @@ export function update_tech_screen(): void {
 
 
   let research_goal_text: string = "No research target selected.<br>Please select a technology now";
-  if (techs[client.conn.playing['researching']] != null) {
-    research_goal_text = "Researching: " + techs[client.conn.playing['researching']]['name'];
+  if (techs[store.client.conn.playing['researching']] != null) {
+    research_goal_text = "Researching: " + techs[store.client.conn.playing['researching']]['name'];
   }
-  if (techs[client.conn.playing['tech_goal']] != null) {
+  if (techs[store.client.conn.playing['tech_goal']] != null) {
     research_goal_text = research_goal_text + "<br>Research Goal: "
-      + techs[client.conn.playing['tech_goal']]['name'];
+      + techs[store.client.conn.playing['tech_goal']]['name'];
   }
   $("#tech_goal_box").html(research_goal_text);
 
   $("#tech_progress_text").html("Research progress: "
-    + client.conn.playing['bulbs_researched']
+    + store.client.conn.playing['bulbs_researched']
     + " / "
-    + client.conn.playing['researching_cost']);
+    + store.client.conn.playing['researching_cost']);
 
-  const pct_progress: number = 100 * (client.conn.playing['bulbs_researched']
-    / client.conn.playing['researching_cost']);
+  const pct_progress: number = 100 * (store.client.conn.playing['bulbs_researched']
+    / store.client.conn.playing['researching_cost']);
 
   $("#progress_fg").css("width", pct_progress + "%");
 
   if (clicked_tech_id != null) {
     $("#tech_result_text").html("<span id='tech_advance_helptext'>" + get_advances_text(clicked_tech_id) + "</span>");
     $("#tech_advance_helptext").tooltip({ disabled: false });
-  } else if (techs[client.conn.playing['researching']] != null) {
-    $("#tech_result_text").html("<span id='tech_advance_helptext'>" + get_advances_text(client.conn.playing['researching']) + "</span>");
+  } else if (techs[store.client.conn.playing['researching']] != null) {
+    $("#tech_result_text").html("<span id='tech_advance_helptext'>" + get_advances_text(store.client.conn.playing['researching']) + "</span>");
     $("#tech_advance_helptext").tooltip({ disabled: false });
   }
 
@@ -431,9 +420,9 @@ export function tech_mapview_mouse_click(e: MouseEvent): void {
 
       if (tech_mouse_x > x && tech_mouse_x < x + tech_item_width
         && tech_mouse_y > y && tech_mouse_y < y + tech_item_height) {
-        if (player_invention_state(client.conn.playing, ptech['id']) == TECH_PREREQS_KNOWN) {
+        if (player_invention_state(store.client.conn.playing, ptech['id']) == TECH_PREREQS_KNOWN) {
           send_player_research(ptech['id']);
-        } else if (player_invention_state(client.conn.playing, ptech['id']) == TECH_UNKNOWN) {
+        } else if (player_invention_state(store.client.conn.playing, ptech['id']) == TECH_UNKNOWN) {
           send_player_tech_goal(ptech['id']);
         }
         clicked_tech_id = ptech['id'];
@@ -451,12 +440,12 @@ export function get_tech_infobox_html(tech_id: number): string | null {
   const tag = tileset_tech_graphic_tag(ptech);
 
   if (tag == null) return null;
-  const tileset_x: number = tileset[tag][0];
-  const tileset_y: number = tileset[tag][1];
-  const width: number = tileset[tag][2];
-  const height: number = tileset[tag][3];
-  const i: number = tileset[tag][4];
-  const image_src: string = "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i + get_tileset_file_extention() + "?ts=" + ts;
+  const tileset_x: number = _w.tileset[tag][0];
+  const tileset_y: number = _w.tileset[tag][1];
+  const width: number = _w.tileset[tag][2];
+  const height: number = _w.tileset[tag][3];
+  const i: number = _w.tileset[tag][4];
+  const image_src: string = "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i + get_tileset_file_extention() + "?ts=" + _w.ts;
   if (is_small_screen()) {
     infobox_html += "<div class='specific_tech' onclick='send_player_research(" + tech_id + ");' title='"
       + get_advances_text(tech_id).replace(/(<([^>]+)>)/ig, "") + "'>"
@@ -491,19 +480,19 @@ export function show_tech_gained_dialog(tech_gained_id: number): void {
   if (client_is_observer() || C_S_RUNNING != client_state()) return;
 
   $("#tech_tab_item").css("color", "#aa0000");
-  const pplayer = client.conn.playing;
+  const pplayer = store.client.conn.playing;
   const tech = techs[tech_gained_id];
   if (tech == null) return;
 
   const title: string = tech['name'] + " discovered!";
-  let message: string = "The " + nations[pplayer['nation']]['adjective'] + " have discovered " + tech['name'] + ".<br>";
+  let message: string = "The " + store.nations[pplayer['nation']]['adjective'] + " have discovered " + tech['name'] + ".<br>";
   message += "<span id='tech_advance_helptext'>" + get_advances_text(tech_gained_id) + "</span>";
 
   const tech_choices: any[] = [];
   for (let next_tech_id in techs) {
     const ntech = techs[next_tech_id];
     if (!(next_tech_id + '' in reqtree)) continue;
-    if (player_invention_state(client.conn.playing, ntech['id']) == TECH_PREREQS_KNOWN) {
+    if (player_invention_state(store.client.conn.playing, ntech['id']) == TECH_PREREQS_KNOWN) {
       tech_choices.push(ntech);
     }
   }
@@ -595,7 +584,7 @@ export function show_tech_info_dialog(tech_name: string, unit_type_id: number | 
   let message: string = "";
 
   if (unit_type_id != null) {
-    const punit_type = unit_types[unit_type_id];
+    const punit_type = store.unitTypes[unit_type_id];
     message += "<b>Unit info</b>: " + punit_type['helptext'] + "<br><br>"
       + "Cost: " + punit_type['build_cost']
       + "<br>Attack: " + punit_type['attack_strength']
@@ -607,7 +596,7 @@ export function show_tech_info_dialog(tech_name: string, unit_type_id: number | 
       + "<br><br>";
   }
 
-  if (improvement_id != null) message += "<b>Improvement info</b>: " + improvements[improvement_id]['helptext'] + "<br><br>";
+  if (improvement_id != null) message += "<b>Improvement info</b>: " + store.improvements[improvement_id]['helptext'] + "<br><br>";
 
   if (freeciv_wiki_docs[tech_name] != null) {
     message += "<b>Wikipedia on <a href='" + wikipedia_url
@@ -665,9 +654,9 @@ export function update_tech_dialog_cursor(): void {
 
     if (tech_mouse_x > x && tech_mouse_x < x + tech_item_width
       && tech_mouse_y > y && tech_mouse_y < y + tech_item_height) {
-      if (player_invention_state(client.conn.playing, ptech['id']) == TECH_PREREQS_KNOWN) {
+      if (player_invention_state(store.client.conn.playing, ptech['id']) == TECH_PREREQS_KNOWN) {
         tech_canvas.style.cursor = "pointer";
-      } else if (player_invention_state(client.conn.playing, ptech['id']) == TECH_UNKNOWN) {
+      } else if (player_invention_state(store.client.conn.playing, ptech['id']) == TECH_UNKNOWN) {
         tech_canvas.style.cursor = "pointer";
       } else {
         tech_canvas.style.cursor = "not-allowed";
@@ -682,8 +671,8 @@ export function show_observer_tech_dialog(): void {
   $("#tech_info_box").hide();
   $("#tech_canvas").hide();
   let msg: string = "<h2>Research</h2>";
-  for (let player_id in players) {
-    const pplayer = players[player_id];
+  for (let player_id in store.players) {
+    const pplayer = store.players[player_id];
     const pname: string = pplayer['name'];
     const pr = research_get(pplayer);
     if (pr == null) continue;

@@ -5,89 +5,47 @@
  */
 
 import { store } from '../../data/store';
-import { unit_type, tile_units, get_what_can_unit_pillage_from } from '../../data/unit';
-import { indexToTile as index_to_tile } from '../../data/map';
-import { tileCity as tile_city, tileHasExtra as tile_has_extra } from '../../data/tile';
-import { ACTIVITY_IDLE } from '../../data/fcTypes';
-import { EXTRA_NONE } from '../../data/extra';
+import { unit_type, tile_units, get_what_can_unit_pillage_from, Order, UnitSSDataType, ServerSideAgent } from '../../data/unit';
+import { indexToTile as index_to_tile, mapstep } from '../../data/map';
+import { tileCity as tile_city, tileHasExtra as tile_has_extra, tileHasTerritoryClaimingExtra as tile_has_territory_claiming_extra } from '../../data/tile';
+import {
+  ACTIVITY_IDLE, ACTIVITY_SENTRY, ACTIVITY_FORTIFYING, ACTIVITY_BASE,
+  ACTIVITY_IRRIGATE, ACTIVITY_CULTIVATE, ACTIVITY_CLEAN, ACTIVITY_MINE,
+  ACTIVITY_PLANT, ACTIVITY_TRANSFORM, ACTIVITY_GEN_ROAD, ACTIVITY_LAST,
+  ACTION_PILLAGE, ACTION_JOIN_CITY, ACTION_HOME_CITY, ACTION_UPGRADE_UNIT,
+  ACTION_TRANSPORT_BOARD, ACTION_TRANSPORT_DEBOARD, ACTION_TRANSPORT_UNLOAD,
+  ACTION_DISBAND_UNIT_RECOVER, ACTION_DISBAND_UNIT, ACTION_NUKE,
+} from '../../data/fcTypes';
+import { EXTRA_NONE, BASE_GUI_FORTRESS, BASE_GUI_AIRBASE } from '../../data/extra';
 import { ACTION_COUNT } from '../../core/constants';
-import { ServerSideAgent } from '../../data/unit';
 import { send_request } from '../../net/connection';
+import {
+  packet_unit_orders, packet_unit_change_activity, packet_unit_server_side_agent_set,
+  packet_unit_do_action, packet_city_name_suggestion_req, packet_unit_sscs_set,
+} from '../../net/packetConstants';
 import { message_log } from '../../core/messages';
-import { E_BEGINNER_HELP } from '../../data/eventConstants';
+import { E_BEGINNER_HELP, E_BAD_COMMAND } from '../../data/eventConstants';
 import { action_decision_clear_want } from './actionSelection';
 import { clientIsObserver } from '../../client/clientState';
 import * as S from './controlState';
 // Circular imports — OK, only used inside functions at runtime
 import { get_units_in_focus, advance_unit_focus, update_unit_focus, update_active_units_dialog, update_unit_order_commands, set_unit_focus_and_redraw, auto_center_on_focus_unit, find_a_focus_unit_tile_to_center_on } from './unitFocus';
 import { activate_goto_last, deactivate_goto } from './mapClick';
+import { popup_pillage_selection_dialog } from '../../ui/pillageDialog';
+import { unit_move_sound_play } from '../../audio/sounds';
 
 const SSA_AUTOEXPLORE = ServerSideAgent.AUTOEXPLORE;
 const SSA_AUTOWORKER = ServerSideAgent.AUTOWORKER;
 const SSA_NONE = ServerSideAgent.NONE;
 
+const ORDER_MOVE = Order.MOVE;
+const ORDER_ACTION_MOVE = Order.ACTION_MOVE;
+const ORDER_PERFORM_ACTION = Order.PERFORM_ACTION;
+
+const EXTRA_HUT = (window as any).EXTRA_HUT;
+
 declare const $: any;
 declare const swal: any;
-declare function popup_pillage_selection_dialog(punit: any, tgt: any[]): void;
-declare function unit_move_sound_play(punit: any): void;
-declare function mapstep(tile: any, dir: number): any;
-declare function tile_has_territory_claiming_extra(ptile: any): boolean;
-declare const EXTRA_HUT: number;
-declare const RENDERER_2DCANVAS: number;
-declare const renderer: number;
-
-// Direction constants
-declare const DIR8_SOUTH: number;
-declare const DIR8_SOUTHEAST: number;
-declare const DIR8_EAST: number;
-declare const DIR8_SOUTHWEST: number;
-declare const DIR8_NORTHEAST: number;
-declare const DIR8_WEST: number;
-declare const DIR8_NORTHWEST: number;
-declare const DIR8_NORTH: number;
-
-// Packet types
-declare const packet_unit_orders: number;
-declare const packet_unit_change_activity: number;
-declare const packet_unit_server_side_agent_set: number;
-declare const packet_unit_do_action: number;
-declare const packet_city_name_suggestion_req: number;
-declare const packet_unit_sscs_set: number;
-
-// Activity constants
-declare const ACTIVITY_SENTRY: number;
-declare const ACTIVITY_FORTIFYING: number;
-declare const ACTIVITY_BASE: number;
-declare const ACTIVITY_IRRIGATE: number;
-declare const ACTIVITY_CULTIVATE: number;
-declare const ACTIVITY_CLEAN: number;
-declare const ACTIVITY_MINE: number;
-declare const ACTIVITY_PLANT: number;
-declare const ACTIVITY_TRANSFORM: number;
-declare const ACTIVITY_GEN_ROAD: number;
-declare const ACTIVITY_LAST: number;
-
-// Action constants
-declare const ACTION_AIRLIFT: number;
-declare const ACTION_PILLAGE: number;
-declare const ACTION_JOIN_CITY: number;
-declare const ACTION_HOME_CITY: number;
-declare const ACTION_UPGRADE_UNIT: number;
-declare const ACTION_TRANSPORT_BOARD: number;
-declare const ACTION_TRANSPORT_DEBOARD: number;
-declare const ACTION_TRANSPORT_UNLOAD: number;
-declare const ACTION_DISBAND_UNIT_RECOVER: number;
-declare const ACTION_DISBAND_UNIT: number;
-declare const ACTION_NUKE: number;
-declare const ORDER_LAST: number;
-declare const ORDER_MOVE: number;
-declare const ORDER_ACTION_MOVE: number;
-declare const ORDER_FULL_MP: number;
-declare const ORDER_PERFORM_ACTION: number;
-declare const BASE_GUI_FORTRESS: number;
-declare const BASE_GUI_AIRBASE: number;
-declare const E_BAD_COMMAND: number;
-declare const game_find_unit_by_number: (id: number) => any;
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -384,7 +342,7 @@ export function request_unit_act_sel_vs(ptile: any) {
     const packet = {
       "pid": packet_unit_sscs_set,
       "unit_id": punit['id'],
-      "type": (S as any).USSDT_QUEUE ?? 0,  // UnitSSDataType.QUEUE
+      "type": UnitSSDataType.QUEUE,
       "value": ptile['index']
     };
     send_request(JSON.stringify(packet));

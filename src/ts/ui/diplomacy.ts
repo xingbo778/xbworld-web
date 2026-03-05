@@ -1,38 +1,27 @@
 import { store } from '../data/store';
 import { game_find_city_by_number as find_city_by_number } from '../data/game';
-import { cityOwnerPlayerId as city_owner } from '../data/city';
-declare const does_city_have_improvement: any;
-import { playerInventionState as player_invention_state } from '../data/tech';
-declare const game_info: any;
+import { cityOwnerPlayerId as city_owner, doesCityHaveImprovement as does_city_have_improvement } from '../data/city';
+import { playerInventionState as player_invention_state, TECH_KNOWN, TECH_UNKNOWN, TECH_PREREQS_KNOWN } from '../data/tech';
 import { isLongturn as is_longturn } from '../client/clientCore';
 import { send_request as sendRequest } from '../net/connection';
 import {
   packet_diplomacy_init_meeting_req,
   packet_diplomacy_accept_treaty_req,
-
+  packet_diplomacy_cancel_meeting_req,
   packet_diplomacy_create_clause_req,
   packet_diplomacy_remove_clause_req,
   packet_diplomacy_cancel_pact,
 } from '../net/packetConstants';
 import { clientState as client_state, clientIsObserver } from '../client/clientState';
-declare const update_nation_screen: any;
-import { isSmallScreen as is_small_screen } from '../utils/helpers'; // Assuming this is in helpers.ts
-declare const get_tileset_file_extention: any;
+import { updateNationScreen as update_nation_screen } from '../data/nation';
+import { isSmallScreen as is_small_screen, getTilesetFileExtension as get_tileset_file_extention } from '../utils/helpers';
 import { get_treaty_agree_thumb_up, get_treaty_disagree_thumb_down } from '../renderer/tilespec';
+import { DiplState } from '../data/player';
 
 declare const $: any;
 declare const Handlebars: any;
-declare const packet_diplomacy_cancel_meeting_req: number;
-declare const client: any; // TODO: Type client
-declare const players: any; // TODO: Type players
-declare const nations: any; // TODO: Type nations
-declare const techs: any; // TODO: Type techs
-declare const cities: any; // TODO: Type cities
-declare const sprites: any; // TODO: Type sprites
-declare const DS_CEASEFIRE: any; // TODO: Type DS_CEASEFIRE
-declare const TECH_KNOWN: any; // TODO: Type TECH_KNOWN
-declare const TECH_UNKNOWN: any; // TODO: Type TECH_UNKNOWN
-declare const TECH_PREREQS_KNOWN: any; // TODO: Type TECH_PREREQS_KNOWN
+
+const _w = window as any;
 
 export const CLAUSE_ADVANCE = 0;
 export const CLAUSE_GOLD = 1;
@@ -64,7 +53,7 @@ export function diplomacy_init_meeting_req(counterpart: any): void {
  ...
 **************************************************************************/
 export function show_diplomacy_dialog(counterpart: any): void {
-  const pplayer = players[counterpart];
+  const pplayer = store.players[counterpart];
   create_diplomacy_dialog(pplayer, Handlebars.templates['diplomacy_meeting']);
 }
 
@@ -240,15 +229,15 @@ export function remove_clause(remove_clause_obj: any): void {
  ...
 **************************************************************************/
 export function client_diplomacy_clause_string(counterpart: any, giver: any, type: number, value: any): string {
-  const pplayer = players[giver];
-  const nation = nations[pplayer['nation']]['adjective'];
+  const pplayer = store.players[giver];
+  const nation = store.nations[pplayer['nation']]['adjective'];
 
   switch (type) {
     case CLAUSE_ADVANCE:
-      const ptech = techs[value];
+      const ptech = store.techs[value];
       return "The " + nation + " give " + ptech['name'];
     case CLAUSE_CITY:
-      const pcity = cities[value];
+      const pcity = store.cities[value];
 
       if (pcity != null) {
         return "The " + nation + " give " + decodeURIComponent(pcity['name']);
@@ -256,7 +245,7 @@ export function client_diplomacy_clause_string(counterpart: any, giver: any, typ
         return "The " + nation + " give unknown city.";
       }
     case CLAUSE_GOLD:
-      if (giver === client.conn.playing['playerno']) {
+      if (giver === store.client.conn.playing['playerno']) {
         $("#self_gold_" + counterpart).val(value);
       } else {
         $("#counterpart_gold_" + counterpart).val(value);
@@ -292,7 +281,7 @@ export function diplomacy_cancel_treaty(player_id: any): void {
   const packet = {
     "pid": packet_diplomacy_cancel_pact,
     "other_player_id": player_id,
-    "clause": DS_CEASEFIRE
+    "clause": DiplState.DS_CEASEFIRE
   };
   sendRequest(JSON.stringify(packet));
 
@@ -308,7 +297,7 @@ export function diplomacy_cancel_treaty(player_id: any): void {
  ...
 **************************************************************************/
 export function create_diplomacy_dialog(counterpart: any, template: any): void {
-  const pplayer = client.conn.playing;
+  const pplayer = store.client.conn.playing;
   const counterpart_id = counterpart['playerno'];
 
   // reset diplomacy_dialog div.
@@ -320,7 +309,7 @@ export function create_diplomacy_dialog(counterpart: any, template: any): void {
   }));
 
   const title = "Diplomacy: " + counterpart['name']
-    + " of the " + nations[counterpart['nation']]['adjective'];
+    + " of the " + store.nations[counterpart['nation']]['adjective'];
 
   const diplomacy_dialog = $("#diplomacy_dialog_" + counterpart_id);
   diplomacy_dialog.attr("title", title);
@@ -351,11 +340,11 @@ export function create_diplomacy_dialog(counterpart: any, template: any): void {
 
   diplomacy_dialog.dialog('open');
 
-  let nation = nations[pplayer['nation']];
+  let nation = store.nations[pplayer['nation']];
   if (nation['customized']) {
     meeting_paint_custom_flag(nation, document.getElementById('flag_self_' + counterpart_id) as HTMLCanvasElement);
   }
-  nation = nations[counterpart['nation']];
+  nation = store.nations[counterpart['nation']];
   if (nation['customized']) {
     meeting_paint_custom_flag(nation, document.getElementById('flag_counterpart_' + counterpart_id) as HTMLCanvasElement);
   }
@@ -363,7 +352,7 @@ export function create_diplomacy_dialog(counterpart: any, template: any): void {
   create_clauses_menu($('#hierarchy_self_' + counterpart_id));
   create_clauses_menu($('#hierarchy_counterpart_' + counterpart_id));
 
-  if (game_info.trading_gold && clause_infos[CLAUSE_GOLD]['enabled']) {
+  if (store.gameInfo!.trading_gold && clause_infos[CLAUSE_GOLD]['enabled']) {
     $("#self_gold_" + counterpart_id).attr({
       "max": pplayer['gold'],
       "min": 0
@@ -405,7 +394,7 @@ export function meeting_paint_custom_flag(nation: any, flag_canvas: HTMLCanvasEl
   const flag_canvas_ctx = flag_canvas.getContext("2d");
   if (flag_canvas_ctx) {
     flag_canvas_ctx.scale(1.5, 1.5);
-    flag_canvas_ctx.drawImage(sprites[tag], 0, 0);
+    flag_canvas_ctx.drawImage(_w.sprites[tag], 0, 0);
   }
 }
 
@@ -479,7 +468,7 @@ export function meeting_gold_change_req(counterpart_id: any, giver: any, gold: n
 **************************************************************************/
 export function meeting_template_data(giver: any, taker: any): any {
   const data: any = {};
-  const nation = nations[giver['nation']];
+  const nation = store.nations[giver['nation']];
 
   if (!nation['customized']) {
     data.flag = nation['graphic_str'] + "-web" + get_tileset_file_extention();
@@ -502,16 +491,16 @@ export function meeting_template_data(giver: any, taker: any): any {
     all_clauses.push({ title: 'Maps...', clauses: clauses });
   }
 
-  if (game_info.trading_tech && clause_infos[CLAUSE_ADVANCE]['enabled']) {
+  if (store.gameInfo!.trading_tech && clause_infos[CLAUSE_ADVANCE]['enabled']) {
     clauses = [];
-    for (const tech_id in techs) {
+    for (const tech_id in store.techs) {
       if (player_invention_state(giver, Number(tech_id)) === TECH_KNOWN
         && (player_invention_state(taker, Number(tech_id)) === TECH_UNKNOWN
           || player_invention_state(taker, Number(tech_id)) === TECH_PREREQS_KNOWN)) {
         clauses.push({
           type: CLAUSE_ADVANCE,
           value: tech_id,
-          name: techs[tech_id]['name']
+          name: store.techs[tech_id]['name']
         });
       }
     }
@@ -520,11 +509,11 @@ export function meeting_template_data(giver: any, taker: any): any {
     }
   }
 
-  if (game_info.trading_city && !is_longturn()
+  if (store.gameInfo!.trading_city && !is_longturn()
     && clause_infos[CLAUSE_CITY]['enabled']) {
     clauses = [];
-    for (const city_id in cities) {
-      const pcity = cities[city_id];
+    for (const city_id in store.cities) {
+      const pcity = store.cities[city_id];
       if (city_owner(pcity) === giver
         && !does_city_have_improvement(pcity, "Palace")) {
         clauses.push({
@@ -549,7 +538,7 @@ export function meeting_template_data(giver: any, taker: any): any {
     all_clauses.push({ type: CLAUSE_SHARED_TILES, value: 1, name: 'Share tiles' });
   }
 
-  if (giver === client.conn.playing) {
+  if (giver === store.client.conn.playing) {
     clauses = [];
     if (clause_infos[CLAUSE_CEASEFIRE]['enabled']) {
       clauses.push({ type: CLAUSE_CEASEFIRE, value: 1, name: 'Cease-fire' });

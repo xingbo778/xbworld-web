@@ -447,3 +447,13 @@ export const enum ClientState {
 
 // ─── Renderer Type ───────────────────────────────────────────────────────────
 export const RENDERER_2DCANVAS = 1;
+
+// ─── Directions (8-way) ─────────────────────────────────────────────────────
+export const DIR8_NORTHWEST = 0;
+export const DIR8_NORTH = 1;
+export const DIR8_NORTHEAST = 2;
+export const DIR8_WEST = 3;
+export const DIR8_EAST = 4;
+export const DIR8_SOUTHWEST = 5;
+export const DIR8_SOUTH = 6;
+export const DIR8_SOUTHEAST = 7;
