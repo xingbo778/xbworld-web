@@ -335,13 +335,4 @@ export const fc_e_events: [string, number, string][] = [
   ['e_undefined', E_S_XYZZY, 'Unknown event'],
 ];
 
-// --- Expose all event constants to window for legacy JS ---
-
-import * as self from './eventConstants';
-
-const _w = window as unknown as Record<string, unknown>;
-for (const [name, value] of Object.entries(self)) {
-  if (typeof value === 'number' || typeof value === 'string' || Array.isArray(value)) {
-    _w[name] = value;
-  }
-}
+// Legacy JS window exposure removed — all consumers now use TS imports.
