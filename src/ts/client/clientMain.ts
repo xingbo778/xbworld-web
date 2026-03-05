@@ -136,18 +136,18 @@ export function setupWindowSize(): void {
   _hide('tabs-hel');
 
   if (is_small_screen()) {
-    const setTabIcon = (id: string, icon: string) => {
+    const setTabIcon = (id: string, emoji: string) => {
       const el = _el(id);
       if (el) {
         const a = el.querySelector('a');
-        if (a) a.innerHTML = `<i class='fa fa-${icon}' aria-hidden='true'></i>`;
+        if (a) a.textContent = emoji;
       }
     };
-    setTabIcon('map_tab', 'globe');
-    setTabIcon('opt_tab', 'cogs');
-    setTabIcon('players_tab', 'flag');
-    setTabIcon('tech_tab', 'flask');
-    setTabIcon('hel_tab', 'question-circle-o');
+    setTabIcon('map_tab', '\u{1F30D}');
+    setTabIcon('opt_tab', '\u{2699}\uFE0F');
+    setTabIcon('players_tab', '\u{1F3F4}');
+    setTabIcon('tech_tab', '\u{1F9EA}');
+    setTabIcon('hel_tab', '\u{2753}');
     document.querySelectorAll('.ui-tabs-anchor').forEach((el: any) => el.style.padding = '7px');
     document.querySelectorAll('.overview_dialog').forEach((el: any) => el.style.display = 'none');
     document.querySelectorAll('.ui-dialog-titlebar').forEach((el: any) => el.style.display = 'none');
