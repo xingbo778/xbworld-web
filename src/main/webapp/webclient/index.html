@@ -13,7 +13,7 @@
 
   <!-- Legacy CSS bundle -->
   <link rel="stylesheet" href="/css/webclient.min.css">
-  <link rel="stylesheet" href="/css/font-awesome.min.css">
+  <!-- font-awesome.min.css removed: replaced icons with emoji (31 KB CSS + 77 KB font saved) -->
   <!-- TS bundle CSS -->
   <link rel="stylesheet" href="/javascript/ts-bundle/xbworld-web.css">
 </head>
@@ -31,7 +31,7 @@
   <div id="pregame_game_info"></div>
   <ol id="pregame_message_area"></ol>
   <div id="pregame_chat_box">
-    <i class="fa fa-commenting-o fa-2" style="color: white; font-size: 160%;"></i>
+    <span style="color: white; font-size: 160%;">💬</span>
     <input id="pregame_text_input" type="text" name="text_input" value=">" />
   </div>
 </div>
@@ -41,13 +41,13 @@
   <div id="tabs">
     <ul id="tabs_menu">
       <div id="xbworld_logo_tabs"></div>
-      <li id="map_tab"><a href="#tabs-map" title="Map"><i class="fa fa-globe"></i> Map</a></li>
-      <li id="civ_tab"><a href="#tabs-civ" title="Government"><i class="fa fa-university"></i> Government</a></li>
-      <li id="tech_tab"><a id="tech_tab_item" href="#tabs-tec" title="Research"><i class="fa fa-flask"></i> Research</a></li>
-      <li id="players_tab"><a href="#tabs-nat" title="Nations"><i class="fa fa-flag"></i> Nations</a></li>
-      <li id="cities_tab"><a href="#tabs-cities" title="Cities"><i class="fa fa-fort-awesome"></i> Cities</a></li>
-      <li id="opt_tab"><a href="#tabs-opt" title="Options"><i class="fa fa-cogs"></i> Options</a></li>
-      <li id="hel_tab"><a href="#tabs-hel" title="Manual"><i class="fa fa-question-circle-o"></i> Manual</a></li>
+      <li id="map_tab"><a href="#tabs-map" title="Map">🌍 Map</a></li>
+      <li id="civ_tab"><a href="#tabs-civ" title="Government">🏛 Government</a></li>
+      <li id="tech_tab"><a id="tech_tab_item" href="#tabs-tec" title="Research">🧪 Research</a></li>
+      <li id="players_tab"><a href="#tabs-nat" title="Nations">🏴 Nations</a></li>
+      <li id="cities_tab"><a href="#tabs-cities" title="Cities">🏰 Cities</a></li>
+      <li id="opt_tab"><a href="#tabs-opt" title="Options">⚙️ Options</a></li>
+      <li id="hel_tab"><a href="#tabs-hel" title="Manual">❓ Manual</a></li>
       <div id="game_status_panel_top"></div>
       <!-- turn_done removed: observer-only mode -->
     </ul>

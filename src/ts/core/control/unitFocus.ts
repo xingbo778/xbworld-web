@@ -221,7 +221,7 @@ export function advance_unit_focus(): void {
       }
     }
     const turnDoneBtn = document.getElementById('turn_done_button');
-    if (turnDoneBtn) turnDoneBtn.innerHTML = "<i class='fa fa-check-circle-o' style='color: green;'aria-hidden='true'></i> Turn Done";
+    if (turnDoneBtn) turnDoneBtn.innerHTML = "<span style='color: green;'>✅</span> Turn Done";
     if (!S.end_turn_info_message_shown) {
       S.setEndTurnInfoMessageShown(true);
       message_log.update({ event: E_BEGINNER_HELP, message: "All units have moved, click the \"Turn Done\" button to end your turn." });
