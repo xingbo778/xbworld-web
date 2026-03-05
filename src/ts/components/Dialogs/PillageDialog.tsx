@@ -1,8 +1,11 @@
 import { signal } from '@preact/signals';
 import { Dialog } from '../Shared/Dialog';
 import { Button } from '../Shared/Button';
-
-const w = window as any;
+import { clientIsObserver } from '../../client/clientState';
+import { request_unit_do_action } from '../../core/control/unitCommands';
+import { store } from '../../data/store';
+import { EXTRA_NONE } from '../../data/extra';
+import { ACTION_PILLAGE } from '../../data/fcTypes';
 
 interface PillageState {
   open: boolean;
@@ -20,15 +23,15 @@ const state = signal<PillageState>({
 
 export function openPillageDialog(punit: any, tgt: number[]): void {
   if (!punit) return;
-  if (typeof w.client_is_observer === 'function' && w.client_is_observer()) return;
+  if (clientIsObserver()) return;
   if (!tgt || tgt.length === 0) return;
 
-  const unitType = w.unit_types?.[punit.type];
+  const unitType = store.unitTypes?.[punit.type];
   const targets = tgt
-    .filter((id: number) => id !== w.EXTRA_NONE)
+    .filter((id: number) => id !== EXTRA_NONE)
     .map((id: number) => ({
       id,
-      name: w.extras?.[id]?.name ?? `Extra #${id}`,
+      name: store.extras?.[id]?.name ?? `Extra #${id}`,
     }));
 
   state.value = {
@@ -45,10 +48,8 @@ function closePillageDialog(): void {
 
 function selectTarget(extraId: number): void {
   const { unitId } = state.value;
-  if (typeof w.request_unit_do_action === 'function') {
-    const punit = w.units?.[unitId];
-    w.request_unit_do_action(w.ACTION_PILLAGE, unitId, punit?.tile, extraId);
-  }
+  const punit = store.units?.[unitId];
+  request_unit_do_action(ACTION_PILLAGE, unitId, punit?.tile, extraId);
   closePillageDialog();
 }
 

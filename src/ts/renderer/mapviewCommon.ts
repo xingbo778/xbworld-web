@@ -2,13 +2,28 @@ import { store } from '../data/store';
 import { mapPosToTile as map_pos_to_tile } from '../data/map';
 import { tileCity as tile_city } from '../data/tile';
 import { tileGetKnown as tile_get_known, TILE_UNKNOWN, TILE_KNOWN_UNSEEN } from '../data/tile';
-import { WRAP_X, WRAP_Y } from '../data/map';
+import { WRAP_X, WRAP_Y, wrapHasFlag as wrap_has_flag } from '../data/map';
 import { clientState as client_state, C_S_RUNNING } from '../client/clientState';
 import { globalEvents } from '../core/events';
 import { logNormal, logError } from '../core/log';
 import { LAYER_COUNT, LAYER_SPECIAL1, LAYER_CITY1, LAYER_GOTO } from './tilespec';
 import { FC_WRAP, DIVIDE } from '../utils/helpers';
 import { mapToNativePos, nativeToMapPos } from '../data/map';
+import { RENDERER_2DCANVAS } from '../core/constants';
+import { get_drawable_unit, init_game_unit_panel } from '../core/control/unitFocus';
+import { draw_fog_of_war } from '../ui/options';
+import { check_request_goto_path } from '../core/control/mapClick';
+import { init_chatbox } from '../core/messages';
+import { setKeyboardInput } from '../core/control/controlState';
+import { active_city } from '../ui/cityDialog';
+import {
+  map_select_active,
+  map_select_setting_enabled,
+  map_select_x,
+  map_select_y,
+  mouse_x,
+  mouse_y,
+} from './mapctrl';
 
 // Aliases for snake_case usage in this file
 const MAP_TO_NATIVE_POS = mapToNativePos;
@@ -24,12 +39,10 @@ import {
   mapview_put_goto_line,
   mapview_put_tile_label,
   canvas_put_select_rectangle,
+  canvas_put_rectangle,
 } from './mapview';
 import { fill_sprite_array } from './tilespec';
 import { tileset_tile_width, tileset_tile_height } from './tilesetConfig';
-
-// Access remaining globals via window (registered by globalRegistry)
-const w = window as any;
 
 
 export let mapview: {
@@ -91,9 +104,9 @@ export function mapdeco_init(): void {
   mapdeco_highlight_table = {};
   mapdeco_crosshair_table = {};
 
-  if (typeof w.init_game_unit_panel === 'function') w.init_game_unit_panel();
-  if (typeof w.init_chatbox === 'function') w.init_chatbox();
-  w.keyboard_input = true;
+  init_game_unit_panel();
+  init_chatbox();
+  setKeyboardInput(true);
 }
 
 /**************************************************************************
@@ -114,7 +127,7 @@ export function center_tile_mapcanvas_2d(ptile: { x: number; y: number }): void 
   Centers the mapview around tile with given id.
 **************************************************************************/
 export function center_tile_id(ptile_id: number): void {
-  const ptile = w.tiles[ptile_id];
+  const ptile = store.tiles[ptile_id];
   center_tile_mapcanvas_2d(ptile);
 }
 
@@ -206,11 +219,11 @@ export function normalize_gui_pos(gui_x: number, gui_y: number): { gui_x: number
   nat_x = t['nat_x'];
   nat_y = t['nat_y'];
 
-  if (w.wrap_has_flag(WRAP_X)) {
-    nat_x = FC_WRAP(nat_x, w.map['xsize']);
+  if (wrap_has_flag(WRAP_X)) {
+    nat_x = FC_WRAP(nat_x, store.mapInfo!['xsize']);
   }
-  if (w.wrap_has_flag(WRAP_Y)) {
-    nat_y = FC_WRAP(nat_y, w.map['ysize']);
+  if (wrap_has_flag(WRAP_Y)) {
+    nat_y = FC_WRAP(nat_y, store.mapInfo!['ysize']);
   }
 
   const u = NATIVE_TO_MAP_POS(nat_x, nat_y);
@@ -327,11 +340,11 @@ export function update_map_canvas(canvas_x: number, canvas_y: number, width: num
   const s = base_canvas_to_map_pos(mapview['width']!, 0);
   const t = base_canvas_to_map_pos(0, mapview['height']!);
   const u = base_canvas_to_map_pos(mapview['width']!, mapview['height']!);
-  if (r['map_x'] < 0 || r['map_x'] > w.map['xsize'] || r['map_y'] < 0 || r['map_y'] > w.map['ysize'] ||
-    s['map_x'] < 0 || s['map_x'] > w.map['xsize'] || s['map_y'] < 0 || s['map_y'] > w.map['ysize'] ||
-    t['map_x'] < 0 || t['map_x'] > w.map['xsize'] || t['map_y'] < 0 || t['map_y'] > w.map['ysize'] ||
-    u['map_x'] < 0 || u['map_x'] > w.map['xsize'] || u['map_y'] < 0 || u['map_y'] > w.map['ysize']) {
-    w.canvas_put_rectangle(w.mapview_canvas_ctx, "rgb(0,0,0)", canvas_x, canvas_y, width, height);
+  if (r['map_x'] < 0 || r['map_x'] > store.mapInfo!['xsize'] || r['map_y'] < 0 || r['map_y'] > store.mapInfo!['ysize'] ||
+    s['map_x'] < 0 || s['map_x'] > store.mapInfo!['xsize'] || s['map_y'] < 0 || s['map_y'] > store.mapInfo!['ysize'] ||
+    t['map_x'] < 0 || t['map_x'] > store.mapInfo!['xsize'] || t['map_y'] < 0 || t['map_y'] > store.mapInfo!['ysize'] ||
+    u['map_x'] < 0 || u['map_x'] > store.mapInfo!['xsize'] || u['map_y'] < 0 || u['map_y'] > store.mapInfo!['ysize']) {
+    canvas_put_rectangle((window as any).mapview_canvas_ctx, "rgb(0,0,0)", canvas_x, canvas_y, width, height);
   }
 
   // mapview_layer_iterate
@@ -339,11 +352,11 @@ export function update_map_canvas(canvas_x: number, canvas_y: number, width: num
 
     // set layer-specific canvas properties here.
     if (layer == LAYER_SPECIAL1) {
-      w.mapview_canvas_ctx.lineWidth = 2;
-      w.mapview_canvas_ctx.lineCap = 'butt';
-      if (w.dashedSupport) w.mapview_canvas_ctx.setLineDash([4, 4]);
+      (window as any).mapview_canvas_ctx.lineWidth = 2;
+      (window as any).mapview_canvas_ctx.lineCap = 'butt';
+      if ((window as any).dashedSupport) (window as any).mapview_canvas_ctx.setLineDash([4, 4]);
     } else if (layer == LAYER_CITY1) {
-      if (w.dashedSupport) w.mapview_canvas_ctx.setLineDash([]);
+      if ((window as any).dashedSupport) (window as any).mapview_canvas_ctx.setLineDash([]);
     }
 
     //gui_rect_iterate begin
@@ -386,7 +399,7 @@ export function update_map_canvas(canvas_x: number, canvas_y: number, width: num
           continue;
         }
 
-        if (w.map['wrap_id'] == 0 && (ptile_si <= 0 || ((ptile_si / 4)) > w.map['xsize'])) {
+        if (store.mapInfo!['wrap_id'] == 0 && (ptile_si <= 0 || ((ptile_si / 4)) > store.mapInfo!['xsize'])) {
           continue;  // Skip if flat earth without wrapping.
         }
 
@@ -413,18 +426,18 @@ export function update_map_canvas(canvas_x: number, canvas_y: number, width: num
 
 
         if (ptile != null) {
-          put_one_tile(w.mapview_canvas_ctx, layer, ptile, cx, cy, null);
+          put_one_tile((window as any).mapview_canvas_ctx, layer, ptile, cx, cy, null);
         } else if (pcorner != null) {
-          put_one_element(w.mapview_canvas_ctx, layer, null, null, pcorner,
+          put_one_element((window as any).mapview_canvas_ctx, layer, null, null, pcorner,
             null, null, cx, cy, null);
         }
       }
     }
   }
 
-  if (w.map_select_active && w.map_select_setting_enabled) {
-    canvas_put_select_rectangle(w.mapview_canvas_ctx, w.map_select_x, w.map_select_y,
-      w.mouse_x - w.map_select_x, w.mouse_y - w.map_select_y);
+  if (map_select_active && map_select_setting_enabled) {
+    canvas_put_select_rectangle((window as any).mapview_canvas_ctx, map_select_x, map_select_y,
+      mouse_x - map_select_x, mouse_y - map_select_y);
   }
 }
 
@@ -435,7 +448,7 @@ export function update_map_canvas(canvas_x: number, canvas_y: number, width: num
 export function put_one_tile(pcanvas: CanvasRenderingContext2D, layer: number, ptile: any, canvas_x: number, canvas_y: number, citymode: any): void {
   if (tile_get_known(ptile) != TILE_UNKNOWN || layer == LAYER_GOTO) {
     put_one_element(pcanvas, layer, ptile, null, null,
-      w.get_drawable_unit(ptile, citymode),
+      get_drawable_unit(ptile, citymode),
       tile_city(ptile), canvas_x, canvas_y, citymode);
   }
 }
@@ -449,7 +462,7 @@ export function put_one_element(pcanvas: CanvasRenderingContext2D, layer: number
   pcity: any, canvas_x: number, canvas_y: number, citymode: any): void {
   const tile_sprs = fill_sprite_array(layer, ptile, pedge, pcorner, punit, pcity, citymode);
 
-  const fog = (ptile != null && w.draw_fog_of_war
+  const fog = (ptile != null && draw_fog_of_war
     && TILE_KNOWN_UNSEEN == tile_get_known(ptile));
 
   put_drawn_sprites(pcanvas, canvas_x, canvas_y, tile_sprs, fog);
@@ -515,15 +528,15 @@ export function canvas_pos_to_tile(canvas_x: number, canvas_y: number): any {
   Updates the entire mapview.
 **************************************************************************/
 export function update_map_canvas_full(): void {
-  if (w.tiles != null && client_state() >= C_S_RUNNING) {
+  if (store.tiles != null && client_state() >= C_S_RUNNING) {
     if (!sprites_init) init_cache_sprites();
-    if (w.active_city != null) return;
+    if (active_city != null) return;
 
     if (mapview_slide['active']) {
       update_map_slide();
     } else {
       update_map_canvas(0, 0, mapview['store_width']!, mapview['store_height']!);
-      if (typeof w.check_request_goto_path === 'function') w.check_request_goto_path();
+      check_request_goto_path();
     }
 
     clear_dirty();
@@ -536,9 +549,9 @@ export function update_map_canvas_full(): void {
   Falls back to a full redraw when too many tiles changed or on scroll.
 **************************************************************************/
 export function update_map_canvas_dirty(): void {
-  if (w.tiles == null || client_state() < C_S_RUNNING) return;
+  if (store.tiles == null || client_state() < C_S_RUNNING) return;
   if (!sprites_init) init_cache_sprites();
-  if (w.active_city != null) return;
+  if (active_city != null) return;
 
   if (mapview_slide['active'] || dirty_all) {
     update_map_canvas_full();
@@ -555,7 +568,7 @@ export function update_map_canvas_dirty(): void {
 
   for (const tid_str in dirty_tiles) {
     const tid = parseInt(tid_str, 10);
-    const ptile = w.tiles[tid];
+    const ptile = store.tiles[tid];
     if (ptile == null) continue;
 
     const r = map_to_gui_pos(ptile['x'], ptile['y']);
@@ -591,7 +604,7 @@ export function update_map_canvas_dirty(): void {
 **************************************************************************/
 export function update_map_canvas_check(): void {
   const time = new Date().getTime() - last_redraw_time;
-  if (time > MAPVIEW_REFRESH_INTERVAL && w.renderer == w.RENDERER_2DCANVAS) {
+  if (time > MAPVIEW_REFRESH_INTERVAL && (window as any).renderer == RENDERER_2DCANVAS) {
     if (dirty_all || dirty_count > DIRTY_FULL_THRESHOLD) {
       update_map_canvas_full();
     } else if (dirty_count > 0) {
@@ -601,7 +614,7 @@ export function update_map_canvas_check(): void {
     }
   }
   try {
-    if (w.renderer == w.RENDERER_2DCANVAS && window.requestAnimationFrame != null) requestAnimationFrame(update_map_canvas_check);
+    if ((window as any).renderer == RENDERER_2DCANVAS && window.requestAnimationFrame != null) requestAnimationFrame(update_map_canvas_check);
   } catch (e: any) {
     if (e.name == 'NS_ERROR_NOT_AVAILABLE') {
       setTimeout(update_map_canvas_check, 100);
@@ -645,7 +658,7 @@ export function update_map_slide(): void {
     sy = Math.floor((dy * (-1 * mapview_slide['i'] / mapview_slide['max'])));
   }
 
-  w.mapview_canvas_ctx.drawImage(w.buffer_canvas, sx, sy,
+  (window as any).mapview_canvas_ctx.drawImage((window as any).buffer_canvas, sx, sy,
     mapview['width']!, mapview['height']!,
     0, 0, mapview['width']!, mapview['height']!);
 }

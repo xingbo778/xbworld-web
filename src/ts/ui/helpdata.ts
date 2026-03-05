@@ -25,24 +25,13 @@ import { U_NOT_OBSOLETED } from '../data/unittype';
 import { get_unit_type_image_sprite, get_technology_image_sprite, get_improvement_image_sprite } from '../renderer/tilespec';
 import { move_points_text } from '../data/unit';
 import { ruledir_from_ruleset_name } from '../core/pregame';
-declare const terrains: any;
-declare const improvements: any;
-declare const unit_types: any;
-declare const techs: any;
-declare const governments: any;
-declare const get_advances_text: any;
-declare function to_title_case(str: string): string;
-declare function string_unqualify(str: string): string;
+import { get_advances_text } from './techDialog';
+import { toTitleCase, stringUnqualify } from '../utils/helpers';
+import { store } from '../data/store';
 
-// The following variables are assumed to be declared elsewhere in the project and imported or global.
-// Help data globals — populated by server ruleset packets or left as defaults.
-const w = window as any;
-function get_helpdata_order(): string[] { return w.helpdata_order || []; }
-function get_helpdata(): Record<string, { text: string }> { return w.helpdata || {}; }
-function get_freeciv_wiki_docs(): Record<string, any> { return w.freeciv_wiki_docs || {}; }
-declare const ruleset_control: any;
-declare const ruleset_summary: string | null;
-declare const ruleset_description: string | null;
+function get_helpdata_order(): string[] { return (store as any).helpdata_order || []; }
+function get_helpdata(): Record<string, { text: string }> { return (store as any).helpdata || {}; }
+function get_freeciv_wiki_docs(): Record<string, any> { return (store as any).freeciv_wiki_docs || {}; }
 
 export const toplevel_menu_items: string[] = [
   "help_terrain",
@@ -114,19 +103,19 @@ export function generate_help_menu(key: string): void {
   let impr_id: string;
   let improvement: any;
   if (key === "help_gen_terrain") {
-    for (const terrain_id in terrains) {
-      const terrain = terrains[terrain_id];
+    for (const terrain_id in store.terrains) {
+      const terrain = store.terrains[terrain_id as any];
       $("<li data-helptag='" + key + "_" + terrain["id"] + "'>" + terrain["name"] + "</li>").appendTo("#help_terrain_ul");
     }
   } else if (key === "help_gen_improvements") {
-    for (impr_id in improvements) {
-      improvement = improvements[impr_id];
+    for (impr_id in store.improvements) {
+      improvement = store.improvements[impr_id as any];
       if (is_wonder(improvement)) continue;
       $("<li data-helptag='" + key + "_" + improvement["id"] + "'>" + improvement["name"] + "</li>").appendTo("#help_city_improvements_ul");
     }
   } else if (key === "help_gen_wonders") {
-    for (impr_id in improvements) {
-      improvement = improvements[impr_id];
+    for (impr_id in store.improvements) {
+      improvement = store.improvements[impr_id as any];
       if (!is_wonder(improvement)) continue;
       $("<li data-helptag='" + key + "_" + improvement["id"] + "'>" + improvement["name"] + "</li>").appendTo("#help_wonders_of_the_world_ul");
     }
@@ -134,19 +123,19 @@ export function generate_help_menu(key: string): void {
     const unit_ids = unittype_ids_alphabetic();
     for (let i = 0; i < unit_ids.length; i++) {
       const unit_id = unit_ids[i];
-      const punit_type = unit_types[unit_id];
+      const punit_type = store.unitTypes[unit_id];
 
       $("<li data-helptag='" + key + "_" + punit_type["id"] + "'>" + punit_type["name"] + "</li>").appendTo("#help_units_ul");
     }
   } else if (key === "help_gen_techs") {
-    for (const tech_id in techs) {
+    for (const tech_id in store.techs) {
       if (tech_id === "0") continue;
-      const tech = techs[tech_id];
+      const tech = store.techs[tech_id as any];
       $("<li data-helptag='" + key + "_" + tech["id"] + "'>" + tech["name"] + "</li>").appendTo("#help_technology_ul");
     }
   } else if (key === "help_gen_governments") {
-    for (const gov_id in governments) {
-      const pgov = governments[gov_id];
+    for (const gov_id in store.governments) {
+      const pgov = store.governments[gov_id as any];
 
       $("<li data-helptag='" + key + "_" + pgov["id"] + "'>" + pgov["name"] + "</li>").appendTo("#help_government_ul");
     }
@@ -239,7 +228,7 @@ export function handle_help_menu_select(ui: any): void {
 **************************************************************************/
 export function wiki_on_item_button(item_name: string): string {
   /* Item name shouldn't be a qualified string. */
-  item_name = string_unqualify(item_name);
+  item_name = stringUnqualify(item_name);
 
   if (get_freeciv_wiki_docs()[item_name] == null) {
     console.log("No wiki data about " + item_name);
@@ -260,14 +249,14 @@ export function wiki_on_item_button(item_name: string): string {
 **************************************************************************/
 export function helpdata_format_current_ruleset(): string {
   let msg = "";
-  if (ruleset_control != null) {
-    msg += "<h1>" + ruleset_control["name"] + "</h1>";
+  if (store.rulesControl != null) {
+    msg += "<h1>" + (store.rulesControl as any)["name"] + "</h1>";
   }
-  if (ruleset_summary != null) {
-    msg += "<p>" + ruleset_summary.replace(/\n/g, "<br>") + "</p>";
+  if (store.rulesSummary != null) {
+    msg += "<p>" + store.rulesSummary.replace(/\n/g, "<br>") + "</p>";
   }
-  if (ruleset_description != null) {
-    msg += "<p>" + ruleset_description.replace(/\n/g, "<br>") + "</p>";
+  if (store.rulesDescription != null) {
+    msg += "<p>" + store.rulesDescription.replace(/\n/g, "<br>") + "</p>";
   }
   return msg;
 }
@@ -276,11 +265,11 @@ export function helpdata_format_current_ruleset(): string {
 ...
 **************************************************************************/
 export function generate_help_text(key: string): void {
-  const rulesetdir: string = ruledir_from_ruleset_name(ruleset_control["name"], "");
+  const rulesetdir: string = ruledir_from_ruleset_name((store.rulesControl as any)?.["name"] ?? "", "");
   let msg = "";
 
   if (key.indexOf("help_gen_terrain") !== -1) {
-    const terrain = terrains[parseInt(key.replace("help_gen_terrain_", ""))];
+    const terrain = store.terrains[parseInt(key.replace("help_gen_terrain_", ""))];
     msg =
       "<h1>" +
       terrain["name"] +
@@ -297,7 +286,7 @@ export function generate_help_text(key: string): void {
       "/" +
       terrain["output"][2];
   } else if (key.indexOf("help_gen_improvements") !== -1 || key.indexOf("help_gen_wonders") !== -1) {
-    const improvement = improvements[
+    const improvement = store.improvements[
       parseInt(key.replace("help_gen_wonders_", "").replace("help_gen_improvements_", ""))
     ];
     msg =
@@ -315,14 +304,14 @@ export function generate_help_text(key: string): void {
     if (reqs != null) {
       msg += "<br>Requirements: ";
       for (let n = 0; n < reqs.length; n++) {
-        msg += techs[reqs[n]]["name"] + " ";
+        msg += store.techs[reqs[n]]["name"] + " ";
       }
     }
     msg += "<br><br>";
     msg += wiki_on_item_button(improvement["name"]);
   } else if (key.indexOf("help_gen_units") !== -1) {
     let obsolete_by: any;
-    const punit_type = unit_types[parseInt(key.replace("help_gen_units_", ""))];
+    const punit_type = store.unitTypes[parseInt(key.replace("help_gen_units_", ""))];
 
     msg = "<h1>" + punit_type["name"] + "</h1>";
     msg += render_sprite(get_unit_type_image_sprite(punit_type));
@@ -357,19 +346,19 @@ export function generate_help_text(key: string): void {
       msg += "<div id='utype_fact_req_building'>";
       msg += "Building Requirements: ";
       for (let m = 0; m < ireqs.length; m++) {
-        msg += techs[ireqs[m]]["name"] + " ";
+        msg += store.techs[ireqs[m]]["name"] + " ";
       }
       msg += "</div>";
     }
 
     const treq = punit_type["tech_requirement"];
-    if (treq != null && techs[treq] != null) {
+    if (treq != null && store.techs[treq] != null) {
       msg += "<div id='utype_fact_req_tech'>";
-      msg += "Tech Requirements: " + techs[treq]["name"];
+      msg += "Tech Requirements: " + store.techs[treq]["name"];
       msg += "</div>";
     }
 
-    obsolete_by = unit_types[punit_type["obsoleted_by"]];
+    obsolete_by = store.unitTypes[punit_type["obsoleted_by"]];
     msg += "<div id='utype_fact_obsolete'>";
     msg += "Obsolete by: ";
     if (obsolete_by === U_NOT_OBSOLETED) {
@@ -387,7 +376,7 @@ export function generate_help_text(key: string): void {
 
     msg += "<div id='datastore' hidden='true'></div>";
   } else if (key.indexOf("help_gen_techs") !== -1) {
-    const tech = techs[parseInt(key.replace("help_gen_techs_", ""))];
+    const tech = store.techs[parseInt(key.replace("help_gen_techs_", ""))];
     msg =
       "<h1>" +
       tech["name"] +
@@ -400,7 +389,7 @@ export function generate_help_text(key: string): void {
   } else if (key === "help_gen_ruleset") {
     msg = helpdata_format_current_ruleset();
   } else if (key.indexOf("help_gen_governments") !== -1) {
-    const pgov = governments[parseInt(key.replace("help_gen_governments_", ""))];
+    const pgov = store.governments[parseInt(key.replace("help_gen_governments_", ""))];
 
     msg = "<h1>" + pgov["name"] + "</h1>";
     msg += "<div id='helptext'><p>" + pgov["helptext"] + "</p></div>";
@@ -456,5 +445,5 @@ export function helpdata_tag_to_title(tag: string): string {
     .replace("gen_", "")
     .replace("misc_", "")
     .replace(/_/g, " ");
-  return to_title_case(result);
+  return toTitleCase(result);
 }

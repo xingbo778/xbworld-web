@@ -7,12 +7,15 @@
 
 import { store } from '../../data/store';
 import { cityOwnerPlayerId as city_owner_player_id } from '../../data/city';
+import { active_city } from '../../ui/cityDialog';
 import { tileCity as tile_city } from '../../data/tile';
 import { tile_units } from '../../data/unit';
-import { canvas_pos_to_tile } from '../../renderer/mapviewCommon';
+import { canvas_pos_to_tile, mapview, mapview_slide } from '../../renderer/mapviewCommon';
+import { touch_start_x, touch_start_y, map_select_check, map_select_x, map_select_y, map_select_check_started, setMapSelectActive, setTouchStart } from '../../renderer/mapctrl';
 import { isTouchDevice as is_touch_device } from '../../utils/helpers';
 import { clientState as client_state, C_S_RUNNING } from '../../client/clientState';
 import { update_tech_dialog_cursor, tech_dialog_active } from '../../ui/techDialog';
+import { RENDERER_2DCANVAS } from '../constants';
 import * as S from './controlState';
 // Circular imports — OK, only used inside functions
 import { find_visible_unit, set_unit_focus, update_active_units_dialog } from './unitFocus';
@@ -20,16 +23,11 @@ import { activate_goto } from './mapClick';
 
 declare const $: any;
 
-// Access globals via window to avoid bare-reference ReferenceError in IIFE bundle.
-// These are registered by globalRegistry.ts at startup.
-const w = window as any;
-
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
 export function mouse_moved_cb(e: MouseEvent): void {
-  const mapview_slide = w.mapview_slide;
   if (mapview_slide != null && mapview_slide['active']) return;
 
   S.setMouseX(0);
@@ -47,37 +45,37 @@ export function mouse_moved_cb(e: MouseEvent): void {
     }
   }
 
-  if (w.RENDERER_2DCANVAS && w.active_city == null && w.mapview_canvas != null
+  const _w = window as any;
+  if (RENDERER_2DCANVAS && active_city == null && _w.mapview_canvas != null
     && $("#canvas").length) {
     S.setMouseX(S.mouse_x - $("#canvas").offset().left);
     S.setMouseY(S.mouse_y - $("#canvas").offset().top);
 
     if (S.mapview_mouse_movement && !S.goto_active) {
-      const diff_x = (w.touch_start_x - S.mouse_x) * 2;
-      const diff_y = (w.touch_start_y - S.mouse_y) * 2;
+      const diff_x = (touch_start_x - S.mouse_x) * 2;
+      const diff_y = (touch_start_y - S.mouse_y) * 2;
 
-      w.mapview['gui_x0'] += diff_x;
-      w.mapview['gui_y0'] += diff_y;
-      w.touch_start_x = S.mouse_x;
-      w.touch_start_y = S.mouse_y;
+      mapview['gui_x0'] += diff_x;
+      mapview['gui_y0'] += diff_y;
+      setTouchStart(S.mouse_x, S.mouse_y);
       update_mouse_cursor();
     }
-  } else if (w.active_city != null && w.city_canvas != null
+  } else if (active_city != null && _w.city_canvas != null
     && $("#city_canvas").length) {
     S.setMouseX(S.mouse_x - $("#city_canvas").offset().left);
     S.setMouseY(S.mouse_y - $("#city_canvas").offset().top);
   }
 
-  if (w.client.conn.playing == null) return;
+  if (store.client.conn.playing == null) return;
 
   if (C_S_RUNNING == client_state()) {
     update_mouse_cursor();
   }
 
-  if (w.map_select_check && Math.abs(S.mouse_x - w.map_select_x) > 45
-    && Math.abs(S.mouse_y - w.map_select_y) > 45
-    && (new Date().getTime() - w.map_select_check_started) > 200) {
-    w.map_select_active = true;
+  if (map_select_check && Math.abs(S.mouse_x - map_select_x) > 45
+    && Math.abs(S.mouse_y - map_select_y) > 45
+    && (new Date().getTime() - map_select_check_started) > 200) {
+    setMapSelectActive(true);
   }
 }
 
@@ -100,9 +98,9 @@ export function update_mouse_cursor(): void {
     $("#canvas_div").css("cursor", "crosshair");
   } else if (S.goto_active && S.current_goto_turns == null) {
     $("#canvas_div").css("cursor", "not-allowed");
-  } else if (pcity != null && w.client.conn.playing != null && city_owner_player_id(pcity) == w.client.conn.playing.playerno) {
+  } else if (pcity != null && store.client.conn.playing != null && city_owner_player_id(pcity) == store.client.conn.playing.playerno) {
     $("#canvas_div").css("cursor", "pointer");
-  } else if (punit != null && w.client.conn.playing != null && punit['owner'] == w.client.conn.playing.playerno) {
+  } else if (punit != null && store.client.conn.playing != null && punit['owner'] == store.client.conn.playing.playerno) {
     $("#canvas_div").css("cursor", "pointer");
   } else {
     $("#canvas_div").css("cursor", "default");

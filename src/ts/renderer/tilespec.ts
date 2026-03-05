@@ -16,6 +16,23 @@ import {
 import { ServerSideAgent } from '../data/unit';
 import { UTYF_FLAGLESS } from '../data/unittype';
 
+import {
+  tileset_tile_height, tileset_name,
+  normal_tile_width, normal_tile_height,
+  unit_offset_x, unit_offset_y,
+  unit_flag_offset_x, unit_flag_offset_y,
+  unit_activity_offset_x, unit_activity_offset_y,
+  city_flag_offset_x, city_flag_offset_y,
+  citybar_offset_x, citybar_offset_y,
+  tilelabel_offset_x, tilelabel_offset_y,
+  dither_offset_x, dither_offset_y,
+  tile_types_setup, cellgroup_map, ts_tiles,
+} from './tilesetConfig';
+import { draw_units, draw_focus_unit } from '../ui/options';
+import { show_citybar } from '../core/control/controlState';
+import { active_city, city_rules } from '../ui/cityDialog';
+import { getTilesetFileExtension } from '../utils/helpers';
+
 // SSA constants from ServerSideAgent enum
 const SSA_NONE = ServerSideAgent.NONE;
 const SSA_AUTOWORKER = ServerSideAgent.AUTOWORKER;
@@ -32,8 +49,8 @@ const DIR8_SOUTHWEST = 5;
 const DIR8_SOUTH = 6;
 const DIR8_SOUTHEAST = 7;
 
-// Access runtime globals via window (EXTRA_*, w.tileset data, game state, etc.)
-const w = window as any;
+// Runtime globals that remain on window (sprites, tileset position data, EXTRA_* ids, fog)
+const _w = window as any;
 
 let num_cardinal_tileset_dirs: number = 4;
 let cardinal_tileset_dirs: number[] = [DIR8_NORTH, DIR8_EAST, DIR8_SOUTH, DIR8_WEST];
@@ -88,22 +105,22 @@ export const CELL_WHOLE: number = 0;		/* entire tile */
 export const CELL_CORNER: number = 1;	/* corner of tile */
 
 /* Darkness style. Don't reorder this enum since tilesets depend on it. */
-/* No darkness w.sprites are drawn. */
+/* No darkness _w.sprites are drawn. */
 export const DARKNESS_NONE: number = 0;
 
 /* 1 sprite that is split into 4 parts and treated as a darkness4. Only
  * works in iso-view. */
 export const DARKNESS_ISORECT: number = 1;
 
-/* 4 w.sprites, one per direction. More than one sprite per tile may be
+/* 4 _w.sprites, one per direction. More than one sprite per tile may be
  * drawn. */
 export const DARKNESS_CARD_SINGLE: number = 2;
 
-/* 15=2^4-1 w.sprites. A single sprite is drawn, chosen based on whether
+/* 15=2^4-1 _w.sprites. A single sprite is drawn, chosen based on whether
  * there's darkness in _each_ of the cardinal directions. */
 export const DARKNESS_CARD_FULL: number = 3;
 
-/* Corner darkness & fog. 3^4 = 81 w.sprites. */
+/* Corner darkness & fog. 3^4 = 81 _w.sprites. */
 export const DARKNESS_CORNER: number = 4;
 
 let terrain_match: { [key: string]: number } = {
@@ -115,16 +132,16 @@ let terrain_match: { [key: string]: number } = {
 };
 
 /**************************************************************************
-  Returns true iff the w.tileset has graphics for the specified tag.
+  Returns true iff the _w.tileset has graphics for the specified tag.
 **************************************************************************/
 export function tileset_has_tag(tagname: string): boolean {
-  return (w.sprites[tagname] != null);
+  return (_w.sprites[tagname] != null);
 }
 
 /**************************************************************************
   Returns the tag name of the sprite of a ruleset entity where the
   preferred tag name is in the 'graphic_str' field, the fall back tag in
-  case the w.tileset don't support the first tag is the 'graphic_alt' field
+  case the _w.tileset don't support the first tag is the 'graphic_alt' field
   and the entity name is stored in the 'name' field.
 **************************************************************************/
 export function tileset_ruleset_entity_tag_str_or_alt(entity: any, kind_name: string): string | null {
@@ -196,7 +213,7 @@ export function tileset_tech_graphic_tag(ptech: any): string | null {
   the map.
 **************************************************************************/
 export function tileset_extra_id_graphic_tag(extra_id: number): string | null {
-  return tileset_extra_graphic_tag(w.extras[extra_id]);
+  return tileset_extra_graphic_tag(store.extras[extra_id]);
 }
 
 /**************************************************************************
@@ -231,7 +248,7 @@ export function tileset_extra_activity_graphic_tag(extra: any): string | null {
   Extra specified by the id.
 **************************************************************************/
 export function tileset_extra_id_activity_graphic_tag(extra_id: number): string | null {
-  return tileset_extra_activity_graphic_tag(w.extras[extra_id]);
+  return tileset_extra_activity_graphic_tag(store.extras[extra_id]);
 }
 
 /**************************************************************************
@@ -266,7 +283,7 @@ export function tileset_extra_rmactivity_graphic_tag(extra: any): string | null 
   Extra specified by the id.
 **************************************************************************/
 export function tileset_extra_id_rmactivity_graphic_tag(extra_id: number): string | null {
-  return tileset_extra_rmactivity_graphic_tag(w.extras[extra_id]);
+  return tileset_extra_rmactivity_graphic_tag(store.extras[extra_id]);
 }
 
 /****************************************************************************
@@ -335,39 +352,39 @@ export function fill_sprite_array(layer: number, ptile: any, pedge: any, pcorner
         if (spec_sprite != null) sprite_array.push(spec_sprite);
 
 
-        if (tile_has_extra(ptile, w.EXTRA_MINE)) {
+        if (tile_has_extra(ptile, _w.EXTRA_MINE)) {
           sprite_array.push({
             "key":
-              tileset_extra_id_graphic_tag(w.EXTRA_MINE)
+              tileset_extra_id_graphic_tag(_w.EXTRA_MINE)
           });
         }
-        if (tile_has_extra(ptile, w.EXTRA_OIL_WELL)) {
+        if (tile_has_extra(ptile, _w.EXTRA_OIL_WELL)) {
           sprite_array.push({
             "key":
-              tileset_extra_id_graphic_tag(w.EXTRA_OIL_WELL)
+              tileset_extra_id_graphic_tag(_w.EXTRA_OIL_WELL)
           });
         }
 
         sprite_array = sprite_array.concat(fill_layer1_sprite_array(ptile, pcity));
 
-        if (tile_has_extra(ptile, w.EXTRA_HUT)) {
+        if (tile_has_extra(ptile, _w.EXTRA_HUT)) {
           sprite_array.push({
             "key":
-              tileset_extra_id_graphic_tag(w.EXTRA_HUT)
+              tileset_extra_id_graphic_tag(_w.EXTRA_HUT)
           });
         }
 
-        if (tile_has_extra(ptile, w.EXTRA_POLLUTION)) {
+        if (tile_has_extra(ptile, _w.EXTRA_POLLUTION)) {
           sprite_array.push({
             "key":
-              tileset_extra_id_graphic_tag(w.EXTRA_POLLUTION)
+              tileset_extra_id_graphic_tag(_w.EXTRA_POLLUTION)
           });
         }
 
-        if (tile_has_extra(ptile, w.EXTRA_FALLOUT)) {
+        if (tile_has_extra(ptile, _w.EXTRA_FALLOUT)) {
           sprite_array.push({
             "key":
-              tileset_extra_id_graphic_tag(w.EXTRA_FALLOUT)
+              tileset_extra_id_graphic_tag(_w.EXTRA_FALLOUT)
           });
         }
 
@@ -394,10 +411,10 @@ export function fill_sprite_array(layer: number, ptile: any, pedge: any, pcorner
       break;
 
     case LAYER_UNIT:
-      const do_draw_unit = (punit != null && (w.draw_units || ptile == null || (w.draw_focus_unit
+      const do_draw_unit = (punit != null && (draw_units || ptile == null || (draw_focus_unit
         && unit_is_in_focus(punit))));
 
-      if (do_draw_unit && w.active_city == null) {
+      if (do_draw_unit && active_city == null) {
         const stacked = (ptile['units'] != null && ptile['units'].length > 1);
         // const backdrop = false; /* !pcity;*/
 
@@ -418,32 +435,32 @@ export function fill_sprite_array(layer: number, ptile: any, pedge: any, pcorner
         if (explode_step > 20) {
           sprite_array.push({
             "key": "explode.unit_0",
-            "offset_x": w.unit_offset_x,
-            "offset_y": w.unit_offset_y
+            "offset_x": unit_offset_x,
+            "offset_y": unit_offset_y
           });
         } else if (explode_step > 15) {
           sprite_array.push({
             "key": "explode.unit_1",
-            "offset_x": w.unit_offset_x,
-            "offset_y": w.unit_offset_y
+            "offset_x": unit_offset_x,
+            "offset_y": unit_offset_y
           });
         } else if (explode_step > 10) {
           sprite_array.push({
             "key": "explode.unit_2",
-            "offset_x": w.unit_offset_x,
-            "offset_y": w.unit_offset_y
+            "offset_x": unit_offset_x,
+            "offset_y": unit_offset_y
           });
         } else if (explode_step > 5) {
           sprite_array.push({
             "key": "explode.unit_3",
-            "offset_x": w.unit_offset_x,
-            "offset_y": w.unit_offset_y
+            "offset_x": unit_offset_x,
+            "offset_y": unit_offset_y
           });
         } else if (explode_step > 0) {
           sprite_array.push({
             "key": "explode.unit_4",
-            "offset_x": w.unit_offset_x,
-            "offset_y": w.unit_offset_y
+            "offset_x": unit_offset_x,
+            "offset_y": unit_offset_y
           });
         } else {
           delete explosion_anim_map[ptile['index']];
@@ -472,30 +489,30 @@ export function fill_sprite_array(layer: number, ptile: any, pedge: any, pcorner
       break;
 
     case LAYER_CITYBAR:
-      if (pcity != null && w.show_citybar) {
+      if (pcity != null && show_citybar) {
         sprite_array.push(get_city_info_text(pcity));
       }
 
-      if (w.active_city != null && ptile != null && ptile['worked'] != null
-        && w.active_city['id'] == ptile['worked'] && w.active_city['output_food'] != null) {
-        const ctile = city_tile(w.active_city);
+      if (active_city != null && ptile != null && ptile['worked'] != null
+        && active_city['id'] == ptile['worked'] && active_city['output_food'] != null) {
+        const ctile = city_tile(active_city);
         const d = map_distance_vector(ctile, ptile);
-        const idx = get_city_dxy_to_index(d[0], d[1], w.active_city);
+        const idx = get_city_dxy_to_index(d[0], d[1], active_city);
 
-        let food_output = w.active_city['output_food'][idx];
-        let shield_output = w.active_city['output_shield'][idx];
-        let trade_output = w.active_city['output_trade'][idx];
+        let food_output = active_city['output_food'][idx];
+        let shield_output = active_city['output_shield'][idx];
+        let trade_output = active_city['output_trade'][idx];
 
         /* The ruleset may use large values scaled down to get greater
          * granularity. */
-        food_output = Math.floor(food_output / w.game_info.granularity);
-        shield_output = Math.floor(shield_output / w.game_info.granularity);
-        trade_output = Math.floor(trade_output / w.game_info.granularity);
+        food_output = Math.floor(food_output / store.gameInfo.granularity);
+        shield_output = Math.floor(shield_output / store.gameInfo.granularity);
+        trade_output = Math.floor(trade_output / store.gameInfo.granularity);
 
         sprite_array.push(get_city_food_output_sprite(food_output));
         sprite_array.push(get_city_shields_output_sprite(shield_output));
         sprite_array.push(get_city_trade_output_sprite(trade_output));
-      } else if (w.active_city != null && ptile != null && ptile['worked'] != 0) {
+      } else if (active_city != null && ptile != null && ptile['worked'] != 0) {
         sprite_array.push(get_city_invalid_worked_sprite());
       }
       break;
@@ -524,7 +541,7 @@ export function fill_sprite_array(layer: number, ptile: any, pedge: any, pcorner
 
 
 /****************************************************************************
-  Add w.sprites for the base tile to the sprite list. This doesn't
+  Add _w.sprites for the base tile to the sprite list. This doesn't
   include specials or rivers.
 ****************************************************************************/
 export function fill_terrain_sprite_layer(layer_num: number, ptile: any, pterrain: any, tterrain_near: any): any[] {
@@ -540,12 +557,12 @@ export function fill_terrain_sprite_layer(layer_num: number, ptile: any, pterrai
 export function fill_terrain_sprite_array(l: number, ptile: any, pterrain: any, tterrain_near: any): any[] {
   if (pterrain == null) return [];
 
-  if (w.tile_types_setup["l" + l + "." + pterrain['graphic_str']] == null) {
+  if (tile_types_setup["l" + l + "." + pterrain['graphic_str']] == null) {
     //console.log("missing " + "l" + l + "." + pterrain['graphic_str']);
     return [];
   }
 
-  const dlp = w.tile_types_setup["l" + l + "." + pterrain['graphic_str']];
+  const dlp = tile_types_setup["l" + l + "." + pterrain['graphic_str']];
 
   switch (dlp['sprite_type']) {
     case CELL_WHOLE:
@@ -557,11 +574,11 @@ export function fill_terrain_sprite_array(l: number, ptile: any, pterrain: any, 
               if (dlp['dither'] == true) {
                 for (let i = 0; i < num_cardinal_tileset_dirs; i++) {
                   if (ts_tiles[tterrain_near[DIR4_TO_DIR8[i]]['graphic_str']] == null) continue;
-                  const near_dlp = w.tile_types_setup["l" + l + "." + tterrain_near[DIR4_TO_DIR8[i]]['graphic_str']];
+                  const near_dlp = tile_types_setup["l" + l + "." + tterrain_near[DIR4_TO_DIR8[i]]['graphic_str']];
                   const terrain_near = (near_dlp['dither'] == true) ? tterrain_near[DIR4_TO_DIR8[i]]['graphic_str'] : pterrain['graphic_str'];
                   const dither_tile = i + pterrain['graphic_str'] + "_" + terrain_near;
-                  const x = w.dither_offset_x[i];
-                  const y = w.dither_offset_y[i];
+                  const x = dither_offset_x[i];
+                  const y = dither_offset_y[i];
                   result_sprites.push({ "key": dither_tile, "offset_x": x, "offset_y": y });
                 }
                 return result_sprites;
@@ -584,7 +601,7 @@ export function fill_terrain_sprite_array(l: number, ptile: any, pterrain: any, 
                 }
               }
               const gfx_key = "t.l" + l + "." + pterrain['graphic_str'] + "_" + cardinal_index_str(tileno);
-              const y = tileset_tile_height - w.tileset[gfx_key][3];
+              const y = tileset_tile_height - _w.tileset[gfx_key][3];
 
               return [{ "key": gfx_key, "offset_x": 0, "offset_y": y }];
             }
@@ -597,16 +614,16 @@ export function fill_terrain_sprite_array(l: number, ptile: any, pterrain: any, 
         /* Divide the tile up into four rectangular cells. Each of these
          * cells covers one corner, and each is adjacent to 3 different
          * tiles. For each cell we pick a sprite based upon the adjacent
-         * terrains at each of those tiles. Thus, we have 8 different w.sprites
-         * for each of the 4 cells (32 w.sprites total).
+         * terrains at each of those tiles. Thus, we have 8 different _w.sprites
+         * for each of the 4 cells (32 _w.sprites total).
          *
          * These arrays correspond to the direction4 ordering. */
 
-        const W = w.normal_tile_width;
-        const H = w.normal_tile_height;
+        const W = normal_tile_width;
+        const H = normal_tile_height;
         const iso_offsets = [[W / 4, 0], [W / 4, H / 2], [W / 2, H / 4], [0, H / 4]];
-        const this_match_index = ('l' + l + '.' + pterrain['graphic_str'] in w.tile_types_setup) ? w.tile_types_setup['l' + l + '.' + pterrain['graphic_str']]['match_index'][0] : -1;
-        /* var that_match_index = ('l' + l + '.' + pterrain['graphic_str'] in w.tile_types_setup) ? w.tile_types_setup['l' + l + '.' + pterrain['graphic_str']]['match_index'][1] : -1; */
+        const this_match_index = ('l' + l + '.' + pterrain['graphic_str'] in tile_types_setup) ? tile_types_setup['l' + l + '.' + pterrain['graphic_str']]['match_index'][0] : -1;
+        /* var that_match_index = ('l' + l + '.' + pterrain['graphic_str'] in tile_types_setup) ? tile_types_setup['l' + l + '.' + pterrain['graphic_str']]['match_index'][1] : -1; */
         const result_sprites: any[] = [];
 
         /* Put corner cells */
@@ -617,9 +634,9 @@ export function fill_terrain_sprite_array(l: number, ptile: any, pterrain: any, 
           const x = iso_offsets[i][0];
           const y = iso_offsets[i][1];
 
-          const m = [('l' + l + '.' + tterrain_near[dir_ccw(dir)]['graphic_str'] in w.tile_types_setup) ? w.tile_types_setup['l' + l + '.' + tterrain_near[dir_ccw(dir)]['graphic_str']]['match_index'][0] : -1,
-          ('l' + l + '.' + tterrain_near[dir]['graphic_str'] in w.tile_types_setup) ? w.tile_types_setup['l' + l + '.' + tterrain_near[dir]['graphic_str']]['match_index'][0] : -1,
-          ('l' + l + '.' + tterrain_near[dir_cw(dir)]['graphic_str'] in w.tile_types_setup) ? w.tile_types_setup['l' + l + '.' + tterrain_near[dir_cw(dir)]['graphic_str']]['match_index'][0] : -1]; // Assuming dir_cw exists
+          const m = [('l' + l + '.' + tterrain_near[dir_ccw(dir)]['graphic_str'] in tile_types_setup) ? tile_types_setup['l' + l + '.' + tterrain_near[dir_ccw(dir)]['graphic_str']]['match_index'][0] : -1,
+          ('l' + l + '.' + tterrain_near[dir]['graphic_str'] in tile_types_setup) ? tile_types_setup['l' + l + '.' + tterrain_near[dir]['graphic_str']]['match_index'][0] : -1,
+          ('l' + l + '.' + tterrain_near[dir_cw(dir)]['graphic_str'] in tile_types_setup) ? tile_types_setup['l' + l + '.' + tterrain_near[dir_cw(dir)]['graphic_str']]['match_index'][0] : -1]; // Assuming dir_cw exists
 
           /* synthesize 4 dimensional array? */
           switch (dlp['match_style']) {
@@ -665,7 +682,7 @@ export function fill_terrain_sprite_array(l: number, ptile: any, pterrain: any, 
               break;
           };
           array_index = array_index * NUM_CORNER_DIRS + i;
-          result_sprites.push({ "key": w.cellgroup_map[pterrain['graphic_str'] + "." + array_index] + "." + i, "offset_x": x, "offset_y": y });
+          result_sprites.push({ "key": cellgroup_map[pterrain['graphic_str'] + "." + array_index] + "." + i, "offset_x": x, "offset_y": y });
 
         }
 
@@ -703,8 +720,8 @@ export function fill_unit_sprite_array(punit: any, stacked: boolean, backdrop: b
   const result: any[] = [get_unit_nation_flag_sprite(punit),
   {
     "key": tileset_unit_graphic_tag(punit),
-    "offset_x": unit_offset['x'] + w.unit_offset_x,
-    "offset_y": unit_offset['y'] - w.unit_offset_y
+    "offset_x": unit_offset['x'] + unit_offset_x,
+    "offset_y": unit_offset['y'] - unit_offset_y
   }];
   const activities = get_unit_activity_sprite(punit);
   if (activities != null) {
@@ -722,8 +739,8 @@ export function fill_unit_sprite_array(punit: any, stacked: boolean, backdrop: b
   if (should_ask_server_for_actions(punit)) {
     result.push({
       "key": "unit.action_decision_want",
-      "offset_x": w.unit_activity_offset_x + unit_offset['x'],
-      "offset_y": -w.unit_activity_offset_y + unit_offset['y'],
+      "offset_x": unit_activity_offset_x + unit_offset['x'],
+      "offset_y": -unit_activity_offset_y + unit_offset['y'],
     });
   }
 
@@ -735,7 +752,7 @@ export function fill_unit_sprite_array(punit: any, stacked: boolean, backdrop: b
 }
 
 /**************************************************************************
-  Return the w.tileset name of the direction. This is similar to
+  Return the _w.tileset name of the direction. This is similar to
   dir_get_name but you shouldn't change this or all tilesets will break.
 **************************************************************************/
 export function dir_get_tileset_name(dir: number): string {
@@ -786,16 +803,16 @@ export function cardinal_index_str(idx: number): string {
 export function get_city_flag_sprite(pcity: any): any {
   const owner_id = pcity['owner'];
   if (owner_id == null) return {};
-  const owner = w.players[owner_id];
+  const owner = store.players[owner_id];
   if (owner == null) return {};
   const nation_id = owner['nation'];
   if (nation_id == null) return {};
-  const nation = w.nations[nation_id];
+  const nation = store.nations[nation_id];
   if (nation == null) return {};
   return {
     "key": "f." + nation['graphic_str'],
-    "offset_x": w.city_flag_offset_x,
-    "offset_y": - w.city_flag_offset_y
+    "offset_x": city_flag_offset_x,
+    "offset_y": - city_flag_offset_y
   };
 }
 
@@ -805,16 +822,16 @@ export function get_city_flag_sprite(pcity: any): any {
 export function get_base_flag_sprite(ptile: any): any {
   const owner_id = ptile['extras_owner'];
   if (owner_id == null) return {};
-  const owner = w.players[owner_id];
+  const owner = store.players[owner_id];
   if (owner == null) return {};
   const nation_id = owner['nation'];
   if (nation_id == null) return {};
-  const nation = w.nations[nation_id];
+  const nation = store.nations[nation_id];
   if (nation == null) return {};
   return {
     "key": "f." + nation['graphic_str'],
-    "offset_x": w.city_flag_offset_x,
-    "offset_y": - w.city_flag_offset_y
+    "offset_x": city_flag_offset_x,
+    "offset_y": - city_flag_offset_y
   };
 }
 
@@ -826,8 +843,8 @@ export function get_city_occupied_sprite(pcity: any): string {
   const ptile = city_tile(pcity);
   const punits = tile_units(ptile);
 
-  if (!w.observing && w.client.conn.playing != null
-    && owner_id != w.client.conn.playing.playerno && pcity['occupied']) {
+  if (!store.observing && store.client.conn.playing != null
+    && owner_id != store.client.conn.playing.playerno && pcity['occupied']) {
     return "citybar.occupied";
   } else if (punits != null && punits.length == 1) {
     return "citybar.occupancy_1";
@@ -846,8 +863,8 @@ export function get_city_occupied_sprite(pcity: any): string {
 export function get_city_food_output_sprite(num: number): any {
   return {
     "key": "city.t_food_" + num,
-    "offset_x": w.normal_tile_width / 4,
-    "offset_y": -w.normal_tile_height / 4
+    "offset_x": normal_tile_width / 4,
+    "offset_y": -normal_tile_height / 4
   };
 }
 
@@ -857,8 +874,8 @@ export function get_city_food_output_sprite(num: number): any {
 export function get_city_shields_output_sprite(num: number): any {
   return {
     "key": "city.t_shields_" + num,
-    "offset_x": w.normal_tile_width / 4,
-    "offset_y": -w.normal_tile_height / 4
+    "offset_x": normal_tile_width / 4,
+    "offset_y": -normal_tile_height / 4
   };
 }
 
@@ -868,8 +885,8 @@ export function get_city_shields_output_sprite(num: number): any {
 export function get_city_trade_output_sprite(num: number): any {
   return {
     "key": "city.t_trade_" + num,
-    "offset_x": w.normal_tile_width / 4,
-    "offset_y": -w.normal_tile_height / 4
+    "offset_x": normal_tile_width / 4,
+    "offset_y": -normal_tile_height / 4
   };
 }
 
@@ -907,8 +924,8 @@ export function get_border_line_sprites(ptile: any): any[] {
       && ptile['owner'] != null
       && ptile['owner'] != checktile['owner']
       && ptile['owner'] != 255 /* 255 is a special constant indicating that the tile is not owned by anyone. */
-      && w.players[ptile['owner']] != null) {
-      const pnation = w.nations[w.players[ptile['owner']]['nation']];
+      && store.players[ptile['owner']] != null) {
+      const pnation = store.nations[store.players[ptile['owner']]['nation']];
       result.push({
         "key": "border", "dir": dir,
         "color": pnation['color']
@@ -927,19 +944,19 @@ export function get_unit_nation_flag_sprite(punit: any): any {
   const owner_id = punit['owner'];
 
   if ((unit_type(punit) as any)?.['flags']?.isSet?.(UTYF_FLAGLESS)
-    && w.client.conn.playing != null
-    && owner_id != w.client.conn.playing.playerno) {
+    && store.client.conn.playing != null
+    && owner_id != store.client.conn.playing.playerno) {
     return [];
   } else {
-    const owner = w.players[owner_id];
+    const owner = store.players[owner_id];
     const nation_id = owner['nation'];
-    const nation = w.nations[nation_id];
+    const nation = store.nations[nation_id];
     const unit_offset = get_unit_anim_offset(punit);
 
     return {
       "key": "f.shield." + nation['graphic_str'],
-      "offset_x": w.unit_flag_offset_x + unit_offset['x'],
-      "offset_y": - w.unit_flag_offset_y + unit_offset['y']
+      "offset_x": unit_flag_offset_x + unit_offset['x'],
+      "offset_y": - unit_flag_offset_y + unit_offset['y']
     };
   }
 }
@@ -949,15 +966,15 @@ export function get_unit_nation_flag_sprite(punit: any): any {
 ***********************************************************************/
 export function get_unit_nation_flag_normal_sprite(punit: any): any {
   const owner_id = punit['owner'];
-  const owner = w.players[owner_id];
+  const owner = store.players[owner_id];
   const nation_id = owner['nation'];
-  const nation = w.nations[nation_id];
+  const nation = store.nations[nation_id];
   const unit_offset = get_unit_anim_offset(punit);
 
   return {
     "key": "f." + nation['graphic_str'],
-    "offset_x": w.unit_flag_offset_x + unit_offset['x'],
-    "offset_y": - w.unit_flag_offset_y + unit_offset['y']
+    "offset_x": unit_flag_offset_x + unit_offset['x'],
+    "offset_y": - unit_flag_offset_y + unit_offset['y']
   };
 }
 
@@ -967,8 +984,8 @@ export function get_unit_nation_flag_normal_sprite(punit: any): any {
 export function get_unit_stack_sprite(punit?: any): any {
   return {
     "key": "unit.stack",
-    "offset_x": w.unit_flag_offset_x + -25,
-    "offset_y": - w.unit_flag_offset_y - 15
+    "offset_x": unit_flag_offset_x + -25,
+    "offset_y": - unit_flag_offset_y - 15
   };
 }
 
@@ -984,8 +1001,8 @@ export function get_unit_hp_sprite(punit: any): any {
 
   return {
     "key": "unit.hp_" + healthpercent,
-    "offset_x": w.unit_flag_offset_x + -25 + unit_offset['x'],
-    "offset_y": - w.unit_flag_offset_y - 15 + unit_offset['y']
+    "offset_x": unit_flag_offset_x + -25 + unit_offset['x'],
+    "offset_y": - unit_flag_offset_y - 15 + unit_offset['y']
   };
 }
 
@@ -995,8 +1012,8 @@ export function get_unit_hp_sprite(punit: any): any {
 export function get_unit_veteran_sprite(punit: any): any {
   return {
     "key": "unit.vet_" + punit['veteran'],
-    "offset_x": w.unit_activity_offset_x - 20,
-    "offset_y": - w.unit_activity_offset_y - 10
+    "offset_x": unit_activity_offset_x - 20,
+    "offset_y": - unit_activity_offset_y - 10
   };
 }
 
@@ -1005,7 +1022,7 @@ export function get_unit_veteran_sprite(punit: any): any {
 ***********************************************************************/
 export function get_unit_activity_sprite(punit: any): any | null {
   if (punit['ssa_controller'] == SSA_AUTOEXPLORE) {
-    // FIXME: Currently can't have SSA_AUTOEXPLORE sprite with activity w.sprites
+    // FIXME: Currently can't have SSA_AUTOEXPLORE sprite with activity _w.sprites
     return null;
   }
 
@@ -1018,8 +1035,8 @@ export function get_unit_activity_sprite(punit: any): any | null {
         "key": -1 == act_tgt ?
           "unit.pollution" :
           tileset_extra_id_rmactivity_graphic_tag(act_tgt),
-        "offset_x": w.unit_activity_offset_x,
-        "offset_y": - w.unit_activity_offset_y
+        "offset_x": unit_activity_offset_x,
+        "offset_y": - unit_activity_offset_y
       };
 
     case ACTIVITY_MINE:
@@ -1027,15 +1044,15 @@ export function get_unit_activity_sprite(punit: any): any | null {
         "key": -1 == act_tgt ?
           "unit.plant" :
           tileset_extra_id_activity_graphic_tag(act_tgt),
-        "offset_x": w.unit_activity_offset_x,
-        "offset_y": - w.unit_activity_offset_y
+        "offset_x": unit_activity_offset_x,
+        "offset_y": - unit_activity_offset_y
       };
 
     case ACTIVITY_PLANT:
       return {
         "key": "unit.plant",
-        "offset_x": w.unit_activity_offset_x,
-        "offset_y": - w.unit_activity_offset_y
+        "offset_x": unit_activity_offset_x,
+        "offset_y": - unit_activity_offset_y
       };
 
     case ACTIVITY_IRRIGATE:
@@ -1043,86 +1060,86 @@ export function get_unit_activity_sprite(punit: any): any | null {
         "key": -1 == act_tgt ?
           "unit.irrigate" :
           tileset_extra_id_activity_graphic_tag(act_tgt),
-        "offset_x": w.unit_activity_offset_x,
-        "offset_y": - w.unit_activity_offset_y
+        "offset_x": unit_activity_offset_x,
+        "offset_y": - unit_activity_offset_y
       };
 
     case ACTIVITY_CULTIVATE:
       return {
         "key": "unit.cultivate",
-        "offset_x": w.unit_activity_offset_x,
-        "offset_y": - w.unit_activity_offset_y
+        "offset_x": unit_activity_offset_x,
+        "offset_y": - unit_activity_offset_y
       };
 
     case ACTIVITY_FORTIFIED:
       return {
         "key": "unit.fortified",
-        "offset_x": w.unit_activity_offset_x,
-        "offset_y": - w.unit_activity_offset_y
+        "offset_x": unit_activity_offset_x,
+        "offset_y": - unit_activity_offset_y
       };
 
     case ACTIVITY_BASE:
       return {
         "key": tileset_extra_id_activity_graphic_tag(act_tgt),
-        "offset_x": w.unit_activity_offset_x,
-        "offset_y": - w.unit_activity_offset_y
+        "offset_x": unit_activity_offset_x,
+        "offset_y": - unit_activity_offset_y
       };
 
     case ACTIVITY_SENTRY:
       return {
         "key": "unit.sentry",
-        "offset_x": w.unit_activity_offset_x,
-        "offset_y": - w.unit_activity_offset_y
+        "offset_x": unit_activity_offset_x,
+        "offset_y": - unit_activity_offset_y
       };
 
     case ACTIVITY_PILLAGE:
       return {
         "key": "unit.pillage",
-        "offset_x": w.unit_activity_offset_x,
-        "offset_y": - w.unit_activity_offset_y
+        "offset_x": unit_activity_offset_x,
+        "offset_y": - unit_activity_offset_y
       };
 
     case ACTIVITY_GOTO:
       return {
         "key": "unit.goto",
-        "offset_x": w.unit_activity_offset_x,
-        "offset_y": - w.unit_activity_offset_y
+        "offset_x": unit_activity_offset_x,
+        "offset_y": - unit_activity_offset_y
       };
 
     case ACTIVITY_TRANSFORM:
       return {
         "key": "unit.transform",
-        "offset_x": w.unit_activity_offset_x,
-        "offset_y": - w.unit_activity_offset_y
+        "offset_x": unit_activity_offset_x,
+        "offset_y": - unit_activity_offset_y
       };
 
     case ACTIVITY_FORTIFYING:
       return {
         "key": "unit.fortifying",
-        "offset_x": w.unit_activity_offset_x,
-        "offset_y": - w.unit_activity_offset_y
+        "offset_x": unit_activity_offset_x,
+        "offset_y": - unit_activity_offset_y
       };
 
     case ACTIVITY_GEN_ROAD:
       return {
         "key": tileset_extra_id_activity_graphic_tag(act_tgt),
-        "offset_x": w.unit_activity_offset_x,
-        "offset_y": - w.unit_activity_offset_y
+        "offset_x": unit_activity_offset_x,
+        "offset_y": - unit_activity_offset_y
       };
 
     case ACTIVITY_CONVERT:
       return {
         "key": "unit.convert",
-        "offset_x": w.unit_activity_offset_x,
-        "offset_y": - w.unit_activity_offset_y
+        "offset_x": unit_activity_offset_x,
+        "offset_y": - unit_activity_offset_y
       };
   }
 
   if (unit_has_goto(punit)) {
     return {
       "key": "unit.goto",
-      "offset_x": w.unit_activity_offset_x,
-      "offset_y": - w.unit_activity_offset_y
+      "offset_x": unit_activity_offset_x,
+      "offset_y": - unit_activity_offset_y
     };
   }
 
@@ -1146,8 +1163,8 @@ export function get_unit_agent_sprite(punit: any): any | null {
       // Treated like an activity in the tilespec format
       return {
         "key": "unit.auto_explore",
-        "offset_x": w.unit_activity_offset_x,
-        "offset_y": -w.unit_activity_offset_y
+        "offset_x": unit_activity_offset_x,
+        "offset_y": -unit_activity_offset_y
       };
   }
 
@@ -1163,7 +1180,7 @@ export function get_unit_agent_sprite(punit: any): any | null {
 export function get_city_sprite(pcity: any): any {
   let style_id = pcity['style'];
   if (style_id == -1) style_id = 0;   /* Sometimes a player has no city_style. */
-  const city_rule = w.city_rules[style_id];
+  const city_rule = city_rules[style_id];
 
   let size = 0;
   if (pcity['size'] >= 4 && pcity['size'] <= 7) {
@@ -1179,16 +1196,16 @@ export function get_city_sprite(pcity: any): any {
   const city_walls = pcity['walls'] ? "wall" : "city";
 
   let tag = city_rule['graphic'] + "_" + city_walls + "_" + size;
-  if (w.sprites[tag] == null) {
+  if (_w.sprites[tag] == null) {
     tag = city_rule['graphic_alt'] + "_" + city_walls + "_" + size;
   }
 
-  return { "key": tag, "offset_x": 0, "offset_y": -w.unit_offset_y };
+  return { "key": tag, "offset_x": 0, "offset_y": -unit_offset_y };
 }
 
 
 /****************************************************************************
-  Add w.sprites for fog (and some forms of darkness).
+  Add _w.sprites for fog (and some forms of darkness).
 ****************************************************************************/
 export function fill_fog_sprite_array(ptile: any, pedge: any, pcorner: any): any[] {
 
@@ -1220,7 +1237,7 @@ export function fill_fog_sprite_array(ptile: any, pedge: any, pcorner: any): any
 
   if (tileno >= 80) return [];
 
-  return [{ "key": w.fullfog[tileno] }];
+  return [{ "key": _w.fullfog[tileno] }];
 
 }
 
@@ -1239,7 +1256,7 @@ export function get_select_sprite(): any {
 export function get_city_info_text(pcity: any): any {
   return {
     "key": "city_text", "city": pcity,
-    "offset_x": w.citybar_offset_x, "offset_y": w.citybar_offset_y
+    "offset_x": citybar_offset_x, "offset_y": citybar_offset_y
   };
 }
 
@@ -1249,7 +1266,7 @@ export function get_city_info_text(pcity: any): any {
 export function get_tile_label_text(ptile: any): any {
   return {
     "key": "tile_label", "tile": ptile,
-    "offset_x": w.tilelabel_offset_x, "offset_y": w.tilelabel_offset_y
+    "offset_x": tilelabel_offset_x, "offset_y": tilelabel_offset_y
   };
 }
 
@@ -1260,7 +1277,7 @@ export function get_tile_specials_sprite(ptile: any): any | null {
   const extra_id = tile_resource(ptile);
 
   if (extra_id !== null) {
-    const extra = w.extras[extra_id];
+    const extra = store.extras[extra_id];
     if (extra != null) {
       return { "key": extra['graphic_str'] };
     }
@@ -1276,13 +1293,13 @@ export function get_tile_river_sprite(ptile: any): any | null {
     return null;
   }
 
-  if (tile_has_extra(ptile, w.EXTRA_RIVER)) {
+  if (tile_has_extra(ptile, _w.EXTRA_RIVER)) {
     let river_str = "";
     for (let i = 0; i < num_cardinal_tileset_dirs; i++) {
       const dir = cardinal_tileset_dirs[i];
       const checktile = mapstep(ptile, dir);
       if (checktile
-        && (tile_has_extra(checktile, w.EXTRA_RIVER) || is_ocean_tile(checktile))) {
+        && (tile_has_extra(checktile, _w.EXTRA_RIVER) || is_ocean_tile(checktile))) {
         river_str = river_str + dir_get_tileset_name(dir) + "1";
       } else {
         river_str = river_str + dir_get_tileset_name(dir) + "0";
@@ -1297,7 +1314,7 @@ export function get_tile_river_sprite(ptile: any): any | null {
     for (let i = 0; i < num_cardinal_tileset_dirs; i++) {
       const dir = cardinal_tileset_dirs[i];
       const checktile = mapstep(ptile, dir);
-      if (checktile != null && tile_has_extra(checktile, w.EXTRA_RIVER)) {
+      if (checktile != null && tile_has_extra(checktile, _w.EXTRA_RIVER)) {
         return { "key": "road.river_outlet_" + dir_get_tileset_name(dir) };
       }
     }
@@ -1335,14 +1352,14 @@ export function get_unit_type_image_sprite(punittype: any): any | null {
     return null;
   }
 
-  const tileset_x = w.tileset[tag][0];
-  const tileset_y = w.tileset[tag][1];
-  const width = w.tileset[tag][2];
-  const height = w.tileset[tag][3];
-  const i = w.tileset[tag][4];
+  const tileset_x = _w.tileset[tag][0];
+  const tileset_y = _w.tileset[tag][1];
+  const width = _w.tileset[tag][2];
+  const height = _w.tileset[tag][3];
+  const i = _w.tileset[tag][4];
   return {
     "tag": tag,
-    "image-src": "/tileset/freeciv-web-tileset-" + w.tileset_name + "-" + i + w.get_tileset_file_extention() + "?ts=" + w.ts,
+    "image-src": "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i + getTilesetFileExtension() + "?ts=" + _w.ts,
     "tileset-x": tileset_x,
     "tileset-y": tileset_y,
     "width": width,
@@ -1360,14 +1377,14 @@ export function get_improvement_image_sprite(pimprovement: any): any | null {
     return null;
   }
 
-  const tileset_x = w.tileset[tag][0];
-  const tileset_y = w.tileset[tag][1];
-  const width = w.tileset[tag][2];
-  const height = w.tileset[tag][3];
-  const i = w.tileset[tag][4];
+  const tileset_x = _w.tileset[tag][0];
+  const tileset_y = _w.tileset[tag][1];
+  const width = _w.tileset[tag][2];
+  const height = _w.tileset[tag][3];
+  const i = _w.tileset[tag][4];
   return {
     "tag": tag,
-    "image-src": "/tileset/freeciv-web-tileset-" + w.tileset_name + "-" + i + w.get_tileset_file_extention() + "?ts=" + w.ts,
+    "image-src": "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i + getTilesetFileExtension() + "?ts=" + _w.ts,
     "tileset-x": tileset_x,
     "tileset-y": tileset_y,
     "width": width,
@@ -1379,16 +1396,16 @@ export function get_improvement_image_sprite(pimprovement: any): any | null {
  ...
 ****************************************************************************/
 export function get_specialist_image_sprite(tag: string): any | null {
-  if (w.tileset[tag] == null) return null;
+  if (_w.tileset[tag] == null) return null;
 
-  const tileset_x = w.tileset[tag][0];
-  const tileset_y = w.tileset[tag][1];
-  const width = w.tileset[tag][2];
-  const height = w.tileset[tag][3];
-  const i = w.tileset[tag][4];
+  const tileset_x = _w.tileset[tag][0];
+  const tileset_y = _w.tileset[tag][1];
+  const width = _w.tileset[tag][2];
+  const height = _w.tileset[tag][3];
+  const i = _w.tileset[tag][4];
   return {
     "tag": tag,
-    "image-src": "/tileset/freeciv-web-tileset-" + w.tileset_name + "-" + i + w.get_tileset_file_extention() + "?ts=" + w.ts,
+    "image-src": "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i + getTilesetFileExtension() + "?ts=" + _w.ts,
     "tileset-x": tileset_x,
     "tileset-y": tileset_y,
     "width": width,
@@ -1405,14 +1422,14 @@ export function get_technology_image_sprite(ptech: any): any | null {
 
   if (tag == null) return null;
 
-  const tileset_x = w.tileset[tag][0];
-  const tileset_y = w.tileset[tag][1];
-  const width = w.tileset[tag][2];
-  const height = w.tileset[tag][3];
-  const i = w.tileset[tag][4];
+  const tileset_x = _w.tileset[tag][0];
+  const tileset_y = _w.tileset[tag][1];
+  const width = _w.tileset[tag][2];
+  const height = _w.tileset[tag][3];
+  const i = _w.tileset[tag][4];
   return {
     "tag": tag,
-    "image-src": "/tileset/freeciv-web-tileset-" + w.tileset_name + "-" + i + w.get_tileset_file_extention() + "?ts=" + w.ts,
+    "image-src": "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i + getTilesetFileExtension() + "?ts=" + _w.ts,
     "tileset-x": tileset_x,
     "tileset-y": tileset_y,
     "width": width,
@@ -1426,16 +1443,16 @@ export function get_technology_image_sprite(ptech: any): any | null {
 export function get_nation_flag_sprite(pnation: any): any | null {
   const tag = "f." + pnation['graphic_str'];
 
-  if (w.tileset[tag] == null) return null;
+  if (_w.tileset[tag] == null) return null;
 
-  const tileset_x = w.tileset[tag][0];
-  const tileset_y = w.tileset[tag][1];
-  const width = w.tileset[tag][2];
-  const height = w.tileset[tag][3];
-  const i = w.tileset[tag][4];
+  const tileset_x = _w.tileset[tag][0];
+  const tileset_y = _w.tileset[tag][1];
+  const width = _w.tileset[tag][2];
+  const height = _w.tileset[tag][3];
+  const i = _w.tileset[tag][4];
   return {
     "tag": tag,
-    "image-src": "/tileset/freeciv-web-tileset-" + w.tileset_name + "-" + i + w.get_tileset_file_extention() + "?ts=" + w.ts,
+    "image-src": "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i + getTilesetFileExtension() + "?ts=" + _w.ts,
     "tileset-x": tileset_x,
     "tileset-y": tileset_y,
     "width": width,
@@ -1449,14 +1466,14 @@ export function get_nation_flag_sprite(pnation: any): any | null {
 export function get_treaty_agree_thumb_up(): any {
   const tag = "treaty.agree_thumb_up";
 
-  const tileset_x = w.tileset[tag][0];
-  const tileset_y = w.tileset[tag][1];
-  const width = w.tileset[tag][2];
-  const height = w.tileset[tag][3];
-  const i = w.tileset[tag][4];
+  const tileset_x = _w.tileset[tag][0];
+  const tileset_y = _w.tileset[tag][1];
+  const width = _w.tileset[tag][2];
+  const height = _w.tileset[tag][3];
+  const i = _w.tileset[tag][4];
   return {
     "tag": tag,
-    "image-src": "/tileset/freeciv-web-tileset-" + w.tileset_name + "-" + i + w.get_tileset_file_extention() + "?ts=" + w.ts,
+    "image-src": "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i + getTilesetFileExtension() + "?ts=" + _w.ts,
     "tileset-x": tileset_x,
     "tileset-y": tileset_y,
     "width": width,
@@ -1470,14 +1487,14 @@ export function get_treaty_agree_thumb_up(): any {
 export function get_treaty_disagree_thumb_down(): any {
   const tag = "treaty.disagree_thumb_down";
 
-  const tileset_x = w.tileset[tag][0];
-  const tileset_y = w.tileset[tag][1];
-  const width = w.tileset[tag][2];
-  const height = w.tileset[tag][3];
-  const i = w.tileset[tag][4];
+  const tileset_x = _w.tileset[tag][0];
+  const tileset_y = _w.tileset[tag][1];
+  const width = _w.tileset[tag][2];
+  const height = _w.tileset[tag][3];
+  const i = _w.tileset[tag][4];
   return {
     "tag": tag,
-    "image-src": "/tileset/freeciv-web-tileset-" + w.tileset_name + "-" + i + w.get_tileset_file_extention() + "?ts=" + w.ts,
+    "image-src": "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i + getTilesetFileExtension() + "?ts=" + _w.ts,
     "tileset-x": tileset_x,
     "tileset-y": tileset_y,
     "width": width,
@@ -1493,10 +1510,10 @@ export function get_treaty_disagree_thumb_down(): any {
     - Properly support generic extra hiding properties
 ****************************************************************************/
 export function fill_path_sprite_array(ptile: any, pcity: any): any[] {
-  const rs_maglev = typeof w.EXTRA_MAGLEV !== 'undefined';
-  const road = tile_has_extra(ptile, w.EXTRA_ROAD);
-  const rail = tile_has_extra(ptile, w.EXTRA_RAIL);
-  const maglev = rs_maglev && tile_has_extra(ptile, w.EXTRA_MAGLEV);
+  const rs_maglev = typeof _w.EXTRA_MAGLEV !== 'undefined';
+  const road = tile_has_extra(ptile, _w.EXTRA_ROAD);
+  const rail = tile_has_extra(ptile, _w.EXTRA_RAIL);
+  const maglev = rs_maglev && tile_has_extra(ptile, _w.EXTRA_MAGLEV);
   const road_near: boolean[] = [];
   const rail_near: boolean[] = [];
   const maglev_near: boolean[] = [];
@@ -1523,9 +1540,9 @@ export function fill_path_sprite_array(ptile: any, pcity: any): any[] {
     /* Check if there is adjacent road/rail/maglev. */
     const tile1 = mapstep(ptile, dir);
     if (tile1 != null && tile_get_known(tile1) != TILE_UNKNOWN) {
-      road_near[dir] = tile_has_extra(tile1, w.EXTRA_ROAD);
-      rail_near[dir] = tile_has_extra(tile1, w.EXTRA_RAIL);
-      maglev_near[dir] = rs_maglev && tile_has_extra(tile1, w.EXTRA_MAGLEV);
+      road_near[dir] = tile_has_extra(tile1, _w.EXTRA_ROAD);
+      rail_near[dir] = tile_has_extra(tile1, _w.EXTRA_RAIL);
+      maglev_near[dir] = rs_maglev && tile_has_extra(tile1, _w.EXTRA_MAGLEV);
 
       /* Draw path if there is a connection from this tile to the
        * adjacent tile. But don't draw path if there is also an extra
@@ -1546,9 +1563,9 @@ export function fill_layer1_sprite_array(ptile: any, pcity: any): any[] {
   const result_sprites: any[] = [];
 
   if (pcity == null) {
-    if (tile_has_extra(ptile, w.EXTRA_FORTRESS)) {
+    if (tile_has_extra(ptile, _w.EXTRA_FORTRESS)) {
       result_sprites.push({"key": "base.fortress_bg",
-                           "offset_y": -w.normal_tile_height / 2});
+                           "offset_y": -normal_tile_height / 2});
     }
   }
 
@@ -1562,18 +1579,18 @@ export function fill_layer2_sprite_array(ptile: any, pcity: any): any[] {
   const result_sprites: any[] = [];
 
   if (pcity == null) {
-    if (tile_has_extra(ptile, w.EXTRA_AIRBASE)) {
+    if (tile_has_extra(ptile, _w.EXTRA_AIRBASE)) {
       result_sprites.push({"key": "base.airbase_mg",
-                           "offset_y": -w.normal_tile_height / 2});
+                           "offset_y": -normal_tile_height / 2});
     }
-    if (tile_has_extra(ptile, w.EXTRA_BUOY)) {
+    if (tile_has_extra(ptile, _w.EXTRA_BUOY)) {
       result_sprites.push((window as any).get_base_flag_sprite(ptile));
       result_sprites.push({"key": "base.buoy_mg",
-                           "offset_y": -w.normal_tile_height / 2});
+                           "offset_y": -normal_tile_height / 2});
     }
-    if (tile_has_extra(ptile, w.EXTRA_RUINS)) {
+    if (tile_has_extra(ptile, _w.EXTRA_RUINS)) {
       result_sprites.push({"key": "extra.ruins_mg",
-                           "offset_y": -w.normal_tile_height / 2});
+                           "offset_y": -normal_tile_height / 2});
     }
   }
 
@@ -1587,9 +1604,9 @@ export function fill_layer3_sprite_array(ptile: any, pcity: any): any[] {
   const result_sprites: any[] = [];
 
   if (pcity == null) {
-    if (tile_has_extra(ptile, w.EXTRA_FORTRESS)) {
+    if (tile_has_extra(ptile, _w.EXTRA_FORTRESS)) {
       result_sprites.push({"key": "base.fortress_fg",
-                           "offset_y": -w.normal_tile_height / 2});
+                           "offset_y": -normal_tile_height / 2});
     }
   }
 
@@ -1600,15 +1617,15 @@ export function fill_layer3_sprite_array(ptile: any, pcity: any): any[] {
   Assigns the nation's color based on the color of the flag.
 **************************************************************************/
 export function assign_nation_color(nation_id: number): void {
-  const nation = w.nations[nation_id];
+  const nation = store.nations[nation_id];
   if (nation == null || nation['color'] != null) return;
 
   const flag_key = "f." + nation['graphic_str'];
-  const flag_sprite = w.sprites[flag_key];
+  const flag_sprite = _w.sprites[flag_key];
   if (flag_sprite == null) return;
   const c = flag_sprite.getContext('2d');
-  const width = w.tileset[flag_key][2];
-  const height = w.tileset[flag_key][3];
+  const width = _w.tileset[flag_key][2];
+  const height = _w.tileset[flag_key][3];
   const color_counts: Record<string, number> = {};
   if (c == null) return;
   const img_data = c.getImageData(1, 1, width - 2, height - 2).data;

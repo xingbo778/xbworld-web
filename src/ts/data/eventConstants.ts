@@ -339,7 +339,7 @@ export const fc_e_events: [string, number, string][] = [
 
 import * as self from './eventConstants';
 
-const w = window as unknown as Record<string, unknown>;
+const _w = window as unknown as Record<string, unknown>;
 for (const [name, value] of Object.entries(self)) {
   if (typeof value === 'number' || typeof value === 'string' || Array.isArray(value)) {
     w[name] = value;

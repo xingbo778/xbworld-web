@@ -13,11 +13,27 @@ import {
   O_SHIELD,
   CAPITAL_PRIMARY,
 } from './fcTypes';
-
-// ---------------------------------------------------------------------------
-// Legacy global references (via window)
-// ---------------------------------------------------------------------------
-const w = window as unknown as Record<string, any>;
+import { store } from './store';
+import {
+  indexToTile,
+  mapVectorToSqDistance,
+  wrapHasFlag,
+  getMapInfo,
+  WRAP_X,
+  WRAP_Y,
+} from './map';
+import { universalBuildShieldCost } from './requirements';
+import {
+  get_unit_type_image_sprite,
+  get_improvement_image_sprite,
+} from '../renderer/tilespec';
+import {
+  active_city,
+  city_trade_routes,
+  city_screen_updater,
+  goods,
+} from '../ui/cityDialog';
+import { bulbs_output_updater } from '../ui/techDialog';
 
 // ---------------------------------------------------------------------------
 // Constants (also defined in city.js — will be removed from there)
@@ -54,7 +70,7 @@ let cityTileMap: {
 /** Returns the tile object for a city. */
 export function cityTile(pcity: any): any {
   if (pcity == null) return null;
-  return w.index_to_tile(pcity['tile']);
+  return indexToTile(pcity['tile']);
 }
 
 /** Returns the player id (owner) of a city. */
@@ -65,23 +81,23 @@ export function cityOwnerPlayerId(pcity: any): number | null {
 
 /** Returns the player object that owns the city. */
 export function cityOwner(pcity: any): any {
-  return w.players[cityOwnerPlayerId(pcity)!];
+  return store.players[cityOwnerPlayerId(pcity)!];
 }
 
 /** Removes a city from the game. */
 export function removeCity(pcityId: number): void {
-  if (pcityId == null || w.client?.conn?.playing == null) return;
-  const pcity = w.cities[pcityId];
+  if (pcityId == null || store.client?.conn?.playing == null) return;
+  const pcity = store.cities[pcityId];
   if (pcity == null) return;
 
   const update =
-    w.client.conn.playing.playerno &&
-    cityOwner(pcity).playerno === w.client.conn.playing.playerno;
-  const ptile = cityTile(w.cities[pcityId]);
-  delete w.cities[pcityId];
+    store.client.conn.playing.playerno &&
+    cityOwner(pcity).playerno === store.client.conn.playing.playerno;
+  const ptile = cityTile(store.cities[pcityId]);
+  delete store.cities[pcityId];
   if (update) {
-    w.city_screen_updater?.update();
-    w.bulbs_output_updater?.update();
+    city_screen_updater?.update();
+    bulbs_output_updater?.update();
   }
 }
 
@@ -108,17 +124,17 @@ export function isPrimaryCapital(city: any): boolean {
 export function getCityProductionTypeSprite(pcity: any): any {
   if (pcity == null) return null;
   if (pcity['production_kind'] === VUT_UTYPE) {
-    const punitType = w.unit_types[pcity['production_value']];
+    const punitType = store.unitTypes[pcity['production_value']];
     return {
       type: punitType,
-      sprite: w.get_unit_type_image_sprite(punitType),
+      sprite: get_unit_type_image_sprite(punitType),
     };
   }
   if (pcity['production_kind'] === VUT_IMPROVEMENT) {
-    const improvement = w.improvements[pcity['production_value']];
+    const improvement = store.improvements[pcity['production_value']];
     return {
       type: improvement,
-      sprite: w.get_improvement_image_sprite(improvement),
+      sprite: get_improvement_image_sprite(improvement),
     };
   }
   return null;
@@ -128,10 +144,10 @@ export function getCityProductionTypeSprite(pcity: any): any {
 export function getCityProductionType(pcity: any): any {
   if (pcity == null) return null;
   if (pcity['production_kind'] === VUT_UTYPE) {
-    return w.unit_types[pcity['production_value']];
+    return store.unitTypes[pcity['production_value']];
   }
   if (pcity['production_kind'] === VUT_IMPROVEMENT) {
-    return w.improvements[pcity['production_value']];
+    return store.improvements[pcity['production_value']];
   }
   return null;
 }
@@ -147,7 +163,7 @@ export function cityTurnsToBuild(
 ): number {
   const citySurplus = pcity['surplus'][O_SHIELD];
   const cityStock = includeShieldStock ? pcity['shield_stock'] : 0;
-  const cost = w.universal_build_shield_cost(pcity, target);
+  const cost = universalBuildShieldCost(pcity, target);
 
   if (includeShieldStock && pcity['shield_stock'] >= cost) {
     return 1;
@@ -163,12 +179,12 @@ export function getCityProductionTime(pcity: any): number {
   if (pcity == null) return FC_INFINITY;
 
   if (pcity['production_kind'] === VUT_UTYPE) {
-    const punitType = w.unit_types[pcity['production_value']];
+    const punitType = store.unitTypes[pcity['production_value']];
     return cityTurnsToBuild(pcity, punitType, true);
   }
 
   if (pcity['production_kind'] === VUT_IMPROVEMENT) {
-    const improvement = w.improvements[pcity['production_value']];
+    const improvement = store.improvements[pcity['production_value']];
     if (improvement['name'] === 'Coinage') {
       return FC_INFINITY;
     }
@@ -183,23 +199,23 @@ export function getProductionProgress(pcity: any): string {
   if (pcity == null) return ' ';
 
   if (pcity['production_kind'] === VUT_UTYPE) {
-    const punitType = w.unit_types[pcity['production_value']];
+    const punitType = store.unitTypes[pcity['production_value']];
     return (
       pcity['shield_stock'] +
       '/' +
-      w.universal_build_shield_cost(pcity, punitType)
+      universalBuildShieldCost(pcity, punitType)
     );
   }
 
   if (pcity['production_kind'] === VUT_IMPROVEMENT) {
-    const improvement = w.improvements[pcity['production_value']];
+    const improvement = store.improvements[pcity['production_value']];
     if (improvement['name'] === 'Coinage') {
       return ' ';
     }
     return (
       pcity['shield_stock'] +
       '/' +
-      w.universal_build_shield_cost(pcity, improvement)
+      universalBuildShieldCost(pcity, improvement)
     );
   }
 
@@ -210,8 +226,8 @@ export function getProductionProgress(pcity: any): string {
 export function generateProductionList(): any[] {
   const productionList: any[] = [];
 
-  for (const unitTypeId in w.unit_types) {
-    const punitType = w.unit_types[unitTypeId];
+  for (const unitTypeId in store.unitTypes) {
+    const punitType = store.unitTypes[unitTypeId];
     // FIXME: web client doesn't support unit flags yet, so this is a hack
     if (
       punitType['name'] === 'Barbarian Leader' ||
@@ -232,12 +248,12 @@ export function generateProductionList(): any[] {
         punitType['defense_strength'] +
         ', ' +
         punitType['firepower'],
-      sprite: w.get_unit_type_image_sprite(punitType),
+      sprite: get_unit_type_image_sprite(punitType),
     });
   }
 
-  for (const improvementId in w.improvements) {
-    const pimprovement = w.improvements[improvementId];
+  for (const improvementId in store.improvements) {
+    const pimprovement = store.improvements[improvementId];
     let buildCost: string | number = pimprovement['build_cost'];
     if (pimprovement['name'] === 'Coinage') buildCost = '-';
     productionList.push({
@@ -248,7 +264,7 @@ export function generateProductionList(): any[] {
       rule_name: pimprovement['rule_name'],
       build_cost: buildCost,
       unit_details: '-',
-      sprite: w.get_improvement_image_sprite(pimprovement),
+      sprite: get_improvement_image_sprite(pimprovement),
     });
   }
   return productionList;
@@ -304,7 +320,7 @@ export function canCityBuildNow(
 export function cityHasBuilding(pcity: any, improvementId: number): boolean {
   return (
     0 <= improvementId &&
-    improvementId < w.ruleset_control.num_impr_types &&
+    improvementId < (store.rulesControl as any).num_impr_types &&
     pcity['improvements'] &&
     pcity['improvements'].isSet(improvementId)
   );
@@ -317,12 +333,12 @@ export function doesCityHaveImprovement(
 ): boolean {
   if (pcity == null || pcity['improvements'] == null) return false;
 
-  for (let z = 0; z < w.ruleset_control.num_impr_types; z++) {
+  for (let z = 0; z < (store.rulesControl as any).num_impr_types; z++) {
     if (
       pcity['improvements'] != null &&
       pcity['improvements'].isSet(z) &&
-      w.improvements[z] != null &&
-      w.improvements[z]['name'] === improvementName
+      store.improvements[z] != null &&
+      store.improvements[z]['name'] === improvementName
     ) {
       return true;
     }
@@ -332,10 +348,10 @@ export function doesCityHaveImprovement(
 
 /** Simplified check: can the city buy its current production? */
 export function cityCanBuy(pcity: any): boolean {
-  const improvement = w.improvements[pcity['production_value']];
+  const improvement = store.improvements[pcity['production_value']];
   return (
     !pcity['did_buy'] &&
-    pcity['turn_founded'] !== w.game_info?.['turn'] &&
+    pcity['turn_founded'] !== store.gameInfo?.['turn'] &&
     improvement['name'] !== 'Coinage'
   );
 }
@@ -388,7 +404,7 @@ export function dxyToCenterIndex(dx: number, dy: number, r: number): number {
 export function getCityDxyToIndex(dx: number, dy: number, pcity: any): number {
   buildCityTileMap(pcity.city_radius_sq);
   const cityTileMapIndex = dxyToCenterIndex(dx, dy, cityTileMap!.radius);
-  const ctile = cityTile(w.active_city);
+  const ctile = cityTile(active_city);
   return getCityTileMapForPos(ctile.x, ctile.y)[cityTileMapIndex];
 }
 
@@ -400,7 +416,7 @@ export function buildCityTileMap(radiusSq: number): void {
 
     for (let dx = -r; dx <= r; dx++) {
       for (let dy = -r; dy <= r; dy++) {
-        const dSq = w.map_vector_to_sq_distance(dx, dy);
+        const dSq = mapVectorToSqDistance(dx, dy);
         if (dSq <= radiusSq) {
           vectors.push([dx, dy, dSq, dxyToCenterIndex(dx, dy, r)]);
         }
@@ -428,7 +444,7 @@ export function buildCityTileMap(radiusSq: number): void {
     };
 
     // Also update the legacy global
-    w.city_tile_map = cityTileMap;
+    (window as any).city_tile_map = cityTileMap;
   }
 }
 
@@ -483,8 +499,8 @@ export function buildCityTileMapWithLimits(
  * Uses self-replacing function pattern based on map wrap flags.
  */
 export let getCityTileMapForPos = function(x: number, y: number): number[] {
-  if (w.wrap_has_flag(w.WRAP_X)) {
-    if (w.wrap_has_flag(w.WRAP_Y)) {
+  if (wrapHasFlag(WRAP_X)) {
+    if (wrapHasFlag(WRAP_Y)) {
       // Torus
       getCityTileMapForPos = function (_x: number, _y: number): number[] {
         return cityTileMap!.maps[0]!;
@@ -493,7 +509,7 @@ export let getCityTileMapForPos = function(x: number, y: number): number[] {
       // Cylinder with N-S axis
       getCityTileMapForPos = function (_x: number, y: number): number[] {
         const r = cityTileMap!.radius;
-        const d = deltaTileHelper(y, r, w.map.ysize);
+        const d = deltaTileHelper(y, r, getMapInfo()!.ysize);
         if (cityTileMap!.maps[d[2]] == null) {
           const m = buildCityTileMapWithLimits(-r, r, d[0], d[1]);
           cityTileMap!.maps[d[2]] = m;
@@ -502,11 +518,11 @@ export let getCityTileMapForPos = function(x: number, y: number): number[] {
       };
     }
   } else {
-    if (w.wrap_has_flag(w.WRAP_Y)) {
+    if (wrapHasFlag(WRAP_Y)) {
       // Cylinder with E-W axis
       getCityTileMapForPos = function (x: number, _y: number): number[] {
         const r = cityTileMap!.radius;
-        const d = deltaTileHelper(x, r, w.map.xsize);
+        const d = deltaTileHelper(x, r, getMapInfo()!.xsize);
         if (cityTileMap!.maps[d[2]] == null) {
           const m = buildCityTileMapWithLimits(d[0], d[1], -r, r);
           cityTileMap!.maps[d[2]] = m;
@@ -517,8 +533,8 @@ export let getCityTileMapForPos = function(x: number, y: number): number[] {
       // Flat
       getCityTileMapForPos = function (x: number, y: number): number[] {
         const r = cityTileMap!.radius;
-        const dx = deltaTileHelper(x, r, w.map.xsize);
-        const dy = deltaTileHelper(y, r, w.map.ysize);
+        const dx = deltaTileHelper(x, r, getMapInfo()!.xsize);
+        const dy = deltaTileHelper(y, r, getMapInfo()!.ysize);
         const mapI = (2 * r + 1) * dx[2] + dy[2];
         if (cityTileMap!.maps[mapI] == null) {
           const m = buildCityTileMapWithLimits(dx[0], dx[1], dy[0], dy[1]);
@@ -540,35 +556,35 @@ export let getCityTileMapForPos = function(x: number, y: number): number[] {
 export function showCityTraderoutes(): string {
   let msg: string;
 
-  if (w.active_city == null) {
+  if (active_city == null) {
     return '';
   }
 
-  const routes = w.city_trade_routes?.[w.active_city['id']];
+  const routes = city_trade_routes?.[active_city['id']];
 
-  if (w.active_city['traderoute_count'] !== 0 && routes == null) {
+  if (active_city['traderoute_count'] !== 0 && routes == null) {
     console.log(
       "Can't find the trade routes " +
-        w.active_city['name'] +
+        active_city['name'] +
         ' is said to have',
     );
     return '';
   }
 
   msg = '';
-  for (let i = 0; i < w.active_city['traderoute_count']; i++) {
+  for (let i = 0; i < active_city['traderoute_count']; i++) {
     if (routes[i] == null) continue;
 
     const tcityId = routes[i]['partner'];
     if (tcityId === 0 || tcityId == null) continue;
 
-    let good = w.goods?.[routes[i]['goods']];
+    let good = goods?.[routes[i]['goods']];
     if (good == null) {
       console.log('Missing good type ' + routes[i]['goods']);
       good = { name: 'Unknown' };
     }
 
-    const tcity = w.cities[tcityId];
+    const tcity = store.cities[tcityId];
     if (tcity == null) continue;
     msg += good['name'] + ' trade with ' + tcity['name'];
     msg += ' gives ' + routes[i]['value'] + ' gold each turn.<br>';
@@ -581,7 +597,7 @@ export function showCityTraderoutes(): string {
   }
 
   // Also update the DOM if the element exists
-  const el = w.document?.getElementById('city_traderoutes_tab');
+  const el = document.getElementById('city_traderoutes_tab');
   if (el) el.innerHTML = msg;
 
   return msg;

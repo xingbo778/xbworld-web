@@ -46,7 +46,7 @@ export function isOceanTile(ptile: Tile): boolean {
 // Expose to legacy JS via window (snake_case names matching old JS API)
 // ---------------------------------------------------------------------------
 // Ensure global variables exist (previously declared in terrain.js)
-const w = window as unknown as Record<string, unknown>;
+const _w = window as unknown as Record<string, unknown>;
 if (!w['terrains']) w['terrains'] = {};
 if (!w['resources']) w['resources'] = {};
 if (!w['terrain_control']) w['terrain_control'] = {};

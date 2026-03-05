@@ -7,11 +7,9 @@
  */
 
 import { O_SCIENCE } from './fcTypes';
-
-// ---------------------------------------------------------------------------
-// Legacy global references (via window)
-// ---------------------------------------------------------------------------
-const w = window as unknown as Record<string, any>;
+import { store } from './store';
+import { research_data } from './player';
+import { clientIsObserver as client_is_observer } from '../client/clientState';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -70,7 +68,7 @@ export function isTechReqForGoal(checkTechId: number, goalTechId: number): boole
   if (checkTechId === goalTechId) return true;
   if (goalTechId === 0 || checkTechId === 0) return false;
 
-  const goalTech = w.techs[goalTechId];
+  const goalTech = store.techs[goalTechId];
   if (goalTech == null) return false;
 
   for (let i = 0; i < goalTech['research_reqs'].length; i++) {
@@ -93,7 +91,7 @@ export function isTechReqForTech(checkTechId: number, nextTechId: number): boole
   if (checkTechId === nextTechId) return false;
   if (nextTechId === 0 || checkTechId === 0) return false;
 
-  const nextTech = w.techs[nextTechId];
+  const nextTech = store.techs[nextTechId];
   if (nextTech == null) return false;
 
   for (let i = 0; i < nextTech['research_reqs'].length; i++) {
@@ -123,20 +121,20 @@ export function getCurrentBulbsOutput(): {
   let teamBulbs = 0;
   let teamUpkeep = 0;
 
-  if (!w.client_is_observer() && w.client?.conn?.playing != null) {
-    const cplayer = w.client.conn.playing.playerno;
-    for (const cityId in w.cities) {
-      const city = w.cities[cityId];
+  if (!client_is_observer() && store.client?.conn?.playing != null) {
+    const cplayer = store.client.conn.playing.playerno;
+    for (const cityId in store.cities) {
+      const city = store.cities[cityId];
       if (city.owner === cplayer) {
         selfBulbs += city.prod[O_SCIENCE];
       }
     }
-    selfUpkeep = w.client.conn.playing.tech_upkeep;
+    selfUpkeep = store.client.conn.playing.tech_upkeep;
 
-    if (w.game_info?.['team_pooled_research']) {
-      const team = w.client.conn.playing.team;
-      for (const playerId in w.players) {
-        const player = w.players[playerId];
+    if (store.gameInfo?.['team_pooled_research']) {
+      const team = store.client.conn.playing.team;
+      for (const playerId in store.players) {
+        const player = store.players[playerId];
         if (player.team === team && player.is_alive) {
           teamUpkeep += player.tech_upkeep;
           if (player.playerno !== cplayer) {
@@ -145,7 +143,7 @@ export function getCurrentBulbsOutput(): {
         }
       }
       if (pooled) {
-        teamBulbs = w.research_data?.[team]?.total_bulbs_prod ?? 0;
+        teamBulbs = research_data?.[team]?.total_bulbs_prod ?? 0;
       }
     }
 
@@ -197,8 +195,8 @@ export function getCurrentBulbsOutputText(cbo?: any): string {
 
 /** Finds tech id by exact name. Null if not found. */
 export function techIdByName(tname: string): string | null {
-  for (const techId in w.techs) {
-    if (tname === w.techs[techId]['name']) return techId;
+  for (const techId in store.techs) {
+    if (tname === store.techs[techId]['name']) return techId;
   }
   return null;
 }

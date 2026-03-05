@@ -197,7 +197,7 @@ export function is_capital(pcity: City): boolean {
 // Expose all public functions to legacy JS via window
 // ---------------------------------------------------------------------------
 // Expose constants that legacy JS references as globals
-const w = window as unknown as Record<string, unknown>;
+const _w = window as unknown as Record<string, unknown>;
 w['MAX_NUM_PLAYERS'] = MAX_NUM_PLAYERS;
 w['MAX_AI_LOVE'] = MAX_AI_LOVE;
 // DiplState enum values (const enum is inlined, so expose manually)

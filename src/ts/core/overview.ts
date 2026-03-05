@@ -19,10 +19,7 @@
 
 declare const $: any;
 
-// Access runtime globals via window
-const w = window as any;
-
-// Proper module imports
+import { store } from '../data/store';
 import { mapPosToTile } from '../data/map';
 import { wrapHasFlag, WRAP_X, WRAP_Y } from '../data/map';
 import { tileCity, tileGetKnown } from '../data/tile';
@@ -75,7 +72,7 @@ export let overview_current_state: any = null;
   Initilaize the overview w.map.
 ****************************************************************************/
 export function init_overview(): void {
-  while (min_overview_width > OVERVIEW_TILE_SIZE * w.map['xsize']) {
+  while (min_overview_width > OVERVIEW_TILE_SIZE * (store.mapInfo as any)['xsize']) {
     OVERVIEW_TILE_SIZE++;
   }
 
@@ -106,9 +103,9 @@ export function init_overview(): void {
     },
     "restore" : function(evt: any, dlg: any){
       overview_current_state = $("#game_overview_panel").dialogExtend("state");
-      let new_width = OVERVIEW_TILE_SIZE * w.map['xsize'];
+      let new_width = OVERVIEW_TILE_SIZE * (store.mapInfo as any)['xsize'];
       if (new_width > max_overview_width) new_width = max_overview_width;
-      let new_height = OVERVIEW_TILE_SIZE * w.map['ysize'];
+      let new_height = OVERVIEW_TILE_SIZE * (store.mapInfo as any)['ysize'];
       if (new_height > max_overview_height) new_height = max_overview_height;
       $('#overview_map').width(new_width);
       $('#overview_map').height(new_height);
@@ -127,9 +124,9 @@ export function init_overview(): void {
 
   redraw_overview();
 
-  let new_width = OVERVIEW_TILE_SIZE * w.map['xsize'];
+  let new_width = OVERVIEW_TILE_SIZE * (store.mapInfo as any)['xsize'];
   if (new_width > max_overview_width) new_width = max_overview_width;
-  let new_height = OVERVIEW_TILE_SIZE * w.map['ysize'];
+  let new_height = OVERVIEW_TILE_SIZE * (store.mapInfo as any)['ysize'];
   if (new_height > max_overview_height) new_height = max_overview_height;
   $('#overview_map').width(new_width);
   $('#overview_map').height(new_height);
@@ -143,14 +140,14 @@ export function init_overview(): void {
 ****************************************************************************/
 export function redraw_overview(): void {
   if (mapview_slide['active'] || C_S_RUNNING > client_state()
-      || w.map['xsize'] == null || w.map['ysize'] == null
+      || (store.mapInfo as any)['xsize'] == null || (store.mapInfo as any)['ysize'] == null
       || $("#overview_map").length == 0) return;
 
-  const hash: number = generate_overview_hash(w.map['xsize'], w.map['ysize']);
+  const hash: number = generate_overview_hash((store.mapInfo as any)['xsize'], (store.mapInfo as any)['ysize']);
 
   if (hash != overview_hash) {
-    w.bmp_lib.render('overview_img',
-                    generate_overview_grid(w.map['xsize'], w.map['ysize']),
+    (window as any).bmp_lib.render('overview_img',
+                    generate_overview_grid((store.mapInfo as any)['xsize'], (store.mapInfo as any)['ysize']),
                     palette);
     overview_hash = hash;
     render_viewrect();
@@ -239,34 +236,34 @@ export function render_viewrect(): void {
 
   viewrect_ctx.clearRect(0, 0, map_w, map_h);
   viewrect_ctx.strokeStyle = 'rgb(200,200,255)';
-  viewrect_ctx.lineWidth = w.map.xsize / map_w;
-  viewrect_ctx.scale(map_w/w.map.xsize, map_h/w.map.ysize);
+  viewrect_ctx.lineWidth = (store.mapInfo as any).xsize / map_w;
+  viewrect_ctx.scale(map_w/(store.mapInfo as any).xsize, map_h/(store.mapInfo as any).ysize);
 
   viewrect_ctx.beginPath();
   add_closed_path(viewrect_ctx, path);
 
   if (wrap_has_flag(WRAP_X)) {
     viewrect_ctx.save();
-    viewrect_ctx.translate(w.map.xsize, 0);
+    viewrect_ctx.translate((store.mapInfo as any).xsize, 0);
     add_closed_path(viewrect_ctx, path);
-    viewrect_ctx.translate(-2 * w.map.xsize, 0);
+    viewrect_ctx.translate(-2 * (store.mapInfo as any).xsize, 0);
     add_closed_path(viewrect_ctx, path);
     viewrect_ctx.restore();
   }
 
   if (wrap_has_flag(WRAP_Y)) {
-    viewrect_ctx.translate(0, w.map.ysize);
+    viewrect_ctx.translate(0, (store.mapInfo as any).ysize);
     add_closed_path(viewrect_ctx, path);
-    viewrect_ctx.translate(0, -2 * w.map.ysize);
+    viewrect_ctx.translate(0, -2 * (store.mapInfo as any).ysize);
     add_closed_path(viewrect_ctx, path);
     if (wrap_has_flag(WRAP_X)) {
-      viewrect_ctx.translate(-w.map.xsize, 0);
+      viewrect_ctx.translate(-(store.mapInfo as any).xsize, 0);
       add_closed_path(viewrect_ctx, path);
-      viewrect_ctx.translate(0, 2 * w.map.ysize);
+      viewrect_ctx.translate(0, 2 * (store.mapInfo as any).ysize);
       add_closed_path(viewrect_ctx, path);
-      viewrect_ctx.translate(2 * w.map.xsize, 0);
+      viewrect_ctx.translate(2 * (store.mapInfo as any).xsize, 0);
       add_closed_path(viewrect_ctx, path);
-      viewrect_ctx.translate(0, -2 * w.map.ysize);
+      viewrect_ctx.translate(0, -2 * (store.mapInfo as any).ysize);
       add_closed_path(viewrect_ctx, path);
     }
   }
@@ -286,7 +283,7 @@ export function add_closed_path(ctx: CanvasRenderingContext2D, path: number[][])
   ...
 ****************************************************************************/
 export function render_multipixel(grid: number[][], x: number, y: number, ocolor: number): void {
-  if (x >= 0 && y >= 0 && x < w.map['ysize'] && y < w.map['xsize']) {
+  if (x >= 0 && y >= 0 && x < (store.mapInfo as any)['ysize'] && y < (store.mapInfo as any)['xsize']) {
     for (let px = 0; px < OVERVIEW_TILE_SIZE; px++) {
       for (let py = 0; py < OVERVIEW_TILE_SIZE; py++) {
           grid[(OVERVIEW_TILE_SIZE*x)+px][(OVERVIEW_TILE_SIZE*y)+py] = ocolor;
@@ -309,21 +306,21 @@ export function generate_palette(): number[][] {
   palette[COLOR_OVERVIEW_ENEMY_UNIT] = [255,0,0];
   palette[COLOR_OVERVIEW_VIEWRECT] = [200,200,255];
   palette_terrain_offset = palette.length;
-  for (const terrain_id in w.terrains) {
-    const terrain: any = w.terrains[terrain_id];
+  for (const terrain_id in store.terrains) {
+    const terrain: any = store.terrains[terrain_id];
     palette.push([terrain['color_red'], terrain['color_green'], terrain['color_blue']]);
   }
 
   palette_color_offset = palette.length;
-  const player_count: number = Object.keys(w.players).length;
+  const player_count: number = Object.keys(store.players).length;
 
-  for (const player_id_str in w.players) {
+  for (const player_id_str in store.players) {
     const player_id = Number(player_id_str);
-    const pplayer: any = w.players[player_id];
+    const pplayer: any = store.players[player_id];
     if (pplayer['nation'] == -1) {
       palette[palette_color_offset+(player_id % player_count)] = [0,0,0];
     } else {
-      const pcolor: any = w.nations[pplayer['nation']]['color'];
+      const pcolor: any = store.nations[pplayer['nation']]['color'];
       if (pcolor != null) {
         palette[palette_color_offset+(player_id % player_count)] = color_rbg_to_list(pcolor) ?? [];
       } else {
@@ -343,9 +340,9 @@ export function overview_tile_color(map_x: number, map_y: number): number {
   const pcity: any = tile_city(ptile);
 
   if (pcity != null) {
-    if (w.client.conn.playing == null) {
+    if (store.client.conn.playing == null) {
       return COLOR_OVERVIEW_ENEMY_CITY;
-    } else if (city_owner_player_id(pcity) == w.client.conn.playing['id']) {
+    } else if (city_owner_player_id(pcity) == store.client.conn.playing['id']) {
       return COLOR_OVERVIEW_MY_CITY;
     } else {
       return COLOR_OVERVIEW_ENEMY_CITY;
@@ -354,9 +351,9 @@ export function overview_tile_color(map_x: number, map_y: number): number {
 
   const punit: any = find_visible_unit(ptile);
   if (punit != null) {
-    if (w.client.conn.playing == null) {
+    if (store.client.conn.playing == null) {
       return COLOR_OVERVIEW_ENEMY_UNIT;
-    } else if (punit['owner'] == w.client.conn.playing['id']) {
+    } else if (punit['owner'] == store.client.conn.playing['id']) {
       return COLOR_OVERVIEW_MY_UNIT;
     } else if (punit['owner'] != null && punit['owner'] != 255) {
       return palette_color_offset + punit['owner'];
@@ -384,8 +381,8 @@ export function overview_clicked (x: number, y: number): void {
   const width: number = $("#overview_map").width();
   const height: number = $("#overview_map").height();
 
-  const x1: number = Math.floor((x * w.map['xsize']) / width);
-  const y1: number = Math.floor((y * w.map['ysize']) / height);
+  const x1: number = Math.floor((x * (store.mapInfo as any)['xsize']) / width);
+  const y1: number = Math.floor((y * (store.mapInfo as any)['ysize']) / height);
 
   const ptile: any = map_pos_to_tile(x1, y1);
   if (ptile != null) {

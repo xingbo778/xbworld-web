@@ -16,7 +16,7 @@
 import { packet_client_info } from './packetConstants';
 import { GUI_WEB } from '../data/fcTypes';
 
-const w = window as any;
+const _w = window as any;
 
 // ============================================================================
 // Module-local state (was var in packhand.js)

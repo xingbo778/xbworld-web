@@ -167,7 +167,7 @@ const allPacketConstants: Record<string, number> = {
 
 // Use direct window assignment instead of exposeToLegacy since these are
 // constants (numbers), not functions.
-const w = window as unknown as Record<string, unknown>;
+const _w = window as unknown as Record<string, unknown>;
 for (const [name, value] of Object.entries(allPacketConstants)) {
   w[name] = value;
 }

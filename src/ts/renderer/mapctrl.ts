@@ -51,6 +51,11 @@ export let map_select_x: number;
 export let map_select_y: number;
 export let mouse_touch_started_on_unit: boolean = false;
 
+// Setters for mutable state (needed by external modules)
+export function setMapSelectActive(v: boolean): void { map_select_active = v; }
+export function setMapSelectCheck(v: boolean): void { map_select_check = v; }
+export function setTouchStart(x: number, y: number): void { touch_start_x = x; touch_start_y = y; }
+
 /****************************************************************************
   Init 2D mapctrl
 ****************************************************************************/

@@ -15,34 +15,42 @@
  * is still loaded. Guards below initialise them once civclient.js is removed.
  */
 
-const w = window as any;
+import { RENDERER_2DCANVAS } from '../core/constants';
+import { redraw_overview } from '../core/overview';
+import { control_init } from '../core/control';
+import { game_init, update_game_status_panel } from '../data/game';
+import { init_mapview, is_small_screen } from '../renderer/mapview';
+import { send_request } from '../net/connection';
+import { packet_authentication_reply } from '../net/packetConstants';
+
+declare const $: any;
 
 // ---------------------------------------------------------------------------
 // Global state guards (active once civclient.js is deleted)
 // ---------------------------------------------------------------------------
-if (w.client === undefined || Object.keys(w.client).length === 0) {
+if ((window as any).client === undefined || Object.keys((window as any).client).length === 0) {
   // Only set if truly absent — civclient.js sets this to {}
-  if (w.client === undefined) w.client = {};
+  if ((window as any).client === undefined) (window as any).client = {};
 }
-if (w.client_frozen === undefined)          w.client_frozen = false;
-if (w.phase_start_time === undefined)       w.phase_start_time = 0;
-if (w.debug_active === undefined)           w.debug_active = false;
-if (w.autostart === undefined)              w.autostart = false;
-if (w.username === undefined)               w.username = null;
-if (w.fc_seedrandom === undefined)          w.fc_seedrandom = null;
-if (w.game_type === undefined)              w.game_type = '';
-if (w.audio === undefined)                  w.audio = null;
-if (w.audio_enabled === undefined)          w.audio_enabled = false;
-if (w.last_turn_change_time === undefined)  w.last_turn_change_time = 0;
-if (w.turn_change_elapsed === undefined)    w.turn_change_elapsed = 0;
-if (w.seconds_to_phasedone === undefined)   w.seconds_to_phasedone = 0;
-if (w.seconds_to_phasedone_sync === undefined) w.seconds_to_phasedone_sync = 0;
-if (w.dialog_close_trigger === undefined)   w.dialog_close_trigger = '';
-if (w.dialog_message_close_task === undefined) w.dialog_message_close_task = undefined;
-if (w.RENDERER_2DCANVAS === undefined)      w.RENDERER_2DCANVAS = 1;
-if (w.renderer === undefined)               w.renderer = w.RENDERER_2DCANVAS;
-if (!w.music_list) {
-  w.music_list = [
+if ((window as any).client_frozen === undefined)          (window as any).client_frozen = false;
+if ((window as any).phase_start_time === undefined)       (window as any).phase_start_time = 0;
+if ((window as any).debug_active === undefined)           (window as any).debug_active = false;
+if ((window as any).autostart === undefined)              (window as any).autostart = false;
+if ((window as any).username === undefined)               (window as any).username = null;
+if ((window as any).fc_seedrandom === undefined)          (window as any).fc_seedrandom = null;
+if ((window as any).game_type === undefined)              (window as any).game_type = '';
+if ((window as any).audio === undefined)                  (window as any).audio = null;
+if ((window as any).audio_enabled === undefined)          (window as any).audio_enabled = false;
+if ((window as any).last_turn_change_time === undefined)  (window as any).last_turn_change_time = 0;
+if ((window as any).turn_change_elapsed === undefined)    (window as any).turn_change_elapsed = 0;
+if ((window as any).seconds_to_phasedone === undefined)   (window as any).seconds_to_phasedone = 0;
+if ((window as any).seconds_to_phasedone_sync === undefined) (window as any).seconds_to_phasedone_sync = 0;
+if ((window as any).dialog_close_trigger === undefined)   (window as any).dialog_close_trigger = '';
+if ((window as any).dialog_message_close_task === undefined) (window as any).dialog_message_close_task = undefined;
+if ((window as any).RENDERER_2DCANVAS === undefined)      (window as any).RENDERER_2DCANVAS = RENDERER_2DCANVAS;
+if ((window as any).renderer === undefined)               (window as any).renderer = RENDERER_2DCANVAS;
+if (!(window as any).music_list) {
+  (window as any).music_list = [
     'battle-epic', 'battle2', 'battle3', 'battle4',
     'battle5', 'battle6', 'battle7', 'battle8'
   ];
@@ -56,48 +64,48 @@ if (!w.music_list) {
  * Main client initialisation — called from index.html $(document).ready.
  */
 export function civClientInit(): void {
-  w.$.blockUI.defaults['css']['backgroundColor'] = '#222';
-  w.$.blockUI.defaults['css']['color'] = '#fff';
-  w.$.blockUI.defaults['theme'] = true;
+  $.blockUI.defaults['css']['backgroundColor'] = '#222';
+  $.blockUI.defaults['css']['color'] = '#fff';
+  $.blockUI.defaults['theme'] = true;
 
   // Always observer mode
-  w.observing = true;
-  w.game_type = 'observe';
-  w.$('#civ_tab').remove();
-  w.$('#cities_tab').remove();
-  w.$('#pregame_buttons').remove();
-  w.$('#game_unit_orders_default').remove();
-  w.$('#civ_dialog').remove();
+  (window as any).observing = true;
+  (window as any).game_type = 'observe';
+  $('#civ_tab').remove();
+  $('#cities_tab').remove();
+  $('#pregame_buttons').remove();
+  $('#game_unit_orders_default').remove();
+  $('#civ_dialog').remove();
 
   // Initialise seeded random number generator
-  w.fc_seedrandom = new (w.Math.seedrandom || w.seedrandom)('xbworld');
+  (window as any).fc_seedrandom = new ((window as any).Math.seedrandom || (window as any).seedrandom)('xbworld');
 
   if (window.requestAnimationFrame == null) {
-    if (typeof w.swal === 'function') w.swal('Please upgrade your browser.');
+    if (typeof (window as any).swal === 'function') (window as any).swal('Please upgrade your browser.');
     return;
   }
 
 
-  if (typeof w.init_mapview === 'function') w.init_mapview();
-  if (typeof w.game_init === 'function') w.game_init();
-  w.$('#tabs').tabs({ heightStyle: 'fill' });
-  if (typeof w.control_init === 'function') w.control_init();
-  w.timeoutTimerId = setInterval(function () {
-    if (typeof w.update_timeout === 'function') w.update_timeout();
+  init_mapview();
+  game_init();
+  $('#tabs').tabs({ heightStyle: 'fill' });
+  control_init();
+  (window as any).timeoutTimerId = setInterval(function () {
+    if (typeof (window as any).update_timeout === 'function') (window as any).update_timeout();
   }, 1000);
-  if (typeof w.update_game_status_panel === 'function') w.update_game_status_panel();
-  w.statusTimerId = setInterval(function () {
-    if (typeof w.update_game_status_panel === 'function') w.update_game_status_panel();
+  update_game_status_panel();
+  (window as any).statusTimerId = setInterval(function () {
+    update_game_status_panel();
   }, 6000);
 
-  if (w.overviewTimerId === -1) {
-    w.OVERVIEW_REFRESH = 6000;
-    w.overviewTimerId = setInterval(function () {
-      if (typeof w.redraw_overview === 'function') w.redraw_overview();
-    }, w.OVERVIEW_REFRESH);
+  if ((window as any).overviewTimerId === -1) {
+    (window as any).OVERVIEW_REFRESH = 6000;
+    (window as any).overviewTimerId = setInterval(function () {
+      redraw_overview();
+    }, (window as any).OVERVIEW_REFRESH);
   }
 
-  if (typeof w.motd_init === 'function') w.motd_init();
+  if (typeof (window as any).motd_init === 'function') (window as any).motd_init();
 
   // IE polyfill for Array.indexOf (kept for historical compatibility)
   if (!Array.prototype.indexOf) {
@@ -109,42 +117,42 @@ export function civClientInit(): void {
     };
   }
 
-  w.$('#tabs').css('height', w.$(window).height());
-  w.$('#tabs-map').height('auto');
-  w.$('#tabs-civ').height('auto');
-  w.$('#tabs-tec').height('auto');
-  w.$('#tabs-nat').height('auto');
-  w.$('#tabs-cities').height('auto');
-  w.$('#tabs-opt').height('auto');
-  w.$('#tabs-hel').height('auto');
-  w.$('.button').button();
+  $('#tabs').css('height', $(window).height());
+  $('#tabs-map').height('auto');
+  $('#tabs-civ').height('auto');
+  $('#tabs-tec').height('auto');
+  $('#tabs-nat').height('auto');
+  $('#tabs-cities').height('auto');
+  $('#tabs-opt').height('auto');
+  $('#tabs-hel').height('auto');
+  $('.button').button();
 
-  w.sounds_enabled = w.simpleStorage.get('sndFX');
-  if (w.sounds_enabled == null) {
+  (window as any).sounds_enabled = (window as any).simpleStorage.get('sndFX');
+  if ((window as any).sounds_enabled == null) {
     // Default to true, except when known to be problematic.
-    w.sounds_enabled = (w.platform?.name === 'Safari') ? false : true;
+    (window as any).sounds_enabled = ((window as any).platform?.name === 'Safari') ? false : true;
   }
 
   /* Initialise audio.js music player */
-  if (w.audiojs) {
-    w.audiojs.events.ready(function () {
-      const as = w.audiojs.createAll({
+  if ((window as any).audiojs) {
+    (window as any).audiojs.events.ready(function () {
+      const as = (window as any).audiojs.createAll({
         trackEnded: function () {
-          const list: string[] = w.music_list;
+          const list: string[] = (window as any).music_list;
           const track = list[Math.floor(Math.random() * list.length)];
-          const ext = (typeof w.supports_mp3 === 'function' && !w.supports_mp3()) ? '.ogg' : '.mp3';
-          if (w.audio) {
-            w.audio.load('/music/' + track + ext);
-            w.audio.play();
+          const ext = (typeof (window as any).supports_mp3 === 'function' && !(window as any).supports_mp3()) ? '.ogg' : '.mp3';
+          if ((window as any).audio) {
+            (window as any).audio.load('/music/' + track + ext);
+            (window as any).audio.play();
           }
         }
       });
-      w.audio = as[0];
+      (window as any).audio = as[0];
     });
   }
 
-  if (typeof w.init_common_intro_dialog === 'function') w.init_common_intro_dialog();
-  if (typeof w.setup_window_size === 'function') w.setup_window_size();
+  initCommonIntroDialog();
+  if (typeof (window as any).setup_window_size === 'function') (window as any).setup_window_size();
 }
 
 // ---------------------------------------------------------------------------
@@ -155,10 +163,10 @@ export function civClientInit(): void {
  * Shows the observer intro dialog.
  */
 export function initCommonIntroDialog(): void {
-  if (typeof w.show_intro_dialog === 'function') {
-    w.show_intro_dialog('Welcome to XBWorld', 'You are joining the game as an observer. Please enter your name:');
+  if (typeof (window as any).show_intro_dialog === 'function') {
+    (window as any).show_intro_dialog('Welcome to XBWorld', 'You are joining the game as an observer. Please enter your name:');
   }
-  w.$('#turn_done_button').button('option', 'disabled', true);
+  $('#turn_done_button').button('option', 'disabled', true);
 }
 
 // ---------------------------------------------------------------------------
@@ -169,15 +177,15 @@ export function initCommonIntroDialog(): void {
  * Closes the generic message dialog.
  */
 export function closeDialogMessage(): void {
-  w.$('#generic_dialog').dialog('close');
+  $('#generic_dialog').dialog('close');
 }
 
 /**
  * Cleanup callback when the generic message dialog is closing.
  */
 export function closingDialogMessage(): void {
-  clearTimeout(w.dialog_message_close_task);
-  w.$('#game_text_input').blur();
+  clearTimeout((window as any).dialog_message_close_task);
+  $('#game_text_input').blur();
 }
 
 // ---------------------------------------------------------------------------
@@ -188,17 +196,17 @@ export function closingDialogMessage(): void {
  * Shows a generic message dialog with auto-close after 24 seconds.
  */
 export function showDialogMessage(title: string, message: string): void {
-  w.$('#generic_dialog').remove();
-  w.$("<div id='generic_dialog'></div>").appendTo('div#game_page');
-  w.$('#generic_dialog').html(message);
-  w.$('#generic_dialog').attr('title', title);
-  w.$('#generic_dialog').dialog({
+  $('#generic_dialog').remove();
+  $("<div id='generic_dialog'></div>").appendTo('div#game_page');
+  $('#generic_dialog').html(message);
+  $('#generic_dialog').attr('title', title);
+  $('#generic_dialog').dialog({
     bgiframe: true,
     modal: false,
-    width: (w.is_small_screen && w.is_small_screen()) ? '90%' : '50%',
-    close: function () { if (typeof w.closing_dialog_message === 'function') w.closing_dialog_message(); },
+    width: is_small_screen() ? '90%' : '50%',
+    close: function () { closingDialogMessage(); },
     buttons: {
-      Ok: function () { if (typeof w.close_dialog_message === 'function') w.close_dialog_message(); }
+      Ok: function () { closeDialogMessage(); }
     }
   }).dialogExtend({
     minimizable: true,
@@ -208,13 +216,13 @@ export function showDialogMessage(title: string, message: string): void {
       restore: 'ui-icon-bullet'
     }
   });
-  w.$('#generic_dialog').dialog('open');
-  w.$('#game_text_input').blur();
+  $('#generic_dialog').dialog('open');
+  $('#game_text_input').blur();
   // Auto-close after 24 seconds
-  w.dialog_message_close_task = setTimeout(function () {
-    if (typeof w.close_dialog_message === 'function') w.close_dialog_message();
+  (window as any).dialog_message_close_task = setTimeout(function () {
+    closeDialogMessage();
   }, 24000);
-  w.$('#generic_dialog').css('max-height', '450px');
+  $('#generic_dialog').css('max-height', '450px');
 }
 
 // ---------------------------------------------------------------------------
@@ -225,28 +233,28 @@ export function showDialogMessage(title: string, message: string): void {
  * Shows the authentication/password dialog for private servers.
  */
 export function showAuthDialog(packet: any): void {
-  w.$('#dialog').remove();
-  w.$("<div id='dialog'></div>").appendTo('div#game_page');
+  $('#dialog').remove();
+  $("<div id='dialog'></div>").appendTo('div#game_page');
   const intro_html = packet['message'] +
     "<br><br> Password: <input id='password_req' type='text' size='25'>";
-  w.$('#dialog').html(intro_html);
-  w.$('#dialog').attr('title', 'Private server needs password to enter');
-  w.$('#dialog').dialog({
+  $('#dialog').html(intro_html);
+  $('#dialog').attr('title', 'Private server needs password to enter');
+  $('#dialog').dialog({
     bgiframe: true,
     modal: true,
-    width: (w.is_small_screen && w.is_small_screen()) ? '80%' : '60%',
+    width: is_small_screen() ? '80%' : '60%',
     buttons: {
       Ok: function () {
         const pwd_packet = {
-          pid: w.packet_authentication_reply,
-          password: w.$('#password_req').val()
+          pid: packet_authentication_reply,
+          password: $('#password_req').val()
         };
-        if (typeof w.send_request === 'function') w.send_request(JSON.stringify(pwd_packet));
-        w.$('#dialog').dialog('close');
+        send_request(JSON.stringify(pwd_packet));
+        $('#dialog').dialog('close');
       }
     }
   });
-  w.$('#dialog').dialog('open');
+  $('#dialog').dialog('open');
 }
 
 // ---------------------------------------------------------------------------
@@ -269,8 +277,8 @@ export function switchRenderer(): void {
 // The guard prevents double-init if webclient.min.js's old version already ran
 // and set civclient_state > 0.
 // ---------------------------------------------------------------------------
-w.$(function () {
-  if (!w.civclient_state || w.civclient_state === 0) {
+$(function () {
+  if (!(window as any).civclient_state || (window as any).civclient_state === 0) {
     civClientInit();
   }
 });
