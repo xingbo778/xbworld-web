@@ -1767,6 +1767,7 @@ import {
   get_unit_nation_flag_sprite,
   get_unit_stack_sprite,
   get_unit_type_image_sprite,
+  assign_nation_color,
   get_unit_veteran_sprite,
   tileset_building_graphic_tag,
   tileset_extra_activity_graphic_tag,
@@ -1792,6 +1793,7 @@ w['tileset_extra_id_graphic_tag'] = tileset_extra_id_graphic_tag;
 w['tileset_extra_activity_graphic_tag'] = tileset_extra_activity_graphic_tag;
 w['tileset_extra_id_activity_graphic_tag'] = tileset_extra_id_activity_graphic_tag;
 w['tileset_extra_rmactivity_graphic_tag'] = tileset_extra_rmactivity_graphic_tag;
+w['assign_nation_color'] = assign_nation_color;
 w['tileset_extra_id_rmactivity_graphic_tag'] = tileset_extra_id_rmactivity_graphic_tag;
 w['fill_sprite_array'] = fill_sprite_array;
 w['fill_terrain_sprite_layer'] = fill_terrain_sprite_layer;

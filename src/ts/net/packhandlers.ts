@@ -13,6 +13,9 @@
  *   - terrain_control, roads[], bases[], page_msg{}
  */
 
+import { packet_client_info } from './packetConstants';
+import { GUI_WEB } from '../data/fcTypes';
+
 const w = window as any;
 
 // ============================================================================
@@ -129,6 +132,23 @@ export function handle_ruleset_clause(packet: any): void {
 
 export function handle_game_info(packet: any): void {
   w.game_info = packet;
+
+  // When joining an already-running game (turn > 0), the server does NOT send
+  // start_phase (pid 126).  Detect this case and force-transition to C_S_RUNNING
+  // so the game page is displayed.
+  if (
+    packet.turn > 0 &&
+    typeof w.client_state === 'function' &&
+    w.client_state() !== w.C_S_RUNNING
+  ) {
+    // Defer slightly so that remaining init packets (players, tiles) arrive first.
+    setTimeout(() => {
+      if (w.client_state() !== w.C_S_RUNNING) {
+        w.observing = true;
+        w.set_client_state(w.C_S_RUNNING);
+      }
+    }, 2000);
+  }
 }
 
 export function handle_calendar_info(packet: any): void {
@@ -340,8 +360,8 @@ export function handle_server_join_reply(packet: any): void {
     }
 
     const client_info = {
-      'pid': w.packet_client_info,
-      'gui': w.GUI_WEB,
+      'pid': packet_client_info,
+      'gui': GUI_WEB,
       'emerg_version': 0,
       'distribution': ''
     };

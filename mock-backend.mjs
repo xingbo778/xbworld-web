@@ -174,7 +174,31 @@ function sendGameInit(ws, username) {
     }]);
   }
 
-  // 10. Player info — send AI players for observer to watch
+  // 10. Nation definitions (pid 148) — must come before player info
+  const NATIONS = [
+    { id: 0, adjective: 'Roman', rule_name: 'roman', translation_name: 'Roman', flag_graphic: 'f.roman', color: 'rgb(255,0,0)' },
+    { id: 1, adjective: 'Egyptian', rule_name: 'egyptian', translation_name: 'Egyptian', flag_graphic: 'f.egypt', color: 'rgb(0,0,255)' },
+    { id: 2, adjective: 'Indian', rule_name: 'indian', translation_name: 'Indian', flag_graphic: 'f.india', color: 'rgb(0,200,0)' },
+  ];
+  for (const n of NATIONS) {
+    sendPackets(ws, [{
+      pid: 148,
+      id: n.id,
+      adjective: n.adjective,
+      rule_name: n.rule_name,
+      translation_name: n.translation_name,
+      flag_graphic: n.flag_graphic,
+      color: n.color,
+      leader_count: 0,
+      leaders: [],
+      style: 0,
+      is_playable: true,
+      barbarian_type: 0,
+      groups: [],
+    }]);
+  }
+
+  // 11. Player info — send AI players for observer to watch
   for (const ai of AI_PLAYERS) {
     sendPackets(ws, [{
       pid: 51,
@@ -200,7 +224,7 @@ function sendGameInit(ws, username) {
     }]);
   }
 
-  // 11. Connection info — always observer
+  // 12. Connection info — always observer
   sendPackets(ws, [{
     pid: 115, id: 1, used: true, established: true,
     player_num: -1,

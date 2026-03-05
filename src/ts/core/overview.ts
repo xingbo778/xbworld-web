@@ -19,15 +19,8 @@
 
 declare const $: any;
 
-// Globals from window (declared in global.d.ts)
-declare const map: any;
-declare const client: any;
-declare const renderer: number;
-declare const players: any;
-declare const nations: any;
-declare const terrains: any;
-declare const bmp_lib: any;
-declare const height_offset: number;
+// Access runtime globals via window
+const w = window as any;
 
 // Proper module imports
 import { mapPosToTile } from '../data/map';
@@ -79,10 +72,10 @@ export let overview_current_state: any = null;
 
 
 /****************************************************************************
-  Initilaize the overview map.
+  Initilaize the overview w.map.
 ****************************************************************************/
 export function init_overview(): void {
-  while (min_overview_width > OVERVIEW_TILE_SIZE * map['xsize']) {
+  while (min_overview_width > OVERVIEW_TILE_SIZE * w.map['xsize']) {
     OVERVIEW_TILE_SIZE++;
   }
 
@@ -113,9 +106,9 @@ export function init_overview(): void {
     },
     "restore" : function(evt: any, dlg: any){
       overview_current_state = $("#game_overview_panel").dialogExtend("state");
-      let new_width = OVERVIEW_TILE_SIZE * map['xsize'];
+      let new_width = OVERVIEW_TILE_SIZE * w.map['xsize'];
       if (new_width > max_overview_width) new_width = max_overview_width;
-      let new_height = OVERVIEW_TILE_SIZE * map['ysize'];
+      let new_height = OVERVIEW_TILE_SIZE * w.map['ysize'];
       if (new_height > max_overview_height) new_height = max_overview_height;
       $('#overview_map').width(new_width);
       $('#overview_map').height(new_height);
@@ -134,9 +127,9 @@ export function init_overview(): void {
 
   redraw_overview();
 
-  let new_width = OVERVIEW_TILE_SIZE * map['xsize'];
+  let new_width = OVERVIEW_TILE_SIZE * w.map['xsize'];
   if (new_width > max_overview_width) new_width = max_overview_width;
-  let new_height = OVERVIEW_TILE_SIZE * map['ysize'];
+  let new_height = OVERVIEW_TILE_SIZE * w.map['ysize'];
   if (new_height > max_overview_height) new_height = max_overview_height;
   $('#overview_map').width(new_width);
   $('#overview_map').height(new_height);
@@ -146,18 +139,18 @@ export function init_overview(): void {
 }
 
 /****************************************************************************
-  Redraw the overview map.
+  Redraw the overview w.map.
 ****************************************************************************/
 export function redraw_overview(): void {
   if (mapview_slide['active'] || C_S_RUNNING > client_state()
-      || map['xsize'] == null || map['ysize'] == null
+      || w.map['xsize'] == null || w.map['ysize'] == null
       || $("#overview_map").length == 0) return;
 
-  const hash: number = generate_overview_hash(map['xsize'], map['ysize']);
+  const hash: number = generate_overview_hash(w.map['xsize'], w.map['ysize']);
 
   if (hash != overview_hash) {
-    bmp_lib.render('overview_img',
-                    generate_overview_grid(map['xsize'], map['ysize']),
+    w.bmp_lib.render('overview_img',
+                    generate_overview_grid(w.map['xsize'], w.map['ysize']),
                     palette);
     overview_hash = hash;
     render_viewrect();
@@ -166,13 +159,13 @@ export function redraw_overview(): void {
 
 
 /****************************************************************************
-  Creates a grid representing the image for the overview map.
+  Creates a grid representing the image for the overview w.map.
 ****************************************************************************/
 export function generate_overview_grid(cols: number, rows: number): number[][] {
   // Loop variables
   let row: number;
 
-  if (cols & 1) cols -= 1;  //Bugfix, the overview map doesn't support map size which is odd.
+  if (cols & 1) cols -= 1;  //Bugfix, the overview w.map doesn't support w.map size which is odd.
   if (rows & 1) rows -= 1;
 
   // The grid of points that make up the image.
@@ -192,7 +185,7 @@ export function generate_overview_grid(cols: number, rows: number): number[][] {
 }
 
 /****************************************************************************
-  Creates a hash of the current overview map.
+  Creates a hash of the current overview w.map.
 ****************************************************************************/
 export function generate_overview_hash(cols: number, rows: number): number {
 
@@ -246,34 +239,34 @@ export function render_viewrect(): void {
 
   viewrect_ctx.clearRect(0, 0, map_w, map_h);
   viewrect_ctx.strokeStyle = 'rgb(200,200,255)';
-  viewrect_ctx.lineWidth = map.xsize / map_w;
-  viewrect_ctx.scale(map_w/map.xsize, map_h/map.ysize);
+  viewrect_ctx.lineWidth = w.map.xsize / map_w;
+  viewrect_ctx.scale(map_w/w.map.xsize, map_h/w.map.ysize);
 
   viewrect_ctx.beginPath();
   add_closed_path(viewrect_ctx, path);
 
   if (wrap_has_flag(WRAP_X)) {
     viewrect_ctx.save();
-    viewrect_ctx.translate(map.xsize, 0);
+    viewrect_ctx.translate(w.map.xsize, 0);
     add_closed_path(viewrect_ctx, path);
-    viewrect_ctx.translate(-2 * map.xsize, 0);
+    viewrect_ctx.translate(-2 * w.map.xsize, 0);
     add_closed_path(viewrect_ctx, path);
     viewrect_ctx.restore();
   }
 
   if (wrap_has_flag(WRAP_Y)) {
-    viewrect_ctx.translate(0, map.ysize);
+    viewrect_ctx.translate(0, w.map.ysize);
     add_closed_path(viewrect_ctx, path);
-    viewrect_ctx.translate(0, -2 * map.ysize);
+    viewrect_ctx.translate(0, -2 * w.map.ysize);
     add_closed_path(viewrect_ctx, path);
     if (wrap_has_flag(WRAP_X)) {
-      viewrect_ctx.translate(-map.xsize, 0);
+      viewrect_ctx.translate(-w.map.xsize, 0);
       add_closed_path(viewrect_ctx, path);
-      viewrect_ctx.translate(0, 2 * map.ysize);
+      viewrect_ctx.translate(0, 2 * w.map.ysize);
       add_closed_path(viewrect_ctx, path);
-      viewrect_ctx.translate(2 * map.xsize, 0);
+      viewrect_ctx.translate(2 * w.map.xsize, 0);
       add_closed_path(viewrect_ctx, path);
-      viewrect_ctx.translate(0, -2 * map.ysize);
+      viewrect_ctx.translate(0, -2 * w.map.ysize);
       add_closed_path(viewrect_ctx, path);
     }
   }
@@ -293,7 +286,7 @@ export function add_closed_path(ctx: CanvasRenderingContext2D, path: number[][])
   ...
 ****************************************************************************/
 export function render_multipixel(grid: number[][], x: number, y: number, ocolor: number): void {
-  if (x >= 0 && y >= 0 && x < map['ysize'] && y < map['xsize']) {
+  if (x >= 0 && y >= 0 && x < w.map['ysize'] && y < w.map['xsize']) {
     for (let px = 0; px < OVERVIEW_TILE_SIZE; px++) {
       for (let py = 0; py < OVERVIEW_TILE_SIZE; py++) {
           grid[(OVERVIEW_TILE_SIZE*x)+px][(OVERVIEW_TILE_SIZE*y)+py] = ocolor;
@@ -303,7 +296,7 @@ export function render_multipixel(grid: number[][], x: number, y: number, ocolor
 }
 
 /****************************************************************************
-  Creates the palette for the overview map.
+  Creates the palette for the overview w.map.
 ****************************************************************************/
 export function generate_palette(): number[][] {
   const palette: number[][] = [];
@@ -316,21 +309,21 @@ export function generate_palette(): number[][] {
   palette[COLOR_OVERVIEW_ENEMY_UNIT] = [255,0,0];
   palette[COLOR_OVERVIEW_VIEWRECT] = [200,200,255];
   palette_terrain_offset = palette.length;
-  for (const terrain_id in terrains) {
-    const terrain: any = terrains[terrain_id];
+  for (const terrain_id in w.terrains) {
+    const terrain: any = w.terrains[terrain_id];
     palette.push([terrain['color_red'], terrain['color_green'], terrain['color_blue']]);
   }
 
   palette_color_offset = palette.length;
-  const player_count: number = Object.keys(players).length;
+  const player_count: number = Object.keys(w.players).length;
 
-  for (const player_id_str in players) {
+  for (const player_id_str in w.players) {
     const player_id = Number(player_id_str);
-    const pplayer: any = players[player_id];
+    const pplayer: any = w.players[player_id];
     if (pplayer['nation'] == -1) {
       palette[palette_color_offset+(player_id % player_count)] = [0,0,0];
     } else {
-      const pcolor: any = nations[pplayer['nation']]['color'];
+      const pcolor: any = w.nations[pplayer['nation']]['color'];
       if (pcolor != null) {
         palette[palette_color_offset+(player_id % player_count)] = color_rbg_to_list(pcolor) ?? [];
       } else {
@@ -342,7 +335,7 @@ export function generate_palette(): number[][] {
 }
 
 /****************************************************************************
-  Returns the color of the tile at the given map position.
+  Returns the color of the tile at the given w.map position.
 ****************************************************************************/
 export function overview_tile_color(map_x: number, map_y: number): number {
   const ptile: any = map_pos_to_tile(map_x, map_y);
@@ -350,9 +343,9 @@ export function overview_tile_color(map_x: number, map_y: number): number {
   const pcity: any = tile_city(ptile);
 
   if (pcity != null) {
-    if (client.conn.playing == null) {
+    if (w.client.conn.playing == null) {
       return COLOR_OVERVIEW_ENEMY_CITY;
-    } else if (city_owner_player_id(pcity) == client.conn.playing['id']) {
+    } else if (city_owner_player_id(pcity) == w.client.conn.playing['id']) {
       return COLOR_OVERVIEW_MY_CITY;
     } else {
       return COLOR_OVERVIEW_ENEMY_CITY;
@@ -361,9 +354,9 @@ export function overview_tile_color(map_x: number, map_y: number): number {
 
   const punit: any = find_visible_unit(ptile);
   if (punit != null) {
-    if (client.conn.playing == null) {
+    if (w.client.conn.playing == null) {
       return COLOR_OVERVIEW_ENEMY_UNIT;
-    } else if (punit['owner'] == client.conn.playing['id']) {
+    } else if (punit['owner'] == w.client.conn.playing['id']) {
       return COLOR_OVERVIEW_MY_UNIT;
     } else if (punit['owner'] != null && punit['owner'] != 255) {
       return palette_color_offset + punit['owner'];
@@ -391,8 +384,8 @@ export function overview_clicked (x: number, y: number): void {
   const width: number = $("#overview_map").width();
   const height: number = $("#overview_map").height();
 
-  const x1: number = Math.floor((x * map['xsize']) / width);
-  const y1: number = Math.floor((y * map['ysize']) / height);
+  const x1: number = Math.floor((x * w.map['xsize']) / width);
+  const y1: number = Math.floor((y * w.map['ysize']) / height);
 
   const ptile: any = map_pos_to_tile(x1, y1);
   if (ptile != null) {

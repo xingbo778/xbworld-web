@@ -52,6 +52,15 @@ export function network_init(): void {
     return;
   }
 
+  // If civserverport is provided via URL param, connect directly (skip launcher)
+  const urlPort = $.getUrlVar('civserverport');
+  if (urlPort) {
+    civserverport = urlPort;
+    websocket_init();
+    if (typeof load_game_check === 'function') load_game_check();
+    return;
+  }
+
   const url = '/civclientlauncher?action=observe';
 
   $.ajax({

@@ -789,5 +789,6 @@ const _allConstants: Record<string, unknown> = {
 };
 
 for (const [key, val] of Object.entries(_allConstants)) {
-  }
+  (window as any)[key] = val;
+}
 
