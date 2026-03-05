@@ -171,5 +171,5 @@ const allPacketConstants: Record<string, number> = {
 // constants (numbers), not functions.
 const _w = window as unknown as Record<string, unknown>;
 for (const [name, value] of Object.entries(allPacketConstants)) {
-  w[name] = value;
+  _w[name] = value;
 }

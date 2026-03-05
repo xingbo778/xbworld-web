@@ -19,6 +19,8 @@
  *   - motd_init()                   [Phase 6]
  */
 
+import { send_message } from '../net/connection';
+
 // ---------------------------------------------------------------------------
 // Helpers — read legacy globals
 // ---------------------------------------------------------------------------
@@ -61,9 +63,7 @@ export function setPhaseStart(): void {
  * Sends a request to observe the current game.
  */
 export function requestObserveGame(): void {
-  if (typeof win.send_message === 'function') {
-    win.send_message('/observe ');
-  }
+  send_message('/observe ');
 }
 
 /**

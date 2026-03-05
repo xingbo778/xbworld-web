@@ -342,6 +342,6 @@ import * as self from './eventConstants';
 const _w = window as unknown as Record<string, unknown>;
 for (const [name, value] of Object.entries(self)) {
   if (typeof value === 'number' || typeof value === 'string' || Array.isArray(value)) {
-    w[name] = value;
+    _w[name] = value;
   }
 }

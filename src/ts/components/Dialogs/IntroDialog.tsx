@@ -1,0 +1,92 @@
+import { signal } from '@preact/signals';
+import { useRef, useEffect } from 'preact/hooks';
+import { Dialog } from '../Shared/Dialog';
+import { Button } from '../Shared/Button';
+
+interface IntroState {
+  open: boolean;
+  title: string;
+  message: string;
+  error: string;
+}
+
+const state = signal<IntroState>({
+  open: false,
+  title: '',
+  message: '',
+  error: '',
+});
+
+export function showIntroDialog(title: string, message: string): void {
+  state.value = { open: true, title, message, error: '' };
+}
+
+function closeIntroDialog(): void {
+  state.value = { ...state.value, open: false };
+}
+
+export function IntroDialog() {
+  const { open, title, message, error } = state.value;
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (open && inputRef.current) {
+      const saved = localStorage.getItem('username');
+      if (saved) inputRef.current.value = saved;
+      inputRef.current.focus();
+    }
+  }, [open]);
+
+  const submit = () => {
+    const name = inputRef.current?.value.trim() || '';
+    if (name.length < 3) {
+      state.value = { ...state.value, error: 'Username must be at least 3 characters.' };
+      return;
+    }
+    (window as any).username = name;
+    localStorage.setItem('username', name);
+    closeIntroDialog();
+  };
+
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.key === 'Enter') submit();
+  };
+
+  return (
+    <Dialog
+      title={title}
+      open={open}
+      width={window.innerWidth <= 600 ? '90%' : '50%'}
+      modal={true}
+    >
+      <p>{message}</p>
+      <div style={{ marginTop: '12px' }}>
+        <label>
+          Username:{' '}
+          <input
+            id="username_req"
+            ref={inputRef}
+            type="text"
+            maxLength={32}
+            onKeyDown={handleKeyDown as any}
+            style={{
+              padding: '4px 8px',
+              fontSize: '14px',
+              background: '#2a2a3e',
+              color: '#e0e0e0',
+              border: '1px solid #555',
+              borderRadius: '3px',
+              width: '200px',
+            }}
+          />
+        </label>
+        {error && (
+          <div style={{ color: '#ff6b6b', marginTop: '4px', fontSize: '13px' }}>{error}</div>
+        )}
+      </div>
+      <div style={{ marginTop: '12px', textAlign: 'right' }}>
+        <Button onClick={submit}>Observe Game</Button>
+      </div>
+    </Dialog>
+  );
+}

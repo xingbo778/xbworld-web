@@ -29,10 +29,13 @@ import { EXTRA_NONE, isExtraCausedBy } from '../data/extra';
 import { IDENTITY_NUMBER_ZERO, RENDERER_2DCANVAS } from '../core/constants';
 import { E_SCRIPT, E_UNDEFINED } from '../data/eventConstants';
 import { store } from '../data/store';
+import { mapInitTopology, mapAllocate } from '../data/map';
 import { BitVector } from '../utils/bitvector';
 import { stringUnqualify } from '../utils/helpers';
 import { freelog } from '../core/log';
-import { set_client_state, C_S_RUNNING, C_S_PREPARING, C_S_OVER, clientState, clientIsObserver } from '../client/clientState';
+import { C_S_RUNNING, C_S_PREPARING, C_S_OVER, clientState, clientIsObserver } from '../client/clientState';
+import { setClientState as set_client_state } from '../client/clientMain';
+import { setPhaseStart, requestObserveGame } from '../client/clientCore';
 import { set_client_page, get_client_page, PAGE_MAIN, PAGE_NETWORK, PAGE_START } from '../core/pages';
 import { valid_player_by_number, player_find_unit_by_id } from '../data/player';
 import { game_find_city_by_number, game_find_unit_by_number, update_game_status_panel } from '../data/game';
@@ -439,7 +442,7 @@ export function handle_server_join_reply(packet: any): void {
         wait_for_text('Load complete', (window as any).pregame_start_game);
       }
     } else if ((window as any).observing) {
-      wait_for_text('You are logged in as', (window as any).request_observe_game);
+      wait_for_text('You are logged in as', requestObserveGame);
     }
   } else {
     (window as any).swal('You were rejected from the game.', (packet['message'] || ''), 'error');
@@ -663,8 +666,8 @@ export function handle_set_topology(_packet: any): void { /* TODO */ }
 
 export function handle_map_info(packet: any): void {
   store.mapInfo = packet;
-  (window as any).map_init_topology(false);
-  (window as any).map_allocate();
+  mapInitTopology(false);
+  mapAllocate();
   mapdeco_init();
 
 }
@@ -1057,7 +1060,7 @@ export function handle_end_phase(_packet: any): void {
 
 export function handle_start_phase(_packet: any): void {
   set_client_state(C_S_RUNNING);
-  (window as any).set_phase_start();
+  setPhaseStart();
   (window as any).saved_this_turn = false;
 }
 

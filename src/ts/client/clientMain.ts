@@ -36,10 +36,10 @@ if (_w.C_S_INITIAL === undefined)    _w.C_S_INITIAL    = 0;
 if (_w.C_S_PREPARING === undefined)  _w.C_S_PREPARING  = 1;
 if (_w.C_S_RUNNING === undefined)    _w.C_S_RUNNING    = 2;
 if (_w.C_S_OVER === undefined)       _w.C_S_OVER       = 3;
-if (__w.civclient_state === undefined) __w.civclient_state = C_S_INITIAL;
-if (__w.endgame_player_info === undefined) __w.endgame_player_info = [];
-if (__w.height_offset === undefined)  __w.height_offset  = 52;
-if (__w.width_offset === undefined)   __w.width_offset   = 10;
+if (_w.civclient_state === undefined) _w.civclient_state = C_S_INITIAL;
+if (_w.endgame_player_info === undefined) _w.endgame_player_info = [];
+if (_w.height_offset === undefined)  _w.height_offset  = 52;
+if (_w.width_offset === undefined)   _w.width_offset   = 10;
 // mapview_canvas_ctx is initialised by set_default_mapview_active at runtime
 
 // ---------------------------------------------------------------------------
@@ -114,8 +114,8 @@ export function setupWindowSize(): void {
     mapview['height']       = new_mapview_height;
     mapview['store_width']  = new_mapview_width;
     mapview['store_height'] = new_mapview_height;
-    if (__w.mapview_canvas_ctx) __w.mapview_canvas_ctx.font = _w.canvas_text_font;
-    if (__w.buffer_canvas_ctx)  __w.buffer_canvas_ctx.font  = _w.canvas_text_font;
+    if (_w.mapview_canvas_ctx) _w.mapview_canvas_ctx.font = _w.canvas_text_font;
+    if (_w.buffer_canvas_ctx)  _w.buffer_canvas_ctx.font  = _w.canvas_text_font;
   }
 
   $('#pregame_message_area').height(new_mapview_height - 80 - $('#pregame_game_info').outerHeight());
@@ -215,8 +215,8 @@ export function setDefaultMapviewActive(): void {
   const $ = _w.$;
 
   if (_w.renderer === RENDERER_2DCANVAS && _w.mapview_canvas) {
-    __w.mapview_canvas_ctx = _w.mapview_canvas.getContext('2d');
-    if (__w.mapview_canvas_ctx) __w.mapview_canvas_ctx.font = _w.canvas_text_font;
+    _w.mapview_canvas_ctx = _w.mapview_canvas.getContext('2d');
+    if (_w.mapview_canvas_ctx) _w.mapview_canvas_ctx.font = _w.canvas_text_font;
   }
 
   const active_tab = $('#tabs').tabs('option', 'active');

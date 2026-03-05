@@ -22,6 +22,9 @@ import { game_init, update_game_status_panel } from '../data/game';
 import { init_mapview, is_small_screen } from '../renderer/mapview';
 import { send_request } from '../net/connection';
 import { packet_authentication_reply } from '../net/packetConstants';
+import { showMessageDialog, closeMessageDialog } from '../components/Dialogs/MessageDialog';
+import { showAuthDialog as showAuthDialogPreact } from '../components/Dialogs/AuthDialog';
+import { showIntroDialog } from '../components/Dialogs/IntroDialog';
 
 declare const $: any;
 
@@ -160,13 +163,18 @@ export function civClientInit(): void {
 // ---------------------------------------------------------------------------
 
 /**
- * Shows the observer intro dialog.
+ * Shows the observer intro dialog and starts connection.
  */
 export function initCommonIntroDialog(): void {
-  if (typeof (window as any).show_intro_dialog === 'function') {
-    (window as any).show_intro_dialog('Welcome to XBWorld', 'You are joining the game as an observer. Please enter your name:');
+  // Set default username and auto-connect
+  const saved = localStorage.getItem('username');
+  (window as any).username = saved || 'Observer';
+  // Show intro dialog (non-blocking)
+  showIntroDialog('Welcome to XBWorld', 'You are joining the game as an observer. Please enter your name:');
+  // Auto-connect immediately (dialog can still update username)
+  if (typeof (window as any).network_init === 'function') {
+    (window as any).network_init();
   }
-  $('#turn_done_button').button('option', 'disabled', true);
 }
 
 // ---------------------------------------------------------------------------
@@ -177,15 +185,14 @@ export function initCommonIntroDialog(): void {
  * Closes the generic message dialog.
  */
 export function closeDialogMessage(): void {
-  $('#generic_dialog').dialog('close');
+  closeMessageDialog();
 }
 
 /**
  * Cleanup callback when the generic message dialog is closing.
  */
 export function closingDialogMessage(): void {
-  clearTimeout((window as any).dialog_message_close_task);
-  $('#game_text_input').blur();
+  closeMessageDialog();
 }
 
 // ---------------------------------------------------------------------------
@@ -196,33 +203,7 @@ export function closingDialogMessage(): void {
  * Shows a generic message dialog with auto-close after 24 seconds.
  */
 export function showDialogMessage(title: string, message: string): void {
-  $('#generic_dialog').remove();
-  $("<div id='generic_dialog'></div>").appendTo('div#game_page');
-  $('#generic_dialog').html(message);
-  $('#generic_dialog').attr('title', title);
-  $('#generic_dialog').dialog({
-    bgiframe: true,
-    modal: false,
-    width: is_small_screen() ? '90%' : '50%',
-    close: function () { closingDialogMessage(); },
-    buttons: {
-      Ok: function () { closeDialogMessage(); }
-    }
-  }).dialogExtend({
-    minimizable: true,
-    closable: true,
-    icons: {
-      minimize: 'ui-icon-circle-minus',
-      restore: 'ui-icon-bullet'
-    }
-  });
-  $('#generic_dialog').dialog('open');
-  $('#game_text_input').blur();
-  // Auto-close after 24 seconds
-  (window as any).dialog_message_close_task = setTimeout(function () {
-    closeDialogMessage();
-  }, 24000);
-  $('#generic_dialog').css('max-height', '450px');
+  showMessageDialog(title, message);
 }
 
 // ---------------------------------------------------------------------------
@@ -233,28 +214,7 @@ export function showDialogMessage(title: string, message: string): void {
  * Shows the authentication/password dialog for private servers.
  */
 export function showAuthDialog(packet: any): void {
-  $('#dialog').remove();
-  $("<div id='dialog'></div>").appendTo('div#game_page');
-  const intro_html = packet['message'] +
-    "<br><br> Password: <input id='password_req' type='text' size='25'>";
-  $('#dialog').html(intro_html);
-  $('#dialog').attr('title', 'Private server needs password to enter');
-  $('#dialog').dialog({
-    bgiframe: true,
-    modal: true,
-    width: is_small_screen() ? '80%' : '60%',
-    buttons: {
-      Ok: function () {
-        const pwd_packet = {
-          pid: packet_authentication_reply,
-          password: $('#password_req').val()
-        };
-        send_request(JSON.stringify(pwd_packet));
-        $('#dialog').dialog('close');
-      }
-    }
-  });
-  $('#dialog').dialog('open');
+  showAuthDialogPreact(packet);
 }
 
 // ---------------------------------------------------------------------------

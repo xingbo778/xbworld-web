@@ -47,6 +47,6 @@ export function isOceanTile(ptile: Tile): boolean {
 // ---------------------------------------------------------------------------
 // Ensure global variables exist (previously declared in terrain.js)
 const _w = window as unknown as Record<string, unknown>;
-if (!w['terrains']) w['terrains'] = {};
-if (!w['resources']) w['resources'] = {};
-if (!w['terrain_control']) w['terrain_control'] = {};
+if (!_w['terrains']) _w['terrains'] = {};
+if (!_w['resources']) _w['resources'] = {};
+if (!_w['terrain_control']) _w['terrain_control'] = {};

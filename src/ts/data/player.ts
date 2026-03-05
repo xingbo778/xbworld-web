@@ -198,18 +198,18 @@ export function is_capital(pcity: City): boolean {
 // ---------------------------------------------------------------------------
 // Expose constants that legacy JS references as globals
 const _w = window as unknown as Record<string, unknown>;
-w['MAX_NUM_PLAYERS'] = MAX_NUM_PLAYERS;
-w['MAX_AI_LOVE'] = MAX_AI_LOVE;
+_w['MAX_NUM_PLAYERS'] = MAX_NUM_PLAYERS;
+_w['MAX_AI_LOVE'] = MAX_AI_LOVE;
 // DiplState enum values (const enum is inlined, so expose manually)
-w['DS_ARMISTICE'] = DiplState.DS_ARMISTICE;
-w['DS_WAR'] = DiplState.DS_WAR;
-w['DS_CEASEFIRE'] = DiplState.DS_CEASEFIRE;
-w['DS_PEACE'] = DiplState.DS_PEACE;
-w['DS_ALLIANCE'] = DiplState.DS_ALLIANCE;
-w['DS_NO_CONTACT'] = DiplState.DS_NO_CONTACT;
-w['DS_TEAM'] = DiplState.DS_TEAM;
-w['DS_LAST'] = DiplState.DS_LAST;
+_w['DS_ARMISTICE'] = DiplState.DS_ARMISTICE;
+_w['DS_WAR'] = DiplState.DS_WAR;
+_w['DS_CEASEFIRE'] = DiplState.DS_CEASEFIRE;
+_w['DS_PEACE'] = DiplState.DS_PEACE;
+_w['DS_ALLIANCE'] = DiplState.DS_ALLIANCE;
+_w['DS_NO_CONTACT'] = DiplState.DS_NO_CONTACT;
+_w['DS_TEAM'] = DiplState.DS_TEAM;
+_w['DS_LAST'] = DiplState.DS_LAST;
 // PlayerFlag enum values
-w['PLRF_AI'] = PlayerFlag.PLRF_AI;
-w['PLRF_SCENARIO_RESERVED'] = PlayerFlag.PLRF_SCENARIO_RESERVED;
-w['PLRF_COUNT'] = PlayerFlag.PLRF_COUNT;
+_w['PLRF_AI'] = PlayerFlag.PLRF_AI;
+_w['PLRF_SCENARIO_RESERVED'] = PlayerFlag.PLRF_SCENARIO_RESERVED;
+_w['PLRF_COUNT'] = PlayerFlag.PLRF_COUNT;

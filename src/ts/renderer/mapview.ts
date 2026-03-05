@@ -11,9 +11,12 @@ import { active_city, citydlg_map_width, citydlg_map_height } from '../ui/cityDi
 import { resize_enabled } from '../core/control/controlState';
 import { overview_active } from '../core/overview';
 import { chatbox_active } from '../core/messages';
+import { setupWindowSize } from '../client/clientMain';
+import { getTilesetFileExtension } from '../utils/helpers';
 import { VUT_UTYPE } from '../data/fcTypes';
 
 declare const $: any; // jQuery
+const _win = window as any;
 
 // DIR8 constants - must match map.ts Direction enum ordering
 const DIR8_NORTH = 1;
@@ -85,7 +88,7 @@ export function init_mapview(): void {
     (window as any).dashedSupport = dashedSupport;
   }
 
-  _win.setup_window_size();
+  setupWindowSize();
 
   mapview['gui_x0'] = 0;
   mapview['gui_y0'] = 0;
@@ -149,7 +152,7 @@ export function init_sprites(): void {
       const tileset_image = new Image();
       tileset_image.onload = preload_check;
       tileset_image.src = '/tileset/freeciv-web-tileset-'
-        + tileset_name + '-' + i + _win.get_tileset_file_extention() + '?ts=' + _win.ts;
+        + tileset_name + '-' + i + getTilesetFileExtension() + '?ts=' + _win.ts;
       tileset_images[i] = tileset_image;
     }
   } else {
@@ -219,7 +222,7 @@ export function init_cache_sprites(): void {
 **************************************************************************/
 export function mapview_window_resized(): void {
   if (active_city != null || !resize_enabled) return;
-  _win.setup_window_size();
+  setupWindowSize();
   if (_win.renderer == RENDERER_2DCANVAS) {
     if (typeof mark_all_dirty === 'function') mark_all_dirty();
     update_map_canvas_full();

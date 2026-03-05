@@ -2,7 +2,7 @@ import { store } from '../data/store';
 import { cityTile as city_tile, getCityDxyToIndex as get_city_dxy_to_index } from '../data/city';
 import { game_find_city_by_number as find_city_by_number } from '../data/game';
 import { unit_type, tile_units, get_unit_anim_offset, unit_has_goto, idex_lookup_unit as find_unit_by_number } from '../data/unit';
-import { mapPosToTile as map_pos_to_tile, mapstep, mapDistanceVector as map_distance_vector } from '../data/map';
+import { mapPosToTile as map_pos_to_tile, mapstep, mapDistanceVector as map_distance_vector, dirCCW as dir_ccw, dirCW as dir_cw } from '../data/map';
 import { tileGetKnown as tile_get_known, tileHasExtra as tile_has_extra, tileResource as tile_resource } from '../data/tile';
 import { tileTerrain as tile_terrain, tileTerrainNear as tile_terrain_near, isOceanTile as is_ocean_tile } from '../data/terrain';
 import { unit_is_in_focus, should_ask_server_for_actions } from '../core/control';

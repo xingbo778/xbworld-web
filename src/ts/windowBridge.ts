@@ -59,3 +59,7 @@ import { show_tech_info_dialog, send_player_research } from './ui/techDialog';
 w['show_tech_info_dialog'] = show_tech_info_dialog;
 w['send_player_research'] = send_player_research;
 w['set_unit_focus_and_redraw'] = set_unit_focus_and_redraw;
+
+// --- For Preact dialog callbacks ---
+import { network_init } from './net/connection';
+w['network_init'] = network_init;

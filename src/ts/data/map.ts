@@ -13,6 +13,7 @@
  */
 
 import { FC_WRAP } from '../utils/helpers';
+import { store } from './store';
 export const enum Direction {
   NORTHWEST = 0,
   NORTH = 1,
@@ -122,12 +123,10 @@ export function mapAllocate(): void {
     }
   }
 
-  // Assign directly to window.tiles.
-  // window.tiles may be undefined (never declared as var in xbworld) or
-  // an empty {} — in both cases we simply replace it.
-  /* eslint-disable @typescript-eslint/no-explicit-any */
+  // Assign directly to window.tiles AND store.tiles so both legacy JS
+  // and TS packet handlers see the same tile data.
   win.tiles = newTiles;
-  /* eslint-enable @typescript-eslint/no-explicit-any */
+  store.tiles = newTiles as any;
 
   // Set startpos_table (required by later server packets)
   if (win.map) win.map['startpos_table'] = {};
@@ -365,5 +364,5 @@ export function clearGotoTiles(): void {
 // ---------------------------------------------------------------------------
 // Expose to legacy JS via window (snake_case names matching old JS API)
 // ---------------------------------------------------------------------------
-// Expose map initialisation functions (previously NOT exposed — now fixed)
-// Also expose constants
+win['map_init_topology'] = mapInitTopology;
+win['map_allocate'] = mapAllocate;
