@@ -5,6 +5,7 @@
 | Step | Status | Notes |
 |------|--------|-------|
 | Step 1: Eliminate globalRegistry | DONE | globalRegistry.ts (2,543 lines) replaced by windowBridge.ts (60 lines). Bundle: 675→570 KB (-15.6%). |
+| Step 1b: Remove unused libs | DONE | Removed 7 unused JS libs (288 KB), deleted bootstrap CSS (144 KB) |
 | Step 2: jQuery Dialogs → Preact | NOT STARTED | |
 | Step 3: Remove remaining jQuery | NOT STARTED | |
 | Step 4: CSS Modernization | NOT STARTED | |
@@ -27,6 +28,10 @@
 - declare const: 426 → 1 (global.d.ts only)
 - _w aliases: 24 → 2 (clientMain.ts, tilespec.ts — runtime DOM, intentional)
 - globalRegistry: 2,543 lines → windowBridge 60 lines
+- Removed libs: raphael(93KB), morris(39KB), spectrum(77KB), platform(41KB), bigscreen(4KB), hammer(21KB), gif(13KB) = 288KB
+- Deleted unused CSS: bootstrap(144KB)
+- Total page JS: 1,737 KB → 1,148 KB (-34%)
+- Initial load: wikiDoc (363KB) deferred to fetch-on-demand
 
 ## Current State Summary
 
