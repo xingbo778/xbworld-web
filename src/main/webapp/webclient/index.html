@@ -23,10 +23,6 @@
   <div id="pregame_options">
     <div id="pregame_buttons">
       <div id="xbworld_logo" style="cursor:pointer"></div>
-      <button id="start_game_button" type="button"><i class="fa fa-check-circle-o"></i> <b>Start Game</b></button>
-      <button id="load_game_button" type="button"><i class="fa fa-file-o"></i> Load Game</button>
-      <button id="pick_nation_button" type="button"><i class="fa fa-flag"></i> Pick Nation</button>
-      <button id="pregame_settings_button" type="button"><i class="fa fa-cogs"></i> Game Settings</button>
     </div>
   </div>
   <div id="pregame_player_list"></div>
@@ -37,7 +33,6 @@
     <input id="pregame_text_input" type="text" name="text_input" value=">" />
   </div>
 </div>
-<div id="pick_nation_dialog"></div>
 
 <!-- Game Page -->
 <div id="game_page" style="display: none;">
@@ -52,9 +47,7 @@
       <li id="opt_tab"><a href="#tabs-opt" title="Options"><i class="fa fa-cogs"></i> Options</a></li>
       <li id="hel_tab"><a href="#tabs-hel" title="Manual"><i class="fa fa-question-circle-o"></i> Manual</a></li>
       <div id="game_status_panel_top"></div>
-      <div id="turn_done_button_div">
-        <button id="turn_done_button" class="button" type="button" title="Ends your turn. (Shift+Enter)">Turn Done</button>
-      </div>
+      <!-- turn_done removed: observer-only mode -->
     </ul>
 
     <div id="tabs-map" tabindex="-1">
@@ -72,19 +65,7 @@
         </div>
         <div id="game_status_panel_bottom"></div>
 
-        <div id="game_unit_orders_default">
-          <button id="order_goto" class="order_button" title="Go to tile (G)"><img src="/images/orders/goto_default.png" alt="Goto" width="30" height="30"></button>
-          <button id="order_explore" class="order_button" title="Auto explore (X)"><img src="/images/orders/auto_explore_default.png" alt="Explore" width="30" height="30"></button>
-          <button id="order_fortify" class="order_button" title="Fortify (F)"><img src="/images/orders/fortify_default.png" alt="Fortify" width="30" height="30"></button>
-          <button id="order_build_city" class="order_button" title="Build city (B)"><img src="/images/orders/build_city_default.png" alt="Build" width="30" height="30"></button>
-          <button id="order_road" class="order_button" title="Build road (R)"><img src="/images/orders/road_default.png" alt="Road" width="30" height="30"></button>
-          <button id="order_irrigate" class="order_button" title="Irrigate (I)"><img src="/images/orders/irrigate_default.png" alt="Irrigate" width="30" height="30"></button>
-          <button id="order_mine" class="order_button" title="Mine (M)"><img src="/images/orders/mine_default.png" alt="Mine" width="30" height="30"></button>
-          <button id="order_sentry" class="order_button" title="Sentry (S)"><img src="/images/orders/sentry_default.png" alt="Sentry" width="30" height="30"></button>
-          <button id="order_auto_workers" class="order_button" title="Auto workers (A)"><img src="/images/orders/auto_workers_default.png" alt="Auto" width="30" height="30"></button>
-          <button id="order_pillage" class="order_button" title="Pillage (Shift-P)"><img src="/images/orders/pillage.png" alt="Pillage" width="30" height="30"></button>
-          <button id="order_disband" class="order_button" title="Disband"><img src="/images/orders/disband_default.png" alt="Disband" width="30" height="30"></button>
-        </div>
+        <!-- game_unit_orders_default removed: observer-only mode -->
 
         <div id="game_overview_panel">
           <div id="overview_map">
@@ -102,8 +83,7 @@
       <div id="civ_dialog">
         <h2 id="nation_title">Your Nation</h2>
         <div id="civ_dialog_text"></div>
-        <button id="revolution_button" type="button">Revolution</button>
-        <button id="taxrates_button" type="button">Tax Rates</button>
+        <!-- revolution_button and taxrates_button removed: observer-only mode -->
         <button id="wonders_report" type="button">Wonders of the World</button>
         <button id="demography_report" type="button">Demographics</button>
       </div>
