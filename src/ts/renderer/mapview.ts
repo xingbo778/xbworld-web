@@ -48,7 +48,7 @@ let tileset_images: HTMLImageElement[] = [];
 let sprites: { [key: string]: HTMLCanvasElement } = {};
 let loaded_images: number = 0;
 
-let sprites_init: boolean = false;
+export let sprites_init: boolean = false;
 
 let canvas_text_font: string = "16px Georgia, serif"; // with canvas text support
 
@@ -87,12 +87,19 @@ export function init_mapview(): void {
   buffer_canvas = document.createElement('canvas');
   buffer_canvas_ctx = buffer_canvas.getContext('2d');
 
+  // Expose canvas contexts on window so mapviewCommon (and other modules) can access them
+  const _w = window as any;
+  _w.mapview_canvas_ctx = mapview_canvas_ctx;
+  _w.buffer_canvas = buffer_canvas;
+  _w.mapview_canvas = mapview_canvas;
+
   if (mapview_canvas_ctx && "imageSmoothingEnabled" in mapview_canvas_ctx) {
     // if this Boolean value is false, images won't be smoothed when scaled. This property is true by default.
     mapview_canvas_ctx.imageSmoothingEnabled = false;
   }
   if (mapview_canvas_ctx) {
     dashedSupport = ("setLineDash" in mapview_canvas_ctx);
+    _w.dashedSupport = dashedSupport;
   }
 
   setup_window_size();
@@ -121,6 +128,7 @@ export function init_mapview(): void {
 
     fullfog[i] = buf;
   }
+  (window as any).fullfog = fullfog;
 
   if (is_small_screen()) MAPVIEW_REFRESH_INTERVAL = 12;
 
@@ -212,6 +220,7 @@ export function init_cache_sprites(): void {
     }
 
     sprites_init = true;
+    (window as any).sprites = sprites;
     tileset_images[0] = null as any; // Set to null to free memory
     tileset_images[1] = null as any; // Set to null to free memory
     tileset_images = null as any; // Set to null to free memory
@@ -418,6 +427,7 @@ export function set_city_mapview_active(): void {
   }
 
   mapview_canvas_ctx = city_canvas.getContext("2d");
+  (window as any).mapview_canvas_ctx = mapview_canvas_ctx;
 
   mapview['width'] = citydlg_map_width;
   mapview['height'] = citydlg_map_height;
@@ -473,6 +483,7 @@ export function enable_mapview_slide(ptile: any): void {
 
   mapview_canvas = buffer_canvas;
   mapview_canvas_ctx = buffer_canvas_ctx;
+  (window as any).mapview_canvas_ctx = mapview_canvas_ctx;
 
   if (dx >= 0 && dy <= 0) {
     mapview['gui_y0'] -= Math.abs(dy);
@@ -506,6 +517,7 @@ export function enable_mapview_slide(ptile: any): void {
   /* restore default mapview. */
   mapview_canvas = document.getElementById('canvas') as HTMLCanvasElement;
   mapview_canvas_ctx = mapview_canvas.getContext("2d");
+  (window as any).mapview_canvas_ctx = mapview_canvas_ctx;
 
   if (buffer_canvas_ctx && mapview_canvas) {
     if (dx >= 0 && dy >= 0) {

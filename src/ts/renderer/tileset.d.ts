@@ -10,7 +10,5 @@
 declare const ts_tiles: Record<string, any>;
 declare const dir_ccw: (dir: number) => number;
 declare const dir_cw: (dir: number) => number;
-declare function fill_irrigation_sprite_array(ptile: any, pcity: any): any[];
-
 declare let map_select_x: number;
 declare let map_select_y: number;

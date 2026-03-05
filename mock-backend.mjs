@@ -6,7 +6,7 @@ import http from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
 import { URL } from 'url';
 
-const PORT = 8080;
+const PORT = parseInt(process.env.MOCK_PORT || '8002');
 const FAKE_CIV_PORT = 5555;
 const MAP_X = 40;
 const MAP_Y = 25;
@@ -124,7 +124,37 @@ function sendGameInit(ws, username) {
     topology_id: 0, wrap_id: 0,
   }]);
 
-  // 7. Ruleset terrain definitions
+  // 7. Ruleset control (must come BEFORE terrain definitions — it resets w.terrains)
+  sendPackets(ws, [{
+    pid: 155,
+    num_unit_classes: 0, num_unit_types: 0, num_impr_types: 0,
+    num_tech_types: 0, num_extra_types: 0, num_base_types: 0,
+    num_road_types: 0, num_disaster_types: 0, num_achievement_types: 0,
+    num_multipliers: 0, num_styles: 0, government_count: 0,
+    nation_count: 1, playable_nation_count: 1, style_count: 0,
+    terrain_count: TERRAINS.length, resource_count: 0,
+    num_goods_types: 0, default_government: 0, default_music_style: -1,
+    preferred_tileset: '', name: 'mock', description: 'Mock ruleset',
+    enabled_actions: [], enabled_unit_class_flags: [], enabled_unit_type_flags: [],
+    enabled_impr_flags: [], enabled_tech_flags: [], enabled_terrain_flags: [],
+    enabled_extra_flags: [],
+  }]);
+
+  // 8. Terrain control
+  sendPackets(ws, [{
+    pid: 146,
+    num_resources: 0,
+    ocean_reclaim_requirement: 3,
+    land_channel_requirement: 3,
+    terrain_thaw_requirement: 0,
+    terrain_freeze_requirement: 0,
+    lake_max_size: 0,
+    min_start_native_area: 0,
+    move_fragments: 3,
+    igter_cost: 1,
+  }]);
+
+  // 9. Ruleset terrain definitions
   for (const t of TERRAINS) {
     sendPackets(ws, [{
       pid: 151,
@@ -143,36 +173,6 @@ function sendGameInit(ws, username) {
       clean_fallout_time: 1, property: [0, 0, 0, 0, 0],
     }]);
   }
-
-  // 8. Terrain control
-  sendPackets(ws, [{
-    pid: 146,
-    num_resources: 0,
-    ocean_reclaim_requirement: 3,
-    land_channel_requirement: 3,
-    terrain_thaw_requirement: 0,
-    terrain_freeze_requirement: 0,
-    lake_max_size: 0,
-    min_start_native_area: 0,
-    move_fragments: 3,
-    igter_cost: 1,
-  }]);
-
-  // 9. Ruleset control
-  sendPackets(ws, [{
-    pid: 155,
-    num_unit_classes: 0, num_unit_types: 0, num_impr_types: 0,
-    num_tech_types: 0, num_extra_types: 0, num_base_types: 0,
-    num_road_types: 0, num_disaster_types: 0, num_achievement_types: 0,
-    num_multipliers: 0, num_styles: 0, government_count: 0,
-    nation_count: 1, playable_nation_count: 1, style_count: 0,
-    terrain_count: TERRAINS.length, resource_count: 0,
-    num_goods_types: 0, default_government: 0, default_music_style: -1,
-    preferred_tileset: '', name: 'mock', description: 'Mock ruleset',
-    enabled_actions: [], enabled_unit_class_flags: [], enabled_unit_type_flags: [],
-    enabled_impr_flags: [], enabled_tech_flags: [], enabled_terrain_flags: [],
-    enabled_extra_flags: [],
-  }]);
 
   // 10. Player info — send AI players for observer to watch
   for (const ai of AI_PLAYERS) {
