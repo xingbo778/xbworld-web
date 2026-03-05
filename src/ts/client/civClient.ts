@@ -113,8 +113,7 @@ export function civClientInit(): void {
     const el = document.getElementById(id);
     if (el) el.style.height = 'auto';
   }
-  // Apply jQuery UI button styling to .button elements
-  if (_w.$) _w.$('.button').button();
+  // jQuery UI .button() styling no longer needed — CSS handles it
 
   _w.sounds_enabled = JSON.parse(localStorage.getItem('sndFX') ?? 'null');
   if (_w.sounds_enabled == null) {
