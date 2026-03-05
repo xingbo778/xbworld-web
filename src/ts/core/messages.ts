@@ -16,8 +16,6 @@
 
 ***********************************************************************/
 
-declare const $: any;
-
 import { E_CHAT_MSG, E_CHAT_PRIVATE, E_CHAT_ALLIES, E_CHAT_OBSERVER, fc_e_events, E_I_NAME } from '../data/eventConstants';
 import { clientState, C_S_PREPARING } from '../client/clientState';
 import { check_text_with_banlist } from '../utils/banlist';
@@ -42,46 +40,13 @@ export const max_chat_message_length: number = 350;
 **************************************************************************/
 export function init_chatbox(): void
 {
-
   chatbox_active = true;
 
-  $("#game_chatbox_panel").attr("title", "Messages");
-  $("#game_chatbox_panel").dialog({
-			bgiframe: true,
-			modal: false,
-			width: "27%",
-			height: (is_small_screen() ? 100 : 200),
-			resizable: true,
-			dialogClass: 'chatbox_dialog no-close',
-			closeOnEscape: false,
-			position: {my: 'left bottom', at: 'left bottom', of: window, within: $("#game_page")},
-			close: function(event: any, ui: any) { chatbox_active = false;}
-		}).dialogExtend({
-                     "minimizable" : true,
-                     "maximizable" : true,
-                     "closable" : false,
-                     "minimize" : function(evt: any, dlg: any){ current_message_dialog_state = $("#game_chatbox_panel").dialogExtend("state") },
-                     "restore" : function(evt: any, dlg: any){ current_message_dialog_state = $("#game_chatbox_panel").dialogExtend("state") },
-                     "maximize" : function(evt: any, dlg: any){ current_message_dialog_state = $("#game_chatbox_panel").dialogExtend("state") },
-                     "icons" : {
-                       "minimize" : "ui-icon-circle-minus",
-                       "maximize" : "ui-icon-circle-plus",
-                       "restore" : "ui-icon-bullet"
-                     }});
-  $("#game_chatbox_panel").dialog('open');
-  $(".chatbox_dialog").css("top", "52px");
-
-
-  if (is_small_screen()) {
-    $(".chatbox_dialog").css("left", "2px");
-    $(".chatbox_dialog").css("top", "40px");
-    $("#game_chatbox_panel").parent().css("max-height", "15%");
-    $("#game_chatbox_panel").parent().css("width", "95%");
-
+  const panel = document.getElementById('game_chatbox_panel');
+  if (panel) {
+    panel.title = 'Messages';
+    panel.style.display = 'block';
   }
-
-  // mCustomScrollbar + dialogExtend removed; native CSS scrolling via tokens.css
-
 }
 
 /**************************************************************************

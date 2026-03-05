@@ -190,9 +190,10 @@ export function set_chat_direction(player_id: number | null): void {
   if (player_id == S.chat_send_to) return;
 
   let player_name: string;
-  const icon = $("#chat_direction");
-  if (icon.length <= 0) return;
-  const ctx = (icon[0] as HTMLCanvasElement).getContext("2d")!;
+  const iconEl = document.getElementById('chat_direction') as HTMLCanvasElement | null;
+  if (!iconEl) return;
+  const ctx = iconEl.getContext('2d');
+  if (!ctx) return;
 
   if (player_id == null || player_id < 0) {
     player_id = null;
@@ -220,9 +221,10 @@ export function set_chat_direction(player_id: number | null): void {
     }
   }
 
-  icon.attr("title", "Sending messages to " + player_name);
+  iconEl.title = "Sending messages to " + player_name;
   S.setChatSendTo(player_id as number);
-  $("#game_text_input").focus();
+  const textInput = document.getElementById('game_text_input');
+  if (textInput) textInput.focus();
 }
 
 export function encode_message_text(message: string): string {
