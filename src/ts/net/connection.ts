@@ -23,7 +23,6 @@ import { client_handle_packet } from './packhandlers';
 import { packet_chat_msg_req } from './packetConstants';
 import { blockUI, unblockUI } from '../utils/dom';
 const swal = (window as any).swal;
-const simpleStorage = (window as any).simpleStorage;
 const jsSHA = (window as any).jsSHA;
 const load_game_check: (() => void) | undefined = (window as any).load_game_check;
 const debug_active: boolean | undefined = (window as any).debug_active;
@@ -174,8 +173,8 @@ export function websocket_init(): void {
 export function check_websocket_ready(): void {
   if (ws != null && ws.readyState === 1) {
     let sha_password: string | null = null;
-    const stored_password = simpleStorage.get('password', '');
-    if (stored_password != null && stored_password !== false) {
+    const stored_password = localStorage.getItem('password') ?? '';
+    if (stored_password != null && stored_password !== '') {
       const shaObj = new jsSHA('SHA-512', 'TEXT');
       shaObj.update(stored_password);
       sha_password = encodeURIComponent(shaObj.getHash('HEX'));

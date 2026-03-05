@@ -1,3 +1,4 @@
+import { EventAggregator } from '../utils/EventAggregator';
 import { store } from '../data/store';
 import { playerInventionState as player_invention_state, techIdByName as tech_id_by_name, TECH_KNOWN, TECH_UNKNOWN, TECH_PREREQS_KNOWN } from '../data/tech';
 import { getCurrentBulbsOutput as get_current_bulbs_output, getCurrentBulbsOutputText as get_current_bulbs_output_text } from '../data/tech';
@@ -92,8 +93,8 @@ export const tech_item_height: number = 52;
 export let maxleft: number = 0;
 export let clicked_tech_id: number | null = null;
 
-export const bulbs_output_updater: any = new (window as any).EventAggregator(update_bulbs_output_info, 250,
-                                               (window as any).EventAggregator.DP_NONE,
+export const bulbs_output_updater: any = new EventAggregator(update_bulbs_output_info, 250,
+                                               EventAggregator.DP_NONE,
                                                250, 3, 250);
 
 /**************************************************************************

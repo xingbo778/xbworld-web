@@ -259,10 +259,6 @@ declare const jQuery: JQueryStatic;
 // Third-party stubs
 // ---------------------------------------------------------------------------
 declare function swal(title: string, text?: string, type?: string): void;
-declare const simpleStorage: {
-  get(key: string, defaultValue?: any): any;
-  set(key: string, value: any): void;
-};
 declare const audiojs: any;
 declare const bmp_lib: {
   render(elementId: string, data: any, palette: any): void;

@@ -114,7 +114,7 @@ export function civClientInit(): void {
   // Apply jQuery UI button styling to .button elements
   if (_w.$) _w.$('.button').button();
 
-  _w.sounds_enabled = _w.simpleStorage.get('sndFX');
+  _w.sounds_enabled = JSON.parse(localStorage.getItem('sndFX') ?? 'null');
   if (_w.sounds_enabled == null) {
     _w.sounds_enabled = navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome') ? false : true;
   }

@@ -25,7 +25,7 @@ export function showDebugInfo(): void {
   console.log('jQuery version: ' + ($ as any)().jquery);
   console.log('jQuery UI version: ' + ($ as any).ui?.version);
   console.log(
-    'simpleStorage version: ' + (win.simpleStorage?.version ?? 'N/A'),
+    'simpleStorage version: N/A (replaced with native localStorage)',
   );
   console.log(
     'Touch device: ' +

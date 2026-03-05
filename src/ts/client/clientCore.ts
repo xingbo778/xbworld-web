@@ -134,7 +134,7 @@ export function getInvalidUsernameReason(name: string | null): string | null {
 
 /**
  * Validates the username from the #username_req input field.
- * Stores valid username in simpleStorage.
+ * Stores valid username in localStorage.
  * Returns true if valid, false otherwise.
  *
  * Migrated from civclient.js validate_username().
@@ -147,9 +147,7 @@ export function validateUsername(): boolean {
     return false;
   }
 
-  if (win.simpleStorage && typeof win.simpleStorage.set === 'function') {
-    win.simpleStorage.set('username', usernameVal);
-  }
+  localStorage.setItem('username', usernameVal);
 
   return true;
 }

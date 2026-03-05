@@ -22,8 +22,7 @@ import { check_text_with_banlist } from '../utils/banlist';
 import { isLongturn } from '../client/clientCore';
 import { is_small_screen } from '../renderer/mapview';
 
-// EventAggregator is loaded as a global script
-const EventAggregator = (window as any).EventAggregator;
+import { EventAggregator } from '../utils/EventAggregator';
 
 const is_longturn = isLongturn;
 const civclient_state = clientState();

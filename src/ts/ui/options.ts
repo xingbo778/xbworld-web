@@ -18,7 +18,6 @@
 ***********************************************************************/
 
 declare const $: any;
-const simpleStorage = (window as any).simpleStorage;
 const audio = (window as any).audio;
 const music_list: string[] = (window as any).music_list || [];
 const supports_mp3 = (): boolean => (window as any).supports_mp3?.() ?? false;
@@ -139,7 +138,7 @@ export function init_options_dialog(): void {
 
   $('#play_sounds_setting').change(function(this: any): void {
     sounds_enabled = this.checked;
-    simpleStorage.set('sndFX', sounds_enabled);
+    localStorage.setItem('sndFX', JSON.stringify(sounds_enabled));
   });
 
 }

@@ -84,6 +84,7 @@ import './data/nation';
 // wikiDoc: lazy-loaded by techDialog when needed (363KB)
 
 // Utilities
+import './utils/EventAggregator';
 import './utils/bitvector';
 import './utils/helpers';
 // banlist: no side effects, pulled in by import chain

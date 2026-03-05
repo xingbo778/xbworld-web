@@ -1,3 +1,4 @@
+import { EventAggregator } from '../utils/EventAggregator';
 import { store } from '../data/store';
 import { cityTile, cityOwner, canCityBuildNow, generateProductionList, cityPopulation as city_population, cityTurnsToGrowthText as city_turns_to_growth_text, getCityProductionTypeSprite as get_city_production_type_sprite, getCityProductionTime as get_city_production_time, getProductionProgress as get_production_progress, getCityProductionType as get_city_production_type } from '../data/city';
 import { get_supported_units } from '../data/unit';
@@ -60,8 +61,8 @@ export const INCITE_IMPOSSIBLE_COST: number = (1000 * 1000 * 1000);
 export let city_tab_index: number = 0;
 export let city_prod_clicks: number = 0;
 
-export const city_screen_updater: any = new (window as any).EventAggregator(update_city_screen, 250,
-                                              (window as any).EventAggregator.DP_NONE,
+export const city_screen_updater: any = new EventAggregator(update_city_screen, 250,
+                                              EventAggregator.DP_NONE,
                                               250, 3, 250);
 
 /* Information for mapping workable tiles of a city to local index */
