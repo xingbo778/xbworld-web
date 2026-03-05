@@ -28,8 +28,7 @@ function loadWikiDocs(): void {
     .then(data => { (window as any).freeciv_wiki_docs = data; })
     .catch(() => { /* wiki docs unavailable, non-critical */ });
 }
-// Trigger load early, data available by the time user opens tech info
-loadWikiDocs();
+// Wiki docs are loaded on-demand when the user first opens tech info
 const freeciv_wiki_docs = new Proxy({} as Record<string, any>, {
   get: (_target, prop: string) => ((window as any).freeciv_wiki_docs || {})[prop],
 });
@@ -554,6 +553,7 @@ export function show_tech_gained_dialog(tech_gained_id: number): void {
 }
 
 export function show_wikipedia_dialog(tech_name: string): void {
+  loadWikiDocs();
   $("#tech_tab_item").css("color", "#aa0000");
   if (freeciv_wiki_docs == null || freeciv_wiki_docs[tech_name] == null) return;
 
@@ -590,6 +590,7 @@ export function show_wikipedia_dialog(tech_name: string): void {
 }
 
 export function show_tech_info_dialog(tech_name: string, unit_type_id: number | null, improvement_id: number | null): void {
+  loadWikiDocs();
   $("#tech_tab_item").css("color", "#aa0000");
 
   let message: string = "";
