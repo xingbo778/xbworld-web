@@ -59,6 +59,9 @@ if (!win['freeciv_wiki_docs']) win['freeciv_wiki_docs'] = {};
 // Step 2: Import all TS modules (order matters for initialization).
 // ---------------------------------------------------------------------------
 
+// Reactive signals layer
+import './data/signals';
+
 // Data layer
 import './data/game';
 import './data/unit';
