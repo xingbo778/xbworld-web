@@ -9,7 +9,6 @@
  * NOTE: is_touch_device is defined in control.js, not utility.js.
  */
 
-declare const $: any;
 const swal = (window as any).swal;
 import { mapPosToTile as map_pos_to_tile } from '../data/map';
 import { center_tile_mapcanvas } from '../core/control';
@@ -118,28 +117,8 @@ export function isRightMouseSelectionSupported(): boolean {
 // ---------------------------------------------------------------------------
 
 // Expose is_small_screen (legacy name) and other utility functions
-// Register $.getUrlVar / $.getUrlVars jQuery plugins (previously in utility.js)
-// These are used extensively by legacy JS (civclient.js, pregame.js, etc.)
-const jq = typeof $ !== 'undefined' ? $ : null;
-if (jq && jq.extend) {
-  jq.extend({
-    getUrlVars(): Record<string, string> & string[] {
-      const vars: Record<string, string> & string[] = [] as any;
-      const hashes = window.location.href
-        .slice(window.location.href.indexOf('?') + 1)
-        .split('&');
-      for (let i = 0; i < hashes.length; i++) {
-        const hash = hashes[i].split('=');
-        vars.push(hash[0]);
-        (vars as any)['var-' + hash[0].replace(/\\/g, '\\\\').replace(/'/g, "\\'")]  = hash[1];
-      }
-      return vars;
-    },
-    getUrlVar(name: string): string | undefined {
-      return (jq.getUrlVars() as any)['var-' + name];
-    },
-  });
-}
+// $.getUrlVar/$.getUrlVars registration moved to index.html inline script
+// for legacy JS compatibility. TS code uses URLSearchParams instead.
 
 /**
  * Simple benchmark: scrolls the map 30 frames and reports average redraw time.

@@ -28,8 +28,6 @@ const REQEST_PLAYER_INITIATED = 0;
 
 type packet_type_t = Record<string, any>;
 
-// observing is exported from pregame.ts; using declare to avoid circular dep
-declare const observing: boolean;
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -46,7 +44,7 @@ export function can_ask_server_for_actions(): boolean {
 }
 
 export function ask_server_for_actions(punit: any): boolean {
-  if (observing || punit == null) {
+  if ((window as any).observing || punit == null) {
     return false;
   }
 

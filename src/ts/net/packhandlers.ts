@@ -429,8 +429,9 @@ export function handle_server_join_reply(packet: any): void {
     send_request(JSON.stringify(client_info));
     set_client_state(C_S_PREPARING);
 
-    const urlAction = (window as any).$.getUrlVar('action');
-    const urlRuleset = (window as any).$.getUrlVar('ruleset');
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlAction = urlParams.get('action');
+    const urlRuleset = urlParams.get('ruleset');
     if ((urlAction === 'new' || urlAction === 'hack') && urlRuleset != null) {
       (window as any).change_ruleset(urlRuleset);
     }
