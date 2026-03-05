@@ -44,7 +44,6 @@ const ORDER_PERFORM_ACTION = Order.PERFORM_ACTION;
 
 const EXTRA_HUT = (window as any).EXTRA_HUT;
 
-declare const $: any;
 const swal = (window as any).swal;
 
 // ---------------------------------------------------------------------------
@@ -314,7 +313,8 @@ export function key_unit_homecity() {
 
     if (pcity != null) {
       request_unit_do_action(ACTION_HOME_CITY, punit['id'], pcity['id']);
-      $("#order_change_homecity").hide();
+      const el = document.getElementById('order_change_homecity');
+      if (el) el.style.display = 'none';
     }
   }
 }

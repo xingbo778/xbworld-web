@@ -1277,9 +1277,6 @@ export function handle_begin_turn(_packet: any): void {
       btn.disabled = false;
       btn.textContent = 'Turn Done';
     }
-    // Also try jQuery in case button widget is initialized
-    try { (window as any).$('#turn_done_button').button('option', 'disabled', false); } catch (_e) { /* ok */ }
-    try { (window as any).$('#turn_done_button').button('option', 'label', 'Turn Done'); } catch (_e) { /* ok */ }
   }
   (window as any).waiting_units_list = [];
   update_unit_focus();
@@ -1299,7 +1296,6 @@ export function handle_end_turn(_packet: any): void {
   if (!(window as any).observing) {
     const btn = document.getElementById('turn_done_button') as HTMLButtonElement | null;
     if (btn) btn.disabled = true;
-    try { (window as any).$('#turn_done_button').button('option', 'disabled', true); } catch (_e) { /* ok */ }
   }
 }
 

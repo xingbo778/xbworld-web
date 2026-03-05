@@ -31,28 +31,26 @@ import {
   key_unit_move, request_unit_build_city
 } from './unitCommands';
 
-declare const $: any;
-
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
 export function global_keyboard_listener(ev: KeyboardEvent) {
-  if ($('input:focus').length > 0 || !S.keyboard_input) return;
+  if (document.querySelector('input:focus') != null || !S.keyboard_input) return;
 
   if (C_S_RUNNING != client_state()) return;
 
   if (!ev) ev = window.event as KeyboardEvent;
   const keyboard_key = String.fromCharCode(ev.keyCode);
 
-  if (0 === $("#tabs").tabs("option", "active")) {
+  if (0 === (window as any).$('#tabs').tabs('option', 'active')) {
     if (find_active_dialog() == null) {
       map_handle_key(keyboard_key, ev.keyCode, ev['ctrlKey'], ev['altKey'], ev['shiftKey'], ev);
     }
   }
   civclient_handle_key(keyboard_key, ev.keyCode, ev['ctrlKey'], ev['altKey'], ev['shiftKey'], ev);
 
-  if ((window as any).renderer == RENDERER_2DCANVAS) $("#canvas").contextMenu('hide');
+  if ((window as any).renderer == RENDERER_2DCANVAS) (window as any).$('#canvas').contextMenu('hide');
 }
 
 export function civclient_handle_key(keyboard_key: string, key_code: number, ctrl: boolean, alt: boolean, shift: boolean, the_event: KeyboardEvent) {
@@ -254,9 +252,9 @@ export function map_handle_key(keyboard_key: string, key_code: number, ctrl: boo
 
       S.setContextMenuActive(true);
       if ((window as any).renderer == RENDERER_2DCANVAS) {
-        $("#canvas").contextMenu(true);
+        (window as any).$('#canvas').contextMenu(true);
       } else {
-        $("#canvas_div").contextMenu(true);
+        (window as any).$('#canvas_div').contextMenu(true);
       }
 
       S.setParadropActive(false);
@@ -267,7 +265,8 @@ export function map_handle_key(keyboard_key: string, key_code: number, ctrl: boo
     case 32: // Space, will clear selection and goto.
       S.setCurrentFocus([]);
       S.setGotoActive(false);
-      $("#canvas_div").css("cursor", "default");
+      const canvasDiv = document.getElementById('canvas_div');
+      if (canvasDiv) canvasDiv.style.cursor = 'default';
       S.setGotoRequestMap({});
       S.setGotoTurnsRequestMap({});
       clearGotoTiles();

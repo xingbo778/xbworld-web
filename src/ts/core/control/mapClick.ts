@@ -37,7 +37,6 @@ const ORDER_FULL_MP = Order.FULL_MP;
 
 type packet_type_t = Record<string, any>;
 
-declare const $: any;
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -118,9 +117,9 @@ export function do_map_click(ptile: any, qtype: any, first_time_called: boolean)
       deactivate_goto(false);
     }
     if ((window as any).renderer == RENDERER_2DCANVAS) {
-      $("#canvas").contextMenu();
+      document.getElementById("canvas")?.dispatchEvent(new Event("contextmenu"));
     } else {
-      $("#canvas_div").contextMenu();
+      document.getElementById("canvas_div")?.dispatchEvent(new Event("contextmenu"));
     }
     return;
   }
@@ -262,9 +261,9 @@ export function do_map_click(ptile: any, qtype: any, first_time_called: boolean)
           && sunits[0]['activity'] == ACTIVITY_IDLE) {
           set_unit_focus_and_redraw(sunits[0]);
           if ((window as any).renderer == RENDERER_2DCANVAS) {
-            $("#canvas").contextMenu();
+            document.getElementById("canvas")?.dispatchEvent(new Event("contextmenu"));
           } else {
-            $("#canvas_div").contextMenu();
+            document.getElementById("canvas_div")?.dispatchEvent(new Event("contextmenu"));
           }
         } else if (!S.goto_active) {
           show_city_dialog(pcity);
@@ -288,14 +287,15 @@ export function do_map_click(ptile: any, qtype: any, first_time_called: boolean)
 
         if (is_touch_device()) {
           if ((window as any).renderer == RENDERER_2DCANVAS) {
-            $("#canvas").contextMenu();
+            document.getElementById("canvas")?.dispatchEvent(new Event("contextmenu"));
           } else {
-            $("#canvas_div").contextMenu();
+            document.getElementById("canvas_div")?.dispatchEvent(new Event("contextmenu"));
           }
         }
       } else if (pcity == null) {
         S.setCurrentFocus(sunits);
-        $("#game_unit_orders_default").hide();
+        const guod = document.getElementById("game_unit_orders_default");
+        if (guod) guod.style.display = 'none';
         update_active_units_dialog();
       }
     }
@@ -308,14 +308,14 @@ export function do_map_click(ptile: any, qtype: any, first_time_called: boolean)
 
 export function find_active_dialog() {
   const permanent_widgets = ["game_overview_panel", "game_unit_panel", "game_chatbox_panel"];
-  const dialogs = $(".ui-dialog");
+  const dialogs = document.querySelectorAll(".ui-dialog");
   for (let i = 0; i < dialogs.length; i++) {
-    const dialog = $(dialogs[i]);
-    if (dialog.css("display") == "none") {
+    const dialog = dialogs[i] as HTMLElement;
+    if (dialog.style.display == "none") {
       continue;
     }
-    const children = dialog.children();
-    if (children.length >= 2 && permanent_widgets.indexOf(children[1].id) < 0) {
+    const children = dialog.children;
+    if (children.length >= 2 && permanent_widgets.indexOf((children[1] as HTMLElement).id) < 0) {
       return dialog;
     }
   }
@@ -329,7 +329,8 @@ export function activate_goto() {
 
 export function activate_goto_last(last_order: any, last_action: any) {
   S.setGotoActive(true);
-  $("#canvas_div").css("cursor", "crosshair");
+  const canvasDiv = document.getElementById("canvas_div");
+  if (canvasDiv) canvasDiv.style.cursor = "crosshair";
 
   S.setGotoLastOrder(last_order);
   S.setGotoLastAction(last_action);
@@ -363,7 +364,8 @@ export function activate_goto_last(last_order: any, last_action: any) {
 
 export function deactivate_goto(will_advance_unit_focus: boolean) {
   S.setGotoActive(false);
-  $("#canvas_div").css("cursor", "default");
+  const canvasDivEl = document.getElementById("canvas_div");
+  if (canvasDivEl) canvasDivEl.style.cursor = "default";
   S.setGotoRequestMap({});
   S.setGotoTurnsRequestMap({});
   clear_goto_tiles();
@@ -378,8 +380,9 @@ export function send_end_turn() {
   if (store.gameInfo == null) return;
 
   const packet_player_phase_done = (window as any).packet_player_phase_done;
-  $("#turn_done_button").button("option", "disabled", true);
-  if (!is_touch_device()) $("#turn_done_button").tooltip({ disabled: true });
+  const turnDoneBtn = document.getElementById("turn_done_button") as HTMLButtonElement | null;
+  if (turnDoneBtn) turnDoneBtn.disabled = true;
+
   const packet = { "pid": packet_player_phase_done, "turn": store.gameInfo['turn'] };
   send_request(JSON.stringify(packet));
   const update_turn_change_timer = (window as any).update_turn_change_timer;
@@ -405,7 +408,8 @@ export function request_goto_path(unit_id: number, dst_x: number, dst_y: number)
     };
     send_request(JSON.stringify(packet));
     S.setCurrentGotoTurns(null as any);
-    $("#unit_text_details").html("Choose unit goto");
+    const unitTextDetails = document.getElementById("unit_text_details");
+    if (unitTextDetails) unitTextDetails.innerHTML = "Choose unit goto";
     setTimeout(update_mouse_cursor, 700);
   } else {
     update_goto_path(S.goto_request_map[unit_id + "," + dst_x + "," + dst_y]);
@@ -454,7 +458,8 @@ export function update_goto_path(goto_packet: any) {
     = S.current_goto_turns;
 
   if (S.current_goto_turns != undefined) {
-    $("#active_unit_info").html("Turns for goto: " + S.current_goto_turns);
+    const activeUnitInfo = document.getElementById("active_unit_info");
+    if (activeUnitInfo) activeUnitInfo.innerHTML = "Turns for goto: " + S.current_goto_turns;
   }
   update_mouse_cursor();
 }

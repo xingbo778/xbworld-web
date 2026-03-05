@@ -2,8 +2,6 @@ import { clientState as client_state, C_S_PREPARING } from '../client/clientStat
 import { setupWindowSize as setup_window_size } from '../client/clientMain';
 import { store } from '../data/store';
 
-declare const $: any;
-
 const client = store.client;
 export let observing: boolean = false;
 export let update_player_info_pregame_queued: boolean = false;
@@ -55,7 +53,8 @@ export function update_game_info_pregame(): void {
     }
   }
 
-  $("#pregame_game_info").html(game_info_html);
+  const pregameGameInfo = document.getElementById('pregame_game_info');
+  if (pregameGameInfo) pregameGameInfo.innerHTML = game_info_html;
   setup_window_size();
 }
 
@@ -88,35 +87,40 @@ export function update_player_info_pregame_real(): void {
         + player['name'] + "</b></div>";
     }
   }
-  $("#pregame_player_list").html(player_html);
+  const pregamePlayerList = document.getElementById('pregame_player_list');
+  if (pregamePlayerList) pregamePlayerList.innerHTML = player_html;
 
   for (const id in store.players) {
     const player = store.players[id as any];
     let nation_text = "";
+    const plrEl = document.getElementById('pregame_plr_' + id);
     if (player['nation'] in store.nations) {
       nation_text = " - " + store.nations[player['nation']]['adjective'];
-      const flag_html = $("<canvas id='pregame_nation_flags_" + id + "' width='29' height='20' class='pregame_flags'></canvas>");
-      $("#pregame_plr_" + id).prepend(flag_html);
-      const flag_canvas = document.getElementById('pregame_nation_flags_' + id) as HTMLCanvasElement;
-      if (flag_canvas == null) continue;
+      const flag_canvas = document.createElement('canvas');
+      flag_canvas.id = 'pregame_nation_flags_' + id;
+      flag_canvas.width = 29;
+      flag_canvas.height = 20;
+      flag_canvas.className = 'pregame_flags';
+      if (plrEl) plrEl.prepend(flag_canvas);
       const flag_canvas_ctx = flag_canvas.getContext("2d");
       const tag = "f." + store.nations[player['nation']]['graphic_str'];
       if ((window as any).sprites[tag] != null && flag_canvas_ctx != null) {
         flag_canvas_ctx.drawImage((window as any).sprites[tag], 0, 0);
       }
     }
+    if (!plrEl) continue;
     if (player['is_ready'] === true) {
-      $("#pregame_plr_" + id).addClass("pregame_player_ready");
-      $("#pregame_plr_" + id).attr("title", "Player ready" + nation_text);
+      plrEl.classList.add("pregame_player_ready");
+      plrEl.title = "Player ready" + nation_text;
     } else if (player['name'].indexOf("AI") === -1) {
-      $("#pregame_plr_" + id).attr("title", "Player not ready" + nation_text);
+      plrEl.title = "Player not ready" + nation_text;
     } else {
-      $("#pregame_plr_" + id).attr("title", "AI Player (random nation)");
+      plrEl.title = "AI Player (random nation)";
     }
-    $("#pregame_plr_" + id).attr("name", player['name']);
-    $("#pregame_plr_" + id).attr("playerid", player['playerno']);
+    plrEl.setAttribute("name", player['name']);
+    plrEl.setAttribute("playerid", player['playerno']);
   }
-  $(".pregame_player_name").tooltip();
+  (window as any).$(".pregame_player_name").tooltip();
 
   update_player_info_pregame_queued = false;
 }

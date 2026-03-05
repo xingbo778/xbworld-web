@@ -51,7 +51,9 @@ const FC_B_AIRPORT_NAME = B_AIRPORT_NAME;
 const FC_TECH_UNKNOWN = TECH_UNKNOWN;
 const FC_TECH_KNOWN = TECH_KNOWN;
 
-declare const $: any;
+
+function showEl(id: string): void { const el = document.getElementById(id); if (el) el.style.display = ''; }
+function hideEl(id: string): void { const el = document.getElementById(id); if (el) el.style.display = 'none'; }
 
 // tile_units is already imported from data/unit — alias for readability
 const tile_units_func = tile_units;
@@ -205,7 +207,8 @@ export function advance_unit_focus(): void {
   } else {
     S.setCurrentFocus([]);
     update_active_units_dialog();
-    $("#game_unit_orders_default").hide();
+    const gameUnitOrdersDefault = document.getElementById('game_unit_orders_default');
+    if (gameUnitOrdersDefault) gameUnitOrdersDefault.style.display = 'none';
 
     if (store.gameInfo && store.gameInfo['turn'] <= 1) {
       for (const city_id_str in store.cities) {
@@ -217,7 +220,8 @@ export function advance_unit_focus(): void {
         }
       }
     }
-    $("#turn_done_button").button("option", "label", "<i class='fa fa-check-circle-o' style='color: green;'aria-hidden='true'></i> Turn Done");
+    const turnDoneBtn = document.getElementById('turn_done_button');
+    if (turnDoneBtn) turnDoneBtn.innerHTML = "<i class='fa fa-check-circle-o' style='color: green;'aria-hidden='true'></i> Turn Done";
     if (!S.end_turn_info_message_shown) {
       S.setEndTurnInfoMessageShown(true);
       message_log.update({ event: E_BEGINNER_HELP, message: "All units have moved, click the \"Turn Done\" button to end your turn." });
@@ -253,14 +257,14 @@ export function update_unit_order_commands(): { [key: string]: any } {
 
     if (utype_can_do_action(ptype, FC_ACTION_FOUND_CITY)
       && pcity == null) {
-      $("#order_build_city").show();
+      showEl('order_build_city');
       unit_actions["build"] = { name: "Build city (B)" };
     } else if (utype_can_do_action(ptype, FC_ACTION_JOIN_CITY)
       && pcity != null) {
-      $("#order_build_city").show();
+      showEl('order_build_city');
       unit_actions["build"] = { name: "Join city (B)" };
     } else {
-      $("#order_build_city").hide();
+      hideEl('order_build_city');
     }
 
     if (ptype['name'] == "Explorer") {
@@ -269,7 +273,7 @@ export function update_unit_order_commands(): { [key: string]: any } {
 
   }
 
-  unit_actions = $.extend(unit_actions, {
+  Object.assign(unit_actions, {
     "goto": { name: "Unit goto (G)" },
     "tile_info": { name: "Tile info" }
   });
@@ -289,87 +293,87 @@ export function update_unit_order_commands(): { [key: string]: any } {
       if (ptype['name'] == "Engineers") unit_actions["autoworkers"] = { name: "Auto engineers (A)" };
 
       if (!tile_has_extra(ptile, FC_EXTRA_ROAD())) {
-        $("#order_railroad").hide();
-        $("#order_maglev").hide();
+        hideEl('order_railroad');
+        hideEl('order_maglev');
         if (!(tile_has_extra(ptile, FC_EXTRA_RIVER())
           && player_invention_state(store.client.conn.playing, tech_id_by_name('Bridge Building') as unknown as number) == FC_TECH_UNKNOWN)) {
           unit_actions["road"] = { name: "Build road (R)" };
-          $("#order_road").show();
+          showEl('order_road');
         } else {
-          $("#order_road").hide();
+          hideEl('order_road');
         }
       } else if (!tile_has_extra(ptile, FC_EXTRA_RAIL())
         && player_invention_state(store.client.conn.playing,
           tech_id_by_name('Railroad') as unknown as number) == FC_TECH_KNOWN
         && tile_has_extra(ptile, FC_EXTRA_ROAD())) {
-        $("#order_road").hide();
-        $("#order_maglev").hide();
-        $("#order_railroad").show();
+        hideEl('order_road');
+        hideEl('order_maglev');
+        showEl('order_railroad');
         unit_actions['railroad'] = { name: "Build railroad (R)" };
       } else if (typeof (window as any).EXTRA_MAGLEV !== 'undefined'
         && !tile_has_extra(ptile, FC_EXTRA_MAGLEV())
         && player_invention_state(store.client.conn.playing,
           tech_id_by_name('Superconductors') as unknown as number) == FC_TECH_KNOWN
         && tile_has_extra(ptile, FC_EXTRA_RAIL())) {
-        $("#order_road").hide();
-        $("#order_railroad").hide();
-        $("#order_maglev").show();
+        hideEl('order_road');
+        hideEl('order_railroad');
+        showEl('order_maglev');
         unit_actions['maglev'] = { name: "Build maglev (R)" };
       } else {
-        $("#order_road").hide();
-        $("#order_railroad").hide();
-        $("#order_maglev").hide();
+        hideEl('order_road');
+        hideEl('order_railroad');
+        hideEl('order_maglev');
       }
 
-      $("#order_fortify").hide();
-      $("#order_sentry").hide();
-      $("#order_explore").hide();
-      $("#order_auto_workers").show();
-      $("#order_clean").show();
+      hideEl('order_fortify');
+      hideEl('order_sentry');
+      hideEl('order_explore');
+      showEl('order_auto_workers');
+      showEl('order_clean');
       if (!tile_has_extra(ptile, FC_EXTRA_MINE())
         && (tile_terrain(ptile) as any)['mining_time'] > 0) {
-        $("#order_mine").show();
+        showEl('order_mine');
         unit_actions["mine"] = { name: "Mine (M)" };
       } else {
-        $("#order_mine").hide();
+        hideEl('order_mine');
       }
 
       if (tile_has_extra(ptile, FC_EXTRA_POLLUTION())
         || tile_has_extra(ptile, FC_EXTRA_FALLOUT())) {
-        $("#order_clean").show();
+        showEl('order_clean');
         unit_actions["clean"] = { name: "Remove pollution (P)" };
       } else {
-        $("#order_clean").hide();
+        hideEl('order_clean');
       }
 
       if ((tile_terrain(ptile) as any)['cultivate_time'] > 0) {
-        $("#order_forest_remove").show();
+        showEl('order_forest_remove');
         unit_actions["cultivate"] = { name: "Cultivate (I)" };
       } else {
-        $("#order_forest_remove").hide();
+        hideEl('order_forest_remove');
       }
       if ((tile_terrain(ptile) as any)['irrigation_time'] > 0) {
         if (!tile_has_extra(ptile, FC_EXTRA_IRRIGATION())) {
-          $("#order_irrigate").show();
-          $("#order_build_farmland").hide();
+          showEl('order_irrigate');
+          hideEl('order_build_farmland');
           unit_actions["irrigation"] = { name: "Irrigation (I)" };
         } else if (!tile_has_extra(ptile, FC_EXTRA_FARMLAND()) && player_invention_state(store.client.conn.playing, tech_id_by_name('Refrigeration') as unknown as number) == FC_TECH_KNOWN) {
-          $("#order_build_farmland").show();
-          $("#order_irrigate").hide();
+          showEl('order_build_farmland');
+          hideEl('order_irrigate');
           unit_actions["irrigation"] = { name: "Build farmland (I)" };
         } else {
-          $("#order_irrigate").hide();
-          $("#order_build_farmland").hide();
+          hideEl('order_irrigate');
+          hideEl('order_build_farmland');
         }
       } else {
-        $("#order_irrigate").hide();
-        $("#order_build_farmland").hide();
+        hideEl('order_irrigate');
+        hideEl('order_build_farmland');
       }
       if ((tile_terrain(ptile) as any)['plant_time'] > 0) {
-        $("#order_forest_add").show();
+        showEl('order_forest_add');
         unit_actions["plant"] = { name: "Plant (M)" };
       } else {
-        $("#order_forest_add").hide();
+        hideEl('order_forest_add');
       }
       if (player_invention_state(store.client.conn.playing, tech_id_by_name('Construction') as unknown as number) == FC_TECH_KNOWN) {
         unit_actions["fortress"] = { name: string_unqualify((window as any).terrain_control['gui_type_base0']) + " (Shift-F)" };
@@ -380,56 +384,56 @@ export function update_unit_order_commands(): { [key: string]: any } {
       }
 
     } else {
-      $("#order_road").hide();
-      $("#order_railroad").hide();
-      $("#order_mine").hide();
-      $("#order_irrigate").hide();
-      $("#order_build_farmland").hide();
-      $("#order_fortify").show();
-      $("#order_auto_workers").hide();
-      $("#order_sentry").show();
-      $("#order_explore").show();
-      $("#order_clean").hide();
+      hideEl('order_road');
+      hideEl('order_railroad');
+      hideEl('order_mine');
+      hideEl('order_irrigate');
+      hideEl('order_build_farmland');
+      showEl('order_fortify');
+      hideEl('order_auto_workers');
+      showEl('order_sentry');
+      showEl('order_explore');
+      hideEl('order_clean');
       unit_actions["fortify"] = { name: "Fortify (F)" };
     }
 
     unit_actions["action_selection"] = { name: "Do... (D)" };
 
     if (utype_can_do_action(ptype, FC_ACTION_TRANSFORM_TERRAIN)) {
-      $("#order_transform").show();
+      showEl('order_transform');
       unit_actions["transform"] = { name: "Transform terrain (O)" };
     } else {
-      $("#order_transform").hide();
+      hideEl('order_transform');
     }
 
     if (utype_can_do_action(ptype, FC_ACTION_NUKE)) {
-      $("#order_nuke").show();
+      showEl('order_nuke');
       unit_actions["nuke"] = { name: "Detonate Nuke At (Shift-N)" };
     } else {
-      $("#order_nuke").hide();
+      hideEl('order_nuke');
     }
 
     if (utype_can_do_action_result(ptype, FC_ACTRES_PARADROP)
       || utype_can_do_action_result(ptype, FC_ACTRES_PARADROP_CONQUER)) {
-      $("#order_paradrop").show();
+      showEl('order_paradrop');
       unit_actions["paradrop"] = { name: "Paradrop" };
     } else {
-      $("#order_paradrop").hide();
+      hideEl('order_paradrop');
     }
 
     if (!client_is_observer() && store.client.conn.playing != null
       && get_what_can_unit_pillage_from(punit, ptile).length > 0
       && (pcity == null || city_owner_player_id(pcity) !== store.client.conn.playing.playerno)) {
-      $("#order_pillage").show();
+      showEl('order_pillage');
       unit_actions["pillage"] = { name: "Pillage (Shift-P)" };
     } else {
-      $("#order_pillage").hide();
+      hideEl('order_pillage');
     }
 
     if (pcity == null || punit['homecity'] === 0 || punit['homecity'] === pcity['id']) {
-      $("#order_change_homecity").hide();
+      hideEl('order_change_homecity');
     } else if (punit['homecity'] != pcity['id']) {
-      $("#order_change_homecity").show();
+      showEl('order_change_homecity');
       unit_actions["homecity"] = { name: "Change homecity of unit (H)" };
     }
 
@@ -476,17 +480,17 @@ export function update_unit_order_commands(): { [key: string]: any } {
     }
   }
 
-  unit_actions = $.extend(unit_actions, {
+  Object.assign(unit_actions, {
     "sentry": { name: "Sentry (S)" },
     "wait": { name: "Wait (W)" },
     "disband": { name: "Disband (Shift-D)" }
   });
 
   if (is_touch_device()) {
-    $(".context-menu-list").css("width", "600px");
-    $(".context-menu-item").css("font-size", "220%");
+    document.querySelectorAll<HTMLElement>('.context-menu-list').forEach(el => el.style.width = '600px');
+    document.querySelectorAll<HTMLElement>('.context-menu-item').forEach(el => el.style.fontSize = '220%');
   }
-  $(".context-menu-list").css("z-index", 5000);
+  document.querySelectorAll<HTMLElement>('.context-menu-list').forEach(el => el.style.zIndex = '5000');
 
   return unit_actions;
 }
@@ -495,8 +499,10 @@ export function init_game_unit_panel(): void {
   if (observing) return;
   S.setUnitpanelActive(true);
 
-  $("#game_unit_panel").attr("title", "Units");
-  $("#game_unit_panel").dialog({
+  const jq = (window as any).$;
+  const $panel = jq('#game_unit_panel');
+  $panel.attr("title", "Units");
+  $panel.dialog({
     bgiframe: true,
     modal: false,
     width: "370px",
@@ -504,24 +510,24 @@ export function init_game_unit_panel(): void {
     resizable: false,
     closeOnEscape: false,
     dialogClass: 'unit_dialog  no-close',
-    position: { my: 'right bottom', at: 'right bottom', of: window, within: $("#tabs-map") },
+    position: { my: 'right bottom', at: 'right bottom', of: window, within: jq("#tabs-map") },
     appendTo: '#tabs-map',
     close: function(event: any, ui: any) { S.setUnitpanelActive(false); }
 
   }).dialogExtend({
     "minimizable": true,
     "closable": false,
-    "minimize": function(evt: Event, dlg: any) { S.setGameUnitPanelState($("#game_unit_panel").dialogExtend("state")) },
-    "restore": function(evt: Event, dlg: any) { S.setGameUnitPanelState($("#game_unit_panel").dialogExtend("state")) },
+    "minimize": function(evt: Event, dlg: any) { S.setGameUnitPanelState($panel.dialogExtend("state")) },
+    "restore": function(evt: Event, dlg: any) { S.setGameUnitPanelState($panel.dialogExtend("state")) },
     "icons": {
       "minimize": "ui-icon-circle-minus",
       "restore": "ui-icon-bullet"
     }
   });
 
-  $("#game_unit_panel").dialog('open');
-  $("#game_unit_panel").parent().css("overflow", "hidden");
-  if (S.game_unit_panel_state == "minimized") $("#game_unit_panel").dialogExtend("minimize");
+  $panel.dialog('open');
+  $panel.parent().css("overflow", "hidden");
+  if (S.game_unit_panel_state == "minimized") $panel.dialogExtend("minimize");
 }
 
 export function find_best_focus_candidate(accept_current: boolean): any {
@@ -607,7 +613,8 @@ export function set_unit_focus_and_redraw(punit: any): void {
   auto_center_on_focus_unit();
   update_active_units_dialog();
   update_unit_order_commands();
-  if (S.current_focus.length > 0 && $("#game_unit_orders_default").length > 0) $("#game_unit_orders_default").show();
+  const ordersDefault = document.getElementById('game_unit_orders_default');
+  if (S.current_focus.length > 0 && ordersDefault) ordersDefault.style.display = '';
 }
 
 export function set_unit_focus_and_activate(punit: any): void {
@@ -760,21 +767,33 @@ export function update_active_units_dialog(): void {
     unit_info_html += "<div id='active_unit_info'>" + S.current_focus.length + " units selected.</div> ";
   }
 
-  $("#game_unit_info").html(unit_info_html);
+  const gameUnitInfo = document.getElementById('game_unit_info');
+  if (gameUnitInfo) gameUnitInfo.innerHTML = unit_info_html;
 
+  const panelEl = document.getElementById('game_unit_panel');
+  const panelParent = panelEl?.parentElement;
   if (S.current_focus.length > 0) {
     let newwidth = 32 + punits.length * (width + 10);
     if (newwidth < 140) newwidth = 140;
     const newheight = 75 + normal_tile_height;
-    $("#game_unit_panel").parent().show();
-    $("#game_unit_panel").parent().width(newwidth);
-    $("#game_unit_panel").parent().height(newheight);
-    $("#game_unit_panel").parent().css("left", ($(window).width() - newwidth) + "px");
-    $("#game_unit_panel").parent().css("top", ($(window).height() - newheight - 30) + "px");
-    $("#game_unit_panel").parent().css("background", "rgba(50,50,40,0.5)");
-    if (S.game_unit_panel_state == "minimized") $("#game_unit_panel").dialogExtend("minimize");
+    if (panelParent) {
+      panelParent.style.display = '';
+      panelParent.style.width = newwidth + 'px';
+      panelParent.style.height = newheight + 'px';
+      panelParent.style.left = (window.innerWidth - newwidth) + "px";
+      panelParent.style.top = (window.innerHeight - newheight - 30) + "px";
+      panelParent.style.background = "rgba(50,50,40,0.5)";
+    }
+    if (S.game_unit_panel_state == "minimized") {
+      const jq = (window as any).$;
+      if (jq) jq('#game_unit_panel').dialogExtend("minimize");
+    }
   } else {
-    $("#game_unit_panel").parent().hide();
+    if (panelParent) panelParent.style.display = 'none';
   }
-  $("#active_unit_info").tooltip();
+  const activeUnitInfo = document.getElementById('active_unit_info');
+  if (activeUnitInfo) {
+    const jq = (window as any).$;
+    if (jq) jq(activeUnitInfo).tooltip();
+  }
 }

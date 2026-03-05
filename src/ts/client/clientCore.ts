@@ -87,11 +87,13 @@ export function surrenderGame(): void {
   sendSurrenderGame();
 
   // Switch UI back to map tab
-  $('#tabs-map').removeClass('ui-tabs-hide');
-  $('#tabs-opt').addClass('ui-tabs-hide');
-  $('#map_tab').addClass('ui-state-active');
-  $('#map_tab').addClass('ui-tabs-selected');
-  $('#map_tab').removeClass('ui-state-default');
+  document.getElementById('tabs-map')?.classList.remove('ui-tabs-hide');
+  document.getElementById('tabs-opt')?.classList.add('ui-tabs-hide');
+  const mapTab = document.getElementById('map_tab');
+  if (mapTab) {
+    mapTab.classList.add('ui-state-active', 'ui-tabs-selected');
+    mapTab.classList.remove('ui-state-default');
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -138,7 +140,7 @@ export function getInvalidUsernameReason(name: string | null): string | null {
  * Migrated from civclient.js validate_username().
  */
 export function validateUsername(): boolean {
-  const usernameVal = ($('#username_req') as any).val();
+  const usernameVal = (document.getElementById('username_req') as HTMLInputElement)?.value ?? '';
   win.username = usernameVal;
 
   if (!isUsernameValidShow(usernameVal)) {
@@ -164,9 +166,11 @@ export function isUsernameValidShow(username: string | null): boolean {
     const safeUsername = (username ?? '')
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;');
-    $('#username_validation_result')
-      .html("The username '" + safeUsername + "' is " + reason + '.')
-      .show();
+    const valEl = document.getElementById('username_validation_result');
+    if (valEl) {
+      valEl.innerHTML = "The username '" + safeUsername + "' is " + reason + '.';
+      valEl.style.display = '';
+    }
     return false;
   }
   return true;
@@ -201,7 +205,9 @@ export function showFullscreenWindow(): void {
  * Migrated from civclient.js motd_init().
  */
 export function motdInit(): void {
-  ($ as any).getScript('/motd.js');
+  const script = document.createElement('script');
+  script.src = '/motd.js';
+  document.head.appendChild(script);
   setTimeout(motdInit, 1000 * 60 * 30);
 }
 

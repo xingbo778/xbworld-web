@@ -21,7 +21,6 @@ import * as S from './controlState';
 import { find_visible_unit, set_unit_focus, update_active_units_dialog } from './unitFocus';
 import { activate_goto } from './mapClick';
 
-declare const $: any;
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -45,10 +44,12 @@ export function mouse_moved_cb(e: MouseEvent): void {
     }
   }
 
+  const canvasEl = document.getElementById('canvas');
   if (RENDERER_2DCANVAS && active_city == null && (window as any).mapview_canvas != null
-    && $("#canvas").length) {
-    S.setMouseX(S.mouse_x - $("#canvas").offset().left);
-    S.setMouseY(S.mouse_y - $("#canvas").offset().top);
+    && canvasEl) {
+    const canvasRect = canvasEl.getBoundingClientRect();
+    S.setMouseX(S.mouse_x - canvasRect.left);
+    S.setMouseY(S.mouse_y - canvasRect.top);
 
     if (S.mapview_mouse_movement && !S.goto_active) {
       const diff_x = (touch_start_x - S.mouse_x) * 2;
@@ -59,10 +60,14 @@ export function mouse_moved_cb(e: MouseEvent): void {
       setTouchStart(S.mouse_x, S.mouse_y);
       update_mouse_cursor();
     }
-  } else if (active_city != null && (window as any).city_canvas != null
-    && $("#city_canvas").length) {
-    S.setMouseX(S.mouse_x - $("#city_canvas").offset().left);
-    S.setMouseY(S.mouse_y - $("#city_canvas").offset().top);
+  } else {
+    const cityCanvasEl = document.getElementById('city_canvas');
+    if (active_city != null && (window as any).city_canvas != null
+      && cityCanvasEl) {
+      const cityCanvasRect = cityCanvasEl.getBoundingClientRect();
+      S.setMouseX(S.mouse_x - cityCanvasRect.left);
+      S.setMouseY(S.mouse_y - cityCanvasRect.top);
+    }
   }
 
   if (store.client.conn.playing == null) return;
@@ -91,18 +96,21 @@ export function update_mouse_cursor(): void {
   const punit = find_visible_unit(ptile);
   const pcity = tile_city(ptile);
 
+  const canvasDiv = document.getElementById('canvas_div');
+  if (!canvasDiv) return;
+
   if (S.mapview_mouse_movement && !S.goto_active) {
-    $("#canvas_div").css("cursor", "move");
+    canvasDiv.style.cursor = "move";
   } else if (S.goto_active && S.current_goto_turns != null) {
-    $("#canvas_div").css("cursor", "crosshair");
+    canvasDiv.style.cursor = "crosshair";
   } else if (S.goto_active && S.current_goto_turns == null) {
-    $("#canvas_div").css("cursor", "not-allowed");
+    canvasDiv.style.cursor = "not-allowed";
   } else if (pcity != null && store.client.conn.playing != null && city_owner_player_id(pcity) == store.client.conn.playing.playerno) {
-    $("#canvas_div").css("cursor", "pointer");
+    canvasDiv.style.cursor = "pointer";
   } else if (punit != null && store.client.conn.playing != null && punit['owner'] == store.client.conn.playing.playerno) {
-    $("#canvas_div").css("cursor", "pointer");
+    canvasDiv.style.cursor = "pointer";
   } else {
-    $("#canvas_div").css("cursor", "default");
+    canvasDiv.style.cursor = "default";
   }
 }
 

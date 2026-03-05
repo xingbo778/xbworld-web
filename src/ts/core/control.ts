@@ -63,7 +63,6 @@ import { send_end_turn } from './control/mapClick';
 import { update_unit_order_commands } from './control/unitFocus';
 import * as S from './control/controlState';
 
-declare const $: any;
 import { RENDERER_2DCANVAS } from './constants';
 
 // ---------------------------------------------------------------------------
@@ -85,53 +84,55 @@ export function control_init(): void {
 
   mapctrl_init_2d();
 
-  $(document).keydown(global_keyboard_listener);
-  $(window).resize(mapview_window_resized);
-  $(window).bind('orientationchange resize', orientation_changed);
+  document.addEventListener('keydown', global_keyboard_listener);
+  window.addEventListener('resize', mapview_window_resized);
+  window.addEventListener('orientationchange', orientation_changed);
+  window.addEventListener('resize', orientation_changed);
 
-  $("#turn_done_button").click(send_end_turn);
-  if (!is_touch_device()) $("#turn_done_button").tooltip();
+  document.getElementById('turn_done_button')?.addEventListener('click', send_end_turn);
 
-  $("#freeciv_logo").click(function(event: Event) {
+  document.getElementById('freeciv_logo')?.addEventListener('click', function(event: Event) {
     window.open('/', '_new');
   });
 
 
-  $("#game_text_input").keydown(function(event: any) {
-    return check_text_input(event, $("#game_text_input"));
+  const gameTextInput = document.getElementById('game_text_input');
+  gameTextInput?.addEventListener('keydown', function(event: any) {
+    return check_text_input(event, gameTextInput);
   });
-  $("#game_text_input").focus(function(event: any) {
+  gameTextInput?.addEventListener('focus', function(event: any) {
     setKeyboardInput(false);
     setResizeEnabled(false);
   });
 
-  $("#game_text_input").blur(function(event: any) {
+  gameTextInput?.addEventListener('blur', function(event: any) {
     setKeyboardInput(true);
     setResizeEnabled(true);
   });
 
-  $("#chat_direction").click(function(event: any) {
+  document.getElementById('chat_direction')?.addEventListener('click', function(event: any) {
     chat_context_change();
   });
 
-  $("#pregame_text_input").keydown(function(event: any) {
-    return check_text_input(event, $("#pregame_text_input"));
+  const pregameTextInput = document.getElementById('pregame_text_input') as HTMLInputElement | null;
+  pregameTextInput?.addEventListener('keydown', function(event: any) {
+    return check_text_input(event, pregameTextInput);
   });
 
-  $("#pregame_text_input").blur(function(this: HTMLInputElement, event: any) {
+  pregameTextInput?.addEventListener('blur', function(event: any) {
     setKeyboardInput(true);
-    if (this.value == '') {
-      this.value = '>';
+    if (pregameTextInput.value == '') {
+      pregameTextInput.value = '>';
     }
   });
 
-  $("#pregame_text_input").focus(function(this: HTMLInputElement, event: any) {
+  pregameTextInput?.addEventListener('focus', function(event: any) {
     setKeyboardInput(false);
-    if (this.value == '>') this.value = '';
+    if (pregameTextInput.value == '>') pregameTextInput.value = '';
   });
 
 
-  $("#tech_canvas").click(function(event: any) {
+  document.getElementById('tech_canvas')?.addEventListener('click', function(event: any) {
     tech_mapview_mouse_click(event);
   });
 
@@ -170,89 +171,91 @@ export function control_init(): void {
   if (!is_touch_device()) {
     context_options['position'] = function(opt: any, x: number, y: number) {
       if (is_touch_device()) return;
-      let new_top = S.mouse_y + $("#canvas_div").offset().top;
-      if (RENDERER_2DCANVAS) new_top = S.mouse_y + $("#canvas").offset().top;
+      const canvasDivEl = document.getElementById('canvas_div');
+      const canvasEl = document.getElementById('canvas');
+      let new_top = S.mouse_y + (canvasDivEl ? canvasDivEl.getBoundingClientRect().top + window.scrollY : 0);
+      if (RENDERER_2DCANVAS) new_top = S.mouse_y + (canvasEl ? canvasEl.getBoundingClientRect().top + window.scrollY : 0);
       opt.$menu.css({ top: new_top, left: S.mouse_x });
     };
   }
 
-  $.contextMenu(context_options);
+  (window as any).jQuery?.contextMenu?.(context_options);
 
-  $(window).on('unload', function() {
+  window.addEventListener('unload', function() {
     network_stop();
   });
 
   /* Click callbacks for main tabs. */
-  $("#map_tab").click(function(event: any) {
+  document.getElementById('map_tab')?.addEventListener('click', function(event: any) {
     setTimeout(set_default_mapview_active, 5);
   });
 
 
-  $("#civ_tab").click(function(event: any) {
+  document.getElementById('civ_tab')?.addEventListener('click', function(event: any) {
     set_default_mapview_inactive();
     init_civ_dialog();
   });
 
-  $("#tech_tab").click(function(event: any) {
+  document.getElementById('tech_tab')?.addEventListener('click', function(event: any) {
     set_default_mapview_inactive();
     update_tech_screen();
   });
 
-  $("#players_tab").click(function(event: any) {
+  document.getElementById('players_tab')?.addEventListener('click', function(event: any) {
     set_default_mapview_inactive();
     update_nation_screen();
   });
 
-  $("#cities_tab").click(function(event: any) {
+  document.getElementById('cities_tab')?.addEventListener('click', function(event: any) {
     set_default_mapview_inactive();
     update_city_screen();
   });
 
-  $("#opt_tab").click(function(event: any) {
-    $("#tabs-hel").hide();
+  document.getElementById('opt_tab')?.addEventListener('click', function(event: any) {
+    const tabsHel = document.getElementById('tabs-hel');
+    if (tabsHel) tabsHel.style.display = 'none';
     init_options_dialog();
     set_default_mapview_inactive();
   });
 
-  $("#chat_tab").click(function(event: any) {
+  document.getElementById('chat_tab')?.addEventListener('click', function(event: any) {
     set_default_mapview_inactive();
-    $("#tabs-chat").show();
-
+    const tabsChat = document.getElementById('tabs-chat');
+    if (tabsChat) tabsChat.style.display = '';
   });
 
 
-  $("#hel_tab").click(function(event: any) {
+  document.getElementById('hel_tab')?.addEventListener('click', function(event: any) {
     set_default_mapview_inactive();
     show_help();
   });
 
-  if (!is_touch_device()) {
-    $("#game_unit_orders_default").tooltip();
-  }
-
-  $("#overview_map").click(function(this: any, e: any) {
-    const x = e.pageX - $(this).offset().left;
-    const y = e.pageY - $(this).offset().top;
+  const overviewMap = document.getElementById('overview_map');
+  overviewMap?.addEventListener('click', function(e: any) {
+    const rect = overviewMap.getBoundingClientRect();
+    const x = e.pageX - (rect.left + window.scrollX);
+    const y = e.pageY - (rect.top + window.scrollY);
     overview_clicked(x, y);
   });
 
-  $("#send_message_button").click(function(e: any) {
+  document.getElementById('send_message_button')?.addEventListener('click', function(e: any) {
     show_send_private_message_dialog();
   });
 
-  $("#intelligence_report_button").click(function(e: any) {
+  document.getElementById('intelligence_report_button')?.addEventListener('click', function(e: any) {
     show_intelligence_report_dialog();
   });
 
-  $('#meet_player_button').click(nation_meet_clicked);
-  $('#view_player_button').click(center_on_player);
-  $('#cancel_treaty_button').click(cancel_treaty_clicked);
-  $('#withdraw_vision_button').click(withdraw_vision_clicked);
-  $('#take_player_button').click(take_player_clicked);
-  $('#toggle_ai_button').click(toggle_ai_clicked);
-  $('#nations_list').on('click', 'tbody tr', handle_nation_table_select);
+  document.getElementById('meet_player_button')?.addEventListener('click', nation_meet_clicked);
+  document.getElementById('view_player_button')?.addEventListener('click', center_on_player);
+  document.getElementById('cancel_treaty_button')?.addEventListener('click', cancel_treaty_clicked);
+  document.getElementById('withdraw_vision_button')?.addEventListener('click', withdraw_vision_clicked);
+  document.getElementById('take_player_button')?.addEventListener('click', take_player_clicked);
+  document.getElementById('toggle_ai_button')?.addEventListener('click', toggle_ai_clicked);
 
-  /* prevents keyboard input from changing tabs. */
-  $('#tabs>ul>li').off('keydown');
-  $('#tabs>div').off('keydown');
+  const nationsList = document.getElementById('nations_list');
+  nationsList?.addEventListener('click', function(e: any) {
+    const row = (e.target as HTMLElement).closest('tbody tr');
+    if (row) handle_nation_table_select.call(row, e);
+  });
 }

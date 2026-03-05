@@ -27,10 +27,9 @@ import { send_request, send_message } from '../net/connection';
 import { encode_message_text } from '../core/control/chat';
 import { keyboard_input, setKeyboardInput } from '../core/control/controlState';
 import { packet_chat_msg_req, packet_diplomacy_init_meeting_req, packet_diplomacy_cancel_pact } from '../net/packetConstants';
-import { CLAUSE_VISION } from '../ui/diplomacy';
+import { CLAUSE_VISION, diplomacy_cancel_treaty } from '../ui/diplomacy';
 import { mapview } from '../renderer/mapviewCommon';
-
-declare const $: any;
+import { getUrlVar } from '../utils/helpers';
 
 // ---------------------------------------------------------------------------
 // Global variable initialisation (replaces var declarations in nation.js)
@@ -52,6 +51,26 @@ function getSelectedPlayer(): number {
 }
 function setSelectedPlayer(v: number): void {
   (window as any).selected_player = v;
+}
+
+// ---------------------------------------------------------------------------
+// Helpers for jQuery UI widgets still loaded globally
+// ---------------------------------------------------------------------------
+function jqButtonEnable(id: string): void {
+  const el = document.getElementById(id) as HTMLButtonElement | null;
+  if (el) el.disabled = false;
+}
+function jqButtonDisable(id: string): void {
+  const el = document.getElementById(id) as HTMLButtonElement | null;
+  if (el) el.disabled = true;
+}
+function jqButtonLabel(id: string, label: string): void {
+  const el = document.getElementById(id);
+  if (el) {
+    const inner = el.querySelector('.ui-button-text') as HTMLElement | null;
+    if (inner) inner.textContent = label;
+    else el.textContent = label;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -243,39 +262,50 @@ export function updateNationScreen(): void {
   }
 
   nation_list_html += '</tbody></table>';
-  $('#nations_list').html(nation_list_html);
-  $('#nations_title').html('Nations of the World');
-  $('#nations_label').html(
-    'Human players: ' +
-      no_humans +
-      '. AIs: ' +
-      no_ais +
-      '. Inactive/dead: ' +
-      (total_players - no_humans - no_ais) +
-      '.'
-  );
+
+  const nationsListEl = document.getElementById('nations_list');
+  if (nationsListEl) nationsListEl.innerHTML = nation_list_html;
+
+  const nationsTitleEl = document.getElementById('nations_title');
+  if (nationsTitleEl) nationsTitleEl.innerHTML = 'Nations of the World';
+
+  const nationsLabelEl = document.getElementById('nations_label');
+  if (nationsLabelEl) {
+    nationsLabelEl.innerHTML =
+      'Human players: ' +
+        no_humans +
+        '. AIs: ' +
+        no_ais +
+        '. Inactive/dead: ' +
+        (total_players - no_humans - no_ais) +
+        '.';
+  }
 
   selectNoNation();
 
   if (isLongturn()) {
-    $('#take_player_button').hide();
-    $('#toggle_ai_button').hide();
-    $('#game_scores_button').hide();
+    const takeBtn = document.getElementById('take_player_button');
+    if (takeBtn) takeBtn.style.display = 'none';
+    const toggleBtn = document.getElementById('toggle_ai_button');
+    if (toggleBtn) toggleBtn.style.display = 'none';
+    const scoresBtn = document.getElementById('game_scores_button');
+    if (scoresBtn) scoresBtn.style.display = 'none';
   }
 
   // NOTE: upstream has `if (is_small_screen)` without `()` — a bug that
   // always evaluates to truthy (the function reference itself).  We preserve
   // the original behaviour by calling the function correctly.
   if (is_small_screen()) {
-    $('#take_player_button').hide();
+    const takeBtn = document.getElementById('take_player_button');
+    if (takeBtn) takeBtn.style.display = 'none';
   }
 
   // Draw nation flags onto their canvas elements.
   for (const player_id in store.players) {
     const pplayer = store.players[player_id];
-    const flag_canvas = $('#nation_dlg_flags_' + player_id);
-    if (flag_canvas.length > 0) {
-      const flag_canvas_ctx = flag_canvas[0].getContext('2d');
+    const flag_canvas = document.getElementById('nation_dlg_flags_' + player_id) as HTMLCanvasElement | null;
+    if (flag_canvas) {
+      const flag_canvas_ctx = flag_canvas.getContext('2d');
       const tag = 'f.' + store.nations[pplayer['nation']]['graphic_str'];
       if (flag_canvas_ctx != null && (window as any).sprites[tag] != null) {
         flag_canvas_ctx.drawImage((window as any).sprites[tag], 0, 0);
@@ -283,42 +313,53 @@ export function updateNationScreen(): void {
     }
   }
 
-  $('#nation_table').tablesorter({ theme: 'dark', sortList: [[2, 0]] });
+  const _$ = (window as any).$;
+  if (_$) {
+    _$('#nation_table').tablesorter({ theme: 'dark', sortList: [[2, 0]] });
+  }
 
   if (is_small_screen()) {
-    $('#nations').height(mapview['height'] - 150);
-    $('#nations').width(mapview['width']);
+    const nationsEl = document.getElementById('nations');
+    if (nationsEl) {
+      nationsEl.style.height = (mapview['height'] - 150) + 'px';
+      nationsEl.style.width = mapview['width'] + 'px';
+    }
   }
 
   /* Fetch online (connected) players on this game from Freeciv-proxy. */
-  $.ajax({
-    url: '/civsocket/' + (parseInt((window as any).civserverport) + 1000) + '/status',
-    dataType: 'html',
-    cache: false,
-    async: true,
-  }).done(function (data: string) {
-    const online_players: Record<string, boolean> = {};
-    const players_re = /username: <b>([^<]*)/g;
-    let found: RegExpExecArray | null;
-    while ((found = players_re.exec(data)) !== null) {
-      if (found[1].length > 0) {
-        online_players[found[1].toLowerCase()] = true;
+  const statusUrl = '/civsocket/' + (parseInt((window as any).civserverport) + 1000) + '/status';
+  fetch(statusUrl, { cache: 'no-store' })
+    .then(function (response) { return response.text(); })
+    .then(function (data: string) {
+      const online_players: Record<string, boolean> = {};
+      const players_re = /username: <b>([^<]*)/g;
+      let found: RegExpExecArray | null;
+      while ((found = players_re.exec(data)) !== null) {
+        if (found[1].length > 0) {
+          online_players[found[1].toLowerCase()] = true;
+        }
       }
-    }
-    for (const player_id in store.players) {
-      const pplayer = store.players[player_id];
-      if (online_players[pplayer['username'].toLowerCase()]) {
-        $('#player_state_' + player_id).html(
-          "<span style='color: #00EE00;'><b>Online</b></span>"
-        );
+      for (const player_id in store.players) {
+        const pplayer = store.players[player_id];
+        if (online_players[pplayer['username'].toLowerCase()]) {
+          const stateEl = document.getElementById('player_state_' + player_id);
+          if (stateEl) {
+            stateEl.innerHTML = "<span style='color: #00EE00;'><b>Online</b></span>";
+          }
+        }
       }
-    }
-    $('#nation_table').trigger('update');
-  });
+      if (_$) _$('#nation_table').trigger('update');
+    })
+    .catch(function () { /* ignore fetch errors */ });
 
-  if (isLongturn()) $('.nation_attitude').hide();
-  if (isLongturn()) $('.nation_team').hide();
-  $('#nation_table').tooltip();
+  if (isLongturn()) {
+    document.querySelectorAll('.nation_attitude').forEach(function (el) {
+      (el as HTMLElement).style.display = 'none';
+    });
+    document.querySelectorAll('.nation_team').forEach(function (el) {
+      (el as HTMLElement).style.display = 'none';
+    });
+  }
 }
 
 /**
@@ -327,14 +368,19 @@ export function updateNationScreen(): void {
  */
 export function handleNationTableSelect(this: any, ev: Event): void {
   ev.stopPropagation();
-  const new_element = $(this);
-  const new_player = parseFloat(new_element.data('plrid'));
+  const new_element = ev.currentTarget as HTMLElement;
+  const new_player = parseFloat(new_element.dataset.plrid || '');
   if (new_player === getSelectedPlayer()) {
-    new_element.removeClass('ui-selected');
+    new_element.classList.remove('ui-selected');
     selectNoNation();
   } else {
-    new_element.siblings().removeClass('ui-selected');
-    new_element.addClass('ui-selected');
+    const parent = new_element.parentElement;
+    if (parent) {
+      Array.from(parent.children).forEach(function (sibling) {
+        if (sibling !== new_element) sibling.classList.remove('ui-selected');
+      });
+    }
+    new_element.classList.add('ui-selected');
     setSelectedPlayer(new_player);
     selectANation();
   }
@@ -365,9 +411,9 @@ export function selectANation(): void {
       (diplstates[player_id] != null && diplstates[player_id] !== DiplState.DS_NO_CONTACT) ||
       clientState() === C_S_OVER)
   ) {
-    $('#view_player_button').button('enable');
+    jqButtonEnable('view_player_button');
   } else {
-    $('#view_player_button').button('disable');
+    jqButtonDisable('view_player_button');
   }
 
   if (
@@ -376,9 +422,9 @@ export function selectANation(): void {
     diplstates[player_id] != null &&
     diplstates[player_id] !== DiplState.DS_NO_CONTACT
   ) {
-    $('#meet_player_button').button('enable');
+    jqButtonEnable('meet_player_button');
   } else {
-    $('#meet_player_button').button('disable');
+    jqButtonDisable('meet_player_button');
   }
 
   if (
@@ -387,13 +433,13 @@ export function selectANation(): void {
     diplstates[player_id] != null &&
     diplstates[player_id] === DiplState.DS_NO_CONTACT
   ) {
-    $('#meet_player_button').button('disable');
+    jqButtonDisable('meet_player_button');
   }
 
   if (pplayer['flags'].isSet(PlayerFlag.PLRF_AI) || selected_myself) {
-    $('#send_message_button').button('disable');
+    jqButtonDisable('send_message_button');
   } else {
-    $('#send_message_button').button('enable');
+    jqButtonEnable('send_message_button');
   }
 
   if (
@@ -404,9 +450,9 @@ export function selectANation(): void {
     diplstates[player_id] !== DiplState.DS_WAR &&
     diplstates[player_id] !== DiplState.DS_NO_CONTACT
   ) {
-    $('#cancel_treaty_button').button('enable');
+    jqButtonEnable('cancel_treaty_button');
   } else {
-    $('#cancel_treaty_button').button('disable');
+    jqButtonDisable('cancel_treaty_button');
   }
 
   if (canClientControl() && !selected_myself) {
@@ -415,9 +461,9 @@ export function selectANation(): void {
       diplstates[player_id] === DiplState.DS_ARMISTICE ||
       diplstates[player_id] === DiplState.DS_PEACE
     ) {
-      $('#cancel_treaty_button').button('option', 'label', 'Declare war');
+      jqButtonLabel('cancel_treaty_button', 'Declare war');
     } else {
-      $('#cancel_treaty_button').button('option', 'label', 'Cancel treaty');
+      jqButtonLabel('cancel_treaty_button', 'Cancel treaty');
     }
   }
 
@@ -427,18 +473,18 @@ export function selectANation(): void {
     pplayer['team'] !== store.client.conn.playing['team'] &&
     store.client.conn.playing['gives_shared_vision'].isSet(player_id)
   ) {
-    $('#withdraw_vision_button').button('enable');
+    jqButtonEnable('withdraw_vision_button');
   } else {
-    $('#withdraw_vision_button').button('disable');
+    jqButtonDisable('withdraw_vision_button');
   }
 
   if (
     clientIsObserver() ||
     (both_alive_and_different && diplstates[player_id] !== DiplState.DS_NO_CONTACT)
   ) {
-    $('#intelligence_report_button').button('enable');
+    jqButtonEnable('intelligence_report_button');
   } else {
-    $('#intelligence_report_button').button('disable');
+    jqButtonDisable('intelligence_report_button');
   }
 
   if (
@@ -446,14 +492,14 @@ export function selectANation(): void {
     clientIsObserver() &&
     pplayer['flags'].isSet(PlayerFlag.PLRF_AI) &&
     store.nations[pplayer['nation']]['is_playable'] &&
-    $.getUrlVar('multi') === 'true'
+    getUrlVar('multi') === 'true'
   ) {
-    $('#take_player_button').button('enable');
+    jqButtonEnable('take_player_button');
   } else {
-    $('#take_player_button').button('disable');
+    jqButtonDisable('take_player_button');
   }
 
-  $('#toggle_ai_button').button('enable');
+  jqButtonEnable('toggle_ai_button');
 }
 
 /**
@@ -463,7 +509,17 @@ export function selectANation(): void {
  */
 export function selectNoNation(): void {
   setSelectedPlayer(-1);
-  try { $('#nations_button_div button').not('#game_scores_button').button('disable'); } catch (_e) { /* buttons may not be initialized yet */ }
+  try {
+    const container = document.getElementById('nations_button_div');
+    if (container) {
+      const buttons = container.querySelectorAll('button');
+      buttons.forEach(function (btn) {
+        if (btn.id !== 'game_scores_button') {
+          btn.disabled = true;
+        }
+      });
+    }
+  } catch (_e) { /* buttons may not be initialized yet */ }
 }
 
 /**
@@ -472,11 +528,12 @@ export function selectNoNation(): void {
  * Replaces nation_table_select_player() in nation.js.
  */
 export function nationTableSelectPlayer(player_no: number): void {
-  $('#players_tab a').click();
-  const row = $('#nation_table tr[data-plrid=' + player_no + ']');
-  if (row.length === 1) {
+  const playersTabLink = document.querySelector('#players_tab a') as HTMLElement | null;
+  if (playersTabLink) playersTabLink.click();
+  const row = document.querySelector('#nation_table tr[data-plrid="' + player_no + '"]') as HTMLElement | null;
+  if (row) {
     row.click();
-    row[0].scrollIntoView();
+    row.scrollIntoView();
   }
 }
 
@@ -568,12 +625,14 @@ export function centerOnPlayer(): void {
  * Replaces send_private_message() in nation.js.
  */
 export function sendPrivateMessage(other_player_name: string): void {
+  const inputEl = document.getElementById('private_message_text') as HTMLInputElement | null;
   const message =
-    other_player_name + ': ' + encode_message_text($('#private_message_text').val());
+    other_player_name + ': ' + encode_message_text(inputEl ? inputEl.value : '');
   const packet = { pid: packet_chat_msg_req, message };
   send_request(JSON.stringify(packet));
   setKeyboardInput(true);
-  $('#dialog').dialog('close');
+  const _$ = (window as any).$;
+  if (_$) _$('#dialog').dialog('close');
 }
 
 /**
@@ -589,24 +648,35 @@ export function showSendPrivateMessageDialog(): void {
   }
   const name: string = pplayer['name'];
   setKeyboardInput(false);
-  $('#dialog').remove();
-  $("<div id='dialog'></div>").appendTo('div#game_page');
+
+  const oldDialog = document.getElementById('dialog');
+  if (oldDialog) oldDialog.remove();
+
+  const gamePage = document.querySelector('div#game_page');
+  const dialogEl = document.createElement('div');
+  dialogEl.id = 'dialog';
+  if (gamePage) gamePage.appendChild(dialogEl);
+
   const intro_html =
     "Message: <input id='private_message_text' type='text' size='50' maxlength='80'>";
-  $('#dialog').html(intro_html);
-  $('#dialog').attr('title', 'Send private message to ' + name);
-  $('#dialog').dialog({
-    bgiframe: true,
-    modal: true,
-    width: is_small_screen() ? '80%' : '40%',
-    buttons: {
-      Send: function () {
-        sendPrivateMessage(name);
+  dialogEl.innerHTML = intro_html;
+  dialogEl.setAttribute('title', 'Send private message to ' + name);
+
+  const _$ = (window as any).$;
+  if (_$) {
+    _$('#dialog').dialog({
+      bgiframe: true,
+      modal: true,
+      width: is_small_screen() ? '80%' : '40%',
+      buttons: {
+        Send: function () {
+          sendPrivateMessage(name);
+        },
       },
-    },
-  });
-  $('#dialog').dialog('open');
-  $('#dialog').keyup(function (e: KeyboardEvent) {
+    });
+    _$('#dialog').dialog('open');
+  }
+  dialogEl.addEventListener('keyup', function (e: KeyboardEvent) {
     if (e.keyCode === 13) {
       sendPrivateMessage(name);
     }

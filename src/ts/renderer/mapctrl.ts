@@ -17,7 +17,6 @@
 
 ***********************************************************************/
 
-declare const $: any;
 import { store } from '../data/store';
 
 import { canvas_pos_to_tile, mapview } from './mapviewCommon';
@@ -59,15 +58,15 @@ export function setTouchStart(x: number, y: number): void { touch_start_x = x; t
   Init 2D mapctrl
 ****************************************************************************/
 export function mapctrl_init_2d(): void {
-  // Register keyboard and mouse listener using JQuery.
-  $("#canvas").mouseup(mapview_mouse_click);
-  $("#canvas").mousedown(mapview_mouse_down);
-  $(window).mousemove(mouse_moved_cb);
+  const canvas = document.getElementById('canvas')!;
+  canvas.addEventListener('mouseup', mapview_mouse_click);
+  canvas.addEventListener('mousedown', mapview_mouse_down);
+  window.addEventListener('mousemove', mouse_moved_cb);
 
   if (is_touch_device()) {
-    $('#canvas').bind('touchstart', mapview_touch_start);
-    $('#canvas').bind('touchend', mapview_touch_end);
-    $('#canvas').bind('touchmove', mapview_touch_move);
+    canvas.addEventListener('touchstart', mapview_touch_start);
+    canvas.addEventListener('touchend', mapview_touch_end);
+    canvas.addEventListener('touchmove', mapview_touch_move);
   }
 }
 
@@ -154,8 +153,10 @@ export function mapview_mouse_down(e: any): boolean | void {
 export function mapview_touch_start(e: any): void {
   e.preventDefault();
 
-  touch_start_x = e.originalEvent.touches[0].pageX - $('#canvas').position().left;
-  touch_start_y = e.originalEvent.touches[0].pageY - $('#canvas').position().top;
+  const canvasEl = document.getElementById('canvas')!;
+  const rect = canvasEl.getBoundingClientRect();
+  touch_start_x = e.touches[0].pageX - (rect.left + window.scrollX);
+  touch_start_y = e.touches[0].pageY - (rect.top + window.scrollY);
   const ptile = canvas_pos_to_tile(touch_start_x, touch_start_y);
   set_mouse_touch_started_on_unit(ptile);
 }
@@ -172,8 +173,10 @@ export function mapview_touch_end(e: any): void {
   This function is triggered on a touch move event on a touch device.
 ****************************************************************************/
 export function mapview_touch_move(e: any): void {
-  mouse_x = e.originalEvent.touches[0].pageX - $('#canvas').position().left;
-  mouse_y = e.originalEvent.touches[0].pageY - $('#canvas').position().top;
+  const canvasEl = document.getElementById('canvas')!;
+  const rect = canvasEl.getBoundingClientRect();
+  mouse_x = e.touches[0].pageX - (rect.left + window.scrollX);
+  mouse_y = e.touches[0].pageY - (rect.top + window.scrollY);
 
   const diff_x = (touch_start_x - mouse_x) * 2;
   const diff_y = (touch_start_y - mouse_y) * 2;
@@ -321,10 +324,12 @@ export function recenter_button_pressed(canvas_x: number, canvas_y: number): voi
         && sunit['owner'] == store.client.conn.playing.playerno) {
       /* the user right-clicked on own unit, show context menu instead of recenter. */
       if (current_focus.length <= 1) set_unit_focus(sunit);
-      $("#canvas").contextMenu(true);
-      $("#canvas").contextmenu();
+      const canvasEl = document.getElementById('canvas')!;
+      (canvasEl as any).contextMenu?.(true);
+      canvasEl.dispatchEvent(new Event('contextmenu'));
     } else {
-      $("#canvas").contextMenu(false);
+      const canvasEl = document.getElementById('canvas')!;
+      (canvasEl as any).contextMenu?.(false);
       /* FIXME: Some actions here will need to check can_client_issue_orders.
        * But all we can check is the lowest common requirement. */
       enable_mapview_slide(ptile);

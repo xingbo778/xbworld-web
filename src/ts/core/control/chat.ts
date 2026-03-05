@@ -17,8 +17,6 @@ import * as S from './controlState';
 const FC_DS_ALLIANCE = DiplState.DS_ALLIANCE;
 const FC_PLRF_AI = PlayerFlag.PLRF_AI;
 
-declare const $: any;
-
 import { store } from '../../data/store';
 import { getDiplstates } from '../../data/nation';
 
@@ -100,13 +98,15 @@ export function chat_context_set_next(recipients: any[]): void {
 }
 
 export function chat_context_dialog_show(recipients: any[]): void {
-  const dlg = $("#chat_context_dialog");
-  if (dlg.length > 0) {
-    dlg.dialog('close');
-    dlg.remove();
+  const existingDlg = document.getElementById('chat_context_dialog');
+  if (existingDlg) {
+    (window as any).$('#chat_context_dialog').dialog('close');
+    existingDlg.remove();
   }
-  $("<div id='chat_context_dialog' title='Choose chat recipient'></div>")
-    .appendTo("div#game_page");
+  const dlgDiv = document.createElement('div');
+  dlgDiv.id = 'chat_context_dialog';
+  dlgDiv.title = 'Choose chat recipient';
+  document.querySelector('div#game_page')!.appendChild(dlgDiv);
 
   let self = -1;
   if (store.client.conn.playing != null) {
@@ -132,7 +132,7 @@ export function chat_context_dialog_show(recipients: any[]): void {
     cell.appendChild(document.createTextNode(description));
     row.appendChild(cell);
     if (id != null) {
-      $(row).data("chatSendTo", id);
+      (row as any).dataset.chatSendTo = id;
     }
     tbody_el.appendChild(row);
     return ctx;
@@ -157,13 +157,18 @@ export function chat_context_dialog_show(recipients: any[]): void {
 
   const table = document.createElement('table');
   table.appendChild(tbody_el);
-  $(table).on('click', 'tbody tr', handle_chat_direction_chosen);
-  $(table).appendTo("#chat_context_dialog");
+  table.addEventListener('click', function(ev: Event) {
+    const row = (ev.target as HTMLElement).closest('tbody tr');
+    if (row) {
+      handle_chat_direction_chosen.call(row, ev);
+    }
+  });
+  document.getElementById('chat_context_dialog')!.appendChild(table);
 
-  $("#chat_context_dialog").dialog({
+  (window as any).$('#chat_context_dialog').dialog({
     bgiframe: true,
     modal: false,
-    maxHeight: 0.9 * $(window).height()
+    maxHeight: 0.9 * window.innerHeight
   }).dialogExtend({
     minimizable: true,
     closable: true,
@@ -173,12 +178,12 @@ export function chat_context_dialog_show(recipients: any[]): void {
     }
   });
 
-  $("#chat_context_dialog").dialog('open');
+  (window as any).$('#chat_context_dialog').dialog('open');
 }
 
 export function handle_chat_direction_chosen(this: any, ev: any): void {
-  const new_send_to = $(this).data("chatSendTo");
-  $("#chat_context_dialog").dialog('close');
+  const new_send_to = (this as HTMLElement).dataset.chatSendTo;
+  (window as any).$('#chat_context_dialog').dialog('close');
   if (new_send_to == null) {
     set_chat_direction(null);
   } else {
@@ -256,7 +261,7 @@ export function is_unprefixed_message(message: string | null): boolean {
 
 export function check_text_input(event: any, chatboxtextarea: any): boolean | undefined {
   if (event.keyCode == 13 && event.shiftKey == 0) {
-    let message = chatboxtextarea.val() as string;
+    let message = (chatboxtextarea as HTMLInputElement).value;
 
     if (S.chat_send_to != null && S.chat_send_to >= 0
       && is_unprefixed_message(message)) {
@@ -283,7 +288,7 @@ export function check_text_input(event: any, chatboxtextarea: any): boolean | un
       message = encode_message_text(message);
     }
 
-    chatboxtextarea.val('');
+    (chatboxtextarea as HTMLInputElement).value = '';
     if (!is_touch_device()) chatboxtextarea.focus();
     S.setKeyboardInput(true);
 
