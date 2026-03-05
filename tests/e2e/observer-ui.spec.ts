@@ -130,9 +130,8 @@ test.describe('Observer UI Elements', () => {
     await expect(page.locator('#game_unit_orders_default')).toHaveCount(0);
   });
 
-  test('map tab: unit info panel exists', async ({ page }) => {
-    await expect(page.locator('#game_unit_panel')).toBeAttached();
-    await expect(page.locator('#game_unit_info')).toBeAttached();
+  test('map tab: unit info panel removed in observer mode', async ({ page }) => {
+    await expect(page.locator('#game_unit_panel')).toHaveCount(0);
   });
 
   test('map tab: status panels exist', async ({ page }) => {
