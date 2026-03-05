@@ -20,7 +20,7 @@ import { DiplState, PlayerFlag, get_ai_level_text, get_diplstate_text, get_embas
 import { cityTile, cityOwnerPlayerId } from './city';
 import { swal } from '../components/Dialogs/SwalDialog';
 import { initTableSort } from '../utils/tableSort';
-import { clientIsObserver, canClientControl, clientState, C_S_OVER } from '../client/clientState';
+import { clientIsObserver, clientPlaying, canClientControl, clientState, C_S_OVER } from '../client/clientState';
 import { isLongturn } from '../client/clientCore';
 import { setDefaultMapviewActive } from '../client/clientMain';
 import { is_small_screen } from '../renderer/mapview';
@@ -132,12 +132,12 @@ export function colLove(pplayer: any): string {
   if (
     clientIsObserver() ||
     store.client?.conn?.playing == null ||
-    pplayer['playerno'] === store.client.conn.playing['playerno'] ||
+    pplayer['playerno'] === clientPlaying()['playerno'] ||
     pplayer['flags'].isSet(PlayerFlag.PLRF_AI) === false
   ) {
     return '-';
   } else {
-    return loveText(pplayer['love'][store.client.conn.playing['playerno']]);
+    return loveText(pplayer['love'][clientPlaying()['playerno']]);
   }
 }
 
@@ -162,7 +162,7 @@ export function updateNationScreen(): void {
     "<th class='nation_team'>Team</th><th>State</th></tr></thead><tbody class='nation_table_body'>";
 
   for (const player_id in store.players) {
-    const pplayer = store.players[player_id];
+    const pplayer: any = store.players[player_id];
     if (pplayer['nation'] === -1) continue;
     if (isLongturn() && pplayer['name'].indexOf('New Available Player') !== -1) continue;
     total_players++;
@@ -174,8 +174,8 @@ export function updateNationScreen(): void {
     let plr_class = '';
     if (
       !clientIsObserver() &&
-      store.client.conn.playing != null &&
-      Number(player_id) === store.client.conn.playing['playerno']
+      clientPlaying() != null &&
+      Number(player_id) === clientPlaying()['playerno']
     ) {
       plr_class = 'nation_row_self';
     }
@@ -218,9 +218,9 @@ export function updateNationScreen(): void {
 
     if (
       !clientIsObserver() &&
-      store.client.conn.playing != null &&
+      clientPlaying() != null &&
       diplstates[player_id as any] != null &&
-      Number(player_id) !== store.client.conn.playing['playerno']
+      Number(player_id) !== clientPlaying()['playerno']
     ) {
       nation_list_html += '<td>' + get_diplstate_text(diplstates[player_id as any]) + '</td>';
     } else {
@@ -229,15 +229,15 @@ export function updateNationScreen(): void {
 
     nation_list_html += '<td>' + get_embassy_text(player_id as any) + '</td>';
     nation_list_html += '<td>';
-    if (!clientIsObserver() && store.client.conn.playing != null) {
+    if (!clientIsObserver() && clientPlaying() != null) {
       if (
-        pplayer['gives_shared_vision'].isSet(store.client.conn.playing['playerno']) &&
-        store.client.conn.playing['gives_shared_vision'].isSet(Number(player_id))
+        pplayer['gives_shared_vision'].isSet(clientPlaying()['playerno']) &&
+        clientPlaying()['gives_shared_vision'].isSet(Number(player_id))
       ) {
         nation_list_html += 'Both ways';
-      } else if (pplayer['gives_shared_vision'].isSet(store.client.conn.playing['playerno'])) {
+      } else if (pplayer['gives_shared_vision'].isSet(clientPlaying()['playerno'])) {
         nation_list_html += 'To you';
-      } else if (store.client.conn.playing['gives_shared_vision'].isSet(Number(player_id))) {
+      } else if (clientPlaying()['gives_shared_vision'].isSet(Number(player_id))) {
         nation_list_html += 'To them';
       } else {
         nation_list_html += 'None';
@@ -320,8 +320,8 @@ export function updateNationScreen(): void {
   if (is_small_screen()) {
     const nationsEl = document.getElementById('nations');
     if (nationsEl) {
-      nationsEl.style.height = (mapview['height'] - 150) + 'px';
-      nationsEl.style.width = mapview['width'] + 'px';
+      nationsEl.style.height = ((mapview['height'] ?? 600) - 150) + 'px';
+      nationsEl.style.width = (mapview['width'] ?? 800) + 'px';
     }
   }
 
@@ -392,16 +392,16 @@ export function handleNationTableSelect(this: any, ev: Event): void {
 export function selectANation(): void {
   const diplstates = getDiplstates();
   const player_id = getSelectedPlayer();
-  const pplayer = store.players[getSelectedPlayer()];
+  const pplayer: any = store.players[getSelectedPlayer()];
   if (pplayer == null) return;
 
   const selected_myself =
-    store.client.conn.playing != null && player_id === store.client.conn.playing['playerno'];
+    clientPlaying() != null && player_id === clientPlaying()['playerno'];
   const both_alive_and_different =
-    store.client.conn.playing != null &&
-    player_id !== store.client.conn.playing['playerno'] &&
+    clientPlaying() != null &&
+    player_id !== clientPlaying()['playerno'] &&
     pplayer['is_alive'] &&
-    store.client.conn.playing['is_alive'];
+    clientPlaying()['is_alive'];
 
   if (
     pplayer['is_alive'] &&
@@ -444,7 +444,7 @@ export function selectANation(): void {
   if (
     !clientIsObserver() &&
     both_alive_and_different &&
-    pplayer['team'] !== store.client.conn.playing['team'] &&
+    pplayer['team'] !== clientPlaying()['team'] &&
     diplstates[player_id] != null &&
     diplstates[player_id] !== DiplState.DS_WAR &&
     diplstates[player_id] !== DiplState.DS_NO_CONTACT
@@ -469,8 +469,8 @@ export function selectANation(): void {
   if (
     canClientControl() &&
     both_alive_and_different &&
-    pplayer['team'] !== store.client.conn.playing['team'] &&
-    store.client.conn.playing['gives_shared_vision'].isSet(player_id)
+    pplayer['team'] !== clientPlaying()['team'] &&
+    clientPlaying()['gives_shared_vision'].isSet(player_id)
   ) {
     jqButtonEnable('withdraw_vision_button');
   } else {
@@ -558,7 +558,7 @@ export function withdrawVisionClicked(): void {
 /** Handles the "Meet" button click in the nation dialog. */
 export function nationMeetClicked(): void {
   if (getSelectedPlayer() === -1) return;
-  const pplayer = store.players[getSelectedPlayer()];
+  const pplayer: any = store.players[getSelectedPlayer()];
   if (pplayer == null) return;
   const packet = {
     pid: packet_diplomacy_init_meeting_req,

@@ -18,6 +18,16 @@
 ***********************************************************************/
 
 declare const $: any;
+
+/** Helper: get the playing player object (null-safe). */
+function playing(): any {
+  return store.client?.conn?.playing;
+}
+
+/** Helper: access <form name="rates"> from the DOM. */
+function ratesForm(): any {
+  return (document as any).rates;
+}
 const Slider = (window as any).Slider;
 import { swal } from '../components/Dialogs/SwalDialog';
 
@@ -85,17 +95,17 @@ export function show_tax_rates_dialog(): void {
 export function update_rates_dialog(): void {
   if (client_is_observer()) return;
 
-  maxrate = government_max_rate(store.client.conn.playing['government']);
+  maxrate = government_max_rate(playing()['government']);
 
   $("#slider-tax").html("<input class='slider-input' id='slider-tax-input' name='slider-tax-input'/>");
   $("#slider-lux").html("<input class='slider-input' id='slider-lux-input' name='slider-lux-input'/>");
   $("#slider-sci").html("<input class='slider-input' id='slider-sci-input' name='slider-sci-input'/>");
 
-  create_rates_dialog(store.client.conn.playing['tax'],
-                      store.client.conn.playing['luxury'],
-                      store.client.conn.playing['science'], maxrate);
+  create_rates_dialog(playing()['tax'],
+                      playing()['luxury'],
+                      playing()['science'], maxrate);
 
-  const govt = store.governments[store.client.conn.playing['government']];
+  const govt = store.governments[playing()['government']];
 
   $("#max_tax_rate").html("<i>" + govt['name'] + " max rate: " + maxrate + "</i>");
   update_net_income();
@@ -103,9 +113,9 @@ export function update_rates_dialog(): void {
 }
 
 export function update_net_income(): void {
-  let net_income: string | number = store.client.conn.playing['expected_income'];
-  if (store.client.conn.playing['expected_income'] > 0) {
-    net_income = "+" + store.client.conn.playing['expected_income'];
+  let net_income: string | number = playing()['expected_income'];
+  if (playing()['expected_income'] > 0) {
+    net_income = "+" + playing()['expected_income'];
   }
   $("#income_info").html(net_income);
 }
@@ -170,8 +180,8 @@ export function update_tax_rates(): void {
   if (s_lux.getValue() % 10 !== 0) s_lux.setValue(s_lux.getValue() - (s_lux.getValue() % 10));
   if (s_sci.getValue() % 10 !== 0) s_sci.setValue(s_sci.getValue() - (s_sci.getValue() % 10));
 
-  const lock_lux: boolean = document.rates.lock[1].checked;
-  const lock_sci: boolean = document.rates.lock[2].checked;
+  const lock_lux: boolean = ratesForm().lock[1].checked;
+  const lock_sci: boolean = ratesForm().lock[2].checked;
 
   tax = s_tax.getValue();
   lux = s_lux.getValue();
@@ -210,8 +220,8 @@ export function update_lux_rates(): void {
   if (s_lux.getValue() % 10 !== 0) s_lux.setValue(s_lux.getValue() - (s_lux.getValue() % 10));
   if (s_sci.getValue() % 10 !== 0) s_sci.setValue(s_sci.getValue() - (s_sci.getValue() % 10));
 
-  const lock_tax: boolean = document.rates.lock[0].checked;
-  const lock_sci: boolean = document.rates.lock[2].checked;
+  const lock_tax: boolean = ratesForm().lock[0].checked;
+  const lock_sci: boolean = ratesForm().lock[2].checked;
 
   tax = s_tax.getValue();
   lux = s_lux.getValue();
@@ -250,8 +260,8 @@ export function update_sci_rates(): void {
   if (s_lux.getValue() % 10 !== 0) s_lux.setValue(s_lux.getValue() - (s_lux.getValue() % 10));
   if (s_sci.getValue() % 10 !== 0) s_sci.setValue(s_sci.getValue() - (s_sci.getValue() % 10));
 
-  const lock_tax: boolean = document.rates.lock[0].checked;
-  const lock_lux: boolean = document.rates.lock[1].checked;
+  const lock_tax: boolean = ratesForm().lock[0].checked;
+  const lock_lux: boolean = ratesForm().lock[1].checked;
 
   tax = s_tax.getValue();
   lux = s_lux.getValue();

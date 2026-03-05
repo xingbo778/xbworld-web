@@ -68,7 +68,7 @@ export function isTechReqForGoal(checkTechId: number, goalTechId: number): boole
   if (checkTechId === goalTechId) return true;
   if (goalTechId === 0 || checkTechId === 0) return false;
 
-  const goalTech = store.techs[goalTechId];
+  const goalTech: any = store.techs[goalTechId];
   if (goalTech == null) return false;
 
   for (let i = 0; i < goalTech['research_reqs'].length; i++) {
@@ -91,7 +91,7 @@ export function isTechReqForTech(checkTechId: number, nextTechId: number): boole
   if (checkTechId === nextTechId) return false;
   if (nextTechId === 0 || checkTechId === 0) return false;
 
-  const nextTech = store.techs[nextTechId];
+  const nextTech: any = store.techs[nextTechId];
   if (nextTech == null) return false;
 
   for (let i = 0; i < nextTech['research_reqs'].length; i++) {

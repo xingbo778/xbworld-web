@@ -229,6 +229,7 @@ export function handle_ruleset_effect(packet: any): void {
 }
 
 export function handle_new_year(packet: any): void {
+  if (!store.gameInfo) return;
   store.gameInfo['year'] = packet['year'];
   store.gameInfo['fragments'] = packet['fragments'];
   store.gameInfo['turn'] = packet['turn'];
@@ -338,6 +339,7 @@ export function handle_ruleset_impr_flag(_packet: any): void { /* TODO */ }
 export function handle_ruleset_government_ruler_title(_packet: any): void { /* TODO */ }
 
 export function handle_ruleset_base(packet: any): void {
+  if (!store.rulesControl) return;
   for (let i = 0; i < store.rulesControl['num_extra_types']; i++) {
     if (isExtraCausedBy(store.extras[i], EC_BASE)
         && store.extras[i]['base'] == null) {
@@ -351,6 +353,7 @@ export function handle_ruleset_base(packet: any): void {
 }
 
 export function handle_ruleset_road(packet: any): void {
+  if (!store.rulesControl) return;
   for (let i = 0; i < store.rulesControl['num_extra_types']; i++) {
     if (isExtraCausedBy(store.extras[i], EC_ROAD)
         && store.extras[i]['road'] == null) {
@@ -550,7 +553,7 @@ export function handle_city_info(packet: any): void {
     const pcity = packet;
     store.cities[packet['id']] = packet;
     if (C_S_RUNNING === clientState() && !(window as any).observing && (window as any).benchmark_start === 0
-        && !clientIsObserver() && packet['owner'] === store.client.conn.playing.playerno) {
+        && !clientIsObserver() && packet['owner'] === store.client.conn.playing?.playerno) {
       show_city_dialog_by_id(packet['id']);
     }
   } else {

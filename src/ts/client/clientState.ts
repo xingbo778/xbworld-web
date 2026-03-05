@@ -74,6 +74,15 @@ export function clientIsObserver(): boolean {
   return c.conn.playing == null || c.conn.observer || obs;
 }
 
+/**
+ * Returns the current playing player object, or null if not playing.
+ * Typed as `any` to avoid TS2571 "Object is of type unknown" in callers.
+ */
+export function clientPlaying(): any {
+  const c = (window as any).client;
+  return c?.conn?.playing ?? null;
+}
+
 // ---------------------------------------------------------------------------
 // Expose to legacy JS
 // ---------------------------------------------------------------------------

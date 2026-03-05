@@ -27,6 +27,10 @@ export interface ClientState {
   conn: {
     id: number;
     playing: Player | null;
+    established?: boolean;
+    player_num?: number;
+    observer?: boolean;
+    [key: string]: unknown;
   };
 }
 

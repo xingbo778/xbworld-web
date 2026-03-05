@@ -12,7 +12,7 @@ import { mapview_put_tile } from '../renderer/mapview';
 import { send_request as sendRequest } from '../net/connection';
 import { packet_player_research, packet_player_tech_goal } from '../net/packetConstants';
 import { clientState as client_state, C_S_RUNNING } from '../client/clientState';
-import { clientIsObserver as client_is_observer } from '../client/clientState';
+import { clientIsObserver as client_is_observer, clientPlaying } from '../client/clientState';
 import { isSmallScreen as is_small_screen } from '../utils/helpers';
 import { move_points_text } from '../data/unit';
 import { get_units_from_tech } from '../data/unittype';
@@ -205,7 +205,7 @@ export function update_tech_tree(): void {
     const y: number = reqtree[tech_id + '']['y'] + 2;
 
     /* KNOWN TECHNOLOGY */
-    if (player_invention_state(store.client.conn.playing, ptech['id']) == TECH_KNOWN) {
+    if (player_invention_state(clientPlaying(), ptech['id']) == TECH_KNOWN) {
 
       const tag = tileset_tech_graphic_tag(ptech);
       tech_canvas_ctx.fillStyle = 'rgb(255, 255, 255)';
@@ -222,9 +222,9 @@ export function update_tech_tree(): void {
 
 
       /* TECH WITH KNOWN PREREQS. */
-    } else if (player_invention_state(store.client.conn.playing, ptech['id']) == TECH_PREREQS_KNOWN) {
-      let bgcolor: string = (store.client.conn.playing != null && is_tech_req_for_goal(ptech['id'], store.client.conn.playing['tech_goal'])) ? "rgb(131, 170, 101)" : "rgb(91, 130, 61)";
-      if (store.client.conn.playing['researching'] == ptech['id']) {
+    } else if (player_invention_state(clientPlaying(), ptech['id']) == TECH_PREREQS_KNOWN) {
+      let bgcolor: string = (clientPlaying() != null && is_tech_req_for_goal(ptech['id'], clientPlaying()['tech_goal'])) ? "rgb(131, 170, 101)" : "rgb(91, 130, 61)";
+      if (clientPlaying()['researching'] == ptech['id']) {
         bgcolor = "rgb(161, 200, 131)";
         tech_canvas_ctx.lineWidth = 6;
       }
@@ -238,7 +238,7 @@ export function update_tech_tree(): void {
       tech_canvas_ctx.lineWidth = 2;
       mapview_put_tile(tech_canvas_ctx, tag ?? '', x + 1, y);
 
-      if (store.client.conn.playing['researching'] == ptech['id']) {
+      if (clientPlaying()['researching'] == ptech['id']) {
         tech_canvas_ctx.fillStyle = 'rgb(0, 0, 0)';
         tech_canvas_ctx.font = "Bold " + tech_canvas_text_font;
       } else {
@@ -248,9 +248,9 @@ export function update_tech_tree(): void {
       tech_canvas_ctx.fillText(ptech['name'], x + 51, y + 16);
 
       /* UNKNOWN TECHNOLOGY. */
-    } else if (player_invention_state(store.client.conn.playing, ptech['id']) == TECH_UNKNOWN) {
-      let bgcolor: string = (store.client.conn.playing != null && is_tech_req_for_goal(ptech['id'], store.client.conn.playing['tech_goal'])) ? "rgb(111, 141, 180)" : "rgb(61, 95, 130)";
-      if (store.client.conn.playing['tech_goal'] == ptech['id']) {
+    } else if (player_invention_state(clientPlaying(), ptech['id']) == TECH_UNKNOWN) {
+      let bgcolor: string = (clientPlaying() != null && is_tech_req_for_goal(ptech['id'], clientPlaying()['tech_goal'])) ? "rgb(111, 141, 180)" : "rgb(61, 95, 130)";
+      if (clientPlaying()['tech_goal'] == ptech['id']) {
         tech_canvas_ctx.lineWidth = 6;
       }
 
@@ -262,7 +262,7 @@ export function update_tech_tree(): void {
       tech_canvas_ctx.lineWidth = 2;
       mapview_put_tile(tech_canvas_ctx, tag ?? '', x + 1, y);
 
-      if (store.client.conn.playing['tech_goal'] == ptech['id']) {
+      if (clientPlaying()['tech_goal'] == ptech['id']) {
         tech_canvas_ctx.fillStyle = 'rgb(0, 0, 0)';
         tech_canvas_ctx.font = "Bold " + tech_canvas_text_font;
       } else {
@@ -297,7 +297,7 @@ export function update_tech_tree(): void {
 
 export function update_tech_screen(): void {
 
-  if (client_is_observer() || store.client.conn.playing == null) {
+  if (client_is_observer() || clientPlaying() == null) {
     show_observer_tech_dialog();
     return;
   }
@@ -307,30 +307,30 @@ export function update_tech_screen(): void {
 
 
   let research_goal_text: string = "No research target selected.<br>Please select a technology now";
-  if (techs[store.client.conn.playing['researching']] != null) {
-    research_goal_text = "Researching: " + techs[store.client.conn.playing['researching']]['name'];
+  if (techs[clientPlaying()['researching']] != null) {
+    research_goal_text = "Researching: " + techs[clientPlaying()['researching']]['name'];
   }
-  if (techs[store.client.conn.playing['tech_goal']] != null) {
+  if (techs[clientPlaying()['tech_goal']] != null) {
     research_goal_text = research_goal_text + "<br>Research Goal: "
-      + techs[store.client.conn.playing['tech_goal']]['name'];
+      + techs[clientPlaying()['tech_goal']]['name'];
   }
   $("#tech_goal_box").html(research_goal_text);
 
   $("#tech_progress_text").html("Research progress: "
-    + store.client.conn.playing['bulbs_researched']
+    + clientPlaying()['bulbs_researched']
     + " / "
-    + store.client.conn.playing['researching_cost']);
+    + clientPlaying()['researching_cost']);
 
-  const pct_progress: number = 100 * (store.client.conn.playing['bulbs_researched']
-    / store.client.conn.playing['researching_cost']);
+  const pct_progress: number = 100 * (clientPlaying()['bulbs_researched']
+    / clientPlaying()['researching_cost']);
 
   $("#progress_fg").css("width", pct_progress + "%");
 
   if (clicked_tech_id != null) {
     $("#tech_result_text").html("<span id='tech_advance_helptext'>" + get_advances_text(clicked_tech_id) + "</span>");
     $("#tech_advance_helptext").tooltip({ disabled: false });
-  } else if (techs[store.client.conn.playing['researching']] != null) {
-    $("#tech_result_text").html("<span id='tech_advance_helptext'>" + get_advances_text(store.client.conn.playing['researching']) + "</span>");
+  } else if (techs[clientPlaying()['researching']] != null) {
+    $("#tech_result_text").html("<span id='tech_advance_helptext'>" + get_advances_text(clientPlaying()['researching']) + "</span>");
     $("#tech_advance_helptext").tooltip({ disabled: false });
   }
 
@@ -431,9 +431,9 @@ export function tech_mapview_mouse_click(e: MouseEvent): void {
 
       if (tech_mouse_x > x && tech_mouse_x < x + tech_item_width
         && tech_mouse_y > y && tech_mouse_y < y + tech_item_height) {
-        if (player_invention_state(store.client.conn.playing, ptech['id']) == TECH_PREREQS_KNOWN) {
+        if (player_invention_state(clientPlaying(), ptech['id']) == TECH_PREREQS_KNOWN) {
           send_player_research(ptech['id']);
-        } else if (player_invention_state(store.client.conn.playing, ptech['id']) == TECH_UNKNOWN) {
+        } else if (player_invention_state(clientPlaying(), ptech['id']) == TECH_UNKNOWN) {
           send_player_tech_goal(ptech['id']);
         }
         clicked_tech_id = ptech['id'];
@@ -491,7 +491,7 @@ export function show_tech_gained_dialog(tech_gained_id: number): void {
   if (client_is_observer() || C_S_RUNNING != client_state()) return;
 
   $("#tech_tab_item").css("color", "#aa0000");
-  const pplayer = store.client.conn.playing;
+  const pplayer = clientPlaying();
   const tech = techs[tech_gained_id];
   if (tech == null) return;
 
@@ -503,7 +503,7 @@ export function show_tech_gained_dialog(tech_gained_id: number): void {
   for (let next_tech_id in techs) {
     const ntech = techs[next_tech_id];
     if (!(next_tech_id + '' in reqtree)) continue;
-    if (player_invention_state(store.client.conn.playing, ntech['id']) == TECH_PREREQS_KNOWN) {
+    if (player_invention_state(clientPlaying(), ntech['id']) == TECH_PREREQS_KNOWN) {
       tech_choices.push(ntech);
     }
   }
@@ -667,9 +667,9 @@ export function update_tech_dialog_cursor(): void {
 
     if (tech_mouse_x > x && tech_mouse_x < x + tech_item_width
       && tech_mouse_y > y && tech_mouse_y < y + tech_item_height) {
-      if (player_invention_state(store.client.conn.playing, ptech['id']) == TECH_PREREQS_KNOWN) {
+      if (player_invention_state(clientPlaying(), ptech['id']) == TECH_PREREQS_KNOWN) {
         tech_canvas.style.cursor = "pointer";
-      } else if (player_invention_state(store.client.conn.playing, ptech['id']) == TECH_UNKNOWN) {
+      } else if (player_invention_state(clientPlaying(), ptech['id']) == TECH_UNKNOWN) {
         tech_canvas.style.cursor = "pointer";
       } else {
         tech_canvas.style.cursor = "not-allowed";

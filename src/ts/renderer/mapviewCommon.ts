@@ -46,13 +46,14 @@ import { tileset_tile_width, tileset_tile_height } from './tilesetConfig';
 
 
 export let mapview: {
-  width?: number;
-  height?: number;
-  gui_x0?: number;
-  gui_y0?: number;
-  store_width?: number;
-  store_height?: number;
-} = {};
+  width: number;
+  height: number;
+  gui_x0: number;
+  gui_y0: number;
+  store_width: number;
+  store_height: number;
+  [key: string]: unknown;
+} = { width: 0, height: 0, gui_x0: 0, gui_y0: 0, store_width: 0, store_height: 0 };
 export let mapdeco_highlight_table: { [key: string]: any } = {};
 export let mapdeco_crosshair_table: { [key: string]: any } = {};
 export let last_redraw_time: number = 0;
