@@ -144,23 +144,20 @@
 <script src="/javascript/libs/jquery.min.js"></script>
 <script src="/javascript/libs/jquery-ui.min.js"></script>
 <!-- jQuery plugins -->
-<script src="/javascript/libs/jquery.blockUI.js"></script>
+<!-- jquery.blockUI.js removed: replaced by vanilla blockUI in utils/dom.ts -->
 <script src="/javascript/libs/jquery.contextMenu.js"></script>
-<script src="/javascript/libs/jquery.dialogextend.js"></script>
-<script src="/javascript/libs/jquery.mCustomScrollbar.js"></script>
+<!-- jquery.dialogextend.js removed: zero references in codebase -->
+<!-- jquery.mCustomScrollbar.js removed: replaced by tokens.css -->
 <script src="/javascript/libs/jquery.tablesorter.min.js"></script>
-<!-- Previously bundled in webclient.min.js, now loaded separately -->
 <!-- spectrum.js removed: color picker not used (77 KB) -->
 <!-- raphael-min.js and morris.min.js removed: zero references in codebase -->
-<script src="/javascript/libs/slider.js"></script>
-<script src="/javascript/libs/range.js"></script>
-<script src="/javascript/libs/handlebars.runtime.min.js"></script>
-<script src="/javascript/hbs-templates.js"></script>
+<!-- slider.js + range.js removed: only used in rates.ts (unreachable in observer mode) -->
+<!-- handlebars + hbs-templates removed: only used in cityDialog/diplomacy (unreachable in observer mode) -->
 <!-- Standalone utilities -->
 <script src="/javascript/libs/sweetalert.min.js"></script>
 <script src="/javascript/libs/simpleStorage.min.js"></script>
 <script src="/javascript/libs/seedrandom.min.js"></script>
-<script src="/javascript/libs/sha512.js"></script>
+<!-- sha512.js removed: not used in TS bundle -->
 <!-- bigscreen.min.js removed: zero references in codebase -->
 <!-- platform.js removed: replaced with navigator.userAgent checks (41 KB saved) -->
 <!-- hammer.min.js removed: zero code references -->

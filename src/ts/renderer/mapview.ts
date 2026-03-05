@@ -13,6 +13,7 @@ import { overview_active } from '../core/overview';
 import { chatbox_active } from '../core/messages';
 import { setupWindowSize } from '../client/clientMain';
 import { getTilesetFileExtension } from '../utils/helpers';
+import { blockUI, unblockUI } from '../utils/dom';
 import { VUT_UTYPE } from '../data/fcTypes';
 
 declare const $: any; // jQuery
@@ -142,10 +143,8 @@ export function is_small_screen(): boolean {
   This will load the tileset, blocking the UI while loading.
 **************************************************************************/
 export function init_sprites(): void {
-  $.blockUI({
-    message: "<h1>Freeciv-web is loading. Please wait..."
-      + "<br><center><img src='/images/loading.gif'></center></h1>"
-  });
+  blockUI("<h1>Freeciv-web is loading. Please wait..."
+      + "<br><center><img src='/images/loading.gif'></center></h1>");
 
   if (loaded_images != tileset_image_count) {
     for (let i = 0; i < tileset_image_count; i++) {
@@ -157,7 +156,7 @@ export function init_sprites(): void {
     }
   } else {
     // already loaded
-    $.unblockUI();
+    unblockUI();
   }
 
 }
@@ -170,7 +169,7 @@ export function preload_check(): void {
 
   if (loaded_images == tileset_image_count) {
     init_cache_sprites();
-    $.unblockUI();
+    unblockUI();
   }
 }
 

@@ -26,6 +26,8 @@ import { unitpanel_active, setAllowRightClick, setKeyboardInput } from '../core/
 import { is_small_screen } from '../renderer/mapview';
 import { init_overview, overview_active, overview_current_state } from '../core/overview';
 import { mark_all_dirty, mapview } from '../renderer/mapviewCommon';
+import { unblockUI } from '../utils/dom';
+import { showMessageDialog } from '../components/Dialogs/MessageDialog';
 
 const _w = window as any;
 
@@ -54,13 +56,11 @@ export function setClientState(newstate: number): void {
   if (_w.civclient_state === newstate) return;
   _w.civclient_state = newstate;
 
-  const $ = _w.$;
-
   switch (newstate) {
     case C_S_RUNNING:
       try {
         clear_chatbox();
-        if (typeof $.unblockUI === 'function') $.unblockUI();
+        unblockUI();
         showNewGameMessage();
       } catch (e) {
         console.error('[set_client_state] Error in pre-page setup:', e);
@@ -69,7 +69,7 @@ export function setClientState(newstate: number): void {
       setupWindowSize();
       if (typeof _w.update_metamessage_on_gamestart === 'function') _w.update_metamessage_on_gamestart();
       // remove context menu from pregame
-      if ($) $('.context-menu-root').remove();
+      document.querySelectorAll('.context-menu-root').forEach(el => el.remove());
       // Always observer mode — center on a city at game start
       center_on_any_city();
       advance_unit_focus();
@@ -97,9 +97,8 @@ export function setClientState(newstate: number): void {
  * Refreshes the size of UI elements based on new window and screen size.
  */
 export function setupWindowSize(): void {
-  const $ = _w.$;
-  const winWidth  = $(window).width()  as number;
-  const winHeight = $(window).height() as number;
+  const winWidth  = window.innerWidth;
+  const winHeight = window.innerHeight;
   const new_mapview_width  = winWidth  - (_w.width_offset  as number);
   const new_mapview_height = winHeight - (_w.height_offset as number);
 
@@ -118,35 +117,45 @@ export function setupWindowSize(): void {
     if (_w.buffer_canvas_ctx)  _w.buffer_canvas_ctx.font  = _w.canvas_text_font;
   }
 
-  $('#pregame_message_area').height(new_mapview_height - 80 - $('#pregame_game_info').outerHeight());
-  $('#pregame_player_list').height(new_mapview_height - 80);
-  $('#nations').height(new_mapview_height - 100);
-  $('#nations').width(new_mapview_width);
-  $('#tabs').css('height', $(window).height());
-  $('#tabs-map').height('auto');
-  $('#city_viewport').height(new_mapview_height - 20);
-  $('#opt_tab').show();
-  $('#players_tab').show();
-  $('#cities_tab').show();
-  $('#freeciv_logo').show();
-  $('#tabs-hel').hide();
+  const _el = (id: string) => document.getElementById(id);
+  const _setH = (id: string, h: number | string) => { const el = _el(id); if (el) el.style.height = typeof h === 'number' ? h + 'px' : h; };
+  const _setW = (id: string, w: number | string) => { const el = _el(id); if (el) el.style.width = typeof w === 'number' ? w + 'px' : w; };
+  const _show = (id: string) => { const el = _el(id); if (el) el.style.display = ''; };
+  const _hide = (id: string) => { const el = _el(id); if (el) el.style.display = 'none'; };
+
+  _setH('nations', new_mapview_height - 100);
+  _setW('nations', new_mapview_width);
+  const tabs = _el('tabs');
+  if (tabs) tabs.style.height = winHeight + 'px';
+  _setH('tabs-map', 'auto');
+  _setH('city_viewport', new_mapview_height - 20);
+  _show('opt_tab');
+  _show('players_tab');
+  _show('freeciv_logo');
+  _hide('tabs-hel');
 
   if (is_small_screen()) {
-    $('#map_tab').children().html("<i class='fa fa-globe' aria-hidden='true'></i>");
-    $('#opt_tab').children().html("<i class='fa fa-cogs' aria-hidden='true'></i>");
-    $('#players_tab').children().html("<i class='fa fa-flag' aria-hidden='true'></i>");
-    $('#cities_tab').children().html("<i class='fa fa-fort-awesome' aria-hidden='true'></i>");
-    $('#tech_tab').children().html("<i class='fa fa-flask' aria-hidden='true'></i>");
-    $('#civ_tab').children().html("<i class='fa fa-university' aria-hidden='true'></i>");
-    $('#hel_tab').children().html("<i class='fa fa-question-circle-o' aria-hidden='true'></i>");
-    $('.ui-tabs-anchor').css('padding', '7px');
-    $('.overview_dialog').hide();
-    $('.ui-dialog-titlebar').hide();
-    $('#freeciv_logo').hide();
+    const setTabIcon = (id: string, icon: string) => {
+      const el = _el(id);
+      if (el) {
+        const a = el.querySelector('a');
+        if (a) a.innerHTML = `<i class='fa fa-${icon}' aria-hidden='true'></i>`;
+      }
+    };
+    setTabIcon('map_tab', 'globe');
+    setTabIcon('opt_tab', 'cogs');
+    setTabIcon('players_tab', 'flag');
+    setTabIcon('tech_tab', 'flask');
+    setTabIcon('hel_tab', 'question-circle-o');
+    document.querySelectorAll('.ui-tabs-anchor').forEach((el: any) => el.style.padding = '7px');
+    document.querySelectorAll('.overview_dialog').forEach((el: any) => el.style.display = 'none');
+    document.querySelectorAll('.ui-dialog-titlebar').forEach((el: any) => el.style.display = 'none');
+    _hide('freeciv_logo');
     _w.overview_active = false;
-    if ($('#game_unit_orders_default').length > 0) $('#game_unit_orders_default').remove();
-    if ($('#game_unit_orders_settlers').length > 0) $('#game_unit_orders_settlers').remove();
-    $('#game_status_panel_bottom').css('font-size', '0.8em');
+    _el('game_unit_orders_default')?.remove();
+    _el('game_unit_orders_settlers')?.remove();
+    const statusBottom = _el('game_status_panel_bottom');
+    if (statusBottom) statusBottom.style.fontSize = '0.8em';
   }
 
   if (overview_active) init_overview();
@@ -175,33 +184,15 @@ export function showNewGameMessage(): void {
  * Shows the endgame dialog with final scores.
  */
 export function showEndgameDialog(): void {
-  const $ = _w.$;
   const title = 'Final Report: The Greatest Civilizations in the world!';
-  let message = "<p id='hof_msg'></p>";
+  let message = '';
   for (let i = 0; i < _w.endgame_player_info.length; i++) {
     const pplayer = store.players[_w.endgame_player_info[i]['player_id']];
-    const nation_adj = store.nations[pplayer['nation']]['adjective'];
+    const nation_adj = store.nations[pplayer['nation']]?.['adjective'] ?? 'Unknown';
     message += (i + 1) + ': The ' + nation_adj + ' ruler ' + pplayer['name'] +
       ' scored ' + _w.endgame_player_info[i]['score'] + ' points' + '<br>';
   }
-  $('#dialog').remove();
-  $("<div id='dialog'></div>").appendTo('div#game_page');
-  $('#dialog').html(message);
-  $('#dialog').attr('title', title);
-  $('#dialog').dialog({
-    bgiframe: true,
-    modal: true,
-    width: is_small_screen() ? '90%' : '50%',
-    buttons: {
-      Ok: function () {
-        $('#dialog').dialog('close');
-        $('#game_text_input').blur();
-      }
-    }
-  });
-  $('#dialog').dialog('open');
-  $('#game_text_input').blur();
-  $('#dialog').css('max-height', '500px');
+  showMessageDialog(title, message);
 }
 
 // ---------------------------------------------------------------------------
@@ -212,17 +203,18 @@ export function showEndgameDialog(): void {
  * Resets the UI to the default map view state.
  */
 export function setDefaultMapviewActive(): void {
-  const $ = _w.$;
-
   if (_w.renderer === RENDERER_2DCANVAS && _w.mapview_canvas) {
     _w.mapview_canvas_ctx = _w.mapview_canvas.getContext('2d');
     if (_w.mapview_canvas_ctx) _w.mapview_canvas_ctx.font = _w.canvas_text_font;
   }
 
-  const active_tab = $('#tabs').tabs('option', 'active');
-  if (active_tab === 4) {
-    // cities dialog is active — don't switch away
-    return;
+  // If jQuery tabs are available, check active tab and switch to map
+  const $ = _w.$;
+  if ($) {
+    try {
+      const active_tab = $('#tabs').tabs('option', 'active');
+      if (active_tab === 4) return; // cities dialog active — don't switch
+    } catch (_) { /* tabs not initialized */ }
   }
 
   if (unitpanel_active) {
@@ -230,31 +222,27 @@ export function setDefaultMapviewActive(): void {
   }
 
   if (chatbox_active) {
-    $('#game_chatbox_panel').parent().show();
-    if (current_message_dialog_state === 'minimized') {
-      $('#game_chatbox_panel').dialogExtend('minimize');
-    }
+    const chatPanel = document.getElementById('game_chatbox_panel');
+    if (chatPanel?.parentElement) chatPanel.parentElement.style.display = '';
   }
 
-  $('#tabs').tabs('option', 'active', 0);
-  $('#tabs-map').height('auto');
-  _w.tech_dialog_active   = false;
+  // Switch to map tab
+  if ($) {
+    try { $('#tabs').tabs('option', 'active', 0); } catch (_) { /* */ }
+  }
+  const tabsMap = document.getElementById('tabs-map');
+  if (tabsMap) tabsMap.style.height = 'auto';
+  _w.tech_dialog_active = false;
   setAllowRightClick(false);
   setKeyboardInput(true);
 
-  $('#freeciv_custom_scrollbar_div').mCustomScrollbar('scrollTo', 'bottom', { scrollInertia: 0 });
+  // Scroll chat to bottom
+  const scrollDiv = document.getElementById('freeciv_custom_scrollbar_div');
+  if (scrollDiv) scrollDiv.scrollTop = scrollDiv.scrollHeight;
 
   if (!is_small_screen()) {
-    $('#game_overview_panel').parent().show();
-    $('.overview_dialog').position({
-      my: 'left bottom',
-      at: 'left bottom',
-      of: window,
-      within: $('#game_page')
-    });
-    if (overview_current_state === 'minimized') {
-      $('#game_overview_panel').dialogExtend('minimize');
-    }
+    const overviewPanel = document.getElementById('game_overview_panel');
+    if (overviewPanel?.parentElement) overviewPanel.parentElement.style.display = '';
   }
 
   mark_all_dirty();

@@ -3,6 +3,7 @@ import { PillageDialog } from './Dialogs/PillageDialog';
 import { MessageDialog } from './Dialogs/MessageDialog';
 import { AuthDialog } from './Dialogs/AuthDialog';
 import { IntroDialog } from './Dialogs/IntroDialog';
+import { IntelDialog } from './Dialogs/IntelDialog';
 
 function App() {
   return (
@@ -11,6 +12,7 @@ function App() {
       <MessageDialog />
       <AuthDialog />
       <IntroDialog />
+      <IntelDialog />
     </div>
   );
 }

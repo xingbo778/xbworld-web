@@ -678,8 +678,11 @@ export function update_tech_dialog_cursor(): void {
 }
 
 export function show_observer_tech_dialog(): void {
-  $("#tech_info_box").hide();
-  $("#tech_canvas").hide();
+  const techInfoBox = document.getElementById('tech_info_box');
+  const techCanvas = document.getElementById('tech_canvas');
+  const technologies = document.getElementById('technologies');
+  if (techInfoBox) techInfoBox.style.display = 'none';
+  if (techCanvas) techCanvas.style.display = 'none';
   let msg: string = "<h2>Research</h2>";
   for (let player_id in store.players) {
     const pplayer = store.players[player_id];
@@ -692,12 +695,15 @@ export function show_observer_tech_dialog(): void {
       msg += pname + ": " + techs[researching]['name'] + "<br>";
     }
   }
-  $("#technologies").html(msg);
-  $("#technologies").css("color", "black");
+  if (technologies) {
+    technologies.innerHTML = msg;
+    technologies.style.color = 'black';
+  }
 }
 
 export function update_bulbs_output_info(): void {
   const cbo = get_current_bulbs_output();
-  $('#bulbs_output').html(get_current_bulbs_output_text(cbo));
+  const el = document.getElementById('bulbs_output');
+  if (el) el.innerHTML = get_current_bulbs_output_text(cbo);
   update_net_bulbs(cbo.self_bulbs - cbo.self_upkeep);
 }

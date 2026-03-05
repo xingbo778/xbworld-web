@@ -15,9 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-***********************************************************************/
-
-declare const $: any;
+**********************************************************************/
 
 import { store } from '../data/store';
 import { mapPosToTile } from '../data/map';
@@ -69,7 +67,7 @@ export let overview_current_state: any = null;
 
 
 /****************************************************************************
-  Initilaize the overview w.map.
+  Initialize the overview map.
 ****************************************************************************/
 export function init_overview(): void {
   while (min_overview_width > OVERVIEW_TILE_SIZE * (store.mapInfo as any)['xsize']) {
@@ -78,47 +76,11 @@ export function init_overview(): void {
 
   overview_active = true;
 
-  $("#game_overview_panel").attr("title", "World map");
-  $("#game_overview_panel").dialog({
-    bgiframe: true,
-    modal: false,
-    appendTo: '#tabs-map',
-    resizable: false,
-    closeOnEscape: false,
-    dialogClass: 'overview_dialog no-close',
-    autoResize:true,
-    width: "auto",
-    close: function(event: any, ui: any) { overview_active = false;}
-  }).dialogExtend({
-    "minimizable" : true,
-    "maximizable" : true,
-    "closable" : false,
-    "minimize" : function(evt: any, dlg: any){
-      overview_current_state = $("#game_overview_panel").dialogExtend("state");
-    },
-    "maximize" : function(evt: any, dlg: any){
-      overview_current_state = $("#game_overview_panel").dialogExtend("state");
-      $('#overview_map').width($("#game_overview_panel").width() - 20);
-      $('#overview_map').height($("#game_overview_panel").height() - 20);
-    },
-    "restore" : function(evt: any, dlg: any){
-      overview_current_state = $("#game_overview_panel").dialogExtend("state");
-      let new_width = OVERVIEW_TILE_SIZE * (store.mapInfo as any)['xsize'];
-      if (new_width > max_overview_width) new_width = max_overview_width;
-      let new_height = OVERVIEW_TILE_SIZE * (store.mapInfo as any)['ysize'];
-      if (new_height > max_overview_height) new_height = max_overview_height;
-      $('#overview_map').width(new_width);
-      $('#overview_map').height(new_height);
-      $(".overview_dialog").position({my: 'left bottom', at: 'left bottom', of: window, within: $("#game_page")});
-    },
-    "icons" : {
-      "minimize" : "ui-icon-circle-minus",
-      "maximize" : "ui-icon-circle-plus",
-      "restore" : "ui-icon-bullet"
-    }});
-  if (overview_current_state == "minimized") $("#game_overview_panel").dialogExtend("minimize");
-
-  $("#game_overview_panel").parent().css("overflow", "hidden");
+  const panel = document.getElementById('game_overview_panel');
+  if (panel) {
+    panel.title = 'World map';
+    panel.style.display = 'block';
+  }
 
   palette = generate_palette();
 
@@ -128,20 +90,22 @@ export function init_overview(): void {
   if (new_width > max_overview_width) new_width = max_overview_width;
   let new_height = OVERVIEW_TILE_SIZE * (store.mapInfo as any)['ysize'];
   if (new_height > max_overview_height) new_height = max_overview_height;
-  $('#overview_map').width(new_width);
-  $('#overview_map').height(new_height);
-  $(".overview_dialog").position({my: 'left bottom', at: 'left bottom', of: window, within: $("#game_page")});
 
-  $('#overview_map').on('dragstart', function(event: any) { event.preventDefault(); });
+  const overviewMap = document.getElementById('overview_map');
+  if (overviewMap) {
+    overviewMap.style.width = new_width + 'px';
+    overviewMap.style.height = new_height + 'px';
+    overviewMap.ondragstart = (e) => e.preventDefault();
+  }
 }
 
 /****************************************************************************
-  Redraw the overview w.map.
+  Redraw the overview map.
 ****************************************************************************/
 export function redraw_overview(): void {
   if (mapview_slide['active'] || C_S_RUNNING > client_state()
       || (store.mapInfo as any)['xsize'] == null || (store.mapInfo as any)['ysize'] == null
-      || $("#overview_map").length == 0) return;
+      || !document.getElementById('overview_map')) return;
 
   const hash: number = generate_overview_hash((store.mapInfo as any)['xsize'], (store.mapInfo as any)['ysize']);
 
@@ -156,13 +120,13 @@ export function redraw_overview(): void {
 
 
 /****************************************************************************
-  Creates a grid representing the image for the overview w.map.
+  Creates a grid representing the image for the overview map.
 ****************************************************************************/
 export function generate_overview_grid(cols: number, rows: number): number[][] {
   // Loop variables
   let row: number;
 
-  if (cols & 1) cols -= 1;  //Bugfix, the overview w.map doesn't support w.map size which is odd.
+  if (cols & 1) cols -= 1;  //Bugfix, the overview map doesn't support map size which is odd.
   if (rows & 1) rows -= 1;
 
   // The grid of points that make up the image.
@@ -182,7 +146,7 @@ export function generate_overview_grid(cols: number, rows: number): number[][] {
 }
 
 /****************************************************************************
-  Creates a hash of the current overview w.map.
+  Creates a hash of the current overview map.
 ****************************************************************************/
 export function generate_overview_hash(cols: number, rows: number): number {
 
@@ -226,8 +190,9 @@ export function render_viewrect(): void {
   const viewrect_canvas: HTMLCanvasElement | null = document.getElementById('overview_viewrect') as HTMLCanvasElement | null;
   if (viewrect_canvas == null) return;
 
-  const map_w: number = $('#overview_map').width();
-  const map_h: number = $('#overview_map').height();
+  const overviewMap = document.getElementById('overview_map');
+  const map_w: number = overviewMap?.offsetWidth ?? 200;
+  const map_h: number = overviewMap?.offsetHeight ?? 200;
   viewrect_canvas.width = map_w;
   viewrect_canvas.height = map_h;
 
@@ -293,7 +258,7 @@ export function render_multipixel(grid: number[][], x: number, y: number, ocolor
 }
 
 /****************************************************************************
-  Creates the palette for the overview w.map.
+  Creates the palette for the overview map.
 ****************************************************************************/
 export function generate_palette(): number[][] {
   const palette: number[][] = [];
@@ -332,7 +297,7 @@ export function generate_palette(): number[][] {
 }
 
 /****************************************************************************
-  Returns the color of the tile at the given w.map position.
+  Returns the color of the tile at the given map position.
 ****************************************************************************/
 export function overview_tile_color(map_x: number, map_y: number): number {
   const ptile: any = map_pos_to_tile(map_x, map_y);
@@ -378,8 +343,9 @@ export function overview_tile_color(map_x: number, map_y: number): number {
   ...
 ****************************************************************************/
 export function overview_clicked (x: number, y: number): void {
-  const width: number = $("#overview_map").width();
-  const height: number = $("#overview_map").height();
+  const overviewMap = document.getElementById('overview_map');
+  const width: number = overviewMap?.offsetWidth ?? 200;
+  const height: number = overviewMap?.offsetHeight ?? 200;
 
   const x1: number = Math.floor((x * (store.mapInfo as any)['xsize']) / width);
   const y1: number = Math.floor((y * (store.mapInfo as any)['ysize']) / height);

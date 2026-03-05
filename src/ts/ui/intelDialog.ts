@@ -18,7 +18,6 @@
 ***********************************************************************/
 
 declare const $: any;
-const Handlebars = (window as any).Handlebars;
 
 import { store } from '../data/store';
 import { player_capital, get_diplstate_text, research_get, DiplState } from '../data/player';
@@ -26,6 +25,7 @@ import { TECH_KNOWN } from '../data/tech';
 import { clientIsObserver as client_is_observer } from '../client/clientState';
 import { showDialogMessage as show_dialog_message } from '../client/civClient';
 import { governments } from '../ui/governmentDialog';
+import { showIntelDialog } from '../components/Dialogs/IntelDialog';
 
 export function show_intelligence_report_dialog(): void {
   const selected_player = (window as any).selected_player;
@@ -61,78 +61,63 @@ export function show_intelligence_report_hearsay(pplayer: any): void {
 }
 
 export function show_intelligence_report_embassy(pplayer: any): void {
-  // reset dialog page.
-  $("#intel_dialog").remove();
-  $("<div id='intel_dialog'></div>").appendTo("div#game_page");
-
   const capital: any = player_capital(pplayer);
+  const gov = governments[pplayer['government']];
+  const govName = gov ? gov['name'] : '(Unknown)';
+  const capitalName = capital ? capital.name : '(capital unknown)';
 
-  const intel_data: any = {
-    ruler: pplayer['name'],
-    government: governments[pplayer['government']]['name'],
-    capital: capital ? capital.name : '(capital unknown)',
-    gold: pplayer['gold'],
-    tax: pplayer['tax'] + '%',
-    science: pplayer['science'] + '%',
-    luxury: pplayer['luxury'] + '%',
-    researching: '(Unknown)',
-    culture: pplayer['culture'],
-    dipl: [],
-    tech: []
-  };
+  let html = '<table style="width:100%;border-collapse:collapse;">';
+  html += `<tr><td><b>Ruler:</b></td><td>${pplayer['name']}</td></tr>`;
+  html += `<tr><td><b>Government:</b></td><td>${govName}</td></tr>`;
+  html += `<tr><td><b>Capital:</b></td><td>${capitalName}</td></tr>`;
+  html += `<tr><td><b>Gold:</b></td><td>${pplayer['gold']}</td></tr>`;
+  html += `<tr><td><b>Tax:</b></td><td>${pplayer['tax']}%</td></tr>`;
+  html += `<tr><td><b>Science:</b></td><td>${pplayer['science']}%</td></tr>`;
+  html += `<tr><td><b>Luxury:</b></td><td>${pplayer['luxury']}%</td></tr>`;
+  html += `<tr><td><b>Culture:</b></td><td>${pplayer['culture']}</td></tr>`;
 
-  // TODO: future techs
   const research: any = research_get(pplayer);
+  let researchText = '(Unknown)';
+  const techNames: string[] = [];
   if (research !== undefined) {
     const researching: any = store.techs[research['researching']];
     if (researching !== undefined) {
-      intel_data['researching'] = researching['name'] + ' ('
-                                + research['bulbs_researched'] + '/'
-                                + research['researching_cost'] + ')';
+      researchText = `${researching['name']} (${research['bulbs_researched']}/${research['researching_cost']})`;
     } else {
-      intel_data['researching'] = '(Nothing)';
+      researchText = '(Nothing)';
     }
-    const myresearch: any = client_is_observer()
-                     ? null
-                     : research_get(store.client.conn.playing)['inventions'];
     for (const tech_id in store.techs) {
       if (research['inventions'][tech_id] === TECH_KNOWN) {
-        intel_data['tech'].push({
-          name: store.techs[tech_id]['name'],
-          who: (myresearch != null && myresearch[tech_id] === TECH_KNOWN)
-                           ? 'both' : 'them'
-        });
+        techNames.push(store.techs[tech_id]['name']);
       }
     }
   }
+  html += `<tr><td><b>Researching:</b></td><td>${researchText}</td></tr>`;
+  html += '</table>';
 
   if (pplayer['diplstates'] !== undefined) {
+    const diplEntries: string[] = [];
     pplayer['diplstates'].forEach(function (st: any, i: number) {
-      if (st['state'] !== DiplState.DS_NO_CONTACT && i !== pplayer['playerno']) {
-        let dplst: any = intel_data['dipl'][st['state']];
-        if (dplst === undefined) {
-          dplst = {
-            state: get_diplstate_text(st['state']),
-            nations: []
-          };
-          intel_data['dipl'][st['state']] = dplst;
-        }
-        dplst['nations'].push(store.nations[store.players[i]['nation']]['adjective']);
+      if (st['state'] !== DiplState.DS_NO_CONTACT && i !== pplayer['playerno'] && store.players[i]) {
+        const stateText = get_diplstate_text(st['state']);
+        const nationAdj = store.nations[store.players[i]['nation']]?.['adjective'] || 'Unknown';
+        diplEntries.push(`${nationAdj}: ${stateText}`);
       }
     });
+    if (diplEntries.length > 0) {
+      html += '<h3 style="margin:8px 0 4px;">Diplomacy</h3><ul>';
+      for (const entry of diplEntries) {
+        html += `<li>${entry}</li>`;
+      }
+      html += '</ul>';
+    }
   }
 
-  $("#intel_dialog").html(Handlebars.templates['intel'](intel_data));
-  $("#intel_dialog").dialog({
-    bgiframe: true,
-    modal: true,
-    title: "Foreign Intelligence: "
-                             + store.nations[pplayer['nation']]['adjective']
-                             + " Empire",
-    width: "auto"
-  });
+  if (techNames.length > 0) {
+    html += `<h3 style="margin:8px 0 4px;">Known Techs (${techNames.length})</h3>`;
+    html += `<p style="font-size:12px;">${techNames.join(', ')}</p>`;
+  }
 
-  $("#intel_dialog").dialog('open');
-  $("#intel_tabs").tabs();
-  $("#game_text_input").blur();
+  const nationAdj = store.nations[pplayer['nation']]?.['adjective'] || pplayer['name'];
+  showIntelDialog(`Foreign Intelligence: ${nationAdj} Empire`, html);
 }

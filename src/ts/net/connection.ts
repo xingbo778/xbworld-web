@@ -23,6 +23,7 @@ declare const $: any;
 import { showDialogMessage as show_dialog_message } from '../client/civClient';
 import { client_handle_packet } from './packhandlers';
 import { packet_chat_msg_req } from './packetConstants';
+import { blockUI, unblockUI } from '../utils/dom';
 const swal = (window as any).swal;
 const simpleStorage = (window as any).simpleStorage;
 const jsSHA = (window as any).jsSHA;
@@ -108,7 +109,7 @@ export function network_init(): void {
  * Includes the proxy patch: handles both single-packet and array-wrapped packets.
  */
 export function websocket_init(): void {
-  $.blockUI({ message: '<h2>Please wait while connecting to the server.</h2>' });
+  blockUI('<h2>Please wait while connecting to the server.</h2>');
   const proxyport = 1000 + parseFloat(civserverport!);
   const ws_protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
   const port = window.location.port ? ':' + window.location.port : '';
@@ -200,7 +201,7 @@ export function check_websocket_ready(): void {
     // The connection is now up. Verify that it remains alive.
     ping_timer = setInterval(ping_check, pingtime_check);
 
-    $.unblockUI();
+    unblockUI();
   } else {
     setTimeout(check_websocket_ready, 500);
   }

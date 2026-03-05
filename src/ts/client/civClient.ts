@@ -67,9 +67,7 @@ if (!(window as any).music_list) {
  * Main client initialisation — called from index.html $(document).ready.
  */
 export function civClientInit(): void {
-  $.blockUI.defaults['css']['backgroundColor'] = '#222';
-  $.blockUI.defaults['css']['color'] = '#fff';
-  $.blockUI.defaults['theme'] = true;
+  // blockUI defaults removed — using vanilla blockUI from utils/dom.ts
 
   // Always observer mode
   (window as any).observing = true;

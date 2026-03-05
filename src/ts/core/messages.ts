@@ -80,8 +80,7 @@ export function init_chatbox(): void
 
   }
 
-  $("#freeciv_custom_scrollbar_div").mCustomScrollbar({theme:"3d"});
-  if (current_message_dialog_state == "minimized") $("#game_chatbox_panel").dialogExtend("minimize");
+  // mCustomScrollbar + dialogExtend removed; native CSS scrolling via tokens.css
 
 }
 
@@ -219,7 +218,10 @@ export function update_chatbox(messages: any[]): void
         message_log.update(messages[i]);
       }
   }
-  setTimeout(() => $('#freeciv_custom_scrollbar_div').mCustomScrollbar('scrollTo', 'bottom'), 100);
+  setTimeout(() => {
+    const el = document.getElementById('freeciv_custom_scrollbar_div');
+    if (el) el.scrollTop = el.scrollHeight;
+  }, 100);
 }
 
 /**************************************************************************
