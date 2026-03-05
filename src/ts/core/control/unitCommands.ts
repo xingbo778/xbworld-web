@@ -44,7 +44,7 @@ const ORDER_PERFORM_ACTION = Order.PERFORM_ACTION;
 
 const EXTRA_HUT = (window as any).EXTRA_HUT;
 
-const swal = (window as any).swal;
+import { swal } from '../../components/Dialogs/SwalDialog';
 
 // ---------------------------------------------------------------------------
 // Public API

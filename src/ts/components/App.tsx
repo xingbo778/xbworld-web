@@ -4,6 +4,7 @@ import { MessageDialog } from './Dialogs/MessageDialog';
 import { AuthDialog } from './Dialogs/AuthDialog';
 import { IntroDialog } from './Dialogs/IntroDialog';
 import { IntelDialog } from './Dialogs/IntelDialog';
+import { SwalDialog } from './Dialogs/SwalDialog';
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
       <AuthDialog />
       <IntroDialog />
       <IntelDialog />
+      <SwalDialog />
     </div>
   );
 }

@@ -63,3 +63,7 @@ w['set_unit_focus_and_redraw'] = set_unit_focus_and_redraw;
 // --- For Preact dialog callbacks ---
 import { network_init } from './net/connection';
 w['network_init'] = network_init;
+
+// --- SweetAlert replacement ---
+import { swal } from './components/Dialogs/SwalDialog';
+w['swal'] = swal;

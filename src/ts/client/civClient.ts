@@ -17,6 +17,7 @@
 
 import '../utils/seedrandom';  // Must be before civClientInit uses Math.seedrandom
 import { initTabs } from '../ui/tabs';
+import { swal } from '../components/Dialogs/SwalDialog';
 import { RENDERER_2DCANVAS } from '../core/constants';
 import { redraw_overview } from '../core/overview';
 import { control_init } from '../core/control';
@@ -80,7 +81,7 @@ export function civClientInit(): void {
   _w.fc_seedrandom = new (_w.Math.seedrandom || _w.seedrandom)('xbworld');
 
   if (window.requestAnimationFrame == null) {
-    if (typeof _w.swal === 'function') _w.swal('Please upgrade your browser.');
+    swal('Please upgrade your browser.');
     return;
   }
 

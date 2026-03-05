@@ -258,7 +258,6 @@ declare const jQuery: JQueryStatic;
 // ---------------------------------------------------------------------------
 // Third-party stubs
 // ---------------------------------------------------------------------------
-declare function swal(title: string, text?: string, type?: string): void;
 declare const audiojs: any;
 declare const bmp_lib: {
   render(elementId: string, data: any, palette: any): void;

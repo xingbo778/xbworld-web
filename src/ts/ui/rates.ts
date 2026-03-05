@@ -19,7 +19,7 @@
 
 declare const $: any;
 const Slider = (window as any).Slider;
-const swal = (window as any).swal;
+import { swal } from '../components/Dialogs/SwalDialog';
 
 import { store } from '../data/store';
 import { governmentMaxRate as government_max_rate } from "../data/government";

@@ -9,7 +9,7 @@
  * NOTE: is_touch_device is defined in control.js, not utility.js.
  */
 
-const swal = (window as any).swal;
+import { swal } from '../components/Dialogs/SwalDialog';
 import { mapPosToTile as map_pos_to_tile } from '../data/map';
 import { center_tile_mapcanvas } from '../core/control';
 

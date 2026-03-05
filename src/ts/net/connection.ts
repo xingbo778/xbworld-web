@@ -11,6 +11,7 @@
  */
 
 import { E_LOG_ERROR } from '../data/eventConstants';
+import { swal } from '../components/Dialogs/SwalDialog';
 
 // message_log is imported lazily to avoid triggering EventAggregator construction at module load
 // (EventAggregator is a global script that may not be available in test environment)
@@ -22,7 +23,6 @@ import { showDialogMessage as show_dialog_message } from '../client/civClient';
 import { client_handle_packet } from './packhandlers';
 import { packet_chat_msg_req } from './packetConstants';
 import { blockUI, unblockUI } from '../utils/dom';
-const swal = (window as any).swal;
 const jsSHA = (window as any).jsSHA;
 const load_game_check: (() => void) | undefined = (window as any).load_game_check;
 const debug_active: boolean | undefined = (window as any).debug_active;

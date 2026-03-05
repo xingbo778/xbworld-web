@@ -1,5 +1,6 @@
 import { EventAggregator } from '../utils/EventAggregator';
 import { initTabs } from './tabs';
+import { swal } from '../components/Dialogs/SwalDialog';
 import { store } from '../data/store';
 import { cityTile, cityOwner, canCityBuildNow, generateProductionList, cityPopulation as city_population, cityTurnsToGrowthText as city_turns_to_growth_text, getCityProductionTypeSprite as get_city_production_type_sprite, getCityProductionTime as get_city_production_time, getProductionProgress as get_production_progress, getCityProductionType as get_city_production_type } from '../data/city';
 import { get_supported_units } from '../data/unit';
@@ -529,7 +530,7 @@ export function city_name_dialog(suggested_name: string, unit_id: number): void 
 						const name: string = $("#city_name_req").val();
 						if (name.length == 0 || name.length >= MAX_LEN_CITYNAME - 6
 						    || encodeURIComponent(name).length  >= MAX_LEN_CITYNAME - 6) {
-						  (window as any).swal("City name is invalid. Please try a different shorter name.");
+						  swal("City name is invalid. Please try a different shorter name.");
 						  return;
 						}
 
@@ -658,7 +659,7 @@ export function rename_city(): void {
 						const name: string = $("#city_name_req").val();
 						if (name.length == 0 || name.length >= MAX_LEN_NAME - 4
 						    || encodeURIComponent(name).length  >= MAX_LEN_NAME - 4) {
-						  (window as any).swal("City name is invalid");
+						  swal("City name is invalid");
 						  return;
 						}
 

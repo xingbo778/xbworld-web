@@ -18,6 +18,7 @@
 import { store } from './store';
 import { DiplState, PlayerFlag, get_ai_level_text, get_diplstate_text, get_embassy_text } from './player';
 import { cityTile, cityOwnerPlayerId } from './city';
+import { swal } from '../components/Dialogs/SwalDialog';
 import { clientIsObserver, canClientControl, clientState, C_S_OVER } from '../client/clientState';
 import { isLongturn } from '../client/clientCore';
 import { setDefaultMapviewActive } from '../client/clientMain';
@@ -643,7 +644,7 @@ export function showSendPrivateMessageDialog(): void {
   if (getSelectedPlayer() === -1) return;
   const pplayer = store.players[getSelectedPlayer()];
   if (pplayer == null) {
-    (window as any).swal('Please select a player to send a private message to first.');
+    swal('Please select a player to send a private message to first.');
     return;
   }
   const name: string = pplayer['name'];

@@ -180,7 +180,7 @@ export function init_cache_sprites(): void {
   try {
 
     if (typeof _win.tileset === 'undefined') {
-      _win.swal("Tileset not generated correctly. Run sync.sh in "
+      (window as any).alert?.("Tileset not generated correctly. Run sync.sh in "
         + "freeciv-img-extract and recompile.");
       return;
     }

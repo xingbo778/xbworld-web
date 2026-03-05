@@ -15,6 +15,7 @@
 
 import { packet_client_info, packet_conn_pong, packet_unit_get_actions } from './packetConstants';
 import { send_request, clinet_debug_collect } from './connection';
+import { swal } from '../components/Dialogs/SwalDialog';
 import {
   GUI_WEB,
   ACTION_ATTACK, ACTION_SUICIDE_ATTACK,
@@ -446,7 +447,7 @@ export function handle_server_join_reply(packet: any): void {
       wait_for_text('You are logged in as', requestObserveGame);
     }
   } else {
-    (window as any).swal('You were rejected from the game.', (packet['message'] || ''), 'error');
+    swal('You were rejected from the game.', (packet['message'] || ''), 'error');
     store.client.conn.id = -1;
     set_client_page(PAGE_MAIN);
   }
