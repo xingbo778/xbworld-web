@@ -124,29 +124,6 @@ if (typeof audiojs === "undefined") {
 }
 var ts = Date.now();
 </script>
-<script>
-(function () {
-  function _getUrlVars() {
-    var vars = [];
-    var href = window.location.href;
-    var idx = href.indexOf('?');
-    if (idx === -1) return vars;
-    var hashes = href.slice(idx + 1).split('&');
-    for (var i = 0; i < hashes.length; i++) {
-      var pair = hashes[i].split('=');
-      vars.push(pair[0]);
-      vars['var-' + pair[0]] = pair[1];
-    }
-    return vars;
-  }
-  if (window.jQuery) {
-    jQuery.extend({
-      getUrlVars: _getUrlVars,
-      getUrlVar: function (name) { return _getUrlVars()['var-' + name]; }
-    });
-  }
-})();
-</script>
 <script type="module" src="/javascript/ts-bundle/main.js"></script>
 </body>
 </html>
