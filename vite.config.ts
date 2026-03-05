@@ -6,6 +6,7 @@ export default defineConfig({
   esbuild: {
     jsx: 'automatic',
     jsxImportSource: 'preact',
+    pure: ['console.log', 'console.info'],
   },
   resolve: {
     alias: {
