@@ -25,13 +25,15 @@ test.describe('Application Loading', () => {
     await expect(logo).toBeVisible();
   });
 
-  test('should display all pregame buttons', async ({ page }) => {
+  test('should not have player-only buttons (observer mode)', async ({ page }) => {
     await page.goto('/src/main/webapp/webclient/index.html');
 
-    await expect(page.locator('#start_game_button')).toBeVisible();
-    await expect(page.locator('#load_game_button')).toBeVisible();
-    await expect(page.locator('#pick_nation_button')).toBeVisible();
-    await expect(page.locator('#pregame_settings_button')).toBeVisible();
+    expect(await page.locator('#start_game_button').count()).toBe(0);
+    expect(await page.locator('#load_game_button').count()).toBe(0);
+    expect(await page.locator('#pick_nation_button').count()).toBe(0);
+    expect(await page.locator('#pregame_settings_button').count()).toBe(0);
+    expect(await page.locator('#turn_done_button').count()).toBe(0);
+    expect(await page.locator('#game_unit_orders_default').count()).toBe(0);
   });
 
   test('should have the game page hidden initially', async ({ page }) => {
