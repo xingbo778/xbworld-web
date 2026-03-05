@@ -1,13 +1,11 @@
 import { clientState as client_state, C_S_PREPARING } from '../client/clientState';
 import { setupWindowSize as setup_window_size } from '../client/clientMain';
+import { store } from '../data/store';
 
 declare const $: any;
-declare const client: any;
-declare const players: any;
-declare const nations: any;
-declare const sprites: any;
-declare const scenario_info: any;
-declare const ruleset_control: any;
+
+const client = store.client;
+const _w = window as any;
 
 export let observing: boolean = false;
 export let update_player_info_pregame_queued: boolean = false;
@@ -41,20 +39,20 @@ export function update_game_info_pregame(): void {
 
   let game_info_html = "";
 
-  if (scenario_info != null && scenario_info['is_scenario']) {
+  if (_w.scenario_info != null && _w.scenario_info['is_scenario']) {
     game_info_html += "<p>";
-    game_info_html += scenario_info['description'].replace(/\n/g, "<br>");
+    game_info_html += _w.scenario_info['description'].replace(/\n/g, "<br>");
     game_info_html += "</p>";
 
-    if (scenario_info['authors']) {
+    if (_w.scenario_info['authors']) {
       game_info_html += "<p>Scenario by ";
-      game_info_html += scenario_info['authors'].replace(/\n/g, "<br>");
+      game_info_html += _w.scenario_info['authors'].replace(/\n/g, "<br>");
       game_info_html += "</p>";
     }
 
-    if (scenario_info['prevent_new_cities']) {
+    if (_w.scenario_info['prevent_new_cities']) {
       game_info_html += "<p>";
-      game_info_html += scenario_info['name'] + " forbids the founding of new cities.";
+      game_info_html += _w.scenario_info['name'] + " forbids the founding of new cities.";
       game_info_html += "</p>";
     }
   }
@@ -82,8 +80,8 @@ export function update_player_info_pregame_real(): void {
   }
 
   let player_html = "";
-  for (const id in players) {
-    const player = players[id];
+  for (const id in store.players) {
+    const player = store.players[id as any];
     if (player != null) {
       const isAI = player['name'].indexOf("AI") !== -1;
       const iconId = isAI ? 'pregame_ai_icon' : 'pregame_player_icon';
@@ -94,19 +92,19 @@ export function update_player_info_pregame_real(): void {
   }
   $("#pregame_player_list").html(player_html);
 
-  for (const id in players) {
-    const player = players[id];
+  for (const id in store.players) {
+    const player = store.players[id as any];
     let nation_text = "";
-    if (player['nation'] in nations) {
-      nation_text = " - " + nations[player['nation']]['adjective'];
+    if (player['nation'] in store.nations) {
+      nation_text = " - " + store.nations[player['nation']]['adjective'];
       const flag_html = $("<canvas id='pregame_nation_flags_" + id + "' width='29' height='20' class='pregame_flags'></canvas>");
       $("#pregame_plr_" + id).prepend(flag_html);
       const flag_canvas = document.getElementById('pregame_nation_flags_' + id) as HTMLCanvasElement;
       if (flag_canvas == null) continue;
       const flag_canvas_ctx = flag_canvas.getContext("2d");
-      const tag = "f." + nations[player['nation']]['graphic_str'];
-      if (sprites[tag] != null && flag_canvas_ctx != null) {
-        flag_canvas_ctx.drawImage(sprites[tag], 0, 0);
+      const tag = "f." + store.nations[player['nation']]['graphic_str'];
+      if (_w.sprites[tag] != null && flag_canvas_ctx != null) {
+        flag_canvas_ctx.drawImage(_w.sprites[tag], 0, 0);
       }
     }
     if (player['is_ready'] === true) {

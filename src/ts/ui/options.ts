@@ -18,10 +18,10 @@
 ***********************************************************************/
 
 declare const $: any;
-declare const simpleStorage: any;
-declare const audio: any;
-declare const music_list: string[];
-declare function supports_mp3(): boolean;
+const simpleStorage = (window as any).simpleStorage;
+const audio = (window as any).audio;
+const music_list: string[] = (window as any).music_list || [];
+const supports_mp3 = (): boolean => (window as any).supports_mp3?.() ?? false;
 const TRUE = true;
 const FALSE = false;
 const DEFAULT_SOCK_PORT = 6001;

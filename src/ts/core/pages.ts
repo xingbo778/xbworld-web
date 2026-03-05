@@ -18,8 +18,8 @@
 ***********************************************************************/
 
 declare const $: any;
-declare const renderer: any;
-declare function set_chat_direction(direction: any): void;
+import { set_chat_direction } from './control/chat';
+const renderer = (window as any).renderer;
 
 export const PAGE_MAIN: number = 0;		/* Main menu, aka intro page.  */
 export const PAGE_START: number = 1;		/* Start new game page.  */

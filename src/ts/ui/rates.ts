@@ -18,9 +18,8 @@
 ***********************************************************************/
 
 declare const $: any;
-declare const Slider: any;
-declare const document: any;
-declare function swal(message: string): void;
+const Slider = (window as any).Slider;
+const swal = (window as any).swal;
 
 // TODO: import these from appropriate modules
 declare const client: any;

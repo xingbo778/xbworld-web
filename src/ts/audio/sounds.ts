@@ -17,71 +17,71 @@
 
 ***********************************************************************/
 
-declare const window: any;
-declare let sounds_enabled: boolean;
-declare const soundset: Record<string, any>;
-declare function is_unit_visible(punit: any): boolean;
+const _w = window as any;
+const sounds_enabled_get = (): boolean => _w.sounds_enabled ?? false;
+const soundset_get = (): Record<string, any> => _w.soundset ?? {};
+const is_unit_visible = (punit: any): boolean => _w.is_unit_visible?.(punit) ?? false;
 
 export let sound_path: string = "/sounds/";
 
 export function check_unit_sound_play(old_unit: any, new_unit: any): void {
-  if (!sounds_enabled) return;
+  if (!sounds_enabled_get()) return;
   if (old_unit == null || new_unit == null) return;
   /* unit is in same position. */
   if (new_unit['tile'] === old_unit['tile']) return;
   if (!is_unit_visible(new_unit)) return;
 
-  if (soundset == null) {
+  if (soundset_get() == null) {
     console.error("soundset not found.");
     return;
   }
 
   const ptype: any = unit_type(new_unit);
-  if (soundset[ptype['sound_move']] != null) {
-    play_sound(soundset[ptype['sound_move']]);
-  } else if (soundset[ptype['sound_move_alt']] != null) {
-    play_sound(soundset[ptype['sound_move_alt']]);
+  if (soundset_get()[ptype['sound_move']] != null) {
+    play_sound(soundset_get()[ptype['sound_move']]);
+  } else if (soundset_get()[ptype['sound_move_alt']] != null) {
+    play_sound(soundset_get()[ptype['sound_move_alt']]);
   }
 }
 
 export function unit_move_sound_play(unit: any): void {
-  if (!sounds_enabled) return;
+  if (!sounds_enabled_get()) return;
   if (unit == null) return;
 
-  if (soundset == null) {
+  if (soundset_get() == null) {
     console.error("soundset not found.");
     return;
   }
 
   const ptype: any = unit_type(unit);
-  if (soundset[ptype['sound_move']] != null) {
-    play_sound(soundset[ptype['sound_move']]);
-  } else if (soundset[ptype['sound_move_alt']] != null) {
-    play_sound(soundset[ptype['sound_move_alt']]);
+  if (soundset_get()[ptype['sound_move']] != null) {
+    play_sound(soundset_get()[ptype['sound_move']]);
+  } else if (soundset_get()[ptype['sound_move_alt']] != null) {
+    play_sound(soundset_get()[ptype['sound_move_alt']]);
   }
 }
 
 export function play_combat_sound(unit: any): void {
-  if (!sounds_enabled) return;
+  if (!sounds_enabled_get()) return;
   if (unit == null) return;
   if (!is_unit_visible(unit)) return;
 
-  if (soundset == null) {
+  if (soundset_get() == null) {
     console.error("soundset not found.");
     return;
   }
 
   const ptype: any = unit_type(unit);
-  if (soundset[ptype['sound_fight']] != null) {
-    play_sound(soundset[ptype['sound_fight']]);
-  } else if (soundset[ptype['sound_fight_alt']] != null) {
-    play_sound(soundset[ptype['sound_fight_alt']]);
+  if (soundset_get()[ptype['sound_fight']] != null) {
+    play_sound(soundset_get()[ptype['sound_fight']]);
+  } else if (soundset_get()[ptype['sound_fight_alt']] != null) {
+    play_sound(soundset_get()[ptype['sound_fight_alt']]);
   }
 }
 
 export function play_sound(sound_file: string): void {
   try {
-    if (!sounds_enabled || !(document.createElement('audio').canPlayType) || Audio == null) return;
+    if (!sounds_enabled_get() || !(document.createElement('audio').canPlayType) || Audio == null) return;
     const audio = new Audio(sound_path + sound_file);
     const promise = audio.play();
     if (promise != null) {
@@ -93,7 +93,7 @@ export function play_sound(sound_file: string): void {
 }
 
 export function sound_error_handler(err: any): void {
-  sounds_enabled = false;
+  _w.sounds_enabled = false;
   if (window.trackJs) {
     window.trackJs.console.log(err);
     window.trackJs.track("Sound problem");

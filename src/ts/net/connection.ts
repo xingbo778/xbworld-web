@@ -19,14 +19,15 @@ function getMessageLog(): any {
 }
 
 declare const $: any;
-declare const swal: any;
-declare const simpleStorage: any;
-declare const jsSHA: any;
-declare const show_dialog_message: (title: string, message: string) => void;
-declare const client_handle_packet: ((packets: any[]) => void) | undefined;
-declare const load_game_check: (() => void) | undefined;
-declare const debug_active: boolean | undefined;
-declare const packet_chat_msg_req: number;
+
+import { showDialogMessage as show_dialog_message } from '../client/civClient';
+import { client_handle_packet } from './packhandlers';
+import { packet_chat_msg_req } from './packetConstants';
+const swal = (window as any).swal;
+const simpleStorage = (window as any).simpleStorage;
+const jsSHA = (window as any).jsSHA;
+const load_game_check: (() => void) | undefined = (window as any).load_game_check;
+const debug_active: boolean | undefined = (window as any).debug_active;
 
 const win = window as any;
 

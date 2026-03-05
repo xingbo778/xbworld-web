@@ -46,7 +46,7 @@ if (_w['selected_player'] === undefined) _w['selected_player'] = -1;
 // ---------------------------------------------------------------------------
 // Helpers to access shared window globals
 // ---------------------------------------------------------------------------
-function getDiplstates(): Record<number, number> {
+export function getDiplstates(): Record<number, number> {
   return (window as any).diplstates;
 }
 function getSelectedPlayer(): number {

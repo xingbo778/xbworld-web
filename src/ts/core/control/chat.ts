@@ -18,11 +18,10 @@ const FC_DS_ALLIANCE = DiplState.DS_ALLIANCE;
 const FC_PLRF_AI = PlayerFlag.PLRF_AI;
 
 declare const $: any;
-declare const client: any;
-declare const players: any;
-declare const nations: any;
-declare const diplstates: any;
-declare const sprites: any;
+
+import { store } from '../../data/store';
+import { getDiplstates } from '../../data/nation';
+const _w = window as any;
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -44,29 +43,29 @@ export function chat_context_get_recipients(): any[] {
   pm.push({ id: null, flag: null, description: 'Everybody' });
 
   let self = -1;
-  if (client.conn.playing != null) {
-    self = client.conn.playing['playerno'];
+  if (store.client.conn.playing != null) {
+    self = store.client.conn.playing['playerno'];
   }
 
-  for (const player_id_str in players) {
+  for (const player_id_str in store.players) {
     const player_id = parseInt(player_id_str);
     if (player_id == self) continue;
 
-    const pplayer = players[player_id];
+    const pplayer = store.players[player_id];
     if (pplayer['flags'].isSet(FC_PLRF_AI)) continue;
     if (!pplayer['is_alive']) continue;
     if (is_longturn() && pplayer['name'].indexOf("New Available Player") != -1) continue;
 
-    const nation = nations[pplayer['nation']];
+    const nation = store.nations[pplayer['nation']];
     if (nation == null) continue;
 
     pm.push({
       id: player_id,
       description: pplayer['name'] + " of the " + nation['adjective'],
-      flag: sprites["f." + nation['graphic_str']]
+      flag: _w.sprites["f." + nation['graphic_str']]
     });
 
-    if (diplstates[player_id] == FC_DS_ALLIANCE) {
+    if (getDiplstates()[player_id] == FC_DS_ALLIANCE) {
       allies = true;
     }
   }
@@ -111,8 +110,8 @@ export function chat_context_dialog_show(recipients: any[]): void {
     .appendTo("div#game_page");
 
   let self = -1;
-  if (client.conn.playing != null) {
-    self = client.conn.playing['playerno'];
+  if (store.client.conn.playing != null) {
+    self = store.client.conn.playing['playerno'];
   }
 
   const tbody_el = document.createElement('tbody');
@@ -203,20 +202,20 @@ export function set_chat_direction(player_id: number | null): void {
     ctx.fillStyle = "rgba(192, 192, 192, 1)";
     ctx.fillText(S.CHAT_ICON_EVERYBODY, 7, 15);
     player_name = 'everybody';
-  } else if (client.conn.playing != null
-    && player_id == client.conn.playing['playerno']) {
+  } else if (store.client.conn.playing != null
+    && player_id == store.client.conn.playing['playerno']) {
     ctx.clearRect(0, 0, 29, 20);
     ctx.font = "18px FontAwesome";
     ctx.fillStyle = "rgba(192, 192, 192, 1)";
     ctx.fillText(S.CHAT_ICON_ALLIES, 10, 16);
     player_name = 'allies';
   } else {
-    const pplayer = players[player_id];
+    const pplayer = store.players[player_id];
     if (pplayer == null) return;
     player_name = pplayer['name']
-      + " of the " + nations[pplayer['nation']]['adjective'];
+      + " of the " + store.nations[pplayer['nation']]['adjective'];
     ctx.clearRect(0, 0, 29, 20);
-    const flag = sprites["f." + nations[pplayer['nation']]['graphic_str']];
+    const flag = _w.sprites["f." + store.nations[pplayer['nation']]['graphic_str']];
     if (flag != null) {
       ctx.drawImage(flag, 0, 0);
     }
@@ -260,11 +259,11 @@ export function check_text_input(event: any, chatboxtextarea: any): boolean | un
 
     if (S.chat_send_to != null && S.chat_send_to >= 0
       && is_unprefixed_message(message)) {
-      if (client.conn.playing != null
-        && S.chat_send_to == client.conn.playing['playerno']) {
+      if (store.client.conn.playing != null
+        && S.chat_send_to == store.client.conn.playing['playerno']) {
         message = ". " + encode_message_text(message);
       } else {
-        const pplayer = players[S.chat_send_to];
+        const pplayer = store.players[S.chat_send_to];
         if (pplayer == null) {
           set_chat_direction(null);
           return;
