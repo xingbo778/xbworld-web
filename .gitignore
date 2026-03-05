@@ -1,5 +1,18 @@
-flyway.properties
 node_modules
+dist
+flyway.properties
+
 # E2E test artifacts
 tests/e2e/smoke-results.json
 tests/e2e/smoke-test.log
+test-results/
+playwright-report/
+
+# Editor
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS
+.DS_Store
