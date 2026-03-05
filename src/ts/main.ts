@@ -137,7 +137,7 @@ import './ui/rates';
 // ---------------------------------------------------------------------------
 // Step 3: Register all exports to window (transitional).
 // ---------------------------------------------------------------------------
-import './globalRegistry';
+import './windowBridge';
 
 // ---------------------------------------------------------------------------
 // Step 4: Sync GameStore with window globals.
