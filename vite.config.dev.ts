@@ -18,6 +18,7 @@ import { defineConfig } from 'vite';
 import { resolve } from 'path';
 import https from 'https';
 import { HttpsProxyAgent } from 'https-proxy-agent';
+// Preact JSX handled via esbuild config (no preset needed for dev)
 
 const BACKEND = process.env.BACKEND_URL || 'https://xbworld-production.up.railway.app';
 const backendWs = BACKEND.replace(/^http/, 'ws');
@@ -44,6 +45,10 @@ const apiProxy: Record<string, unknown> = {
 
 export default defineConfig({
   root: resolve(__dirname, 'src/main/webapp'),
+  esbuild: {
+    jsx: 'automatic',
+    jsxImportSource: 'preact',
+  },
 
   resolve: {
     alias: {

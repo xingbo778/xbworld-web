@@ -1,9 +1,12 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
-
 export default defineConfig({
   root: '.',
   publicDir: false,
+  esbuild: {
+    jsx: 'automatic',
+    jsxImportSource: 'preact',
+  },
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src/ts'),

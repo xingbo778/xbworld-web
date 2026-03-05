@@ -185,6 +185,7 @@ function syncStoreWithWindow(): void {
 // ---------------------------------------------------------------------------
 import { exposeGameDialog } from './ui/GameDialog';
 import { initControls } from './ui/controls';
+import { mountPreactApp } from './components/App';
 
 function init(): void {
   logNormal('[TS] XBWorld TypeScript modules loading...');
@@ -197,6 +198,9 @@ function init(): void {
 
   initControls();
   logNormal('[TS] Controls initialized');
+
+  mountPreactApp();
+  logNormal('[TS] Preact UI mounted');
 
   logNormal('[TS] XBWorld TypeScript modules ready');
 }

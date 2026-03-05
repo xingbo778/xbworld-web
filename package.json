@@ -22,8 +22,11 @@
     "compile-hb": "f() { ./node_modules/handlebars/bin/handlebars src/main/webapp/webclient -e hbs -f \"$1\"/hbs-templates.js --knownOnly; }; f"
   },
   "dependencies": {
+    "@preact/preset-vite": "^2.10.3",
+    "@preact/signals": "^2.8.1",
     "https-proxy-agent": "^7.0.6",
     "pixi.js": "^8.9.2",
+    "preact": "^10.28.4",
     "ws": "^8.19.0"
   },
   "devDependencies": {

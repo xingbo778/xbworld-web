@@ -15,6 +15,8 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "skipLibCheck": true,
+    "jsx": "react-jsx",
+    "jsxImportSource": "preact",
     "outDir": "dist",
     "rootDir": ".",
     "baseUrl": ".",
@@ -26,6 +28,7 @@
   },
   "include": [
     "src/ts/**/*.ts",
+    "src/ts/**/*.tsx",
     "src/ts/**/*.d.ts",
     "tests/**/*.ts"
   ],

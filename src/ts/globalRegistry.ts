@@ -2358,9 +2358,8 @@ w['gui_gtk2_metaserver_tab_first'] = gui_gtk2_metaserver_tab_first;
 w['gui_gtk2_allied_chat_only'] = gui_gtk2_allied_chat_only;
 w['gui_gtk2_small_display_layout'] = gui_gtk2_small_display_layout;
 
-import { pillage_target_selected, popup_pillage_selection_dialog } from './ui/pillageDialog';
-w['popup_pillage_selection_dialog'] = popup_pillage_selection_dialog;
-w['pillage_target_selected'] = pillage_target_selected;
+import { openPillageDialog } from './components/Dialogs/PillageDialog';
+w['popup_pillage_selection_dialog'] = openPillageDialog;
 
 import {
   create_rates_dialog,
