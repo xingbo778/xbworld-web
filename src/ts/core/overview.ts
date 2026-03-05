@@ -224,11 +224,11 @@ export function render_viewrect(): void {
 
     let point: any = base_canvas_to_map_pos(0, 0);
     path.push([point.map_x, point.map_y]);
-    point = base_canvas_to_map_pos(mapview['width'], 0);
+    point = base_canvas_to_map_pos(mapview['width'] ?? 0, 0);
     path.push([point.map_x, point.map_y]);
-    point = base_canvas_to_map_pos(mapview['width'], mapview['height']);
+    point = base_canvas_to_map_pos(mapview['width'] ?? 0, mapview['height'] ?? 0);
     path.push([point.map_x, point.map_y]);
-    point = base_canvas_to_map_pos(0, mapview['height']);
+    point = base_canvas_to_map_pos(0, mapview['height'] ?? 0);
     path.push([point.map_x, point.map_y]);
 
   }
@@ -332,7 +332,7 @@ export function generate_palette(): number[][] {
     } else {
       const pcolor: any = nations[pplayer['nation']]['color'];
       if (pcolor != null) {
-        palette[palette_color_offset+(player_id % player_count)] = color_rbg_to_list(pcolor);
+        palette[palette_color_offset+(player_id % player_count)] = color_rbg_to_list(pcolor) ?? [];
       } else {
         palette[palette_color_offset+(player_id % player_count)] = [0,0,0];
       }
@@ -376,7 +376,7 @@ export function overview_tile_color(map_x: number, map_y: number): number {
     if (ptile['owner'] != null && ptile['owner'] != 255) {
       return palette_color_offset + ptile['owner'];
     } else {
-      return palette_terrain_offset + tile_terrain(ptile)['id'];
+      return palette_terrain_offset + tile_terrain(ptile)!['id'];
     }
   }
 

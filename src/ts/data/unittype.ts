@@ -1,6 +1,6 @@
 import type { UnitType, Player } from './types';
 import { ACTION_COUNT, MAX_NUM_UNITS } from '../core/constants';
-export const enum UCF {
+export enum UCF {
   TERRAIN_SPEED = 0,
   TERRAIN_DEFENSE = 1,
   DAMAGE_SLOWS = 2,

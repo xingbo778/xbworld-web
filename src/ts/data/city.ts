@@ -482,7 +482,7 @@ export function buildCityTileMapWithLimits(
  * Returns the mapping of position from city center to index in city_info.
  * Uses self-replacing function pattern based on map wrap flags.
  */
-export function getCityTileMapForPos(x: number, y: number): number[] {
+export let getCityTileMapForPos = function(x: number, y: number): number[] {
   if (w.wrap_has_flag(w.WRAP_X)) {
     if (w.wrap_has_flag(w.WRAP_Y)) {
       // Torus
@@ -530,7 +530,7 @@ export function getCityTileMapForPos(x: number, y: number): number[] {
   }
 
   return getCityTileMapForPos(x, y);
-}
+};
 
 // ---------------------------------------------------------------------------
 // Trade routes

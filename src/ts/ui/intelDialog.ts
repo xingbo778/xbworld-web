@@ -19,6 +19,7 @@
 
 declare const $: any;
 declare const Handlebars: any;
+declare let selected_player: number;
 
 import { player_capital, get_diplstate_text, research_get } from '../data/player';
 import { TECH_KNOWN } from '../data/tech';

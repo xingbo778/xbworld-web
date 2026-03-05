@@ -32,6 +32,10 @@ declare const mouse_x: any;
 declare const mouse_y: any;
 declare const sprites: any;
 declare const ts: any; // timestamp for cache busting
+declare function is_tech_req_for_goal(tech_id: number, goal_id: number): boolean;
+declare function is_tech_req_for_tech(tech_id: number, req_id: number): boolean;
+declare function get_units_from_tech(tech_id: number): any[];
+declare function get_improvements_from_tech(tech_id: number): any[];
 
 export const techs: { [key: string]: any } = {};
 export const techcoststyle1: { [key: string]: any } = {};
@@ -43,13 +47,6 @@ export let tech_dialog_active: boolean = false;
 
 export const tech_xscale: number = 1.2;
 export const wikipedia_url: string = "http://en.wikipedia.org/wiki/";
-
-/* TECH_KNOWN is self-explanatory, TECH_PREREQS_KNOWN are those for which all
- * requirements are fulfilled; all others (including those which can never
- * be reached) are TECH_UNKNOWN */
-export const TECH_UNKNOWN: number = 0;
-export const TECH_PREREQS_KNOWN: number = 1;
-export const TECH_KNOWN: number = 2;
 
 export const AR_ONE: number = 0;
 export const AR_TWO: number = 1;
@@ -96,7 +93,7 @@ export const tech_item_height: number = 52;
 export let maxleft: number = 0;
 export let clicked_tech_id: number | null = null;
 
-export const bulbs_output_updater: EventAggregator = new EventAggregator(update_bulbs_output_info, 250,
+export const bulbs_output_updater: any = new EventAggregator(update_bulbs_output_info, 250,
                                                EventAggregator.DP_NONE,
                                                250, 3, 250);
 
@@ -215,7 +212,7 @@ export function update_tech_tree(): void {
       tech_canvas_ctx.fillRect(x - 2, y - 2, tech_item_width, tech_item_height);
       tech_canvas_ctx.strokeStyle = 'rgb(225, 225, 225)';
       tech_canvas_ctx.strokeRect(x - 2, y - 2, tech_item_width, tech_item_height);
-      mapview_put_tile(tech_canvas_ctx, tag, x + 1, y);
+      mapview_put_tile(tech_canvas_ctx, tag ?? '', x + 1, y);
 
       tech_canvas_ctx.font = tech_canvas_text_font;
       tech_canvas_ctx.fillStyle = "rgba(0, 0, 0, 1)";
@@ -239,7 +236,7 @@ export function update_tech_tree(): void {
       tech_canvas_ctx.strokeStyle = 'rgb(255, 255, 255)';
       tech_canvas_ctx.strokeRect(x - 2, y - 2, tech_item_width, tech_item_height);
       tech_canvas_ctx.lineWidth = 2;
-      mapview_put_tile(tech_canvas_ctx, tag, x + 1, y);
+      mapview_put_tile(tech_canvas_ctx, tag ?? '', x + 1, y);
 
       if (client.conn.playing['researching'] == ptech['id']) {
         tech_canvas_ctx.fillStyle = 'rgb(0, 0, 0)';
@@ -263,7 +260,7 @@ export function update_tech_tree(): void {
       tech_canvas_ctx.strokeStyle = 'rgb(255, 255, 255)';
       tech_canvas_ctx.strokeRect(x - 2, y - 2, tech_item_width, tech_item_height);
       tech_canvas_ctx.lineWidth = 2;
-      mapview_put_tile(tech_canvas_ctx, tag, x + 1, y);
+      mapview_put_tile(tech_canvas_ctx, tag ?? '', x + 1, y);
 
       if (client.conn.playing['tech_goal'] == ptech['id']) {
         tech_canvas_ctx.fillStyle = 'rgb(0, 0, 0)';
@@ -276,19 +273,21 @@ export function update_tech_tree(): void {
     }
 
     let tech_things: number = 0;
-    const prunits = get_units_from_tech(tech_id);
+    const prunits = get_units_from_tech(Number(tech_id));
     for (let i: number = 0; i < prunits.length; i++) {
       const utype = prunits[i];
-      const sprite = sprites[tileset_unit_type_graphic_tag(utype)];
+      const tag2 = tileset_unit_type_graphic_tag(utype);
+      const sprite = tag2 != null ? sprites[tag2] : null;
       if (sprite != null) {
         tech_canvas_ctx.drawImage(sprite, x + 50 + ((tech_things++) * 30), y + 23, 28, 24);
       }
     }
 
-    const primprovements = get_improvements_from_tech(tech_id);
+    const primprovements = get_improvements_from_tech(Number(tech_id));
     for (let i: number = 0; i < primprovements.length; i++) {
       const pimpr = primprovements[i];
-      const sprite = sprites[tileset_building_graphic_tag(pimpr)];
+      const tag3 = tileset_building_graphic_tag(pimpr);
+      const sprite = tag3 != null ? sprites[tag3] : null;
       if (sprite != null) {
         tech_canvas_ctx.drawImage(sprite, x + 50 + ((tech_things++) * 30), y + 23, 28, 24);
       }

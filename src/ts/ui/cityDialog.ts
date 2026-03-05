@@ -80,7 +80,7 @@ export const INCITE_IMPOSSIBLE_COST: number = (1000 * 1000 * 1000);
 export let city_tab_index: number = 0;
 export let city_prod_clicks: number = 0;
 
-export const city_screen_updater: EventAggregator = new EventAggregator(update_city_screen, 250,
+export const city_screen_updater: any = new EventAggregator(update_city_screen, 250,
                                               EventAggregator.DP_NONE,
                                               250, 3, 250);
 
@@ -201,7 +201,7 @@ export function show_city_dialog(pcity: any): void {
   set_citydlg_dimensions(pcity);
   set_city_mapview_active();
   center_tile_mapcanvas(city_tile(pcity));
-  update_map_canvas(0, 0, mapview['store_width'], mapview['store_height']);
+  update_map_canvas(0, 0, mapview['store_width'] ?? 0, mapview['store_height'] ?? 0);
   // renderer = orig_renderer; // This line is commented out in the original JS, so it's commented here too.
 
   let governor_text: string = "";
@@ -750,7 +750,7 @@ export function city_worklist_dialog(pcity: any): void {
     }
 
     worklist_html += "<tr class='prod_choice_list_item"
-     + (can_city_build_now(pcity, universal['kind'], universal['value']) ?
+     + (canCityBuildNow(pcity, universal['kind'], universal['value']) ?
         "" : " cannot_build_item")
      + "' data-wlitem='" + j + "' "
      + " title=\"" + universal['helptext'] + "\">"
@@ -851,7 +851,7 @@ export function city_worklist_dialog(pcity: any): void {
 }
 
 export function populate_worklist_production_choices(pcity: any): void {
-  const production_list: any[] = generate_production_list();
+  const production_list: any[] = generateProductionList();
   let production_html: string = "<table class='worklist_table'><tr><td>Type</td><td>Name</td><td title='Attack/Defense/Firepower'>Info</td><td>Cost</td></tr>";
   for (let a = 0; a < production_list.length; a++) {
     const sprite: any = production_list[a]['sprite'];
@@ -861,7 +861,7 @@ export function populate_worklist_production_choices(pcity: any): void {
     }
     const kind: any = production_list[a]['kind'];
     const value: any = production_list[a]['value'];
-    const can_build: boolean = can_city_build_now(pcity, kind, value);
+    const can_build: boolean = canCityBuildNow(pcity, kind, value);
 
     if (can_build || opt_show_unreachable_items) {
       production_html += "<tr class='prod_choice_list_item kindvalue_item"
@@ -899,13 +899,13 @@ export function populate_worklist_production_choices(pcity: any): void {
       prod_items.filter(sel.join(",")).addClass("ui-selected");
     }
 
-    $(".kindvalue_item").dblclick(function() {
+    $(".kindvalue_item").dblclick(function(this: any) {
       const value: number = parseFloat($(this).data('value'));
       const kind: number = parseFloat($(this).data('kind'));
       send_city_worklist_add(pcity['id'], kind, value);
     });
   } else {
-    $(".kindvalue_item").click(function() {
+    $(".kindvalue_item").click(function(this: any) {
       const value: number = parseFloat($(this).data('value'));
       const kind: number = parseFloat($(this).data('kind'));
       if (city_prod_clicks == 0) {
@@ -976,7 +976,7 @@ export function handle_current_worklist_unselect(event: any, ui: any): void {
   }
 }
 
-export function handle_current_worklist_click(event: any): void {
+export function handle_current_worklist_click(this: any, event: any): void {
   event.stopPropagation();
 
   const element: any = $(this);
@@ -1075,7 +1075,7 @@ export function city_add_to_worklist(): void {
   }
 }
 
-export function handle_current_worklist_direct_remove(): void {
+export function handle_current_worklist_direct_remove(this: any): void {
   const idx: number = parseInt($(this).data('wlitem'), 10);
   active_city['worklist'].splice(idx, 1);
 
@@ -1101,7 +1101,7 @@ export function city_insert_in_worklist(): void {
 
   if (worklist_selection.length === 0) {
 
-    wl.splice.apply(wl, [0, 0].concat(production_selection));
+    wl.splice(...[0, 0].concat(production_selection) as [number, number, ...any[]]);
 
     // Initialize the selection with the inserted items
     for (i = 0; i < count; i++) {
@@ -1110,7 +1110,7 @@ export function city_insert_in_worklist(): void {
 
   } else {
 
-    wl.splice.apply(wl, [worklist_selection[0], 0].concat(production_selection));
+    wl.splice(...[worklist_selection[0], 0].concat(production_selection) as [number, number, ...any[]]);
 
     for (i = 0; i < worklist_selection.length; i++) {
       worklist_selection[i] += count;
@@ -1193,7 +1193,7 @@ export function city_exchange_worklist_task(): void {
     }
   } else if (task_l === 1) {
     i = worklist_selection[0];
-    wl.splice.apply(wl, [i, 1].concat(production_selection));
+    wl.splice(...[i, 1].concat(production_selection) as [number, number, ...any[]]);
     same = false;
     while (--prod_l) {
       worklist_selection.push(++i);

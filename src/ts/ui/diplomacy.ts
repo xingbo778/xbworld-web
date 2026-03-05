@@ -377,7 +377,7 @@ export function create_diplomacy_dialog(counterpart: any, template: any): void {
     let wto: number;
     $("#counterpart_gold_" + counterpart_id).change(function () {
       clearTimeout(wto);
-      wto = setTimeout(function () {
+      wto = window.setTimeout(function () {
         meeting_gold_change_req(counterpart_id, counterpart_id,
           parseFloat($("#counterpart_gold_" + counterpart_id).val()));
       }, 500);
@@ -385,7 +385,7 @@ export function create_diplomacy_dialog(counterpart: any, template: any): void {
 
     $("#self_gold_" + counterpart_id).change(function () {
       clearTimeout(wto);
-      wto = setTimeout(function () {
+      wto = window.setTimeout(function () {
         meeting_gold_change_req(counterpart_id, pplayer['playerno'],
           parseFloat($("#self_gold_" + counterpart_id).val()));
       }, 500);
@@ -505,9 +505,9 @@ export function meeting_template_data(giver: any, taker: any): any {
   if (game_info.trading_tech && clause_infos[CLAUSE_ADVANCE]['enabled']) {
     clauses = [];
     for (const tech_id in techs) {
-      if (player_invention_state(giver, tech_id) === TECH_KNOWN
-        && (player_invention_state(taker, tech_id) === TECH_UNKNOWN
-          || player_invention_state(taker, tech_id) === TECH_PREREQS_KNOWN)) {
+      if (player_invention_state(giver, Number(tech_id)) === TECH_KNOWN
+        && (player_invention_state(taker, Number(tech_id)) === TECH_UNKNOWN
+          || player_invention_state(taker, Number(tech_id)) === TECH_PREREQS_KNOWN)) {
         clauses.push({
           type: CLAUSE_ADVANCE,
           value: tech_id,

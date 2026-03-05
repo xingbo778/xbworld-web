@@ -1,5 +1,5 @@
 interface WikiDocEntry {
-  image: string;
+  image: string | null;
   summary: string;
   title: string;
 }

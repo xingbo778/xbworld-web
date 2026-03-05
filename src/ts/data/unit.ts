@@ -8,7 +8,7 @@ import type { Unit, UnitType, City, Tile, Player } from './types';
 // Constants
 // ---------------------------------------------------------------------------
 
-export const enum Order {
+export enum Order {
   MOVE = 0,
   ACTIVITY = 1,
   FULL_MP = 2,
@@ -17,14 +17,14 @@ export const enum Order {
   LAST = 5,
 }
 
-export const enum UnitSSDataType {
+export enum UnitSSDataType {
   QUEUE = 0,
   UNQUEUE = 1,
   BATTLE_GROUP = 2,
   SENTRY = 3,
 }
 
-export const enum ServerSideAgent {
+export enum ServerSideAgent {
   NONE = 0,
   AUTOWORKER = 1,
   AUTOEXPLORE = 2,

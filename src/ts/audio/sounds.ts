@@ -18,10 +18,11 @@
 ***********************************************************************/
 
 declare const window: any;
+declare let sounds_enabled: boolean;
+declare const soundset: Record<string, any>;
+declare function is_unit_visible(punit: any): boolean;
 
 export let sound_path: string = "/sounds/";
-
-// TODO: import or define sounds_enabled, soundset, is_unit_visible, unit_type
 
 export function check_unit_sound_play(old_unit: any, new_unit: any): void {
   if (!sounds_enabled) return;

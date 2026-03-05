@@ -27,6 +27,8 @@ const map_pos_to_tile = mapPosToTile;
 import { tile_units } from '../data/unit';
 import { find_visible_unit, set_unit_focus, action_selection_next_in_focus, update_active_units_dialog } from '../core/control';
 import { current_focus, goto_active, goto_request_map, request_goto_path, context_menu_active, keyboard_input as keyboard_input_ref, mapview_mouse_movement as mapview_mouse_movement_ref, SELECT_POPUP, popit, do_map_click, update_mouse_cursor, set_mouse_touch_started_on_unit, check_mouse_drag_unit } from '../core/control';
+import { mouse_moved_cb } from '../core/control/mouse';
+import { setMapviewMouseMovement } from '../core/control/controlState';
 import { player_by_full_username, get_player_connection_status } from '../data/player';
 import { clientIsObserver as client_is_observer, canClientChangeView as can_client_change_view } from '../client/clientState';
 import { isTouchDevice as is_touch_device, isRightMouseSelectionSupported as is_right_mouse_selection_supported } from '../utils/helpers';
@@ -122,7 +124,7 @@ export function mapview_mouse_down(e: any): boolean | void {
     if (goto_active) return;
     set_mouse_touch_started_on_unit(canvas_pos_to_tile(mouse_x, mouse_y));
     check_mouse_drag_unit(canvas_pos_to_tile(mouse_x, mouse_y));
-    if (!mouse_touch_started_on_unit) mapview_mouse_movement = true;
+    if (!mouse_touch_started_on_unit) setMapviewMouseMovement(true);
     touch_start_x = mouse_x;
     touch_start_y = mouse_y;
 
@@ -178,8 +180,8 @@ export function mapview_touch_move(e: any): void {
   if (!goto_active) {
     check_mouse_drag_unit(canvas_pos_to_tile(mouse_x, mouse_y));
 
-    mapview['gui_x0'] += diff_x;
-    mapview['gui_y0'] += diff_y;
+    mapview['gui_x0'] = (mapview['gui_x0'] ?? 0) + diff_x;
+    mapview['gui_y0'] = (mapview['gui_y0'] ?? 0) + diff_y;
   }
 
   if (client.conn.playing == null) return;
@@ -204,7 +206,7 @@ export function mapview_touch_move(e: any): void {
   This function is triggered when the mouse is clicked on the city canvas.
 ****************************************************************************/
 export function city_mapview_mouse_click(e: any): void {
-  let rightclick: boolean;
+  let rightclick = false;
   if (!e) e = window.event;
   if (e.which) {
     rightclick = (e.which == 3);
@@ -355,7 +357,7 @@ export function handle_web_info_text_message(packet: any): void {
       if (split_txt != null && split_txt.length > 4) {
         pplayer = player_by_full_username(split_txt[2]);
       }
-      if (pplayer != null &&
+      if (pplayer != null && split_txt != null &&
           (client.conn.playing == null || pplayer != client.conn.playing)) {
         lines[i] = split_txt[1]
                  + "<a href='#' onclick='javascript:nation_table_select_player("

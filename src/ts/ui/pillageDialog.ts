@@ -77,7 +77,7 @@ export function popup_pillage_selection_dialog(punit: any, tgt: any[]): void {
 /****************************************************************************
   Respond to the target selection.
 ****************************************************************************/
-export function pillage_target_selected(ev: any): void {
+export function pillage_target_selected(this: any, ev: any): void {
   const id = ev.target.id;
   const params = id.match(/pillage_sel_(\d*)_([^_]*)/);
   if (!params) return;

@@ -118,10 +118,8 @@ export function update_net_bulbs(bulbs?: number): void {
     const cbo = get_current_bulbs_output();
     bulbs = cbo.self_bulbs - cbo.self_upkeep;
   }
-  if (bulbs > 0) {
-    bulbs = "+" + bulbs;
-  }
-  $("#bulbs_info").html(bulbs);
+  const bulbsStr: string = bulbs > 0 ? "+" + bulbs : String(bulbs);
+  $("#bulbs_info").html(bulbsStr);
 }
 
 export function create_rates_dialog(taxVal: number, luxVal: number, sciVal: number, max: number): void {

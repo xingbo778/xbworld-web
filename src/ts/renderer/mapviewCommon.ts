@@ -532,7 +532,7 @@ export function canvas_pos_to_tile(canvas_x: number, canvas_y: number): any {
   Updates the entire mapview.
 **************************************************************************/
 export function update_map_canvas_full(): void {
-  if (tiles != null && client_state >= C_S_RUNNING) {
+  if (tiles != null && client_state() >= C_S_RUNNING) {
     if (!sprites_init) init_cache_sprites();
     if (active_city != null) return;
 
@@ -553,7 +553,7 @@ export function update_map_canvas_full(): void {
   Falls back to a full redraw when too many tiles changed or on scroll.
 **************************************************************************/
 export function update_map_canvas_dirty(): void {
-  if (tiles == null || client_state < C_S_RUNNING) return;
+  if (tiles == null || client_state() < C_S_RUNNING) return;
   if (!sprites_init) init_cache_sprites();
   if (active_city != null) return;
 

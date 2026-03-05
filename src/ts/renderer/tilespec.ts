@@ -638,6 +638,7 @@ export function fill_terrain_sprite_array(l: number, ptile: any, pterrain: any, 
               return [{ "key": gfx_key, "offset_x": 0, "offset_y": y }];
             }
         }
+        break;
       }
 
     case CELL_CORNER:
@@ -877,11 +878,11 @@ export function get_city_occupied_sprite(pcity: any): string {
   if (!observing && client.conn.playing != null
     && owner_id != client.conn.playing.playerno && pcity['occupied']) {
     return "citybar.occupied";
-  } else if (punits.length == 1) {
+  } else if (punits != null && punits.length == 1) {
     return "citybar.occupancy_1";
-  } else if (punits.length == 2) {
+  } else if (punits != null && punits.length == 2) {
     return "citybar.occupancy_2";
-  } else if (punits.length >= 3) {
+  } else if (punits != null && punits.length >= 3) {
     return "citybar.occupancy_3";
   } else {
     return "citybar.occupancy_0";
@@ -974,7 +975,7 @@ export function get_border_line_sprites(ptile: any): any[] {
 export function get_unit_nation_flag_sprite(punit: any): any {
   const owner_id = punit['owner'];
 
-  if (unit_type(punit)['flags'].isSet(UTYF_FLAGLESS)
+  if ((unit_type(punit) as any)?.['flags']?.isSet?.(UTYF_FLAGLESS)
     && client.conn.playing != null
     && owner_id != client.conn.playing.playerno) {
     return [];
@@ -1026,7 +1027,7 @@ export function get_unit_stack_sprite(punit?: any): any {
 export function get_unit_hp_sprite(punit: any): any {
   const hp = punit['hp'];
   const utype = unit_type(punit);
-  const max_hp = utype['hp'];
+  const max_hp = utype?.['hp'] ?? 1;
   const healthpercent = 10 * Math.floor((10 * hp) / max_hp);
   const unit_offset = get_unit_anim_offset(punit);
 
@@ -1341,7 +1342,7 @@ export function get_tile_river_sprite(ptile: any): any | null {
   }
 
   const pterrain = tile_terrain(ptile);
-  if (pterrain['graphic_str'] == "coast") {
+  if (pterrain != null && pterrain['graphic_str'] == "coast") {
     for (let i = 0; i < num_cardinal_tileset_dirs; i++) {
       const dir = cardinal_tileset_dirs[i];
       const checktile = mapstep(ptile, dir);

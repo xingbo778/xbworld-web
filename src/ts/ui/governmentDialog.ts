@@ -113,9 +113,9 @@ export function update_govt_dialog(): void {
 
   for (govt_id in governments) {
     govt = governments[govt_id];
-    if (!can_player_get_gov(govt_id)) {
+    if (!can_player_get_gov(Number(govt_id))) {
       $("#govt_id_" + govt['id']).button({ disabled: true, label: govt['name'], icons: { primary: govt['rule_name'] } });
-    } else if (requested_gov == govt_id) {
+    } else if (requested_gov == Number(govt_id)) {
       $("#govt_id_" + govt['id']).button({ label: govt['name'], icons: { primary: govt['rule_name'] } }).css("background", "green");
     } else if (client.conn.playing['government'] == govt_id) {
       $("#govt_id_" + govt['id']).button({ label: govt['name'], icons: { primary: govt['rule_name'] } }).css("background", "#BBBBFF").css("font-weight", "bolder");

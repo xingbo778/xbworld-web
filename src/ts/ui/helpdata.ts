@@ -352,7 +352,7 @@ export function generate_help_text(key: string): void {
     msg += "</div>";
 
     const ireqs = get_improvement_requirements(punit_type["impr_requirement"]);
-    if (ireqs != null && techs[ireqs] != null) {
+    if (ireqs != null && ireqs.length > 0) {
       msg += "<div id='utype_fact_req_building'>";
       msg += "Building Requirements: ";
       for (let m = 0; m < ireqs.length; m++) {

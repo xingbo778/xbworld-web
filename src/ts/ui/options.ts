@@ -18,16 +18,14 @@
 ***********************************************************************/
 
 declare const $: any;
-declare const swal: any;
 declare const simpleStorage: any;
 declare const audio: any;
 declare const music_list: string[];
-declare function send_message(msg: string): void;
 declare function supports_mp3(): boolean;
-declare const server_settings: any;
-declare const game_info: any;
 declare const TRUE: boolean;
 declare const FALSE: boolean;
+declare const DEFAULT_SOCK_PORT: number;
+declare const META_URL: string;
 
 export let server_settings: any = {};
 
@@ -125,30 +123,7 @@ export let gui_gtk2_allied_chat_only: boolean = FALSE;
 export let gui_gtk2_small_display_layout: boolean = FALSE;
 
 export function init_options_dialog(): void {
-  $("#save_button").button("option", "label", "Save Game (Ctrl+S)");
-  $("#metamessage_setting").val(server_settings['metamessage']['val']);
-  $('#metamessage_setting').change(function(): void {
-    send_message("/metamessage " + $('#metamessage_setting').val());
-  });
-
-  $('#metamessage_setting').bind('keyup blur', function(): void {
-    const cleaned_text: string = $(this).val().replace(/[^a-zA-Z\s\-]/g, '');
-    if ($(this).val() != cleaned_text) {
-      $(this).val(cleaned_text);
-    }
-  });
-
-  const existing_timeout: number = game_info['timeout'];
-  if (existing_timeout == 0) $("#timeout_info").html("(0 = no timeout)");
-  $("#timeout_setting").val(existing_timeout);
-  $('#timeout_setting').change(function(): void {
-    const new_timeout: number = parseInt($('#timeout_setting').val());
-    if (new_timeout >= 1 && new_timeout <= 29) {
-      swal("Invalid timeout specified. Must be 0 or more than 30 seconds.");
-    } else {
-      send_message("/set timeout " + new_timeout);
-    }
-  });
+  // Observer mode: save/metamessage/timeout settings are not applicable
 
   if (audio != null && !audio.source.src) {
     if (!supports_mp3()) {
@@ -162,7 +137,7 @@ export function init_options_dialog(): void {
 
   $('#play_sounds_setting').prop('checked', sounds_enabled);
 
-  $('#play_sounds_setting').change(function(): void {
+  $('#play_sounds_setting').change(function(this: any): void {
     sounds_enabled = this.checked;
     simpleStorage.set('sndFX', sounds_enabled);
   });

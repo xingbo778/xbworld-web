@@ -147,30 +147,6 @@ export function showNewGameMessage(): void {
   if (typeof w.clear_chatbox === 'function') w.clear_chatbox();
 
   // Always observer mode — no intro message needed
-  return;
-
-  if (message && w.message_log) {
-    w.message_log.update({ event: w.E_CONNECTION, message: message });
-  }
-}
-
-// ---------------------------------------------------------------------------
-// alert_war
-// ---------------------------------------------------------------------------
-
-/**
- * Logs a war declaration message to the chat.
- */
-export function alertWar(player_no: number): void {
-  const pplayer = w.players[player_no];
-  if (w.message_log) {
-    w.message_log.update({
-      event: w.E_DIPLOMACY,
-      message: 'War: You are now at war with the ' +
-        w.nations[pplayer['nation']]['adjective'] +
-        ' leader ' + pplayer['name'] + '!'
-    });
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -207,57 +183,6 @@ export function showEndgameDialog(): void {
   w.$('#dialog').dialog('open');
   w.$('#game_text_input').blur();
   w.$('#dialog').css('max-height', '500px');
-}
-
-// ---------------------------------------------------------------------------
-// update_metamessage_on_gamestart
-// ---------------------------------------------------------------------------
-
-/**
- * Updates the metaserver message when the game starts.
- */
-export function updateMetamessageOnGamestart(): void {
-  if (!w.observing && !w.metamessage_changed &&
-      w.client?.conn?.playing != null &&
-      w.client.conn.playing['pid'] === w.players[0]?.['pid'] &&
-      w.$.getUrlVar('action') === 'new') {
-    const pplayer = w.client.conn.playing;
-    const metasuggest = w.username + ' ruler of the ' + w.nations[pplayer['nation']]['adjective'] + '.';
-    if (typeof w.send_message === 'function') w.send_message('/metamessage ' + metasuggest);
-    setInterval(function () {
-      if (typeof w.update_metamessage_game_running_status === 'function') w.update_metamessage_game_running_status();
-    }, 200000);
-  }
-  const action = w.$.getUrlVar('action');
-  if (action === 'new' || action === 'earthload' || w.$.getUrlVar('scenario') === 'true') {
-    w.$.post('/freeciv_time_played_stats?type=single2d').fail(function () {});
-  }
-  if (action === 'multi' && w.client?.conn?.playing != null &&
-      w.client.conn.playing['pid'] === w.players[0]?.['pid'] &&
-      !(w.is_longturn && w.is_longturn())) {
-    w.$.post('/freeciv_time_played_stats?type=multi').fail(function () {});
-  }
-}
-
-// ---------------------------------------------------------------------------
-// update_metamessage_game_running_status
-// ---------------------------------------------------------------------------
-
-/**
- * Updates the metaserver message during a running game.
- */
-export function updateMetamessageGameRunningStatus(): void {
-  if (w.client?.conn?.playing != null && !w.metamessage_changed) {
-    const pplayer = w.client.conn.playing;
-    const govName = w.governments?.[pplayer['government']]?.['name'] ?? '-';
-    const techName = w.techs?.[pplayer['researching']]?.['name'] ?? '-';
-    const metasuggest = w.nations[pplayer['nation']]['adjective'] +
-      ' | ' + govName +
-      ' | People:' + (typeof w.civ_population === 'function' ? w.civ_population(pplayer.playerno) : '?') +
-      ' | Score:' + pplayer['score'] +
-      ' | Research:' + techName;
-    if (typeof w.send_message === 'function') w.send_message('/metamessage ' + metasuggest);
-  }
 }
 
 // ---------------------------------------------------------------------------

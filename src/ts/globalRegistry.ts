@@ -95,14 +95,11 @@ w['show_debug_info'] = showDebugInfo;
 w['showDebugInfo'] = showDebugInfo;
 
 import {
-  alertWar,
   setClientState,
   setDefaultMapviewActive,
   setupWindowSize,
   showEndgameDialog,
   showNewGameMessage,
-  updateMetamessageGameRunningStatus,
-  updateMetamessageOnGamestart,
 } from './client/clientMain';
 w['set_client_state'] = setClientState;
 w['setClientState'] = setClientState;
@@ -110,14 +107,8 @@ w['setup_window_size'] = setupWindowSize;
 w['setupWindowSize'] = setupWindowSize;
 w['show_new_game_message'] = showNewGameMessage;
 w['showNewGameMessage'] = showNewGameMessage;
-w['alert_war'] = alertWar;
-w['alertWar'] = alertWar;
 w['show_endgame_dialog'] = showEndgameDialog;
 w['showEndgameDialog'] = showEndgameDialog;
-w['update_metamessage_on_gamestart'] = updateMetamessageOnGamestart;
-w['updateMetamessageOnGamestart'] = updateMetamessageOnGamestart;
-w['update_metamessage_game_running_status'] = updateMetamessageGameRunningStatus;
-w['updateMetamessageGameRunningStatus'] = updateMetamessageGameRunningStatus;
 w['set_default_mapview_active'] = setDefaultMapviewActive;
 w['setDefaultMapviewActive'] = setDefaultMapviewActive;
 
@@ -138,12 +129,6 @@ w['can_client_issue_orders'] = canClientIssueOrders;
 w['canClientIssueOrders'] = canClientIssueOrders;
 w['client_is_observer'] = clientIsObserver;
 w['clientIsObserver'] = clientIsObserver;
-
-import { updateTimeout, updateTurnChangeTimer } from './client/clientTimers';
-w['update_timeout'] = updateTimeout;
-w['updateTimeout'] = updateTimeout;
-w['update_turn_change_timer'] = updateTurnChangeTimer;
-w['updateTurnChangeTimer'] = updateTurnChangeTimer;
 
 // --- core ---
 import {
@@ -1105,23 +1090,23 @@ w['is_unit_visible'] = is_unit_visible;
 w['unittype_ids_alphabetic'] = unittype_ids_alphabetic;
 w['get_unit_city_info'] = get_unit_city_info;
 w['get_what_can_unit_pillage_from'] = get_what_can_unit_pillage_from;
-w['ORDER_MOVE'] = Order;
+w['ORDER_MOVE'] = Order.MOVE;
 w['Order'] = Order;
-w['ORDER_ACTIVITY'] = Order;
-w['ORDER_FULL_MP'] = Order;
-w['ORDER_ACTION_MOVE'] = Order;
-w['ORDER_PERFORM_ACTION'] = Order;
-w['ORDER_LAST'] = Order;
-w['USSDT_QUEUE'] = UnitSSDataType;
+w['ORDER_ACTIVITY'] = Order.ACTIVITY;
+w['ORDER_FULL_MP'] = Order.FULL_MP;
+w['ORDER_ACTION_MOVE'] = Order.ACTION_MOVE;
+w['ORDER_PERFORM_ACTION'] = Order.PERFORM_ACTION;
+w['ORDER_LAST'] = Order.LAST;
+w['USSDT_QUEUE'] = UnitSSDataType.QUEUE;
 w['UnitSSDataType'] = UnitSSDataType;
-w['USSDT_UNQUEUE'] = UnitSSDataType;
-w['USSDT_BATTLE_GROUP'] = UnitSSDataType;
-w['USSDT_SENTRY'] = UnitSSDataType;
-w['SSA_NONE'] = ServerSideAgent;
+w['USSDT_UNQUEUE'] = UnitSSDataType.UNQUEUE;
+w['USSDT_BATTLE_GROUP'] = UnitSSDataType.BATTLE_GROUP;
+w['USSDT_SENTRY'] = UnitSSDataType.SENTRY;
+w['SSA_NONE'] = ServerSideAgent.NONE;
 w['ServerSideAgent'] = ServerSideAgent;
-w['SSA_AUTOWORKER'] = ServerSideAgent;
-w['SSA_AUTOEXPLORE'] = ServerSideAgent;
-w['SSA_COUNT'] = ServerSideAgent;
+w['SSA_AUTOWORKER'] = ServerSideAgent.AUTOWORKER;
+w['SSA_AUTOEXPLORE'] = ServerSideAgent.AUTOEXPLORE;
+w['SSA_COUNT'] = ServerSideAgent.COUNT;
 w['ANIM_STEPS'] = ANIM_STEPS;
 
 import {
@@ -1141,19 +1126,19 @@ w['utype_can_do_action_result'] = utype_can_do_action_result;
 w['can_player_build_unit_direct'] = can_player_build_unit_direct;
 w['get_units_from_tech'] = get_units_from_tech;
 w['unit_classes'] = unit_classes;
-w['UCF_TERRAIN_SPEED'] = UCF;
+w['UCF_TERRAIN_SPEED'] = UCF.TERRAIN_SPEED;
 w['UCF'] = UCF;
-w['UCF_TERRAIN_DEFENSE'] = UCF;
-w['UCF_DAMAGE_SLOWS'] = UCF;
-w['UCF_CAN_OCCUPY_CITY'] = UCF;
-w['UCF_MISSILE'] = UCF;
-w['UCF_BUILD_ANYWHERE'] = UCF;
-w['UCF_UNREACHABLE'] = UCF;
-w['UCF_COLLECT_RANSOM'] = UCF;
-w['UCF_ZOC'] = UCF;
-w['UCF_CAN_FORTIFY'] = UCF;
-w['UCF_CAN_PILLAGE'] = UCF;
-w['UCF_HUT_FRIGHTEN'] = UCF;
+w['UCF_TERRAIN_DEFENSE'] = UCF.TERRAIN_DEFENSE;
+w['UCF_DAMAGE_SLOWS'] = UCF.DAMAGE_SLOWS;
+w['UCF_CAN_OCCUPY_CITY'] = UCF.CAN_OCCUPY_CITY;
+w['UCF_MISSILE'] = UCF.MISSILE;
+w['UCF_BUILD_ANYWHERE'] = UCF.BUILD_ANYWHERE;
+w['UCF_UNREACHABLE'] = UCF.UNREACHABLE;
+w['UCF_COLLECT_RANSOM'] = UCF.COLLECT_RANSOM;
+w['UCF_ZOC'] = UCF.ZOC;
+w['UCF_CAN_FORTIFY'] = UCF.CAN_FORTIFY;
+w['UCF_CAN_PILLAGE'] = UCF.CAN_PILLAGE;
+w['UCF_HUT_FRIGHTEN'] = UCF.HUT_FRIGHTEN;
 w['UTYF_FLAGLESS'] = UTYF_FLAGLESS;
 w['UTYF_PROVIDES_RANSOM'] = UTYF_PROVIDES_RANSOM;
 w['U_NOT_OBSOLETED'] = U_NOT_OBSOLETED;
@@ -1499,8 +1484,6 @@ import {
   mapview_touch_move,
   mapview_touch_start,
   mouse_touch_started_on_unit,
-  mouse_x,
-  mouse_y,
   recenter_button_pressed,
   touch_start_x,
   touch_start_y,
@@ -1517,8 +1500,6 @@ w['city_action_button_pressed'] = city_action_button_pressed;
 w['map_select_units'] = map_select_units;
 w['recenter_button_pressed'] = recenter_button_pressed;
 w['handle_web_info_text_message'] = handle_web_info_text_message;
-w['mouse_x'] = mouse_x;
-w['mouse_y'] = mouse_y;
 w['touch_start_x'] = touch_start_x;
 w['touch_start_y'] = touch_start_y;
 w['map_select_setting_enabled'] = map_select_setting_enabled;
@@ -1943,18 +1924,6 @@ w['action_selection_refresh'] = action_selection_refresh;
 w['action_selection_close'] = action_selection_close;
 
 import {
-  CITYO_DISBAND,
-  CITYO_LAST,
-  CITYO_NEW_EINSTEIN,
-  CITYO_NEW_TAXMAN,
-  FEELING_BASE,
-  FEELING_EFFECT,
-  FEELING_FINAL,
-  FEELING_LUXURY,
-  FEELING_MARTIAL,
-  FEELING_NATIONALITY,
-  INCITE_IMPOSSIBLE_COST,
-  MAX_LEN_WORKLIST,
   active_city,
   cities,
   city_add_to_worklist,
@@ -2057,18 +2026,6 @@ w['active_city'] = active_city;
 w['worklist_dialog_active'] = worklist_dialog_active;
 w['production_selection'] = production_selection;
 w['worklist_selection'] = worklist_selection;
-w['CITYO_DISBAND'] = CITYO_DISBAND;
-w['CITYO_NEW_EINSTEIN'] = CITYO_NEW_EINSTEIN;
-w['CITYO_NEW_TAXMAN'] = CITYO_NEW_TAXMAN;
-w['CITYO_LAST'] = CITYO_LAST;
-w['FEELING_BASE'] = FEELING_BASE;
-w['FEELING_LUXURY'] = FEELING_LUXURY;
-w['FEELING_EFFECT'] = FEELING_EFFECT;
-w['FEELING_NATIONALITY'] = FEELING_NATIONALITY;
-w['FEELING_MARTIAL'] = FEELING_MARTIAL;
-w['FEELING_FINAL'] = FEELING_FINAL;
-w['MAX_LEN_WORKLIST'] = MAX_LEN_WORKLIST;
-w['INCITE_IMPOSSIBLE_COST'] = INCITE_IMPOSSIBLE_COST;
 w['city_tab_index'] = city_tab_index;
 w['city_prod_clicks'] = city_prod_clicks;
 w['city_screen_updater'] = city_screen_updater;
@@ -2443,29 +2400,13 @@ w['current_government'] = current_government;
 
 
 import {
-  AR_ONE,
-  AR_ROOT,
-  AR_SIZE,
-  AR_TWO,
-  A_FIRST,
   A_FUTURE,
   A_LAST,
   A_LAST_REAL,
   A_NEVER,
-  A_NONE,
   A_UNKNOWN,
   A_UNSET,
   MAX_NUM_ADVANCES,
-  TECH_KNOWN,
-  TECH_PREREQS_KNOWN,
-  TECH_UNKNOWN,
-  TF_BONUS_TECH,
-  TF_BRIDGE,
-  TF_BUILD_AIRBORNE,
-  TF_FARMLAND,
-  TF_LAST,
-  TF_POPULATION_POLLUTION_INC,
-  TF_RAILROAD,
   bulbs_output_updater,
   check_queued_tech_gained_dialog,
   clicked_tech_id,
@@ -2522,22 +2463,6 @@ w['is_tech_tree_init'] = is_tech_tree_init;
 w['tech_dialog_active'] = tech_dialog_active;
 w['tech_xscale'] = tech_xscale;
 w['wikipedia_url'] = wikipedia_url;
-w['TECH_UNKNOWN'] = TECH_UNKNOWN;
-w['TECH_PREREQS_KNOWN'] = TECH_PREREQS_KNOWN;
-w['TECH_KNOWN'] = TECH_KNOWN;
-w['AR_ONE'] = AR_ONE;
-w['AR_TWO'] = AR_TWO;
-w['AR_ROOT'] = AR_ROOT;
-w['AR_SIZE'] = AR_SIZE;
-w['TF_BONUS_TECH'] = TF_BONUS_TECH;
-w['TF_BRIDGE'] = TF_BRIDGE;
-w['TF_RAILROAD'] = TF_RAILROAD;
-w['TF_POPULATION_POLLUTION_INC'] = TF_POPULATION_POLLUTION_INC;
-w['TF_FARMLAND'] = TF_FARMLAND;
-w['TF_BUILD_AIRBORNE'] = TF_BUILD_AIRBORNE;
-w['TF_LAST'] = TF_LAST;
-w['A_NONE'] = A_NONE;
-w['A_FIRST'] = A_FIRST;
 w['MAX_NUM_ADVANCES'] = MAX_NUM_ADVANCES;
 w['A_LAST'] = A_LAST;
 w['A_FUTURE'] = A_FUTURE;
@@ -2608,41 +2533,4 @@ import { orientation_changed } from './utils/mobile';
 w['orientation_changed'] = orientation_changed;
 
 
-import {
-  delete_all_savegames,
-  delete_savegame,
-  game_loaded,
-  loadTimerId,
-  load_game_check,
-  load_game_real,
-  load_game_toggle,
-  quicksave,
-  save_game,
-  saved_this_turn,
-  scenario_activated,
-  scenario_info,
-  scenarios,
-  set_metamessage_on_loaded_game,
-  show_load_game_dialog,
-  show_load_game_dialog_cb,
-  show_scenario_dialog,
-} from './utils/savegame';
-w['save_game'] = save_game;
-w['quicksave'] = quicksave;
-w['show_load_game_dialog'] = show_load_game_dialog;
-w['show_load_game_dialog_cb'] = show_load_game_dialog_cb;
-w['delete_savegame'] = delete_savegame;
-w['delete_all_savegames'] = delete_all_savegames;
-w['load_game_check'] = load_game_check;
-w['load_game_real'] = load_game_real;
-w['set_metamessage_on_loaded_game'] = set_metamessage_on_loaded_game;
-w['load_game_toggle'] = load_game_toggle;
-w['show_scenario_dialog'] = show_scenario_dialog;
-w['saved_this_turn'] = saved_this_turn;
-w['game_loaded'] = game_loaded;
-w['scenarios'] = scenarios;
-w['scenario_info'] = scenario_info;
-w['scenario_activated'] = scenario_activated;
-w['loadTimerId'] = loadTimerId;
-
-// Total: 1433 registrations
+// Total: 1413 registrations

@@ -325,7 +325,7 @@ export function popup_action_selection(actor_unit: any, action_probabilities: an
   } else if (target_unit != null) {
     dhtml += "Your " + unit_types[actor_unit['type']]['name']
       + " is ready to act against "
-      + nations[unit_owner(target_unit)['nation']]['adjective']
+      + nations[unit_owner(target_unit)!['nation']]['adjective']
       + " " + unit_types[target_unit['type']]['name'] + ".";
   } else {
     dhtml += "Your " + unit_types[actor_unit['type']]['name']
@@ -399,14 +399,14 @@ export function popup_action_selection(actor_unit: any, action_probabilities: an
   }
 
   if (target_unit != null
-    && tile_units(target_tile).length > 1) {
+    && tile_units(target_tile)!.length > 1) {
     buttons.push({
       id: "act_sel_tgt_unit_switch" + actor_unit['id'],
       "class": 'act_sel_button',
       text: 'Change unit target',
       click: function () {
         select_tgt_unit(actor_unit,
-          target_tile, tile_units(target_tile));
+          target_tile, tile_units(target_tile) ?? []);
 
         action_selection_restart = true;
         $(id).dialog('close');
@@ -503,13 +503,13 @@ export function popup_bribe_dialog(actor_unit: any, target_unit: any, cost: numb
   $("<div id='bribe_unit_dialog_" + actor_unit['id'] + "'></div>")
     .appendTo("div#game_page");
 
-  dhtml += "Treasury contains " + unit_owner(actor_unit)['gold'] + " gold. ";
+  dhtml += "Treasury contains " + unit_owner(actor_unit)!['gold'] + " gold. ";
   dhtml += "The price of bribing "
-    + nations[unit_owner(target_unit)['nation']]['adjective']
+    + nations[unit_owner(target_unit)!['nation']]['adjective']
     + " " + unit_types[target_unit['type']]['name']
     + " is " + cost + ". ";
 
-  bribe_possible = cost <= unit_owner(actor_unit)['gold'];
+  bribe_possible = cost <= unit_owner(actor_unit)!['gold'];
 
   if (!bribe_possible) {
     dhtml += "Traitors Demand Too Much!";
@@ -563,14 +563,14 @@ export function popup_incite_dialog(actor_unit: any, target_city: any, cost: num
 
   dhtml = "";
 
-  dhtml += "Treasury contains " + unit_owner(actor_unit)['gold'] + " gold.";
+  dhtml += "Treasury contains " + unit_owner(actor_unit)!['gold'] + " gold.";
   dhtml += " ";
   dhtml += "The price of inciting "
     + decodeURIComponent(target_city['name'])
     + " is " + cost + ".";
 
   incite_possible = cost != INCITE_IMPOSSIBLE_COST
-    && cost <= unit_owner(actor_unit)['gold'];
+    && cost <= unit_owner(actor_unit)!['gold'];
 
   if (!incite_possible) {
     dhtml += " ";
@@ -624,13 +624,13 @@ export function popup_unit_upgrade_dlg(actor_unit: any, target_city: any, cost: 
 
   dhtml = "";
 
-  dhtml += "Treasury contains " + unit_owner(actor_unit)['gold'] + " gold.";
+  dhtml += "Treasury contains " + unit_owner(actor_unit)!['gold'] + " gold.";
   dhtml += " ";
   dhtml += "The price of upgrading our "
     + unit_types[actor_unit['type']]['name']
     + " is " + cost + ".";
 
-  upgrade_possible = cost <= unit_owner(actor_unit)['gold'];
+  upgrade_possible = cost <= unit_owner(actor_unit)!['gold'];
 
   $(id).html(dhtml);
 
@@ -803,7 +803,7 @@ export function popup_sabotage_dialog(actor_unit: any, target_city: any, city_im
   $("#" + id).attr("title", "Select Improvement to Sabotage");
 
   /* List the alternatives */
-  for (let i = 0; i < store.ruleset_control['num_impr_types']; i++) {
+  for (let i = 0; i < ((store.rulesControl as any)?.['num_impr_types'] ?? 0); i++) {
     const improvement = improvements[i];
 
     if (city_imprs.isSet(i)
@@ -859,7 +859,7 @@ export function create_select_tgt_unit_button(parent_id: string, actor_unit_id: 
   }
 
   text += " (";
-  text += nations[unit_owner(target_unit)['nation']]['adjective'];
+  text += nations[unit_owner(target_unit)!['nation']]['adjective'];
   text += ")";
 
   button = {
@@ -931,7 +931,7 @@ export function create_select_tgt_unit_button(parent_id: string, actor_unit_id: 
 export function list_potential_target_extras(act_unit: any, target_tile: any): any[] {
   const potential_targets: any[] = [];
 
-  for (let i = 0; i < store.ruleset_control.num_extra_types; i++) {
+  for (let i = 0; i < ((store.rulesControl as any)?.num_extra_types ?? 0); i++) {
     const pextra = extras[i];
 
     if (tile_has_extra(target_tile, pextra.id)) {

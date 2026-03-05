@@ -127,7 +127,7 @@ export function init_mapview(): void {
   orientation_changed();
   init_sprites();
   if (mapview_canvas) {
-    requestAnimationFrame(update_map_canvas_check, mapview_canvas);
+    requestAnimationFrame(update_map_canvas_check);
   }
 }
 

@@ -26,7 +26,6 @@ declare const renderer: number;
 declare const RENDERER_2DCANVAS: number;
 declare let map_select_active: any;
 declare let map_select_check: any;
-declare function quicksave(): void;
 declare function civclient_benchmark(n: number): void;
 declare function show_debug_info(): void;
 declare function clear_goto_tiles(): void;
@@ -67,13 +66,6 @@ export function global_keyboard_listener(ev: KeyboardEvent) {
 
 export function civclient_handle_key(keyboard_key: string, key_code: number, ctrl: boolean, alt: boolean, shift: boolean, the_event: KeyboardEvent) {
   switch (keyboard_key) {
-    case 'S':
-      if (ctrl && !clientIsObserver()) {
-        the_event.preventDefault();
-        quicksave();
-      }
-      break;
-
     case 'Q':
       if (alt) civclient_benchmark(0);
       break;
