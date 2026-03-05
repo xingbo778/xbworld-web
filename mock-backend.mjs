@@ -20,20 +20,20 @@ const AI_PLAYERS = [
 
 // Terrain IDs matching PixiRenderer expectations
 const TERRAINS = [
-  { id: 0, name: 'Coast',      graphic_str: 'coast',      graphic_alt: 'coast',      movement_cost: 1, defense_bonus: 0, output: [0, 1, 0, 0, 0, 0] },
-  { id: 1, name: 'Ocean',      graphic_str: 'floor',      graphic_alt: 'ocean',      movement_cost: 1, defense_bonus: 0, output: [0, 1, 0, 0, 0, 0] },
-  { id: 2, name: 'Desert',     graphic_str: 'desert',     graphic_alt: 'desert',     movement_cost: 1, defense_bonus: 0, output: [0, 0, 1, 0, 0, 0] },
-  { id: 3, name: 'Forest',     graphic_str: 'forest',     graphic_alt: 'forest',     movement_cost: 2, defense_bonus: 15, output: [1, 1, 0, 0, 0, 0] },
-  { id: 4, name: 'Grassland',  graphic_str: 'grass',      graphic_alt: 'grassland',  movement_cost: 1, defense_bonus: 0, output: [2, 0, 0, 0, 0, 0] },
-  { id: 5, name: 'Hills',      graphic_str: 'hills',      graphic_alt: 'hills',      movement_cost: 2, defense_bonus: 10, output: [1, 0, 0, 0, 0, 0] },
-  { id: 6, name: 'Jungle',     graphic_str: 'jungle',     graphic_alt: 'jungle',     movement_cost: 2, defense_bonus: 15, output: [1, 0, 0, 0, 0, 0] },
-  { id: 7, name: 'Mountains',  graphic_str: 'mountains',  graphic_alt: 'mountains',  movement_cost: 3, defense_bonus: 25, output: [0, 0, 1, 0, 0, 0] },
-  { id: 8, name: 'Plains',     graphic_str: 'plains',     graphic_alt: 'plains',     movement_cost: 1, defense_bonus: 0, output: [1, 1, 0, 0, 0, 0] },
-  { id: 9, name: 'Swamp',      graphic_str: 'swamp',      graphic_alt: 'swamp',      movement_cost: 2, defense_bonus: 10, output: [1, 0, 0, 0, 0, 0] },
-  { id: 10, name: 'Tundra',    graphic_str: 'tundra',     graphic_alt: 'tundra',     movement_cost: 1, defense_bonus: 0, output: [1, 0, 0, 0, 0, 0] },
-  { id: 11, name: 'Arctic',    graphic_str: 'arctic',     graphic_alt: 'arctic',     movement_cost: 2, defense_bonus: 0, output: [0, 0, 0, 0, 0, 0] },
-  { id: 12, name: 'Lake',      graphic_str: 'lake',       graphic_alt: 'lake',       movement_cost: 1, defense_bonus: 0, output: [0, 2, 0, 0, 0, 0] },
-  { id: 13, name: 'Deep Ocean', graphic_str: 'deep_ocean', graphic_alt: 'deep_ocean', movement_cost: 1, defense_bonus: 0, output: [0, 1, 0, 0, 0, 0] },
+  { id: 0, name: 'Coast',      graphic_str: 'coast',      graphic_alt: 'coast',      movement_cost: 1, defense_bonus: 0, output: [0, 1, 0, 0, 0, 0], color_red: 100, color_green: 140, color_blue: 180 },
+  { id: 1, name: 'Ocean',      graphic_str: 'floor',      graphic_alt: 'ocean',      movement_cost: 1, defense_bonus: 0, output: [0, 1, 0, 0, 0, 0], color_red: 40, color_green: 60, color_blue: 140 },
+  { id: 2, name: 'Desert',     graphic_str: 'desert',     graphic_alt: 'desert',     movement_cost: 1, defense_bonus: 0, output: [0, 0, 1, 0, 0, 0], color_red: 200, color_green: 190, color_blue: 130 },
+  { id: 3, name: 'Forest',     graphic_str: 'forest',     graphic_alt: 'forest',     movement_cost: 2, defense_bonus: 15, output: [1, 1, 0, 0, 0, 0], color_red: 30, color_green: 100, color_blue: 30 },
+  { id: 4, name: 'Grassland',  graphic_str: 'grass',      graphic_alt: 'grassland',  movement_cost: 1, defense_bonus: 0, output: [2, 0, 0, 0, 0, 0], color_red: 90, color_green: 160, color_blue: 60 },
+  { id: 5, name: 'Hills',      graphic_str: 'hills',      graphic_alt: 'hills',      movement_cost: 2, defense_bonus: 10, output: [1, 0, 0, 0, 0, 0], color_red: 140, color_green: 120, color_blue: 60 },
+  { id: 6, name: 'Jungle',     graphic_str: 'jungle',     graphic_alt: 'jungle',     movement_cost: 2, defense_bonus: 15, output: [1, 0, 0, 0, 0, 0], color_red: 20, color_green: 80, color_blue: 20 },
+  { id: 7, name: 'Mountains',  graphic_str: 'mountains',  graphic_alt: 'mountains',  movement_cost: 3, defense_bonus: 25, output: [0, 0, 1, 0, 0, 0], color_red: 130, color_green: 100, color_blue: 80 },
+  { id: 8, name: 'Plains',     graphic_str: 'plains',     graphic_alt: 'plains',     movement_cost: 1, defense_bonus: 0, output: [1, 1, 0, 0, 0, 0], color_red: 160, color_green: 170, color_blue: 70 },
+  { id: 9, name: 'Swamp',      graphic_str: 'swamp',      graphic_alt: 'swamp',      movement_cost: 2, defense_bonus: 10, output: [1, 0, 0, 0, 0, 0], color_red: 70, color_green: 100, color_blue: 70 },
+  { id: 10, name: 'Tundra',    graphic_str: 'tundra',     graphic_alt: 'tundra',     movement_cost: 1, defense_bonus: 0, output: [1, 0, 0, 0, 0, 0], color_red: 170, color_green: 170, color_blue: 170 },
+  { id: 11, name: 'Arctic',    graphic_str: 'arctic',     graphic_alt: 'arctic',     movement_cost: 2, defense_bonus: 0, output: [0, 0, 0, 0, 0, 0], color_red: 230, color_green: 230, color_blue: 250 },
+  { id: 12, name: 'Lake',      graphic_str: 'lake',       graphic_alt: 'lake',       movement_cost: 1, defense_bonus: 0, output: [0, 2, 0, 0, 0, 0], color_red: 80, color_green: 120, color_blue: 200 },
+  { id: 13, name: 'Deep Ocean', graphic_str: 'deep_ocean', graphic_alt: 'deep_ocean', movement_cost: 1, defense_bonus: 0, output: [0, 1, 0, 0, 0, 0], color_red: 20, color_green: 30, color_blue: 100 },
 ];
 
 /** Generate a simple terrain map using noise-like patterns */
@@ -164,7 +164,7 @@ function sendGameInit(ws, username) {
       helptext: '',
       flags: [],
       native_to: [],
-      color_red: 0, color_green: 0, color_blue: 0,
+      // color_red/green/blue now come from TERRAINS via spread
       base_time: 1, road_time: 1,
       irrigation_result: 0, irrigation_food_incr: 0, irrigation_time: 0,
       mining_result: 0, mining_shield_incr: 0, mining_time: 0,
@@ -251,7 +251,7 @@ function sendGameInit(ws, username) {
         terrain: generateTerrain(x, y),
         extras: [0], // empty BitVector
         resource: -1,
-        owner: -1,
+        owner: 255,
         worked: 0,
         continent: 1,
         spec_sprite: '',

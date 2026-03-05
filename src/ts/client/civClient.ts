@@ -101,7 +101,7 @@ export function civClientInit(): void {
     update_game_status_panel();
   }, 6000);
 
-  if ((window as any).overviewTimerId === -1) {
+  if ((window as any).overviewTimerId == null || (window as any).overviewTimerId === -1) {
     (window as any).OVERVIEW_REFRESH = 6000;
     (window as any).overviewTimerId = setInterval(function () {
       redraw_overview();
