@@ -65,7 +65,7 @@ import './data/signals';
 // Data layer
 import './data/game';
 import './data/unit';
-import './data/unittype';
+// unittype: no side effects, pulled in by import chain
 import './data/player';
 import './data/map';
 import './data/tile';
@@ -73,20 +73,20 @@ import './data/terrain';
 import './data/fcTypes';
 import './data/actions';
 import './data/extra';
-import './data/improvement';
+// improvement: no side effects, pulled in by import chain
 import './data/requirements';
 import './data/government';
 import './data/eventConstants';
 import './data/city';
 import './data/tech';
 import './data/nation';
-import './data/reqtree';
-// wikiDoc is lazy-loaded by techDialog when needed (363KB)
+// reqtree: no side effects, pulled in by import chain
+// wikiDoc: lazy-loaded by techDialog when needed (363KB)
 
 // Utilities
 import './utils/bitvector';
 import './utils/helpers';
-import './utils/banlist';
+// banlist: no side effects, pulled in by import chain
 import './utils/mobile';
 // Network layer
 import './net/packetConstants';
@@ -112,7 +112,7 @@ import './core/pregame';
 import './renderer/mapctrl';
 import './renderer/mapview';
 import './renderer/mapviewCommon';
-import './renderer/tilesetConfig';
+// tilesetConfig: no side effects, pulled in by import chain
 import './renderer/tilespec';
 
 // Audio layer
