@@ -55,6 +55,25 @@ export function initTabs(selector: string, options?: { active?: number; heightSt
 
   instances.set(selector, state);
 
+  // Apply jQuery UI compatible CSS classes for styling
+  container.classList.add('ui-tabs', 'ui-widget', 'ui-widget-content', 'ui-corner-all');
+  ul.classList.add('ui-tabs-nav', 'ui-helper-reset', 'ui-helper-clearfix', 'ui-widget-header', 'ui-corner-all');
+  ul.setAttribute('role', 'tablist');
+
+  tabs.forEach((tab) => {
+    const li = tab.parentElement;
+    if (li) {
+      li.classList.add('ui-state-default', 'ui-corner-top');
+      li.setAttribute('role', 'tab');
+    }
+    tab.classList.add('ui-tabs-anchor');
+  });
+
+  panels.forEach((panel) => {
+    panel.classList.add('ui-tabs-panel', 'ui-widget-content', 'ui-corner-bottom');
+    panel.setAttribute('role', 'tabpanel');
+  });
+
   // Apply initial state
   setActiveTab(selector, state.active);
 
