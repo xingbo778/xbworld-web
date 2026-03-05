@@ -7,11 +7,11 @@ import { orientation_changed } from '../utils/mobile';
 import { mark_all_dirty, update_map_canvas_full, update_map_canvas, map_to_gui_pos, update_map_canvas_check } from './mapviewCommon';
 import { tileset_tile_width, tileset_tile_height, normal_tile_width } from './tilesetConfig';
 
-// DIR8 constants - defined locally since they're simple enums
-const DIR8_NORTH = 0;
-const DIR8_EAST = 2;
-const DIR8_SOUTH = 4;
-const DIR8_WEST = 6;
+// DIR8 constants - must match map.ts Direction enum ordering
+const DIR8_NORTH = 1;
+const DIR8_EAST = 4;
+const DIR8_SOUTH = 6;
+const DIR8_WEST = 3;
 
 // setup_window_size is a global function
 declare function setup_window_size(): void;

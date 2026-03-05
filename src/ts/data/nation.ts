@@ -433,7 +433,7 @@ export function selectANation(): void {
  */
 export function selectNoNation(): void {
   w.selected_player = -1;
-  w.$('#nations_button_div button').not('#game_scores_button').button('disable');
+  try { w.$('#nations_button_div button').not('#game_scores_button').button('disable'); } catch (_e) { /* buttons may not be initialized yet */ }
 }
 
 /**

@@ -35,10 +35,11 @@ declare function to_title_case(str: string): string;
 declare function string_unqualify(str: string): string;
 
 // The following variables are assumed to be declared elsewhere in the project and imported or global.
-// For this conversion, we declare them as any or appropriate types to avoid TS errors.
-declare const helpdata_order: string[];
-declare const helpdata: { [key: string]: { text: string } };
-declare const freeciv_wiki_docs: { [key: string]: any };
+// Help data globals — populated by server ruleset packets or left as defaults.
+const w = window as any;
+function get_helpdata_order(): string[] { return w.helpdata_order || []; }
+function get_helpdata(): Record<string, { text: string }> { return w.helpdata || {}; }
+function get_freeciv_wiki_docs(): Record<string, any> { return w.freeciv_wiki_docs || {}; }
 declare const ruleset_control: any;
 declare const ruleset_summary: string | null;
 declare const ruleset_description: string | null;
@@ -72,8 +73,8 @@ export function show_help(): void {
   $("#help_menu").remove();
   $("#help_info_page").remove();
   $("<ul id='help_menu'></ul><div id='help_info_page'></div>").appendTo("#tabs-hel");
-  for (const sec_id in helpdata_order) {
-    const key: string = helpdata_order[sec_id];
+  for (const sec_id in get_helpdata_order()) {
+    const key: string = get_helpdata_order()[sec_id];
     if (hidden_menu_items.indexOf(key) > -1) {
       continue;
     } else if (key.indexOf("help_gen") !== -1) {
@@ -224,7 +225,7 @@ export function handle_help_menu_select(ui: any): void {
       $("#help_info_page").html(data.replace(/\n/g, "<br>"));
     });
   } else {
-    const msg = "<h1>" + helpdata_tag_to_title(selected_tag) + "</h1>" + helpdata[selected_tag]["text"];
+    const msg = "<h1>" + helpdata_tag_to_title(selected_tag) + "</h1>" + get_helpdata()[selected_tag]["text"];
     $("#help_info_page").html(msg);
   }
 
@@ -240,7 +241,7 @@ export function wiki_on_item_button(item_name: string): string {
   /* Item name shouldn't be a qualified string. */
   item_name = string_unqualify(item_name);
 
-  if (freeciv_wiki_docs[item_name] == null) {
+  if (get_freeciv_wiki_docs()[item_name] == null) {
     console.log("No wiki data about " + item_name);
     return "";
   }

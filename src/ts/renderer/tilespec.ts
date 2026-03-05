@@ -22,14 +22,15 @@ const SSA_AUTOWORKER = ServerSideAgent.AUTOWORKER;
 const SSA_AUTOEXPLORE = ServerSideAgent.AUTOEXPLORE;
 
 // DIR8 constants - standard Freeciv direction enum
-const DIR8_NORTH = 0;
-const DIR8_NORTHEAST = 1;
-const DIR8_EAST = 2;
-const DIR8_SOUTHEAST = 3;
-const DIR8_SOUTH = 4;
+// Must match map.ts Direction enum ordering (Freeciv standard)
+const DIR8_NORTHWEST = 0;
+const DIR8_NORTH = 1;
+const DIR8_NORTHEAST = 2;
+const DIR8_WEST = 3;
+const DIR8_EAST = 4;
 const DIR8_SOUTHWEST = 5;
-const DIR8_WEST = 6;
-const DIR8_NORTHWEST = 7;
+const DIR8_SOUTH = 6;
+const DIR8_SOUTHEAST = 7;
 
 // Access runtime globals via window (EXTRA_*, w.tileset data, game state, etc.)
 const w = window as any;
