@@ -16,6 +16,7 @@
  */
 
 import '../utils/seedrandom';  // Must be before civClientInit uses Math.seedrandom
+import { initTabs } from '../ui/tabs';
 import { RENDERER_2DCANVAS } from '../core/constants';
 import { redraw_overview } from '../core/overview';
 import { control_init } from '../core/control';
@@ -85,8 +86,8 @@ export function civClientInit(): void {
 
   init_mapview();
   game_init();
-  // jQuery UI tabs initialization (still needed for tab widget)
-  if (_w.$) _w.$('#tabs').tabs({ heightStyle: 'fill' });
+  // Tabs initialization (vanilla JS replacement for jQuery UI tabs)
+  initTabs('#tabs', { heightStyle: 'fill' });
   control_init();
   _w.timeoutTimerId = setInterval(function () {
     if (typeof _w.update_timeout === 'function') _w.update_timeout();

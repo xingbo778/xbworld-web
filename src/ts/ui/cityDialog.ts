@@ -1,4 +1,5 @@
 import { EventAggregator } from '../utils/EventAggregator';
+import { initTabs } from './tabs';
 import { store } from '../data/store';
 import { cityTile, cityOwner, canCityBuildNow, generateProductionList, cityPopulation as city_population, cityTurnsToGrowthText as city_turns_to_growth_text, getCityProductionTypeSprite as get_city_production_type_sprite, getCityProductionTime as get_city_production_time, getProductionProgress as get_production_progress, getCityProductionType as get_city_production_type } from '../data/city';
 import { get_supported_units } from '../data/unit';
@@ -171,7 +172,7 @@ export function show_city_dialog(pcity: any): void {
     $('#city_units_tab').append(units_element);
    }
 
-  $("#city_tabs").tabs({ active: city_tab_index});
+  initTabs('#city_tabs', { active: city_tab_index });
 
   $(".citydlg_tabs").height(is_small_screen() ? $(window).height() - 110 : $(window).height() - 225);
 

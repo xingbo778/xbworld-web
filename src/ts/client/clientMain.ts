@@ -28,6 +28,7 @@ import { init_overview, overview_active, overview_current_state } from '../core/
 import { mark_all_dirty, mapview } from '../renderer/mapviewCommon';
 import { unblockUI } from '../utils/dom';
 import { showMessageDialog } from '../components/Dialogs/MessageDialog';
+import { getActiveTab, setActiveTab } from '../ui/tabs';
 
 const _w = window as any;
 
@@ -208,14 +209,9 @@ export function setDefaultMapviewActive(): void {
     if (_w.mapview_canvas_ctx) _w.mapview_canvas_ctx.font = _w.canvas_text_font;
   }
 
-  // If jQuery tabs are available, check active tab and switch to map
-  const $ = _w.$;
-  if ($) {
-    try {
-      const active_tab = $('#tabs').tabs('option', 'active');
-      if (active_tab === 4) return; // cities dialog active — don't switch
-    } catch (_) { /* tabs not initialized */ }
-  }
+  // Check active tab — don't switch if cities dialog active
+  const active_tab = getActiveTab('#tabs');
+  if (active_tab === 4) return; // cities dialog active — don't switch
 
   if (unitpanel_active) {
     update_active_units_dialog();
@@ -227,9 +223,7 @@ export function setDefaultMapviewActive(): void {
   }
 
   // Switch to map tab
-  if ($) {
-    try { $('#tabs').tabs('option', 'active', 0); } catch (_) { /* */ }
-  }
+  setActiveTab('#tabs', 0);
   const tabsMap = document.getElementById('tabs-map');
   if (tabsMap) tabsMap.style.height = 'auto';
   _w.tech_dialog_active = false;

@@ -121,6 +121,7 @@ import './renderer/tilespec';
 import './audio/sounds';
 
 // UI layer
+import './ui/tabs';
 import './ui/GameDialog';
 import './ui/game-dialog.css';
 import './ui/controls';

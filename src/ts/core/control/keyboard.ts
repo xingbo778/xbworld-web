@@ -30,6 +30,7 @@ import {
   key_unit_homecity, key_unit_action_select, key_unit_auto_work, key_unit_disband,
   key_unit_move, request_unit_build_city
 } from './unitCommands';
+import { getActiveTab, setActiveTab } from '../../ui/tabs';
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -43,7 +44,7 @@ export function global_keyboard_listener(ev: KeyboardEvent) {
   if (!ev) ev = window.event as KeyboardEvent;
   const keyboard_key = String.fromCharCode(ev.keyCode);
 
-  if (0 === (window as any).$('#tabs').tabs('option', 'active')) {
+  if (0 === getActiveTab('#tabs')) {
     if (find_active_dialog() == null) {
       map_handle_key(keyboard_key, ev.keyCode, ev['ctrlKey'], ev['altKey'], ev['shiftKey'], ev);
     }

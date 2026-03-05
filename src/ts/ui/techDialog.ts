@@ -1,4 +1,5 @@
 import { EventAggregator } from '../utils/EventAggregator';
+import { setActiveTab } from './tabs';
 import { store } from '../data/store';
 import { playerInventionState as player_invention_state, techIdByName as tech_id_by_name, TECH_KNOWN, TECH_UNKNOWN, TECH_PREREQS_KNOWN } from '../data/tech';
 import { getCurrentBulbsOutput as get_current_bulbs_output, getCurrentBulbsOutputText as get_current_bulbs_output_text } from '../data/tech';
@@ -536,7 +537,7 @@ export function show_tech_gained_dialog(tech_gained_id: number): void {
       }, {
         text: "Show Technology Tree",
         click: function () {
-          $("#tabs").tabs("option", "active", 2);
+          setActiveTab('#tabs', 2);
           // set_default_mapview_inactive(); // Assuming this is a global function
           update_tech_screen();
           $("#tech_dialog").dialog('close');
