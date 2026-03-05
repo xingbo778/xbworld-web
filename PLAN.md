@@ -6,9 +6,9 @@
 |------|--------|-------|
 | Step 1: Eliminate globalRegistry | DONE | globalRegistry.ts (2,543 lines) replaced by windowBridge.ts (60 lines). Bundle: 675→570 KB (-15.6%). |
 | Step 1b: Remove unused libs | DONE | Removed 7 unused JS libs (288 KB), deleted bootstrap CSS (144 KB) |
-| Step 2: jQuery Dialogs → Preact | NOT STARTED | |
-| Step 3: Remove remaining jQuery | NOT STARTED | |
-| Step 4: CSS Modernization | NOT STARTED | |
+| Step 2: jQuery Dialogs → Preact | DONE | IntroDialog, MessageDialog, AuthDialog, IntelDialog, EndgameDialog (via MessageDialog). Only reachable observer .dialog() calls migrated. |
+| Step 3: Remove remaining jQuery | DONE (observer) | 815→452 jQuery calls (-363, -44.5%). 20+ files jQuery-free. Deleted 17 unused JS libs (507 KB), 5 unused CSS files (94 KB). Remaining jQuery: all jQuery UI plugin calls (tabs/dialog/button/tablesorter/contextMenu). |
+| Step 4: CSS Modernization | IN PROGRESS | Stripped mCustomScrollbar CSS (43 KB) + fg-menu CSS (3 KB) from webclient.min.css. Deleted 5 unused CSS source files. |
 | Step 5: Pixi.js Rendering | NOT STARTED | |
 | Step 6: State Management | NOT STARTED | |
 
@@ -21,6 +21,32 @@
 - `b85860c` Phase 6: Replace globalRegistry (2,543 lines) with windowBridge (60 lines) — 570 KB bundle
 - `81cb64a` Delete globalRegistry.ts (2,543 lines removed)
 - `61610ee` Lazy-load wikiDoc: 363KB Wikipedia data → runtime JSON fetch — 217 KB bundle
+
+### Step 2 Progress
+- IntroDialog.tsx, MessageDialog.tsx, AuthDialog.tsx, IntelDialog.tsx — Preact components
+- EndgameDialog now uses MessageDialog (no more jQuery .dialog())
+- Fixed 7 critical runtime bugs: w→_w globals, set_client_state dispatch, map_init_topology, dir_ccw/cw imports, request_observe_game, store.tiles sync, overviewTimerId check
+- Observer mode analysis: only intelDialog.ts had reachable .dialog() calls (now migrated)
+- E2E: 24/24 tests passing
+
+### Step 3 Progress
+- jQuery-free files: overview.ts, pages.ts, connection.ts, mapview.ts, messages.ts (init)
+- $.blockUI → vanilla blockUI (utils/dom.ts) in mapview.ts, connection.ts, clientMain.ts
+- $.ajax → fetch in connection.ts; $.getUrlVar → URLSearchParams
+- $(document).ready → DOMContentLoaded in civClient.ts
+- mCustomScrollbar → native scrollTop
+- Removed 7 legacy JS libs from index.html (216 KB): blockUI, dialogextend, mCustomScrollbar, handlebars+hbs-templates, slider+range, sha512
+- Total page JS: 1,148 KB → 773 KB (-375 KB, -33%)
+- Bundle: 270 KB → 270 KB (stable)
+- jQuery $() calls: 759 → 675 (-84)
+- Batch 2: control.ts, unitFocus.ts, nation.ts, mapctrl.ts, mouse.ts, mapClick.ts, clientCore.ts, unitCommands.ts, packhandlers.ts, chat.ts, keyboard.ts, pregame.ts
+- jQuery $() calls: 675 → 452 (-223)
+- Deleted 17 unused JS lib files (507 KB): blockUI, dialogextend, mCustomScrollbar, spectrum, raphael, morris, slider, range, handlebars, sha512, bigscreen, platform, hammer, gif, gif.worker, modernizr, timer
+- Deleted 5 unused CSS files (94 KB): mCustomScrollbar, spectrum, morris, bluecurve, fg.menu
+- Stripped mCustomScrollbar CSS (43 KB) + fg-menu CSS (3 KB) from webclient.min.css
+- Legacy JS libs: 1,027 KB → 521 KB (-49%)
+- Loaded CSS: 165 KB → 121 KB (-27%)
+- Remaining 452 jQuery calls: all jQuery UI plugin usage (tabs, dialog, button, tablesorter, contextMenu) — irreducible without removing jQuery UI
 
 ### Metrics After Step 1
 - Bundle: 686 KB → 217 KB (-469 KB, -68.4%)
@@ -35,16 +61,15 @@
 
 ## Current State Summary
 
-| Metric | Value |
-|--------|-------|
-| TS Bundle (main.js) | 675 KB (232 KB gzip) |
-| Legacy JS (26 files) | ~1 MB |
-| CSS (16 files) | 474 KB |
-| jQuery $() calls | 815 across 31 files |
-| .dialog()/.blockUI() calls | 90 across 17 files |
-| globalRegistry.ts | 2,543 lines, 1,285 window assignments |
-| Renderer code | 4,166 lines (Canvas 2D) |
-| Preact components | 3 (App, PillageDialog, Dialog) |
+| Metric | Before | Now |
+|--------|--------|-----|
+| TS Bundle (main.js) | 675 KB | 273 KB (87 KB gzip) |
+| Legacy JS libs | 1,027 KB (26 files) | 521 KB (9 files) |
+| Loaded CSS | 474 KB | 121 KB |
+| jQuery $() calls | 815 across 31 files | 452 across 21 files |
+| globalRegistry.ts | 2,543 lines | 0 (deleted) |
+| Preact components | 3 | 7 (App, Dialog, Button, IntroDialog, MessageDialog, AuthDialog, IntelDialog) |
+| Total page JS | 1,737 KB | 794 KB (-54%) |
 
 ### Top jQuery-heavy files
 | File | $() calls | .dialog() calls |
