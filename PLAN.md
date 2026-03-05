@@ -1,173 +1,240 @@
-# Refactor Phase 2: Type Safety & Legacy Elimination
+# Refactor Phase 2: Clean Up, Fix Types, Kill Legacy
 
 Previous phase (complete): Observer-only refactor — removed all player code paths.
 
-Current state:
-- 90 TS files, 22.7K LOC
-- 299 typecheck errors (pre-existing)
-- ~407 `declare const/function` (legacy global refs) across 33 files
-- ~925 `any` annotations
-- globalRegistry.ts: 2,648 lines bridging TS exports → window
-- 27 legacy JS libs loaded via script tags
-- 3 app JS files (hbs-templates, 2x tileset config)
+---
+
+## Current state snapshot
+
+```
+Code volume:
+  TypeScript      29,446 lines  (90 files)
+  Legacy JS libs  10,625 lines  (26 files, script-tag loaded)
+  App JS            673 lines   (tileset config + Handlebars templates)
+  HTML              217 lines   (index.html)
+  CSS             5,010 lines
+  Total          ~46,000 lines
+
+Technical debt:
+  typecheck errors    299
+  `declare` stubs     407  (across 33 files)
+  `any` annotations   925  (across 38 files)
+  jQuery usages       900  (across 38 files)
+  globalRegistry.ts   2,648 lines
+
+Dead code (observer-mode):
+  savegame.ts         459 lines  (entire file)
+  clientTimers.ts     111 lines  (entire file)
+  options.ts          ~30 lines  (save/metamessage/timeout init)
+  clientMain.ts       ~20 lines  (alertWar, metamessage functions)
+  pages.ts            ~30 lines  (non-game page branches)
+```
+
+### typecheck errors breakdown (299 total)
+
+```
+By file (top 10):
+  globalRegistry.ts      120  (duplicates + const enum issues)
+  tilesetConfig.ts        40  (missing MATCH_NONE, CELL_WHOLE etc.)
+  sounds.ts               22  (missing soundset, sounds_enabled)
+  techDialog.ts           22  (missing globals)
+  tilespec.ts             18  (missing ts_tiles, dir_ccw etc.)
+  cityDialog.ts           14  (strict-null, missing names)
+  actionDialog.ts         13  (strict-null, store property names)
+  mapctrl.ts               9  (missing globals)
+  options.ts               8  (missing globals)
+  mapviewCommon.ts         6  (missing globals)
+
+By error type:
+  TS2304  93  Cannot find name (missing declares)
+  TS2475  60  const enum used incorrectly
+  TS2300  60  Duplicate identifier
+  TS2345  15  Type mismatch in argument
+  TS2683  13  'this' implicitly has type 'any'
+  TS2532  13  Object possibly undefined
+  TS18047  7  Object possibly null
+  TS2395   6  Individual declarations in merged declaration
+  TS2322   6  Type not assignable
+  TS2630   4  Cannot assign to function
+```
 
 ---
 
-## Phase 1: Fix typecheck errors (target: 299 → 0)
+## Step 0: Delete dead code (quick win, ~650 lines)
 
-Group errors by category and fix in order of dependency.
+Remove files and code that are completely dead after observer-only refactor.
+This reduces noise before tackling type errors.
 
-**1a. globalRegistry.ts duplicate identifiers (~50 errors)**
-- Duplicate `const` re-declarations (mouse_x/y, CITYO_*, FEELING_*, AR_*, A_*, TECH_*)
-- Fix: deduplicate — keep one declaration per identifier
+**0a. Delete `savegame.ts` (459 lines)**
+- Entire file is dead: observers can't save/load games
+- Remove its imports from `main.ts` and `globalRegistry.ts`
+- Remove `quicksave` declare from `keyboard.ts`
+- Already guarded by `clientIsObserver()`, but the file serves no purpose
 
-**1b. data/ module type errors (~40 errors)**
-- `city.ts`: Cannot assign to function (getCityTileMapForPos)
-- `wikiDoc.ts`: null assignment to string
-- Fix: use proper function reassignment patterns, add null unions
+**0b. Delete `clientTimers.ts` (111 lines)**
+- `updateTimeout()` and `updateTurnChangeTimer()` depend on `#turn_done_button` (removed from HTML)
+- Remove imports from `main.ts` and `globalRegistry.ts`
 
-**1c. renderer/ missing globals (~80 errors)**
-- `tilespec.ts`: Missing `ts_tiles`, `dir_ccw`, `dir_cw`, `fill_irrigation_sprite_array`
-- `tilesetConfig.ts`: Missing `MATCH_NONE`, `CELL_WHOLE`, etc.
-- Fix: add `declare` stubs in a shared renderer.d.ts or import from tileset JS
+**0c. Trim dead branches in existing files (~80 lines)**
+- `clientMain.ts`: Delete `alertWar()`, simplify `updateMetamessageOnGamestart()` / `updateMetamessageGameRunningStatus()` to return immediately for observer
+- `pages.ts`: Remove PAGE_LOAD, PAGE_SCENARIO, PAGE_NETWORK cases
+- `options.ts`: Remove save button init, metamessage setting, timeout setting
 
-**1d. audio/sounds.ts missing globals (~22 errors)**
-- Missing `sounds_enabled`, `is_unit_visible`, `soundset`
-- Fix: add declares or import properly
+**0d. Clean globalRegistry.ts imports**
+- Remove registration lines for deleted functions (savegame, clientTimers, alertWar etc.)
 
-**1e. UI module strict-null errors (~60 errors)**
-- Object possibly undefined/null in actionDialog, cityDialog, etc.
-- Fix: add null checks, non-null assertions where safe
-
-**1f. Remaining scattered errors (~47 errors)**
-- `overview.ts`: undefined-to-number, null-to-array
-- `packhandlers.ts`, `mapctrl.ts`, `intelDialog.ts`, etc.
-- Fix: case-by-case
+**Verification:** `npx vite build` still passes, E2E tests still pass.
 
 ---
 
-## Phase 2: Type the packet system
+## Step 1: Fix globalRegistry.ts errors (120 → 0)
 
-The 145 packet handlers in `packhandlers.ts` (1,446 LOC) are the backbone.
-Typing them unlocks type safety across the entire data flow.
+This single file has 40% of all errors. Fix it first for biggest impact.
 
-**2a. Define packet interfaces**
-- Create `net/packetTypes.ts` with discriminated union:
-  ```ts
-  interface PacketGameInfo { pid: 16; turn: number; year: number; ... }
-  interface PacketMapInfo { pid: 17; xsize: number; ysize: number; ... }
-  type ServerPacket = PacketGameInfo | PacketMapInfo | ...;
-  ```
-- Start with the 20 most-used packet types (game, map, tile, unit, city, player, conn)
+**1a. Fix duplicate identifiers (60 errors, TS2300)**
+- Problem: Constants like `mouse_x`, `CITYO_*`, `FEELING_*`, `AR_*`, `A_*`, `TECH_KNOWN` are declared twice
+- Cause: imported from a module AND re-declared as `const` in the same file
+- Fix: Remove the duplicate `const` declarations, keep only the import + `w[name] = value` pattern
 
-**2b. Type packet handlers**
-- Replace `(packet: any)` signatures with specific packet types
-- Use the discriminated union in the router
+**1b. Fix const enum issues (60 errors, TS2475)**
+- Problem: `const enum` members used in `w[name] = EnumMember` assignments
+- Cause: TypeScript inlines `const enum` values, but they can't be used in arbitrary expressions
+- Fix: Change the source enums from `const enum` to regular `enum`, or use the numeric literal values directly
 
-**2c. Type outgoing packets**
-- Create interfaces for client→server packets (unit_orders, city_buy, chat, etc.)
-- Type `send_request()` calls
+**Verification:** `npx tsc --noEmit 2>&1 | grep globalRegistry | wc -l` → 0
 
 ---
 
-## Phase 3: Eliminate `declare` statements (407 → 0)
+## Step 2: Fix renderer errors (64 → 0)
 
-Replace legacy `declare const X: any` with proper imports.
-Work file-by-file, prioritizing files with most declares.
+Second biggest group. All about missing tileset constants.
 
-**3a. Create typed facade modules for legacy JS libs**
-- `legacy/jquery.ts` — re-export `$` with basic types
-- `legacy/handlebars.ts` — re-export `Handlebars`
-- `legacy/eventAggregator.ts` — typed wrapper
+**2a. Create `renderer/tileset.d.ts` with declares for tileset JS globals (~40 errors)**
+- `MATCH_NONE`, `MATCH_SAME`, `MATCH_PAIR`, `MATCH_FULL`, `CELL_WHOLE`, `CELL_CORNER`
+- `ts_tiles`, `dir_ccw`, `dir_cw`, `fill_irrigation_sprite_array`
+- These come from `tileset_config_amplio2.js` / `tileset_spec_amplio2.js` loaded via script tag
+- Single `.d.ts` file eliminates 40+ errors across tilesetConfig.ts, tilespec.ts, mapviewCommon.ts
 
-**3b. Move tileset JS constants into TS**
-- Convert `tileset_config_amplio2.js` → `.ts`
-- Convert `tileset_spec_amplio2.js` → `.ts`
-- This eliminates ~80 declares in renderer/ files
+**2b. Fix mapctrl.ts missing globals (9 errors)**
+- `map_select_x`, `map_select_y`, `mouse_moved_cb`, `selected_player`
+- Add declares or import from appropriate module
 
-**3c. Replace declares in UI files (top 10 by count)**
-1. `ui/techDialog.ts` (22 declares)
-2. `ui/cityDialog.ts` (20 declares)
-3. `ui/diplomacy.ts` (20 declares)
-4. `ui/helpdata.ts` (18 declares)
-5. `ui/nationDialog.ts`
-6. `ui/intelDialog.ts`
-7. `core/control/unitCommands.ts`
-8. `renderer/tilespec.ts`
-9. `renderer/tilesetConfig.ts`
-10. `net/packhandlers.ts`
+**2c. Fix remaining renderer strict-null errors (~5)**
+- `tilespec.ts`: `punits` possibly null, `utype` possibly undefined, `pterrain` possibly undefined
+- Add null checks
 
-**3d. Clean up global.d.ts**
-- Remove entries as declares are replaced with imports
-- Goal: delete global.d.ts entirely
+**Verification:** `npx tsc --noEmit 2>&1 | grep renderer | wc -l` → 0
 
 ---
 
-## Phase 4: Shrink globalRegistry.ts (2,648 → 0 lines)
+## Step 3: Fix audio + UI errors (93 → 0)
 
-Once declares are replaced with imports, the registry becomes unnecessary.
+**3a. Fix sounds.ts (22 errors)**
+- Add declares: `soundset`, `sounds_enabled`, `is_unit_visible`
+- All are window globals from legacy JS
 
-**4a. Audit which window registrations are still needed**
-- Check index.html inline scripts
-- Check legacy JS lib callbacks
-- Check Handlebars template helpers
+**3b. Fix techDialog.ts (22 errors)**
+- Missing: `is_tech_req_for_goal`, `get_units_from_tech`, `get_improvements_from_tech`, `selected_player`
+- Add declares for legacy globals
 
-**4b. Remove registrations for TS-only consumers**
-- If a function is only called from TS code, remove its window registration
-- Batch by module (audio, data, core, ui, net, renderer)
+**3c. Fix cityDialog.ts (14 errors)**
+- Mix of missing names (`can_city_build_now`, `generate_production_list`) and strict-null
+- Add declares + null checks + `typeof EventAggregator` fix
 
-**4c. Move remaining registrations to the consuming module**
-- For functions still called from legacy JS, register at the call site
-- Example: `window.show_city_dialog = show_city_dialog` in cityDialog.ts
+**3d. Fix actionDialog.ts (13 errors)**
+- Strict-null errors + `store.ruleset_control` → `store.rulesControl`
+- Fix property name to match actual store shape
 
-**4d. Delete globalRegistry.ts and its import from main.ts**
-
----
-
-## Phase 5: Modernize library dependencies
-
-Replace script-tag libraries with npm packages.
-
-**5a. High-value replacements**
-- jQuery → native DOM (already have `utils/dom.ts` with `$id`, `on`)
-- jQuery UI dialogs → lightweight alternative (or custom)
-- simpleStorage → localStorage wrapper
-
-**5b. Bundle remaining libs via Vite**
-- Move Handlebars runtime to npm import
-- Move EventAggregator to TS module (already have `core/events.ts`)
-
-**5c. Clean up index.html script tags**
-- Remove library script tags as they're bundled
-- Goal: single `<script>` tag for the TS bundle
+**3e. Fix remaining UI files (options, diplomacy, intelDialog, rates, pillageDialog, helpdata — ~20 errors)**
+- Case by case: add declares, null checks, type fixes
 
 ---
 
-## Phase 6: Reduce `any` annotations (925 → <50)
+## Step 4: Fix data/ errors (8 → 0)
 
-**6a. Type game state objects**
-- Define interfaces: `Player`, `Unit`, `City`, `Tile`, `Nation`, `Tech`
-- Update `data/store.ts` to use typed collections
-- Replace `players: any` → `players: Record<number, Player>`
+**4a. city.ts (4 errors, TS2630)**
+- Cannot assign to function `getCityTileMapForPos`
+- Fix: use `let` variable with function type instead of function declaration
 
-**6b. Type UI module parameters**
-- Replace `any` in dialog functions with game object types
-- Type jQuery callbacks with proper event types
+**4b. wikiDoc.ts (2 errors)**
+- Null assignment to string
+- Fix: add `| null` to type
 
-**6c. Type renderer interfaces**
-- Sprite types, canvas context types, tileset types
+**4c. overview.ts (5 errors)**
+- `number | undefined` passed as `number`, `null` to `number[]`
+- Fix: add null checks and defaults
 
 ---
 
-## Execution order & priorities
+## Step 5: Investigate and fix map rendering (black area)
 
-| Phase | Effort | Impact | Dependencies |
-|-------|--------|--------|--------------|
-| 1     | 2-3 sessions | Unlocks CI typecheck | None |
-| 2     | 2-3 sessions | Type safety for data flow | None |
-| 3     | 4-5 sessions | Eliminates legacy coupling | Phase 1 |
-| 4     | 2 sessions | Removes biggest file | Phase 3 |
-| 5     | 3-4 sessions | Modern build, smaller bundle | Phase 4 |
-| 6     | 3-4 sessions | Full type safety | Phase 2 |
+E2E test showed map title layer renders (city names visible) but main
+canvas is black. Investigate.
 
-Phases 1 and 2 can run in parallel. Phase 3→4 is sequential. Phase 6 benefits from Phase 2 but can start early.
+**5a. Check tileset sprite loading**
+- `mapview.ts` uses `$.ajax` to load tileset_config and tileset_spec JS
+- Are the AJAX URLs correct in dev mode? Check Vite proxy/serving
+
+**5b. Check 2D canvas rendering path**
+- `update_map_canvas()` → does it get called?
+- Is `mapview_canvas_ctx` initialized?
+
+**5c. Check observer game state**
+- Does the observer receive tile data from the real backend?
+- Are tile.known == TILE_KNOWN_SEEN for visible tiles?
+
+**5d. Add debug logging**
+- Log tile count received, canvas dimensions, first draw call
+- Take screenshot after 30s (tiles may load slowly)
+
+---
+
+## Step 6: Node.js version pin
+
+**6a. Add `.nvmrc` file**
+```
+18
+```
+
+**6b. Update package.json engines**
+```json
+"engines": { "node": ">=18" }
+```
+
+**6c. Update vite.config.dev.ts comment**
+- Remove reference to old backend URL if needed
+
+---
+
+## Execution summary
+
+| Step | Errors fixed | Lines changed | Time est. |
+|------|-------------|---------------|-----------|
+| 0    | —           | -650 deleted  | 15 min    |
+| 1    | 120         | ~60 changed   | 20 min    |
+| 2    | 64          | ~50 new declares | 15 min |
+| 3    | 93          | ~40 declares + fixes | 30 min |
+| 4    | 8           | ~15 fixes     | 10 min    |
+| 5    | —           | debug + fix   | 30 min    |
+| 6    | —           | 3 new files   | 5 min     |
+| **Total** | **299 → 0** | **~800 lines** | **~2 hours** |
+
+After completion:
+- `npx tsc --noEmit` exits with 0 errors
+- `npx vite build` passes
+- E2E tests pass with live backend
+- Map renders correctly
+- Dead code removed
+- Node.js version pinned
+
+---
+
+## What comes after (future sessions)
+
+With 0 typecheck errors achieved, the codebase is ready for:
+
+1. **Packet typing** (PLAN Phase 2) — define interfaces for 145 packet handlers
+2. **declare elimination** (PLAN Phase 3) — replace 407 `declare` stubs with imports
+3. **jQuery removal** (PLAN Phase 5) — replace 900 `$()` calls with native DOM
+4. **globalRegistry deletion** (PLAN Phase 4) — remove 2,648-line bridge file
+5. **Full type safety** (PLAN Phase 6) — reduce 925 `any` to <50
