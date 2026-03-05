@@ -296,10 +296,21 @@ test.describe('Observer UI Elements', () => {
 
   test('overview minimap renders content (not blank)', async ({ page }) => {
     await page.locator('#map_tab a').click();
-    // Overview renders on a 6s timer — wait up to 10s for it
+    // Overview renders on a 6s timer — wait up to 10s for canvas content
     await expect(async () => {
-      const imgSrc = await page.locator('#overview_img').getAttribute('src');
-      expect(imgSrc != null && imgSrc.length > 100).toBe(true);
+      const hasContent = await page.evaluate(() => {
+        const canvas = document.getElementById('overview_img') as HTMLCanvasElement;
+        if (!canvas || canvas.tagName !== 'CANVAS') return false;
+        const ctx = canvas.getContext('2d');
+        if (!ctx || canvas.width < 2 || canvas.height < 2) return false;
+        const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+        let nonBlack = 0;
+        for (let i = 0; i < data.length; i += 4) {
+          if (data[i] > 0 || data[i+1] > 0 || data[i+2] > 0) nonBlack++;
+        }
+        return nonBlack > 20;
+      });
+      expect(hasContent).toBe(true);
     }).toPass({ timeout: 10000, intervals: [1000] });
   });
 

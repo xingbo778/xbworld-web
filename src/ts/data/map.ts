@@ -13,6 +13,7 @@
  */
 
 import { FC_WRAP } from '../utils/helpers';
+import { init_overview } from '../core/overview';
 import { store } from './store';
 export const enum Direction {
   NORTHWEST = 0,
@@ -131,10 +132,7 @@ export function mapAllocate(): void {
   // Set startpos_table (required by later server packets)
   if (win.map) win.map['startpos_table'] = {};
 
-  // init_overview() is still in overview.js (loaded before ts-bundle)
-  if (typeof win.init_overview === 'function') {
-    win.init_overview();
-  }
+  init_overview();
 }
 
 /**

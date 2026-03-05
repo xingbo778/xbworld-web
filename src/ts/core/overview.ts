@@ -103,21 +103,54 @@ export function init_overview(): void {
   Redraw the overview map.
 ****************************************************************************/
 export function redraw_overview(): void {
-  if (mapview_slide['active'] || C_S_RUNNING > client_state()
+  if (!overview_active || mapview_slide['active'] || C_S_RUNNING > client_state()
       || (store.mapInfo as any)['xsize'] == null || (store.mapInfo as any)['ysize'] == null
       || !document.getElementById('overview_map')) return;
 
   const hash: number = generate_overview_hash((store.mapInfo as any)['xsize'], (store.mapInfo as any)['ysize']);
 
   if (hash != overview_hash) {
-    (window as any).bmp_lib.render('overview_img',
-                    generate_overview_grid((store.mapInfo as any)['xsize'], (store.mapInfo as any)['ysize']),
-                    palette);
+    renderOverviewToCanvas(
+      generate_overview_grid((store.mapInfo as any)['xsize'], (store.mapInfo as any)['ysize']),
+      palette
+    );
     overview_hash = hash;
     render_viewrect();
   }
 }
 
+
+/****************************************************************************
+  Render the overview grid directly to the canvas element (replaces bmp_lib).
+****************************************************************************/
+function renderOverviewToCanvas(grid: number[][], pal: number[][]): void {
+  const canvas = document.getElementById('overview_img') as HTMLCanvasElement | null;
+  if (!canvas || !grid.length || !grid[0].length || !pal.length) return;
+  const rows = grid.length;
+  const cols = grid[0].length;
+  canvas.width = cols;
+  canvas.height = rows;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  const imageData = ctx.createImageData(cols, rows);
+  const data = imageData.data;
+  for (let y = 0; y < rows; y++) {
+    const row = grid[y];
+    if (!row) continue;
+    for (let x = 0; x < cols; x++) {
+      const idx = (y * cols + x) * 4;
+      const colorIdx = row[x];
+      if (colorIdx !== undefined && pal[colorIdx]) {
+        const color = pal[colorIdx];
+        data[idx] = color[0];
+        data[idx + 1] = color[1];
+        data[idx + 2] = color[2];
+      }
+      data[idx + 3] = 255;
+    }
+  }
+  ctx.putImageData(imageData, 0, 0);
+}
 
 /****************************************************************************
   Creates a grid representing the image for the overview map.
@@ -237,6 +270,7 @@ export function render_viewrect(): void {
 }
 
 export function add_closed_path(ctx: CanvasRenderingContext2D, path: number[][]): void {
+  if (path.length === 0) return;
   ctx.moveTo(path[0][0], path[0][1]);
   for (let i = 1; i < path.length; i++) {
     ctx.lineTo(path[i][0], path[i][1]);

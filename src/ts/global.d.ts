@@ -259,9 +259,6 @@ declare const jQuery: JQueryStatic;
 // Third-party stubs
 // ---------------------------------------------------------------------------
 declare const audiojs: any;
-declare const bmp_lib: {
-  render(elementId: string, data: any, palette: any): void;
-};
 
 // ---------------------------------------------------------------------------
 // BitVector — also implemented in utils/bitvector.ts; this declaration is
