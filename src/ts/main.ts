@@ -11,6 +11,9 @@
 
 import { logNormal } from './core/log';
 
+// CSS design tokens
+import './styles/tokens.css';
+
 // ---------------------------------------------------------------------------
 // Step 0: Ensure global data stores exist before any module runs.
 // ---------------------------------------------------------------------------

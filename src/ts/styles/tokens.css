@@ -1,0 +1,102 @@
+/* XBWorld Design Tokens
+   CSS custom properties for theming and consistent styling.
+   Import this file at the top of the game's CSS chain. */
+
+:root {
+  /* Colors — Dark theme (game default) */
+  --xb-bg-primary: #0d1117;
+  --xb-bg-secondary: #161b22;
+  --xb-bg-surface: #1a1a2e;
+  --xb-bg-elevated: #21262d;
+  --xb-bg-overlay: rgba(0, 0, 0, 0.6);
+
+  --xb-text-primary: #e6edf3;
+  --xb-text-secondary: #8b949e;
+  --xb-text-muted: #484f58;
+  --xb-text-link: #58a6ff;
+
+  --xb-border-default: #30363d;
+  --xb-border-muted: #21262d;
+
+  /* Accent colors */
+  --xb-accent-blue: #58a6ff;
+  --xb-accent-green: #3fb950;
+  --xb-accent-red: #f85149;
+  --xb-accent-yellow: #d29922;
+  --xb-accent-purple: #bc8cff;
+
+  /* Player colors */
+  --xb-player-0: #ff4444;
+  --xb-player-1: #4488ff;
+  --xb-player-2: #44cc44;
+  --xb-player-3: #ffcc00;
+  --xb-player-4: #ff44ff;
+  --xb-player-5: #44ffff;
+  --xb-player-6: #ff8800;
+  --xb-player-7: #8844ff;
+
+  /* Spacing */
+  --xb-space-xs: 4px;
+  --xb-space-sm: 8px;
+  --xb-space-md: 12px;
+  --xb-space-lg: 16px;
+  --xb-space-xl: 24px;
+  --xb-space-2xl: 32px;
+
+  /* Typography */
+  --xb-font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --xb-font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  --xb-font-size-xs: 11px;
+  --xb-font-size-sm: 12px;
+  --xb-font-size-md: 14px;
+  --xb-font-size-lg: 16px;
+  --xb-font-size-xl: 20px;
+
+  /* Borders */
+  --xb-radius-sm: 3px;
+  --xb-radius-md: 6px;
+  --xb-radius-lg: 8px;
+  --xb-radius-full: 9999px;
+
+  /* Shadows */
+  --xb-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --xb-shadow-md: 0 3px 6px rgba(0, 0, 0, 0.4);
+  --xb-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+
+  /* Z-index layers */
+  --xb-z-map: 1;
+  --xb-z-ui: 100;
+  --xb-z-panel: 500;
+  --xb-z-dialog: 1000;
+  --xb-z-overlay: 5000;
+  --xb-z-toast: 9000;
+
+  /* Transitions */
+  --xb-transition-fast: 100ms ease;
+  --xb-transition-normal: 200ms ease;
+  --xb-transition-slow: 300ms ease;
+}
+
+/* Scrollbar styling (replaces mCustomScrollbar) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--xb-border-default) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--xb-border-default);
+  border-radius: var(--xb-radius-full);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--xb-text-secondary);
+}
