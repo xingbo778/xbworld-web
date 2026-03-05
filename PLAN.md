@@ -8,7 +8,7 @@
 | Step 1b: Remove unused libs | DONE | Removed 7 unused JS libs (288 KB), deleted bootstrap CSS (144 KB) |
 | Step 2: jQuery Dialogs → Preact | DONE | IntroDialog, MessageDialog, AuthDialog, IntelDialog, EndgameDialog (via MessageDialog). Only reachable observer .dialog() calls migrated. |
 | Step 3: Remove remaining jQuery | DONE (observer) | 815→452 jQuery calls (-363, -44.5%). 20+ files jQuery-free. Deleted 17 unused JS libs (507 KB), 5 unused CSS files (94 KB). Remaining jQuery: all jQuery UI plugin calls (tabs/dialog/button/tablesorter/contextMenu). |
-| Step 4: CSS Modernization | IN PROGRESS | Stripped mCustomScrollbar CSS (43 KB) + fg-menu CSS (3 KB) from webclient.min.css. Deleted 5 unused CSS source files. |
+| Step 4: CSS Modernization | DONE | Stripped mCustomScrollbar (43 KB), fg-menu (3 KB), Load Awesome (8 KB), Spectrum (12 KB) CSS. Inlined EventAggregator + seedrandom into TS bundle. Replaced simpleStorage with native localStorage. Deferred wiki-docs.json. CSS: 474 KB → 98 KB (-79%). |
 | Step 5: Pixi.js Rendering | NOT STARTED | |
 | Step 6: State Management | NOT STARTED | |
 
@@ -63,13 +63,15 @@
 
 | Metric | Before | Now |
 |--------|--------|-----|
-| TS Bundle (main.js) | 675 KB | 273 KB (87 KB gzip) |
-| Legacy JS libs | 1,027 KB (26 files) | 521 KB (9 files) |
-| Loaded CSS | 474 KB | 121 KB |
+| TS Bundle (main.js) | 675 KB | 274 KB (88 KB gzip) |
+| Legacy JS libs (loaded) | 1,027 KB (26 files) | 508 KB (6 files) |
+| Loaded CSS | 474 KB | 98 KB |
 | jQuery $() calls | 815 across 31 files | 452 across 21 files |
 | globalRegistry.ts | 2,543 lines | 0 (deleted) |
 | Preact components | 3 | 7 (App, Dialog, Button, IntroDialog, MessageDialog, AuthDialog, IntelDialog) |
-| Total page JS | 1,737 KB | 794 KB (-54%) |
+| Total page JS | 1,737 KB | 782 KB (-55%) |
+| External script tags | ~26 | 6 |
+| wiki-docs.json | loaded on page start (356 KB) | deferred to first tech dialog open |
 
 ### Top jQuery-heavy files
 | File | $() calls | .dialog() calls |
