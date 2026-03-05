@@ -24,12 +24,13 @@ declare const EXTRA_NONE: number;
 declare const ACTION_PILLAGE: number;
 declare const units: any;
 declare function request_unit_do_action(action: number, unit_id: number, tile: any, extra_id: number): void;
+declare function client_is_observer(): boolean;
 
 /****************************************************************************
   Ask the player to select a target.
 ****************************************************************************/
 export function popup_pillage_selection_dialog(punit: any, tgt: any[]): void {
-  if (punit == null) return;
+  if (punit == null || (typeof client_is_observer === 'function' && client_is_observer())) return;
   if (tgt.length === 0) return;
 
   const id = '#pillage_sel_dialog_' + punit['id'];

@@ -5,6 +5,7 @@
 
 import { globalEvents } from '../core/events';
 import { store } from '../data/store';
+import { clientIsObserver } from '../client/clientState';
 import { send_request as sendRequest, send_message as sendMessage } from '../net/connection';
 import { $id, on } from '../utils/dom';
 
@@ -51,7 +52,7 @@ function handleKeyDown(e: KeyboardEvent): void {
 
   const key = e.key.toLowerCase();
 
-  if (e.shiftKey && key === 'enter') {
+  if (e.shiftKey && key === 'enter' && !clientIsObserver()) {
     sendMessage('/turn done');
     return;
   }
@@ -69,7 +70,7 @@ export function activateGoto(): void {
 }
 
 function sendUnitOrder(order: string): void {
-  if (focusedUnitId == null) return;
+  if (clientIsObserver() || focusedUnitId == null) return;
   const unit = store.units[focusedUnitId];
   if (!unit) return;
 
@@ -82,6 +83,7 @@ function sendUnitOrder(order: string): void {
 }
 
 function sendGoto(unitId: number, tileIndex: number): void {
+  if (clientIsObserver()) return;
   const packet = {
     pid: 59,
     unit_id: unitId,

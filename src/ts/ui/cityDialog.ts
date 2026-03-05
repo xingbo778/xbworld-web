@@ -9,7 +9,7 @@ import { VUT_UTYPE, VUT_IMPROVEMENT } from '../data/fcTypes';
 import { get_improvement_image_sprite } from '../renderer/tilespec';
 declare const improvements: any;
 import { tile_units } from '../data/unit';
-import { clientState as client_state, C_S_RUNNING } from '../client/clientState';
+import { clientState as client_state, C_S_RUNNING, clientIsObserver } from '../client/clientState';
 import { send_request as sendRequest } from '../net/connection';
 import { packet_city_options_req, packet_city_buy, packet_city_change, packet_city_make_specialist, packet_city_make_worker, packet_city_rename, packet_city_sell, packet_city_change_specialist, packet_city_worklist } from '../net/packetConstants';
 import { isSmallScreen as is_small_screen, numberWithCommas, isTouchDevice as is_touch_device, blur_input_on_touchdevice } from '../utils/helpers';
@@ -393,6 +393,7 @@ export function show_city_dialog(pcity: any): void {
 }
 
 export function request_city_buy(): void {
+  if (clientIsObserver()) return;
   const pcity: any = active_city;
   const pplayer: any = client.conn.playing;
 
@@ -450,6 +451,7 @@ export function request_city_buy(): void {
 }
 
 export function send_city_buy(): void {
+  if (clientIsObserver()) return;
   if (active_city != null) {
     const packet: any = {"pid" : packet_city_buy, "city_id" : active_city['id']};
     sendRequest(JSON.stringify(packet));
@@ -617,6 +619,7 @@ export function previous_city(): void {
 }
 
 export function city_sell_improvement(improvement_id: number): void {
+  if (clientIsObserver()) return;
   if ('confirm' in window) {
     const agree: boolean = confirm("Are you sure you want to sell this building?");
     if (agree) {
@@ -632,6 +635,7 @@ export function city_sell_improvement(improvement_id: number): void {
 }
 
 export function city_change_specialist(city_id: number, from_specialist_id: number): void {
+  if (clientIsObserver()) return;
   const city_message: any = {"pid": packet_city_change_specialist,
                       "city_id" : city_id,
                       "from" : from_specialist_id,
@@ -640,7 +644,7 @@ export function city_change_specialist(city_id: number, from_specialist_id: numb
 }
 
 export function rename_city(): void {
-  if (active_city == null) return;
+  if (clientIsObserver() || active_city == null) return;
 
   // reset dialog page.
   $("#city_name_dialog").remove();
@@ -1057,6 +1061,7 @@ export function send_city_worklist_add(city_id: number, kind: any, value: any): 
 }
 
 export function city_change_production(): void {
+  if (clientIsObserver()) return;
   if (production_selection.length === 1) {
     send_city_change(active_city['id'], production_selection[0].kind,
                      production_selection[0].value);

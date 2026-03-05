@@ -5,7 +5,7 @@
  * civclient_handle_key, map_handle_key, handle_context_menu_callback.
  */
 
-import { clientState as client_state, C_S_RUNNING } from '../../client/clientState';
+import { clientState as client_state, C_S_RUNNING, clientIsObserver } from '../../client/clientState';
 import { isTouchDevice as is_touch_device } from '../../utils/helpers';
 import * as S from './controlState';
 // Circular imports — OK, only used inside functions
@@ -68,7 +68,7 @@ export function global_keyboard_listener(ev: KeyboardEvent) {
 export function civclient_handle_key(keyboard_key: string, key_code: number, ctrl: boolean, alt: boolean, shift: boolean, the_event: KeyboardEvent) {
   switch (keyboard_key) {
     case 'S':
-      if (ctrl) {
+      if (ctrl && !clientIsObserver()) {
         the_event.preventDefault();
         quicksave();
       }
@@ -85,7 +85,7 @@ export function civclient_handle_key(keyboard_key: string, key_code: number, ctr
       break;
 
     default:
-      if (key_code == 13 && shift && C_S_RUNNING == client_state()) {
+      if (key_code == 13 && shift && C_S_RUNNING == client_state() && !clientIsObserver()) {
         send_end_turn();
       }
   }

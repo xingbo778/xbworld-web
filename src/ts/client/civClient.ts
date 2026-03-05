@@ -60,17 +60,14 @@ export function civClientInit(): void {
   w.$.blockUI.defaults['css']['color'] = '#fff';
   w.$.blockUI.defaults['theme'] = true;
 
-  const action = w.$.getUrlVar('action');
-  w.game_type = w.$.getUrlVar('type') ?? 'singleplayer';
-
-  if (action === 'observe') {
-    w.observing = true;
-    w.$('#civ_tab').remove();
-    w.$('#cities_tab').remove();
-    w.$('#pregame_buttons').remove();
-    w.$('#game_unit_orders_default').remove();
-    w.$('#civ_dialog').remove();
-  }
+  // Always observer mode
+  w.observing = true;
+  w.game_type = 'observe';
+  w.$('#civ_tab').remove();
+  w.$('#cities_tab').remove();
+  w.$('#pregame_buttons').remove();
+  w.$('#game_unit_orders_default').remove();
+  w.$('#civ_dialog').remove();
 
   // Initialise seeded random number generator
   w.fc_seedrandom = new (w.Math.seedrandom || w.seedrandom)('xbworld');
@@ -80,10 +77,6 @@ export function civClientInit(): void {
     return;
   }
 
-  if ((w.is_longturn && w.is_longturn()) && w.observing) {
-    if (typeof w.swal === 'function') w.swal("LongTurn games can't be observed.");
-    return;
-  }
 
   if (typeof w.init_mapview === 'function') w.init_mapview();
   if (typeof w.game_init === 'function') w.game_init();
@@ -159,97 +152,13 @@ export function civClientInit(): void {
 // ---------------------------------------------------------------------------
 
 /**
- * Shows an intro dialog depending on game type.
+ * Shows the observer intro dialog.
  */
 export function initCommonIntroDialog(): void {
-  const action = w.$.getUrlVar('action');
-
-  if (w.observing) {
-    if (typeof w.show_intro_dialog === 'function') {
-      w.show_intro_dialog('Welcome to XBWorld', 'You have joined the game as an observer. Please enter your name:');
-    }
-    w.$('#turn_done_button').button('option', 'disabled', true);
-  } else if (w.is_small_screen && w.is_small_screen()) {
-    if (w.is_longturn && w.is_longturn()) {
-      setTimeout(function () {
-        if (typeof w.show_longturn_intro_dialog === 'function') w.show_longturn_intro_dialog();
-      }, 300);
-    } else {
-      if (typeof w.show_intro_dialog === 'function') {
-        w.show_intro_dialog('Welcome to XBWorld', 'You are about to join the game. Please enter your name:');
-      }
-    }
-  } else if (action === 'earthload') {
-    if (typeof w.show_intro_dialog === 'function') {
-      w.show_intro_dialog('Welcome to XBWorld',
-        'You can now play XBWorld on the earth map you have chosen. Please enter your name: ');
-    }
-  } else if (action === 'load') {
-    if (typeof w.show_intro_dialog === 'function') {
-      w.show_intro_dialog('Welcome to XBWorld',
-        'You are about to join this game server, where you can ' +
-        'load a savegame, tutorial, custom map generated from an image or a historical scenario map. ' +
-        'Please enter your name: ');
-    }
-  } else if (action === 'multi') {
-    if (w.is_longturn && w.is_longturn()) {
-      setTimeout(function () {
-        if (typeof w.show_longturn_intro_dialog === 'function') w.show_longturn_intro_dialog();
-      }, 300);
-    } else {
-      if (typeof w.show_intro_dialog === 'function') {
-        const msg = 'You are about to join this game server, where you can ' +
-          'participate in a multiplayer game. You can customize the game ' +
-          'settings, and wait for the minimum number of players before ' +
-          'the game can start. ';
-        w.show_intro_dialog('Welcome to XBWorld', msg);
-      }
-    }
-  } else if (action === 'hack') {
-    let hack_port: string | null = null;
-    let hack_username: string | null = null;
-
-    if (w.$.getUrlVar('civserverport') != null) {
-      hack_port = w.$.getUrlVar('civserverport');
-    } else {
-      if (typeof w.show_intro_dialog === 'function') {
-        w.show_intro_dialog('Welcome to XBWorld',
-          'Hack mode disabled because civserverport wasn\'t specified. Falling back to regular mode.');
-      }
-      return;
-    }
-
-    if (w.$.getUrlVar('username') != null) {
-      hack_username = w.$.getUrlVar('username');
-    } else if (w.simpleStorage.hasKey('username')) {
-      hack_username = w.simpleStorage.get('username');
-    } else {
-      if (typeof w.show_intro_dialog === 'function') {
-        w.show_intro_dialog('Welcome to XBWorld',
-          'Hack mode disabled because "username" wasn\'t specified and no ' +
-          'stored user name was found. Falling back to regular mode.');
-      }
-      return;
-    }
-
-    if (w.$.getUrlVar('autostart') === 'true') {
-      w.autostart = true;
-    }
-
-    if (typeof w.network_init_manual_hack === 'function') {
-      w.network_init_manual_hack(hack_port, hack_username, w.$.getUrlVar('savegame'));
-    }
-  } else {
-    if (typeof w.show_intro_dialog === 'function') {
-      w.show_intro_dialog('Welcome to XBWorld',
-        'You are about to join this game server, where you can ' +
-        'play a singleplayer game against the XBWorld AI. You can ' +
-        'start the game directly by entering any name, or customize the game settings. ' +
-        'Creating a user account is optional, but savegame support requires that you create a user account. ' +
-        '(<a class=\'pwd_reset\' href=\'#\' style=\'color: #555555;\'>Forgot password?</a>) Have fun! <br>' +
-        'Please enter your name: ');
-    }
+  if (typeof w.show_intro_dialog === 'function') {
+    w.show_intro_dialog('Welcome to XBWorld', 'You are joining the game as an observer. Please enter your name:');
   }
+  w.$('#turn_done_button').button('option', 'disabled', true);
 }
 
 // ---------------------------------------------------------------------------

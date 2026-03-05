@@ -55,10 +55,9 @@ export function setClientState(newstate: number): void {
       if (typeof w.update_metamessage_on_gamestart === 'function') w.update_metamessage_on_gamestart();
       // remove context menu from pregame
       if (w.$) w.$('.context-menu-root').remove();
-      if (w.observing || w.$.getUrlVar('action') === 'multi' || (w.is_longturn && w.is_longturn()) || w.game_loaded) {
-        if (typeof w.center_on_any_city === 'function') w.center_on_any_city();
-        if (typeof w.advance_unit_focus === 'function') w.advance_unit_focus();
-      }
+      // Always observer mode — center on a city at game start
+      if (typeof w.center_on_any_city === 'function') w.center_on_any_city();
+      if (typeof w.advance_unit_focus === 'function') w.advance_unit_focus();
       break;
 
     case w.C_S_OVER:
@@ -147,47 +146,8 @@ export function showNewGameMessage(): void {
   let message: string | null = null;
   if (typeof w.clear_chatbox === 'function') w.clear_chatbox();
 
-  if (w.observing || w.$.getUrlVar('autostart') === 'true') {
-    return;
-  } else if (w.is_longturn && w.is_longturn()) {
-    message = 'Welcome ' + w.username + '! This is a One Turn per Day game, where you play one ' +
-      'turn every day. Click the Turn Done button when you are done with your turn. To play your next ' +
-      'turn in this One Turn per Day game, you can bookmark this page and use that link to play your next turn. ' +
-      'You can also find this game by going to ' + window.location.host + ' and clicking on the One Turn per Day button. ' +
-      'Good luck, have fun and see you again tomorrow!';
-  } else if (w.is_small_screen && w.is_small_screen()) {
-    message = 'Welcome ' + w.username + '! You lead a great civilization. Your task is to conquer the world!\n' +
-      'Click on units for giving them orders, and drag units on the map to move them.\n' +
-      'Good luck, and have a lot of fun!';
-  } else if (w.client?.conn?.playing != null && !w.game_loaded) {
-    const pplayer = w.client.conn.playing;
-    const player_nation_text = 'Welcome, ' + w.username + ' ruler of the ' + w.nations[pplayer['nation']]['adjective'] + ' empire.';
-    if (w.is_touch_device && w.is_touch_device()) {
-      message = player_nation_text + ' Your\n' +
-        'task is to create a great empire! You should start by\n' +
-        'exploring the land around you with your explorer,\n' +
-        'and using your settlers to find a good place to build\n' +
-        'a city. Click on units to get a list of available orders. \n' +
-        'To move your units around, carefully drag the units to the \n' +
-        'place you want it to go.\n' +
-        'Good luck, and have a lot of fun!';
-    } else {
-      message = player_nation_text + ' Your\n' +
-        'task is to create a great empire! You should start by\n' +
-        'exploring the land around you with your explorer,\n' +
-        'and using your settlers to find a good place to build\n' +
-        'a city. Right-click with the mouse on your units for a list of available \n' +
-        'orders such as move, explore, build cities and attack. \n' +
-        'Good luck, and have a lot of fun!';
-    }
-  } else if (w.game_loaded) {
-    message = 'Welcome back, ' + w.username;
-    if (w.client?.conn?.playing != null) {
-      message += ' ruler of the ' + w.nations[w.client.conn.playing['nation']]['adjective'] + ' empire.';
-    }
-  } else {
-    return;
-  }
+  // Always observer mode — no intro message needed
+  return;
 
   if (message && w.message_log) {
     w.message_log.update({ event: w.E_CONNECTION, message: message });

@@ -16,6 +16,7 @@ import { send_request } from '../../net/connection';
 import { message_log } from '../../core/messages';
 import { E_BEGINNER_HELP } from '../../data/eventConstants';
 import { action_decision_clear_want } from './actionSelection';
+import { clientIsObserver } from '../../client/clientState';
 import * as S from './controlState';
 // Circular imports — OK, only used inside functions at runtime
 import { get_units_in_focus, advance_unit_focus, update_unit_focus, update_active_units_dialog, update_unit_order_commands, set_unit_focus_and_redraw, auto_center_on_focus_unit, find_a_focus_unit_tile_to_center_on } from './unitFocus';
@@ -92,7 +93,12 @@ declare const game_find_unit_by_number: (id: number) => any;
 // Public API
 // ---------------------------------------------------------------------------
 
+function observerGuard(): boolean {
+  return clientIsObserver();
+}
+
 export function key_unit_auto_explore() {
+  if (observerGuard()) return;
   const funits = get_units_in_focus();
   for (let i = 0; i < funits.length; i++) {
     request_unit_ssa_set(funits[i], SSA_AUTOEXPLORE);
@@ -101,6 +107,7 @@ export function key_unit_auto_explore() {
 }
 
 export function key_unit_load() {
+  if (observerGuard()) return;
   const funits = get_units_in_focus();
   for (let i = 0; i < funits.length; i++) {
     const punit = funits[i];
@@ -128,6 +135,7 @@ export function key_unit_load() {
 }
 
 export function key_unit_unload() {
+  if (observerGuard()) return;
   const funits = get_units_in_focus();
   if (funits.length === 0) return;
   const last_unit = funits[funits.length - 1];
@@ -152,6 +160,7 @@ export function key_unit_unload() {
 }
 
 export function key_unit_show_cargo() {
+  if (observerGuard()) return;
   const funits = get_units_in_focus();
   if (funits.length === 0) return;
   const last_unit = funits[funits.length - 1];
@@ -169,6 +178,7 @@ export function key_unit_show_cargo() {
 }
 
 export function key_unit_wait() {
+  if (observerGuard()) return;
   const funits = get_units_in_focus();
   for (let i = 0; i < funits.length; i++) {
     const punit = funits[i];
@@ -178,6 +188,7 @@ export function key_unit_wait() {
 }
 
 export function key_unit_noorders() {
+  if (observerGuard()) return;
   const funits = get_units_in_focus();
   for (let i = 0; i < funits.length; i++) {
     const punit = funits[i];
@@ -188,6 +199,7 @@ export function key_unit_noorders() {
 }
 
 function set_focus_units_activity(activity: any, target: any = EXTRA_NONE) {
+  if (observerGuard()) return;
   for (const punit of get_units_in_focus()) {
     request_new_unit_activity(punit, activity, target);
   }
@@ -253,10 +265,12 @@ export function key_unit_clean() {
 }
 
 export function key_unit_nuke() {
+  if (observerGuard()) return;
   activate_goto_last(ORDER_PERFORM_ACTION, ACTION_NUKE);
 }
 
 export function key_unit_upgrade() {
+  if (observerGuard()) return;
   const funits = get_units_in_focus();
   for (let i = 0; i < funits.length; i++) {
     const punit = funits[i];
@@ -268,6 +282,7 @@ export function key_unit_upgrade() {
 }
 
 export function key_unit_paradrop() {
+  if (observerGuard()) return;
   S.setParadropActive(true);
   message_log.update({
     event: E_BEGINNER_HELP,
@@ -276,6 +291,7 @@ export function key_unit_paradrop() {
 }
 
 export function key_unit_airlift() {
+  if (observerGuard()) return;
   S.setAirliftActive(true);
   message_log.update({
     event: E_BEGINNER_HELP,
@@ -288,6 +304,7 @@ export function key_unit_transform() {
 }
 
 export function key_unit_pillage() {
+  if (observerGuard()) return;
   const funits = get_units_in_focus();
   for (let i = 0; i < funits.length; i++) {
     const punit = funits[i];
@@ -313,6 +330,7 @@ export function key_unit_plant() {
 }
 
 export function key_unit_road() {
+  if (observerGuard()) return;
   const funits = get_units_in_focus();
   for (let i = 0; i < funits.length; i++) {
     const punit = funits[i];
@@ -329,6 +347,7 @@ export function key_unit_road() {
 }
 
 export function key_unit_homecity() {
+  if (observerGuard()) return;
   const funits = get_units_in_focus();
   for (let i = 0; i < funits.length; i++) {
     const punit = funits[i];
@@ -343,6 +362,7 @@ export function key_unit_homecity() {
 }
 
 export function key_unit_action_select() {
+  if (observerGuard()) return;
   if (S.action_tgt_sel_active) {
     S.setActionTgtSelActive(false);
     request_unit_act_sel_vs_own_tile();
@@ -386,6 +406,7 @@ export function request_unit_act_sel_vs_own_tile() {
 }
 
 export function key_unit_auto_work() {
+  if (observerGuard()) return;
   const funits = get_units_in_focus();
 
   for (let i = 0; i < funits.length; i++) {
@@ -444,6 +465,7 @@ export function request_unit_autoworkers(punit: any) {
 }
 
 export function request_unit_build_city() {
+  if (observerGuard()) return;
   if (S.current_focus.length > 0) {
     const punit = S.current_focus[0];
     if (punit != null) {
@@ -490,6 +512,7 @@ export function request_unit_do_action(action_id: any, actor_id: any, target_id:
 }
 
 export function key_unit_disband() {
+  if (observerGuard()) return;
 
   swal({
     title: "Disband unit?",
@@ -517,6 +540,7 @@ export function key_unit_disband() {
 }
 
 export function key_unit_move(dir: number) {
+  if (observerGuard()) return;
   if (S.current_focus.length > 0) {
     const punit = S.current_focus[0];
     if (punit == null) {

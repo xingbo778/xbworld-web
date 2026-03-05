@@ -11,6 +11,13 @@ const FAKE_CIV_PORT = 5555;
 const MAP_X = 40;
 const MAP_Y = 25;
 
+// AI players for observer mode
+const AI_PLAYERS = [
+  { playerno: 0, name: 'Caesar',    color: [255, 0, 0] },
+  { playerno: 1, name: 'Cleopatra', color: [0, 0, 255] },
+  { playerno: 2, name: 'Gandhi',    color: [0, 200, 0] },
+];
+
 // Terrain IDs matching PixiRenderer expectations
 const TERRAINS = [
   { id: 0, name: 'Coast',      graphic_str: 'coast',      graphic_alt: 'coast',      movement_cost: 1, defense_bonus: 0, output: [0, 1, 0, 0, 0, 0] },
@@ -62,8 +69,9 @@ function sendPackets(ws, packets) {
   ws.send(JSON.stringify(packets));
 }
 
-function handleConnection(ws) {
-  console.log('WebSocket client connected');
+/** Handle WebSocket connection — always observer mode */
+function handleConnection(ws, req) {
+  console.log('Observer WebSocket connected, url:', req.url);
 
   ws.on('message', (data) => {
     try {
@@ -71,21 +79,19 @@ function handleConnection(ws) {
       console.log('Received packet pid=' + packet.pid);
 
       if (packet.pid === 4) {
-        // Login request → send full game initialization sequence
-        console.log('Login from:', packet.username);
+        console.log('Observer login from:', packet.username);
         sendGameInit(ws, packet.username);
-      } else if (packet.pid === 119) {
-        // CLIENT_INFO - ignore
       }
     } catch (e) {
       console.error('Parse error:', e.message);
     }
   });
 
-  ws.on('close', () => console.log('Client disconnected'));
+  ws.on('close', () => console.log('Observer disconnected'));
 }
 
 function sendGameInit(ws, username) {
+  console.log(`Sending game init (observer) for ${username}`);
   // 1. Server join reply
   sendPackets(ws, [{ pid: 5, you_can_join: true, conn_id: 1, message: '' }]);
 
@@ -168,34 +174,37 @@ function sendGameInit(ws, username) {
     enabled_extra_flags: [],
   }]);
 
-  // 10. Player info
-  sendPackets(ws, [{
-    pid: 51,
-    playerno: 0, name: username, username: username,
-    nation: 0, is_alive: true, is_connected: true,
-    team: 0, is_ready: false,
-    turns_alive: 0, phase_done: false,
-    nturns_idle: 0, ai_skill_level: 0,
-    government: 0, target_government: 0,
-    real_embassy: [0], city_options: [0],
-    gold: 50, tax: 0, science: 0, luxury: 0,
-    revolution_finishes: 0, culture: 0,
-    mood: 0,
-    style: 0,
-    music_style: -1,
-    science_cost: 0,
-    love: [],
-    color_valid: true,
-    color_red: 255, color_green: 255, color_blue: 255,
-    multip: [], multip_target: [],
-    diplstates: [], gives_shared_vision: [0],
-    wonders: [], tech_upkeep: 0,
-  }]);
+  // 10. Player info — send AI players for observer to watch
+  for (const ai of AI_PLAYERS) {
+    sendPackets(ws, [{
+      pid: 51,
+      playerno: ai.playerno, name: ai.name, username: ai.name,
+      nation: ai.playerno, is_alive: true, is_connected: true,
+      team: ai.playerno, is_ready: true,
+      turns_alive: 5, phase_done: false,
+      nturns_idle: 0, ai_skill_level: 5,
+      government: 0, target_government: 0,
+      real_embassy: [0], city_options: [0],
+      gold: 100 + ai.playerno * 50, tax: 30, science: 60, luxury: 10,
+      revolution_finishes: 0, culture: ai.playerno * 10,
+      mood: 0,
+      style: 0,
+      music_style: -1,
+      science_cost: 0,
+      love: [],
+      color_valid: true,
+      color_red: ai.color[0], color_green: ai.color[1], color_blue: ai.color[2],
+      multip: [], multip_target: [],
+      diplstates: [], gives_shared_vision: [0],
+      wonders: [], tech_upkeep: 0,
+    }]);
+  }
 
-  // 11. Connection info
+  // 11. Connection info — always observer
   sendPackets(ws, [{
     pid: 115, id: 1, used: true, established: true,
-    player_num: 0, observer: false,
+    player_num: -1,
+    observer: true,
     access_level: 0, username: username,
     addr: '127.0.0.1', capability: '+Freeciv.Web.Devel-3.3',
   }]);
@@ -272,7 +281,7 @@ const server = http.createServer((req, res) => {
   }
 
   if (url.pathname === '/civclientlauncher' && req.method === 'POST') {
-    console.log('Game launch request');
+    console.log('Observer game launch request');
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ port: FAKE_CIV_PORT, result: 'success' }));
     return;
@@ -303,14 +312,13 @@ const server = http.createServer((req, res) => {
 
 // WebSocket server for /civsocket/*
 const wss = new WebSocketServer({ noServer: true });
-wss.on('connection', handleConnection);
 
 server.on('upgrade', (req, socket, head) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   if (url.pathname.startsWith('/civsocket/')) {
     console.log('WebSocket upgrade:', url.pathname);
     wss.handleUpgrade(req, socket, head, (ws) => {
-      wss.emit('connection', ws, req);
+      handleConnection(ws, req);
     });
   } else {
     socket.destroy();

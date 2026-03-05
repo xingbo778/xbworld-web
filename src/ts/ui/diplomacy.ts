@@ -14,7 +14,7 @@ import {
   packet_diplomacy_remove_clause_req,
   packet_diplomacy_cancel_pact,
 } from '../net/packetConstants';
-import { clientState as client_state } from '../client/clientState';
+import { clientState as client_state, clientIsObserver } from '../client/clientState';
 declare const update_nation_screen: any;
 import { isSmallScreen as is_small_screen } from '../utils/helpers'; // Assuming this is in helpers.ts
 declare const get_tileset_file_extention: any;
@@ -54,6 +54,7 @@ export let diplomacy_clause_map: any = {}; // TODO: Type diplomacy_clause_map
  ...
 **************************************************************************/
 export function diplomacy_init_meeting_req(counterpart: any): void {
+  if (clientIsObserver()) return;
   const packet = { "pid": packet_diplomacy_init_meeting_req, "counterpart": counterpart };
   sendRequest(JSON.stringify(packet));
 }
@@ -71,6 +72,7 @@ export function show_diplomacy_dialog(counterpart: any): void {
  ...
 **************************************************************************/
 export function accept_treaty_req(counterpart_id: any): void {
+  if (clientIsObserver()) return;
   const packet = { "pid": packet_diplomacy_accept_treaty_req, "counterpart": counterpart_id };
   sendRequest(JSON.stringify(packet));
 }

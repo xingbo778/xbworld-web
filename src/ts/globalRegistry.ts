@@ -545,74 +545,24 @@ w['PAGE_GAME'] = PAGE_GAME;
 import {
   QUALITY_HIGH,
   QUALITY_MEDIUM,
-  ai_skill_level,
   antialiasing_setting,
-  change_ruleset,
-  choosing_player,
-  chosen_nation,
-  chosen_style,
-  create_new_freeciv_user_account_request,
-  google_user_token,
   graphics_quality,
-  logged_in_with_password,
-  metamessage_changed,
-  nation_select_id,
-  observe,
   observing,
-  password_reset_count,
-  pick_nation,
-  pregame_settings,
-  pregame_start_game,
-  render_city_style_list,
   ruledir_from_ruleset_name,
   sanitize_username,
-  select_nation,
-  set_alternate_turns,
-  show_intro_dialog,
-  show_longturn_intro_dialog,
-  show_new_user_account_dialog,
-  show_ruleset_description_full,
-  submit_nation_choice,
   update_game_info_pregame,
-  update_nation_selection,
   update_player_info_pregame,
   update_player_info_pregame_queued,
   update_player_info_pregame_real,
-  validate_username_callback,
 } from './core/pregame';
 w['sanitize_username'] = sanitize_username;
-w['pregame_start_game'] = pregame_start_game;
-w['set_alternate_turns'] = set_alternate_turns;
-w['observe'] = observe;
 w['update_game_info_pregame'] = update_game_info_pregame;
 w['update_player_info_pregame'] = update_player_info_pregame;
 w['update_player_info_pregame_real'] = update_player_info_pregame_real;
-w['pick_nation'] = pick_nation;
-w['update_nation_selection'] = update_nation_selection;
-w['render_city_style_list'] = render_city_style_list;
-w['select_nation'] = select_nation;
-w['submit_nation_choice'] = submit_nation_choice;
 w['ruledir_from_ruleset_name'] = ruledir_from_ruleset_name;
-w['show_ruleset_description_full'] = show_ruleset_description_full;
-w['pregame_settings'] = pregame_settings;
-w['change_ruleset'] = change_ruleset;
-w['show_intro_dialog'] = show_intro_dialog;
-w['show_longturn_intro_dialog'] = show_longturn_intro_dialog;
-w['validate_username_callback'] = validate_username_callback;
-w['show_new_user_account_dialog'] = show_new_user_account_dialog;
-w['create_new_freeciv_user_account_request'] = create_new_freeciv_user_account_request;
 w['observing'] = observing;
-w['chosen_nation'] = chosen_nation;
-w['chosen_style'] = chosen_style;
-w['choosing_player'] = choosing_player;
-w['ai_skill_level'] = ai_skill_level;
-w['nation_select_id'] = nation_select_id;
-w['metamessage_changed'] = metamessage_changed;
-w['logged_in_with_password'] = logged_in_with_password;
 w['antialiasing_setting'] = antialiasing_setting;
 w['update_player_info_pregame_queued'] = update_player_info_pregame_queued;
-w['password_reset_count'] = password_reset_count;
-w['google_user_token'] = google_user_token;
 w['QUALITY_MEDIUM'] = QUALITY_MEDIUM;
 w['QUALITY_HIGH'] = QUALITY_HIGH;
 w['graphics_quality'] = graphics_quality;
@@ -1218,7 +1168,6 @@ import {
   clinet_debug_collect,
   debug_client_speed_list,
   network_init,
-  network_init_manual_hack,
   network_stop,
   ping_check,
   send_message,
@@ -1227,7 +1176,6 @@ import {
   websocket_init,
 } from './net/connection';
 w['network_init'] = network_init;
-w['network_init_manual_hack'] = network_init_manual_hack;
 w['websocket_init'] = websocket_init;
 w['check_websocket_ready'] = check_websocket_ready;
 w['network_stop'] = network_stop;

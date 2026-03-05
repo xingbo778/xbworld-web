@@ -19,7 +19,9 @@
     "compile-hb": "f() { ./node_modules/handlebars/bin/handlebars src/main/webapp/webclient -e hbs -f \"$1\"/hbs-templates.js --knownOnly; }; f"
   },
   "dependencies": {
-    "pixi.js": "^8.9.2"
+    "https-proxy-agent": "^7.0.6",
+    "pixi.js": "^8.9.2",
+    "ws": "^8.19.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.3",

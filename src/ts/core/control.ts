@@ -36,8 +36,6 @@ import { update_tech_screen } from '../ui/techDialog';
 import { init_civ_dialog } from '../ui/governmentDialog';
 import { init_options_dialog } from '../ui/options';
 import { show_help } from '../ui/helpdata';
-import { show_load_game_dialog } from '../utils/savegame';
-import { pregame_start_game, pregame_settings, pick_nation } from '../core/pregame';
 import { show_intelligence_report_dialog } from '../ui/intelDialog';
 import {
   updateNationScreen as update_nation_screen,
@@ -132,21 +130,6 @@ export function control_init(): void {
     if (this.value == '>') this.value = '';
   });
 
-  $("#start_game_button").click(function(event: any) {
-    pregame_start_game();
-  });
-
-  $("#load_game_button").click(function(event: any) {
-    show_load_game_dialog();
-  });
-
-  $("#pick_nation_button").click(function(event: any) {
-    pick_nation(null as any);
-  });
-
-  $("#pregame_settings_button").click(function(event: any) {
-    pregame_settings();
-  });
 
   $("#tech_canvas").click(function(event: any) {
     tech_mapview_mouse_click(event);

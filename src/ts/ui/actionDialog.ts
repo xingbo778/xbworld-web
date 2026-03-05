@@ -1,4 +1,5 @@
 import { store } from '../data/store';
+import { clientIsObserver } from '../client/clientState';
 import { game_find_city_by_number as find_city_by_number } from '../data/game';
 import { unit_owner, get_unit_homecity_name, unit_can_do_action, tile_units } from '../data/unit';
 import { game_find_unit_by_number as find_unit_by_number } from '../data/game';
@@ -289,6 +290,7 @@ export function create_act_sel_button(parent_id: string,
 export function popup_action_selection(actor_unit: any, action_probabilities: any,
   target_tile: any, target_extra: any,
   target_unit: any, target_city: any): void {
+  if (clientIsObserver()) return;
   // reset dialog page.
   const id = "#act_sel_dialog_" + actor_unit['id'];
   $(id).remove();

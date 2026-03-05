@@ -10,7 +10,6 @@
  *   - Handle array-wrapped packets from the WebSocket proxy
  */
 
-import { isLongturn as is_longturn } from '../client/clientCore';
 import { E_LOG_ERROR } from '../data/eventConstants';
 
 // message_log is imported lazily to avoid triggering EventAggregator construction at module load
@@ -44,28 +43,8 @@ const pingtime_check = 240000;
 let ping_timer: ReturnType<typeof setInterval> | null = null;
 
 /**
- * Initialize the network communication with the server manually.
- */
-export function network_init_manual_hack(
-  civserverport_manual: string,
-  username_manual: string,
-  savegame?: string
-): void {
-  civserverport = civserverport_manual;
-  win.username = username_manual;
-  websocket_init();
-
-  if (savegame != null) {
-    win.wait_for_text('You are logged in as', function () {
-      win.load_game_real(savegame);
-    });
-  }
-}
-
-/**
  * Initialize the Network communication, by requesting a valid server port.
- * Includes the Railway CDN patch: reads port from JSON body first,
- * falls back to response headers.
+ * Always connects as observer.
  */
 export function network_init(): void {
   if (!('WebSocket' in window)) {
@@ -73,16 +52,7 @@ export function network_init(): void {
     return;
   }
 
-  let url = '/civclientlauncher';
-  if ($.getUrlVar('action') != null) {
-    url += '?action=' + $.getUrlVar('action');
-  }
-  if ($.getUrlVar('action') == null && $.getUrlVar('civserverport') != null) {
-    url += '?';
-  }
-  if ($.getUrlVar('civserverport') != null) {
-    url += '&civserverport=' + $.getUrlVar('civserverport');
-  }
+  const url = '/civclientlauncher?action=observe';
 
   $.ajax({
     type: 'POST',
@@ -199,11 +169,6 @@ export function check_websocket_ready(): void {
       sha_password = encodeURIComponent(shaObj.getHash('HEX'));
     }
 
-    if (is_longturn() && win.google_user_token == null) {
-      swal('Login failed.');
-      return;
-    }
-
     const login_message = {
       pid: 4,
       username: win.username,
@@ -213,7 +178,7 @@ export function check_websocket_ready(): void {
       minor_version: 1,
       patch_version: 90,
       port: civserverport,
-      password: win.google_user_token == null ? sha_password : win.google_user_token,
+      password: sha_password,
     };
     ws.send(JSON.stringify(login_message));
 
@@ -284,24 +249,6 @@ export function send_message_delayed(message: string, delay: number): void {
  * Sends a chat message to the server.
  */
 export function send_message(message: string): void {
-  if (is_longturn() && message != null) {
-    if (
-      message.indexOf(encodeURIComponent('/')) !== 0
-      && message.indexOf('/') !== 0
-      && message.charAt(0) !== '.'
-    ) {
-      const private_mark_i = message.indexOf(encodeURIComponent(':'));
-      if (private_mark_i <= 0) {
-        message = win.username + ' : ' + message;
-      } else {
-        const first_space = message.indexOf(encodeURIComponent(' '));
-        if (first_space >= 0 && first_space < private_mark_i) {
-          message = win.username + ' : ' + message;
-        }
-      }
-    }
-  }
-
   const packet = { pid: packet_chat_msg_req, message: message };
   send_request(JSON.stringify(packet));
 }
