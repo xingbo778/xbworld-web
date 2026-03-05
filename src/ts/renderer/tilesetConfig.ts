@@ -28,6 +28,15 @@ const MATCH_FULL = 3;
 const CELL_WHOLE = 0;
 const CELL_CORNER = 1;
 
+// Expose to window — legacy tileset JS files loaded via eval() need these as globals
+const _w = window as any;
+_w.MATCH_NONE = MATCH_NONE;
+_w.MATCH_SAME = MATCH_SAME;
+_w.MATCH_PAIR = MATCH_PAIR;
+_w.MATCH_FULL = MATCH_FULL;
+_w.CELL_WHOLE = CELL_WHOLE;
+_w.CELL_CORNER = CELL_CORNER;
+
 export const tileset_tile_width: number = 96;
 export const tileset_tile_height: number = 48;
 

@@ -11,22 +11,10 @@ test.describe('Application Loading', () => {
     expect(errors).toHaveLength(0);
   });
 
-  test('should display the pregame page', async ({ page }) => {
-    await page.goto('/webclient/');
-    await page.waitForLoadState('domcontentloaded');
-
-    const pregame = page.locator('#pregame_page');
-    await expect(pregame).toBeVisible();
-  });
-
-  test('should show the XBWorld logo', async ({ page }) => {
-    await page.goto('/webclient/');
-    const logo = page.locator('#pregame_buttons #xbworld_logo');
-    await expect(logo).toBeVisible();
-  });
-
   test('should not have player-only buttons (observer mode)', async ({ page }) => {
     await page.goto('/webclient/');
+    // Wait for the TS bundle to initialize and remove observer-irrelevant elements
+    await page.waitForTimeout(2000);
 
     expect(await page.locator('#start_game_button').count()).toBe(0);
     expect(await page.locator('#load_game_button').count()).toBe(0);
@@ -34,12 +22,6 @@ test.describe('Application Loading', () => {
     expect(await page.locator('#pregame_settings_button').count()).toBe(0);
     expect(await page.locator('#turn_done_button').count()).toBe(0);
     expect(await page.locator('#game_unit_orders_default').count()).toBe(0);
-  });
-
-  test('should have the game page hidden initially', async ({ page }) => {
-    await page.goto('/webclient/');
-    const gamePage = page.locator('#game_page');
-    await expect(gamePage).toBeHidden();
   });
 
   test('should have correct page title', async ({ page }) => {

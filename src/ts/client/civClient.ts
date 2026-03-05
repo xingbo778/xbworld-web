@@ -66,7 +66,6 @@ if (!(window as any).music_list) {
  */
 export function civClientInit(): void {
   const _w = window as any;
-
   // Always observer mode
   _w.observing = true;
   _w.game_type = 'observe';
@@ -155,10 +154,10 @@ export function initCommonIntroDialog(): void {
   (window as any).username = saved || 'Observer';
   // Show intro dialog (non-blocking)
   showIntroDialog('Welcome to XBWorld', 'You are joining the game as an observer. Please enter your name:');
-  // Auto-connect immediately (dialog can still update username)
-  if (typeof (window as any).network_init === 'function') {
-    (window as any).network_init();
-  }
+  // Auto-connect immediately (dialog can still update username).
+  // Use dynamic import to avoid circular dependency (connection.ts imports from civClient.ts).
+  // Use dynamic import to avoid circular dependency (connection.ts ↔ civClient.ts)
+  import('../net/connection').then(m => m.network_init());
 }
 
 // ---------------------------------------------------------------------------
