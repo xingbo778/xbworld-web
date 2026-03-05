@@ -7,20 +7,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, minimal-ui">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-
   <link rel="shortcut icon" href="/images/xbworld-favicon.svg">
   <link rel="apple-touch-icon" href="/images/xbworld-logo.svg">
-
-  <!-- Legacy CSS bundle -->
   <link rel="stylesheet" href="/css/webclient.min.css">
-  <!-- font-awesome.min.css removed: replaced icons with emoji (31 KB CSS + 77 KB font saved) -->
-  <!-- TS bundle CSS -->
   <link rel="stylesheet" href="/javascript/ts-bundle/xbworld-web.css">
 </head>
-
 <body>
-
-<!-- Pregame -->
 <div id="pregame_page">
   <div id="pregame_options">
     <div id="pregame_buttons">
@@ -35,8 +27,6 @@
     <input id="pregame_text_input" type="text" name="text_input" value=">" />
   </div>
 </div>
-
-<!-- Game Page -->
 <div id="game_page" style="display: none;">
   <div id="tabs">
     <ul id="tabs_menu">
@@ -49,9 +39,7 @@
       <li id="opt_tab"><a href="#tabs-opt" title="Options">⚙️ Options</a></li>
       <li id="hel_tab"><a href="#tabs-hel" title="Manual">❓ Manual</a></li>
       <div id="game_status_panel_top"></div>
-      <!-- turn_done removed: observer-only mode -->
     </ul>
-
     <div id="tabs-map" tabindex="-1">
       <div id="mapview_canvas_div">
         <div id="canvas_div"></div>
@@ -66,9 +54,6 @@
           </div>
         </div>
         <div id="game_status_panel_bottom"></div>
-
-        <!-- game_unit_orders_default removed: observer-only mode -->
-
         <div id="game_overview_panel">
           <div id="overview_map">
             <canvas id="overview_img" width="200" height="100"></canvas>
@@ -80,17 +65,14 @@
         </div>
       </div>
     </div>
-
     <div id="tabs-civ">
       <div id="civ_dialog">
         <h2 id="nation_title">Your Nation</h2>
         <div id="civ_dialog_text"></div>
-        <!-- revolution_button and taxrates_button removed: observer-only mode -->
         <button id="wonders_report" type="button">Wonders of the World</button>
         <button id="demography_report" type="button">Demographics</button>
       </div>
     </div>
-
     <div id="tabs-tec">
       <div id="technology_dialog">
         <div id="tech_info_box">
@@ -104,7 +86,6 @@
         <div id="technologies"><canvas id="tech_canvas"></canvas></div>
       </div>
     </div>
-
     <div id="tabs-nat">
       <div id="nations_title"></div>
       <div id="nations_button_div">
@@ -114,14 +95,11 @@
       </div>
       <div id="nations"><div id="nations_list"></div></div>
     </div>
-
     <div id="tabs-cities">
       <h2>Your Cities</h2>
       <div id="cities_scroll"><div id="cities"><div id="cities_list"></div></div></div>
     </div>
-
     <div id="tabs-hel" class="manual_doc"></div>
-
     <div id="tabs-opt">
       <div style="text-align: center;">
         <h2>Game Options</h2>
@@ -136,36 +114,7 @@
     </div>
   </div>
 </div>
-
-<!-- ============================================================
-     Third-party libraries
-     ============================================================ -->
-<!-- Micro jQuery — 10 KB replacement for 87 KB jQuery 3.x -->
 <script src="/javascript/libs/micro-jquery.min.js"></script>
-<!-- jquery-ui.min.js removed: replaced with minimal shim in TS bundle (249 KB saved) -->
-<!-- jQuery plugins -->
-<!-- jquery.blockUI.js removed: replaced by vanilla blockUI in utils/dom.ts -->
-<!-- jquery.contextMenu.js removed: observer mode doesn't use context menu (90 KB saved) -->
-<!-- jquery.dialogextend.js removed: zero references in codebase -->
-<!-- jquery.mCustomScrollbar.js removed: replaced by tokens.css -->
-<!-- jquery.tablesorter.min.js removed: replaced with vanilla initTableSort (43 KB saved) -->
-<!-- spectrum.js removed: color picker not used (77 KB) -->
-<!-- raphael-min.js and morris.min.js removed: zero references in codebase -->
-<!-- slider.js + range.js removed: only used in rates.ts (unreachable in observer mode) -->
-<!-- handlebars + hbs-templates removed: only used in cityDialog/diplomacy (unreachable in observer mode) -->
-<!-- Standalone utilities -->
-<!-- sweetalert.min.js removed: replaced with Preact SwalDialog component (17 KB saved) -->
-<!-- simpleStorage.min.js removed: replaced with native localStorage -->
-<!-- seedrandom.min.js removed: replaced with inline Mulberry32 PRNG in TS bundle -->
-<!-- sha512.js removed: not used in TS bundle -->
-<!-- bigscreen.min.js removed: zero references in codebase -->
-<!-- platform.js removed: replaced with navigator.userAgent checks (41 KB saved) -->
-<!-- hammer.min.js removed: zero code references -->
-<!-- EventAggregator.js removed: inlined into TS bundle -->
-<!-- bmp_lib.js removed: replaced with Canvas putImageData in overview.ts (13 KB saved) -->
-<!-- gif.js removed: GIF recording not used -->
-
-<!-- Stubs for optional dependencies not deployed -->
 <script>
 if (typeof audiojs === "undefined") {
   window.audiojs = {
@@ -175,13 +124,6 @@ if (typeof audiojs === "undefined") {
 }
 var ts = Date.now();
 </script>
-
-<!-- P0 fix: $.getUrlVar must be registered synchronously before $(document).ready fires.
-     Originally injected by ts-bundle/main.js via jQuery.extend(), but <script type="module">
-     is deferred (runs after DOMContentLoaded), which is too late for civclient_init.
-     This block duplicates the registration here so legacy JS can call $.getUrlVar safely.
-     The ts-bundle registration is kept as well (idempotent — jQuery.extend overwrites with
-     the same implementation), so there is no double-registration issue. -->
 <script>
 (function () {
   function _getUrlVars() {
@@ -205,11 +147,6 @@ var ts = Date.now();
   }
 })();
 </script>
-
-<!-- ============================================================
-     TypeScript bundle — all game client code
-     ============================================================ -->
 <script type="module" src="/javascript/ts-bundle/main.js"></script>
-
 </body>
 </html>
