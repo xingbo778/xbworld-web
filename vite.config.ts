@@ -17,7 +17,7 @@ export default defineConfig({
     lib: {
       entry: resolve(__dirname, 'src/ts/main.ts'),
       formats: ['iife'],
-      fileName: 'main',
+      fileName: () => 'main.js',
       name: 'XBWorld',
     },
     rollupOptions: {

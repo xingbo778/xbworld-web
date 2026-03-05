@@ -4,12 +4,8 @@
  *   - tileset_spec_amplio2.js
  */
 
-declare const MATCH_NONE: number;
-declare const MATCH_SAME: number;
-declare const MATCH_PAIR: number;
-declare const MATCH_FULL: number;
-declare const CELL_WHOLE: number;
-declare const CELL_CORNER: number;
+// MATCH_* and CELL_* constants: defined locally in tilesetConfig.ts
+// and exported from tilespec.ts — no ambient declares needed.
 
 declare const ts_tiles: Record<string, any>;
 declare const dir_ccw: (dir: number) => number;

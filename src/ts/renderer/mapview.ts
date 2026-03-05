@@ -4,7 +4,7 @@ import { game_find_city_by_number as find_city_by_number } from '../data/game';
 import { tileset_unit_type_graphic_tag } from '../renderer/tilespec';
 import { tileset_ruleset_entity_tag_str_or_alt, get_city_flag_sprite, get_city_occupied_sprite } from '../renderer/tilespec';
 import { orientation_changed } from '../utils/mobile';
-import { mark_all_dirty, update_map_canvas_full, update_map_canvas, map_to_gui_pos } from './mapviewCommon';
+import { mark_all_dirty, update_map_canvas_full, update_map_canvas, map_to_gui_pos, update_map_canvas_check } from './mapviewCommon';
 import { tileset_tile_width, tileset_tile_height, normal_tile_width } from './tilesetConfig';
 
 // DIR8 constants - defined locally since they're simple enums
@@ -524,5 +524,4 @@ export function enable_mapview_slide(ptile: any): void {
   mapview['height'] = old_height;
 }
 
-// TODO: update_map_canvas_check needs to be imported or defined.
-declare function update_map_canvas_check(time: DOMHighResTimeStamp): void;
+// update_map_canvas_check is imported from mapviewCommon

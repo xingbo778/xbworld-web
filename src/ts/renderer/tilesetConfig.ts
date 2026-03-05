@@ -19,6 +19,15 @@
 
 /* Amplio.tilespec ported to Javascript. */
 
+// Inline values to avoid TDZ issues with circular imports from tilespec.ts
+// These match the exported constants: MATCH_NONE=0, MATCH_SAME=1, MATCH_PAIR=2, MATCH_FULL=3, CELL_WHOLE=0, CELL_CORNER=1
+const MATCH_NONE = 0;
+const MATCH_SAME = 1;
+const MATCH_PAIR = 2;
+const MATCH_FULL = 3;
+const CELL_WHOLE = 0;
+const CELL_CORNER = 1;
+
 export const tileset_tile_width: number = 96;
 export const tileset_tile_height: number = 48;
 

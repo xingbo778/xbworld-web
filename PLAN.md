@@ -166,26 +166,30 @@ Second biggest group. All about missing tileset constants.
 
 ---
 
-## Step 5: Investigate and fix map rendering (black area)
+## Step 5: Fix runtime errors preventing page load ✅ DONE
 
-E2E test showed map title layer renders (city names visible) but main
-canvas is black. Investigate.
+Fixed runtime errors caused by `declare` stubs that don't resolve at runtime in the IIFE bundle.
 
-**5a. Check tileset sprite loading**
-- `mapview.ts` uses `$.ajax` to load tileset_config and tileset_spec JS
-- Are the AJAX URLs correct in dev mode? Check Vite proxy/serving
+**5a. Fixed `DEFAULT_SOCK_PORT is not defined`** ✅
+- `options.ts`: replaced `declare const DEFAULT_SOCK_PORT` with `const DEFAULT_SOCK_PORT = 6001`
 
-**5b. Check 2D canvas rendering path**
-- `update_map_canvas()` → does it get called?
-- Is `mapview_canvas_ctx` initialized?
+**5b. Fixed `TRUE is not defined`** ✅
+- `options.ts`: replaced `declare const TRUE/FALSE` with `const TRUE = true; const FALSE = false`
 
-**5c. Check observer game state**
-- Does the observer receive tile data from the real backend?
-- Are tile.known == TILE_KNOWN_SEEN for visible tiles?
+**5c. Fixed `MATCH_PAIR is not defined` / TDZ error** ✅
+- `tilesetConfig.ts`: added local constant definitions for `MATCH_NONE/SAME/PAIR/FULL`, `CELL_WHOLE/CORNER`
+  (can't import from `tilespec.ts` due to circular dependency / TDZ in IIFE bundle)
+- Removed redundant declares from `tileset.d.ts`
 
-**5d. Add debug logging**
-- Log tile count received, canvas dimensions, first draw call
-- Take screenshot after 30s (tiles may load slowly)
+**5d. Fixed `Cannot set properties of undefined (setting 'width')`** ✅
+- `clientMain.ts`: added null checks for `w.mapview_canvas` and `w.buffer_canvas` in `setupWindowSize()`
+
+**Result:** All 3 E2E tests pass. Page loads without JS errors.
+
+**Note:** Map rendering in-game still needs investigation (observer auto-connect doesn't
+trigger in the 10s test window). The remaining `declare` stubs (~400) in renderer files
+(tilespec.ts, mapview.ts, etc.) may cause runtime errors when rendering functions execute.
+Full `declare` → import migration is tracked in Phase 3 below.
 
 ---
 

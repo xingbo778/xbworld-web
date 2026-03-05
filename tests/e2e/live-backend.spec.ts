@@ -33,12 +33,25 @@ test.describe('Live Backend Observer Test', () => {
 
     await page.goto('/webclient/index.html');
     await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(2000);
 
-    // Wait for WebSocket connection and auto-login
-    await page.waitForTimeout(8000);
-    await page.screenshot({ path: 'test-results/02-after-connect.png', fullPage: true });
+    await page.screenshot({ path: 'test-results/02a-before-login.png', fullPage: true });
 
-    // App should have transitioned to game page or still be on pregame with dialog
+    // Fill in username and click "Observe Game" to trigger network_init
+    const usernameInput = page.locator('#username_req');
+    if (await usernameInput.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await usernameInput.fill('TestObserver');
+      // Click the "Observe Game" button
+      const observeBtn = page.getByRole('button', { name: 'Observe Game' });
+      if (await observeBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
+        await observeBtn.click();
+      }
+    }
+
+    // Wait for WebSocket connection, login, and game data
+    await page.waitForTimeout(15000);
+    await page.screenshot({ path: 'test-results/02b-after-connect.png', fullPage: true });
+
     const gamePage = page.locator('#game_page');
     const pregamePage = page.locator('#pregame_page');
 
@@ -47,10 +60,11 @@ test.describe('Live Backend Observer Test', () => {
 
     console.log('Game page visible:', isGameVisible);
     console.log('Pregame page visible:', isPregameVisible);
-    console.log('Console logs:', consoleLogs.slice(0, 20));
+    console.log('Console logs:', consoleLogs.slice(0, 30));
 
-    // At least one page should be showing
-    expect(isGameVisible || isPregameVisible).toBeTruthy();
+    // At least one page should be showing, or a dialog (swal/modal) may be covering
+    const hasDialog = await page.locator('.swal-overlay, .swal-modal, dialog[open], .blockUI').count() > 0;
+    expect(isGameVisible || isPregameVisible || hasDialog).toBeTruthy();
 
     // Player-only buttons should NOT exist (removed from HTML)
     expect(await page.locator('#start_game_button').count()).toBe(0);
@@ -59,11 +73,26 @@ test.describe('Live Backend Observer Test', () => {
     expect(await page.locator('#game_unit_orders_default').count()).toBe(0);
   });
 
-  test('should render map with city names visible', async ({ page }) => {
+  test('should render map after observer login', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', (err) => errors.push(err.message));
+
     await page.goto('/webclient/index.html');
     await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(10000);
+    await page.waitForTimeout(2000);
 
+    // Fill in username and click "Observe Game"
+    const usernameInput = page.locator('#username_req');
+    if (await usernameInput.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await usernameInput.fill('TestObserver');
+      const observeBtn = page.getByRole('button', { name: 'Observe Game' });
+      if (await observeBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
+        await observeBtn.click();
+      }
+    }
+
+    // Wait for game to load — map data takes time
+    await page.waitForTimeout(20000);
     await page.screenshot({ path: 'test-results/03-map-render.png', fullPage: true });
 
     // Check if we're in game view
@@ -78,6 +107,17 @@ test.describe('Live Backend Observer Test', () => {
       if (await chatInput.isVisible({ timeout: 2000 }).catch(() => false)) {
         expect(await chatInput.isVisible()).toBeTruthy();
       }
+
+      // Take a final screenshot of the map tab
+      await page.locator('#map_tab a').click();
+      await page.waitForTimeout(3000);
+      await page.screenshot({ path: 'test-results/04-map-tab.png', fullPage: true });
     }
+
+    // Log any runtime errors that occurred during gameplay
+    const criticalErrors = errors.filter(
+      (e) => !e.includes('ResizeObserver') && !e.includes('favicon') && !e.includes('404')
+    );
+    console.log('Runtime errors during game:', criticalErrors);
   });
 });

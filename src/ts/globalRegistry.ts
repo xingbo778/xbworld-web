@@ -52,6 +52,12 @@ w['showDialogMessage'] = showDialogMessage;
 w['show_auth_dialog'] = showAuthDialog;
 w['showAuthDialog'] = showAuthDialog;
 w['switch_renderer'] = switchRenderer;
+
+import { showIntroDialog, initPregame } from './ui/pregame';
+w['show_intro_dialog'] = showIntroDialog;
+w['showIntroDialog'] = showIntroDialog;
+w['init_pregame'] = initPregame;
+w['initPregame'] = initPregame;
 w['switchRenderer'] = switchRenderer;
 
 import {

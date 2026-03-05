@@ -87,11 +87,13 @@ export function setupWindowSize(): void {
   const new_mapview_width  = winWidth  - (w.width_offset  as number);
   const new_mapview_height = winHeight - (w.height_offset as number);
 
-  if (w.renderer === w.RENDERER_2DCANVAS) {
+  if (w.renderer === w.RENDERER_2DCANVAS && w.mapview_canvas) {
     w.mapview_canvas.width  = new_mapview_width;
     w.mapview_canvas.height = new_mapview_height;
-    w.buffer_canvas.width   = Math.floor(new_mapview_width  * 1.5);
-    w.buffer_canvas.height  = Math.floor(new_mapview_height * 1.5);
+    if (w.buffer_canvas) {
+      w.buffer_canvas.width   = Math.floor(new_mapview_width  * 1.5);
+      w.buffer_canvas.height  = Math.floor(new_mapview_height * 1.5);
+    }
     w.mapview['width']        = new_mapview_width;
     w.mapview['height']       = new_mapview_height;
     w.mapview['store_width']  = new_mapview_width;

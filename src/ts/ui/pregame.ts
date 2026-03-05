@@ -39,6 +39,7 @@ export function showIntroDialog(title: string, message: string): void {
           return;
         }
         store.username = name;
+        (window as any).username = name;
         localStorage.setItem('username', name);
         closeDialog('intro_dialog');
         network_init();

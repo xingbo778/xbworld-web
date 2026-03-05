@@ -22,10 +22,10 @@ declare const simpleStorage: any;
 declare const audio: any;
 declare const music_list: string[];
 declare function supports_mp3(): boolean;
-declare const TRUE: boolean;
-declare const FALSE: boolean;
-declare const DEFAULT_SOCK_PORT: number;
-declare const META_URL: string;
+const TRUE = true;
+const FALSE = false;
+const DEFAULT_SOCK_PORT = 6001;
+const META_URL = '';
 
 export let server_settings: any = {};
 
