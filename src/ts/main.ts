@@ -84,6 +84,7 @@ import './data/nation';
 // wikiDoc: lazy-loaded by techDialog when needed (363KB)
 
 // Utilities
+import './utils/seedrandom';
 import './utils/EventAggregator';
 import './utils/bitvector';
 import './utils/helpers';

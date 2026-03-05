@@ -15,6 +15,7 @@
  * is still loaded. Guards below initialise them once civclient.js is removed.
  */
 
+import '../utils/seedrandom';  // Must be before civClientInit uses Math.seedrandom
 import { RENDERER_2DCANVAS } from '../core/constants';
 import { redraw_overview } from '../core/overview';
 import { control_init } from '../core/control';
