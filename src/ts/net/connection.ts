@@ -18,8 +18,6 @@ function getMessageLog(): any {
   return (window as any).message_log;
 }
 
-declare const $: any;
-
 import { showDialogMessage as show_dialog_message } from '../client/civClient';
 import { client_handle_packet } from './packhandlers';
 import { packet_chat_msg_req } from './packetConstants';
@@ -41,6 +39,7 @@ const freeciv_version = '+Freeciv.Web.Devel-3.3';
 let ws: WebSocket | null = null;
 let civserverport: string | null = null;
 let ping_last = new Date().getTime();
+let _beforeUnloadHandler: ((e: BeforeUnloadEvent) => string) | null = null;
 const pingtime_check = 240000;
 let ping_timer: ReturnType<typeof setInterval> | null = null;
 
@@ -55,7 +54,8 @@ export function network_init(): void {
   }
 
   // If civserverport is provided via URL param, connect directly (skip launcher)
-  const urlPort = $.getUrlVar('civserverport');
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlPort = urlParams.get('civserverport');
   if (urlPort) {
     civserverport = urlPort;
     websocket_init();
@@ -63,13 +63,12 @@ export function network_init(): void {
     return;
   }
 
-  const url = '/civclientlauncher?action=observe';
-
-  $.ajax({
-    type: 'POST',
-    url: url,
-    dataType: 'json',
-    success: function (data: any, _textStatus: string, request: any) {
+  fetch('/civclientlauncher?action=observe', { method: 'POST' })
+    .then(response => {
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      return response.json().then(data => ({ data, response }));
+    })
+    .then(({ data, response }) => {
       let port: string | null = null;
       let result: string | null = null;
 
@@ -81,8 +80,8 @@ export function network_init(): void {
 
       // Fallback to response headers
       if (!port) {
-        port = request.getResponseHeader('port');
-        result = request.getResponseHeader('result');
+        port = response.headers.get('port');
+        result = response.headers.get('result');
       }
 
       if (port != null && result === 'success') {
@@ -92,16 +91,13 @@ export function network_init(): void {
       } else {
         show_dialog_message('Network error', 'Invalid server port. Error: ' + result);
       }
-    },
-    error: function (request: any, textStatus: string, errorThrown: string) {
+    })
+    .catch(error => {
       show_dialog_message(
         'Network error',
-        'Unable to communicate with game launcher. Error: '
-          + textStatus + ' ' + errorThrown + ' '
-          + (request.getResponseHeader ? request.getResponseHeader('result') : '')
+        'Unable to communicate with game launcher. Error: ' + error.message
       );
-    },
-  });
+    });
 }
 
 /**
@@ -148,10 +144,15 @@ export function websocket_init(): void {
     }
     console.info('WebSocket connection closed, code+reason: ' + event.code + ', ' + event.reason);
 
-    try { $('#turn_done_button').button('option', 'disabled', true); } catch (_e) { /* ok */ }
-    try { $('#save_button').button('option', 'disabled', true); } catch (_e) { /* ok */ }
+    const turnBtn = document.getElementById('turn_done_button') as HTMLButtonElement | null;
+    if (turnBtn) turnBtn.disabled = true;
+    const saveBtn = document.getElementById('save_button') as HTMLButtonElement | null;
+    if (saveBtn) saveBtn.disabled = true;
 
-    $(window).unbind('beforeunload');
+    if (_beforeUnloadHandler) {
+      window.removeEventListener('beforeunload', _beforeUnloadHandler);
+      _beforeUnloadHandler = null;
+    }
 
     if (ping_timer) clearInterval(ping_timer);
   };
@@ -194,9 +195,11 @@ export function check_websocket_ready(): void {
     ws.send(JSON.stringify(login_message));
 
     // Leaving the page without saving can now be an issue.
-    $(window).bind('beforeunload', function () {
+    _beforeUnloadHandler = function (e: BeforeUnloadEvent) {
+      e.preventDefault();
       return 'Do you really want to leave your nation behind now?';
-    });
+    };
+    window.addEventListener('beforeunload', _beforeUnloadHandler);
 
     // The connection is now up. Verify that it remains alive.
     ping_timer = setInterval(ping_check, pingtime_check);

@@ -16,7 +16,7 @@ import { getTilesetFileExtension } from '../utils/helpers';
 import { blockUI, unblockUI } from '../utils/dom';
 import { VUT_UTYPE } from '../data/fcTypes';
 
-declare const $: any; // jQuery
+// jQuery removed from this module
 const _win = window as any;
 
 // DIR8 constants - must match map.ts Direction enum ordering
@@ -51,24 +51,28 @@ let dashedSupport: boolean = false;
 **************************************************************************/
 export function init_mapview(): void {
 
-  $("#canvas_div").append($('<canvas/>', { id: 'canvas' }));
+  // Create canvas element
+  const canvasDiv = document.getElementById('canvas_div');
+  if (canvasDiv) {
+    const canvas = document.createElement('canvas');
+    canvas.id = 'canvas';
+    canvasDiv.appendChild(canvas);
+  }
 
-  /* Loads the two tileset definition files */
-  $.ajax({
-    url: "/javascript/2dcanvas/tileset_config_amplio2.js",
-    dataType: "script",
-    async: false
-  }).fail(function() {
-    console.error("Unable to load tileset config.");
-  });
-
-  $.ajax({
-    url: "/javascript/2dcanvas/tileset_spec_amplio2.js",
-    dataType: "script",
-    async: false
-  }).fail(function() {
-    console.error("Unable to load tileset spec. Run Freeciv-img-extract.");
-  });
+  // Load tileset definition files synchronously (required before rendering)
+  function loadScriptSync(url: string): void {
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', url, false); // synchronous
+    xhr.send();
+    if (xhr.status === 200) {
+      // eslint-disable-next-line no-eval
+      (0, eval)(xhr.responseText);
+    } else {
+      console.error('Unable to load ' + url);
+    }
+  }
+  loadScriptSync('/javascript/2dcanvas/tileset_config_amplio2.js');
+  loadScriptSync('/javascript/2dcanvas/tileset_spec_amplio2.js');
 
   mapview_canvas = document.getElementById('canvas') as HTMLCanvasElement;
   mapview_canvas_ctx = mapview_canvas.getContext("2d");
@@ -131,11 +135,7 @@ export function init_mapview(): void {
   ...
 **************************************************************************/
 export function is_small_screen(): boolean {
-  if ($(window).width() <= 640 || $(window).height() <= 590) {
-    return true;
-  } else {
-    return false;
-  }
+  return window.innerWidth <= 640 || window.innerHeight <= 590;
 
 }
 
@@ -426,9 +426,16 @@ export function set_city_mapview_active(): void {
   ...
 **************************************************************************/
 export function set_default_mapview_inactive(): void {
-  if (overview_active) $("#game_overview_panel").parent().hide();
-  $("#game_unit_panel").parent().hide();
-  if (chatbox_active) $("#game_chatbox_panel").parent().hide();
+  if (overview_active) {
+    const op = document.getElementById('game_overview_panel');
+    if (op?.parentElement) op.parentElement.style.display = 'none';
+  }
+  const up = document.getElementById('game_unit_panel');
+  if (up?.parentElement) up.parentElement.style.display = 'none';
+  if (chatbox_active) {
+    const cp = document.getElementById('game_chatbox_panel');
+    if (cp?.parentElement) cp.parentElement.style.display = 'none';
+  }
 }
 
 /**************************************************************************

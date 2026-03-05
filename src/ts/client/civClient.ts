@@ -26,8 +26,6 @@ import { showMessageDialog, closeMessageDialog } from '../components/Dialogs/Mes
 import { showAuthDialog as showAuthDialogPreact } from '../components/Dialogs/AuthDialog';
 import { showIntroDialog } from '../components/Dialogs/IntroDialog';
 
-declare const $: any;
-
 // ---------------------------------------------------------------------------
 // Global state guards (active once civclient.js is deleted)
 // ---------------------------------------------------------------------------
@@ -67,93 +65,81 @@ if (!(window as any).music_list) {
  * Main client initialisation — called from index.html $(document).ready.
  */
 export function civClientInit(): void {
-  // blockUI defaults removed — using vanilla blockUI from utils/dom.ts
+  const _w = window as any;
 
   // Always observer mode
-  (window as any).observing = true;
-  (window as any).game_type = 'observe';
-  $('#civ_tab').remove();
-  $('#cities_tab').remove();
-  $('#pregame_buttons').remove();
-  $('#game_unit_orders_default').remove();
-  $('#civ_dialog').remove();
+  _w.observing = true;
+  _w.game_type = 'observe';
+  // Remove observer-irrelevant UI elements
+  for (const id of ['civ_tab', 'cities_tab', 'pregame_buttons', 'game_unit_orders_default', 'civ_dialog']) {
+    document.getElementById(id)?.remove();
+  }
 
   // Initialise seeded random number generator
-  (window as any).fc_seedrandom = new ((window as any).Math.seedrandom || (window as any).seedrandom)('xbworld');
+  _w.fc_seedrandom = new (_w.Math.seedrandom || _w.seedrandom)('xbworld');
 
   if (window.requestAnimationFrame == null) {
-    if (typeof (window as any).swal === 'function') (window as any).swal('Please upgrade your browser.');
+    if (typeof _w.swal === 'function') _w.swal('Please upgrade your browser.');
     return;
   }
 
-
   init_mapview();
   game_init();
-  $('#tabs').tabs({ heightStyle: 'fill' });
+  // jQuery UI tabs initialization (still needed for tab widget)
+  if (_w.$) _w.$('#tabs').tabs({ heightStyle: 'fill' });
   control_init();
-  (window as any).timeoutTimerId = setInterval(function () {
-    if (typeof (window as any).update_timeout === 'function') (window as any).update_timeout();
+  _w.timeoutTimerId = setInterval(function () {
+    if (typeof _w.update_timeout === 'function') _w.update_timeout();
   }, 1000);
   update_game_status_panel();
-  (window as any).statusTimerId = setInterval(function () {
+  _w.statusTimerId = setInterval(function () {
     update_game_status_panel();
   }, 6000);
 
-  if ((window as any).overviewTimerId == null || (window as any).overviewTimerId === -1) {
-    (window as any).OVERVIEW_REFRESH = 6000;
-    (window as any).overviewTimerId = setInterval(function () {
+  if (_w.overviewTimerId == null || _w.overviewTimerId === -1) {
+    _w.OVERVIEW_REFRESH = 6000;
+    _w.overviewTimerId = setInterval(function () {
       redraw_overview();
-    }, (window as any).OVERVIEW_REFRESH);
+    }, _w.OVERVIEW_REFRESH);
   }
 
-  if (typeof (window as any).motd_init === 'function') (window as any).motd_init();
+  if (typeof _w.motd_init === 'function') _w.motd_init();
 
-  // IE polyfill for Array.indexOf (kept for historical compatibility)
-  if (!Array.prototype.indexOf) {
-    Array.prototype.indexOf = function (obj: unknown): number {
-      for (let i = 0; i < this.length; i++) {
-        if (this[i] === obj) return i;
-      }
-      return -1;
-    };
+  // Set tab container and tab panel heights
+  const tabs = document.getElementById('tabs');
+  if (tabs) tabs.style.height = window.innerHeight + 'px';
+  for (const id of ['tabs-map', 'tabs-civ', 'tabs-tec', 'tabs-nat', 'tabs-cities', 'tabs-opt', 'tabs-hel']) {
+    const el = document.getElementById(id);
+    if (el) el.style.height = 'auto';
   }
+  // Apply jQuery UI button styling to .button elements
+  if (_w.$) _w.$('.button').button();
 
-  $('#tabs').css('height', $(window).height());
-  $('#tabs-map').height('auto');
-  $('#tabs-civ').height('auto');
-  $('#tabs-tec').height('auto');
-  $('#tabs-nat').height('auto');
-  $('#tabs-cities').height('auto');
-  $('#tabs-opt').height('auto');
-  $('#tabs-hel').height('auto');
-  $('.button').button();
-
-  (window as any).sounds_enabled = (window as any).simpleStorage.get('sndFX');
-  if ((window as any).sounds_enabled == null) {
-    // Default to true, except when known to be problematic.
-    (window as any).sounds_enabled = navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome') ? false : true;
+  _w.sounds_enabled = _w.simpleStorage.get('sndFX');
+  if (_w.sounds_enabled == null) {
+    _w.sounds_enabled = navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome') ? false : true;
   }
 
   /* Initialise audio.js music player */
-  if ((window as any).audiojs) {
-    (window as any).audiojs.events.ready(function () {
-      const as = (window as any).audiojs.createAll({
+  if (_w.audiojs) {
+    _w.audiojs.events.ready(function () {
+      const as = _w.audiojs.createAll({
         trackEnded: function () {
-          const list: string[] = (window as any).music_list;
+          const list: string[] = _w.music_list;
           const track = list[Math.floor(Math.random() * list.length)];
-          const ext = (typeof (window as any).supports_mp3 === 'function' && !(window as any).supports_mp3()) ? '.ogg' : '.mp3';
-          if ((window as any).audio) {
-            (window as any).audio.load('/music/' + track + ext);
-            (window as any).audio.play();
+          const ext = (typeof _w.supports_mp3 === 'function' && !_w.supports_mp3()) ? '.ogg' : '.mp3';
+          if (_w.audio) {
+            _w.audio.load('/music/' + track + ext);
+            _w.audio.play();
           }
         }
       });
-      (window as any).audio = as[0];
+      _w.audio = as[0];
     });
   }
 
   initCommonIntroDialog();
-  if (typeof (window as any).setup_window_size === 'function') (window as any).setup_window_size();
+  if (typeof _w.setup_window_size === 'function') _w.setup_window_size();
 }
 
 // ---------------------------------------------------------------------------
@@ -235,11 +221,19 @@ export function switchRenderer(): void {
 // The guard prevents double-init if webclient.min.js's old version already ran
 // and set civclient_state > 0.
 // ---------------------------------------------------------------------------
-$(function () {
+// Auto-init on DOMContentLoaded (replaces jQuery $(document).ready)
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    if (!(window as any).civclient_state || (window as any).civclient_state === 0) {
+      civClientInit();
+    }
+  });
+} else {
+  // DOM already loaded (module scripts are deferred)
   if (!(window as any).civclient_state || (window as any).civclient_state === 0) {
     civClientInit();
   }
-});
+}
 
 // ---------------------------------------------------------------------------
 // Expose to legacy JS

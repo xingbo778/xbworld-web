@@ -17,45 +17,32 @@
 
 ***********************************************************************/
 
-declare const $: any;
 import { set_chat_direction } from './control/chat';
-const renderer = (window as any).renderer;
 
-export const PAGE_MAIN: number = 0;		/* Main menu, aka intro page.  */
-export const PAGE_START: number = 1;		/* Start new game page.  */
-export const PAGE_SCENARIO: number = 2;		/* Legacy — kept for globalRegistry. */
-export const PAGE_LOAD: number = 3;		/* Legacy — kept for globalRegistry. */
-export const PAGE_NETWORK: number = 4;		/* Legacy — kept for globalRegistry. */
-export const PAGE_NATION: number = 5;		/* Legacy — kept for globalRegistry. */
-export const PAGE_GAME: number = 6;		/* In game page. */
+export const PAGE_MAIN: number = 0;
+export const PAGE_START: number = 1;
+export const PAGE_SCENARIO: number = 2;
+export const PAGE_LOAD: number = 3;
+export const PAGE_NETWORK: number = 4;
+export const PAGE_NATION: number = 5;
+export const PAGE_GAME: number = 6;
 
 let old_page: number = -1;
 
 export function set_client_page(page: number): void {
+  if (old_page === page) return;
 
-  const new_page: number = page;
-
-  /* If the page remains the same, don't do anything. */
-  if (old_page === new_page) {
-    return;
+  if (old_page === -1) {
+    document.getElementById('pregame_page')?.remove();
   }
 
-  switch (old_page) {
-  case -1:
-    $("#pregame_page").remove();
-    break;
-  default:
-    break;
-  }
-
-  switch (new_page) {
-  case PAGE_GAME:
-    $("#game_page").show();
+  if (page === PAGE_GAME) {
+    const gamePage = document.getElementById('game_page');
+    if (gamePage) gamePage.style.display = '';
     set_chat_direction(null);
-    break;
   }
 
-  old_page = new_page;
+  old_page = page;
 }
 
 export function get_client_page(): number {
