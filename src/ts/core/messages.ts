@@ -16,7 +16,7 @@
 
 ***********************************************************************/
 
-import { E_CHAT_MSG, E_CHAT_PRIVATE, E_CHAT_ALLIES, E_CHAT_OBSERVER, fc_e_events, E_I_NAME } from '../data/eventConstants';
+import { E_CHAT_MSG, E_CHAT_PRIVATE, E_CHAT_ALLIES, E_CHAT_OBSERVER, fc_e_events } from '../data/eventConstants';
 import { clientState, C_S_PREPARING } from '../client/clientState';
 import { check_text_with_banlist } from '../utils/banlist';
 import { isLongturn } from '../client/clientCore';
@@ -169,7 +169,7 @@ export function update_chatbox(messages: any[]): void
   if (scrollDiv != null) {
     for (let i = 0; i < messages.length; i++) {
         const item: HTMLLIElement = document.createElement('li');
-        item.className = fc_e_events[messages[i].event][E_I_NAME];
+        item.className = fc_e_events[messages[i].event] || '';
         item.innerHTML = messages[i].message;
         scrollDiv.appendChild(item);
     }
