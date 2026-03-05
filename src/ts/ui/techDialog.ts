@@ -17,7 +17,21 @@ import { get_units_from_tech } from '../data/unittype';
 import { get_improvements_from_tech } from '../data/improvement';
 import { research_get } from '../data/player';
 import { reqtree, reqtree_civ2civ3, reqtree_multiplayer } from '../data/reqtree';
-import { freeciv_wiki_docs } from '../data/wikiDoc';
+// Wiki docs loaded lazily via fetch to avoid 363KB in initial bundle
+let _wikiDocsLoaded = false;
+function loadWikiDocs(): void {
+  if (_wikiDocsLoaded) return;
+  _wikiDocsLoaded = true;
+  fetch('/javascript/wiki-docs.json')
+    .then(r => r.json())
+    .then(data => { (window as any).freeciv_wiki_docs = data; })
+    .catch(() => { /* wiki docs unavailable, non-critical */ });
+}
+// Trigger load early, data available by the time user opens tech info
+loadWikiDocs();
+const freeciv_wiki_docs = new Proxy({} as Record<string, any>, {
+  get: (_target, prop: string) => ((window as any).freeciv_wiki_docs || {})[prop],
+});
 import { mouse_x, mouse_y } from '../core/control/controlState';
 
 declare const $: any;

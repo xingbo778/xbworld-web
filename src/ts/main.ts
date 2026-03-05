@@ -81,7 +81,7 @@ import './data/city';
 import './data/tech';
 import './data/nation';
 import './data/reqtree';
-import './data/wikiDoc';
+// wikiDoc is lazy-loaded by techDialog when needed (363KB)
 
 // Utilities
 import './utils/bitvector';
