@@ -1,6 +1,7 @@
 import { EventAggregator } from '../utils/EventAggregator';
 import { initTabs } from './tabs';
 import { swal } from '../components/Dialogs/SwalDialog';
+import { initTableSort } from '../utils/tableSort';
 import { store } from '../data/store';
 import { cityTile, cityOwner, canCityBuildNow, generateProductionList, cityPopulation as city_population, cityTurnsToGrowthText as city_turns_to_growth_text, getCityProductionTypeSprite as get_city_production_type_sprite, getCityProductionTime as get_city_production_time, getProductionProgress as get_production_progress, getCityProductionType as get_city_production_type } from '../data/city';
 import { get_supported_units } from '../data/unit';
@@ -1205,13 +1206,11 @@ export function city_worklist_task_remove(): void {
 export function update_city_screen(): void {
   if ((window as any).observing) return;
 
-  const sortList: any[] = [];
-  const headers: any = $('#city_table thead th');
-  headers.filter('.tablesorter-headerAsc').each(function (i: number, cell: any) {
-    sortList.push([cell.cellIndex, 0]);
-  });
-  headers.filter('.tablesorter-headerDesc').each(function (i: number, cell: any) {
-    sortList.push([cell.cellIndex, 1]);
+  const sortList: number[][] = [];
+  document.querySelectorAll('#city_table thead th').forEach((th: Element) => {
+    const el = th as HTMLElement;
+    if (el.classList.contains('tablesorter-headerAsc')) sortList.push([el.cellIndex, 0]);
+    else if (el.classList.contains('tablesorter-headerDesc')) sortList.push([el.cellIndex, 1]);
   });
 
   let city_list_html: string = "<table class='tablesorter' id='city_table' border=0 cellspacing=0>"
@@ -1252,7 +1251,7 @@ export function update_city_screen(): void {
 
   $('#cities_scroll').css("height", $(window).height() - 200);
 
-  $("#city_table").tablesorter({theme:"dark", sortList: sortList});
+  initTableSort('#city_table', { sortList: sortList });
 }
 
 export function get_city_state(pcity: any): string | undefined { 

@@ -19,6 +19,7 @@ import { store } from './store';
 import { DiplState, PlayerFlag, get_ai_level_text, get_diplstate_text, get_embassy_text } from './player';
 import { cityTile, cityOwnerPlayerId } from './city';
 import { swal } from '../components/Dialogs/SwalDialog';
+import { initTableSort } from '../utils/tableSort';
 import { clientIsObserver, canClientControl, clientState, C_S_OVER } from '../client/clientState';
 import { isLongturn } from '../client/clientCore';
 import { setDefaultMapviewActive } from '../client/clientMain';
@@ -314,10 +315,7 @@ export function updateNationScreen(): void {
     }
   }
 
-  const _$ = (window as any).$;
-  if (_$) {
-    _$('#nation_table').tablesorter({ theme: 'dark', sortList: [[2, 0]] });
-  }
+  initTableSort('#nation_table', { sortList: [[2, 0]] });
 
   if (is_small_screen()) {
     const nationsEl = document.getElementById('nations');
