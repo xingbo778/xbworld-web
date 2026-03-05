@@ -83,6 +83,9 @@ import './data/nation';
 // reqtree: no side effects, pulled in by import chain
 // wikiDoc: lazy-loaded by techDialog when needed (363KB)
 
+// jQuery UI shim — must load before any module using $.dialog(), $.tooltip(), etc.
+import './utils/jqueryUiShim';
+
 // Utilities
 import './utils/seedrandom';
 import './utils/EventAggregator';
