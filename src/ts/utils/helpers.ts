@@ -10,9 +10,9 @@
  */
 
 declare const $: any;
-declare const swal: any;
-declare const map_pos_to_tile: (x: number, y: number) => any;
-declare const center_tile_mapcanvas: (ptile: any) => void;
+const swal = (window as any).swal;
+import { mapPosToTile as map_pos_to_tile } from '../data/map';
+import { center_tile_mapcanvas } from '../core/control';
 
 /** Deep clone a plain object (no circular refs). */
 export function clone<T>(obj: T): T {

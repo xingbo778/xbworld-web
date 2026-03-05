@@ -18,13 +18,11 @@
 ***********************************************************************/
 
 declare const $: any;
-declare const unit_types: any;
-declare const extras: any;
-declare const EXTRA_NONE: number;
-declare const ACTION_PILLAGE: number;
-declare const units: any;
-declare function request_unit_do_action(action: number, unit_id: number, tile: any, extra_id: number): void;
-declare function client_is_observer(): boolean;
+import { store } from '../data/store';
+import { EXTRA_NONE } from '../data/extra';
+import { ACTION_PILLAGE } from '../data/fcTypes';
+import { request_unit_do_action } from '../core/control/unitCommands';
+import { clientIsObserver as client_is_observer } from '../client/clientState';
 
 /****************************************************************************
   Ask the player to select a target.
@@ -38,7 +36,7 @@ export function popup_pillage_selection_dialog(punit: any, tgt: any[]): void {
   $(id).remove();
   $("<div id='pillage_sel_dialog_" + punit['id'] + "'></div>").appendTo("div#game_page");
   $(id).append(document.createTextNode("Your "
-              + unit_types[punit['type']]['name']
+              + store.unitTypes[punit['type']]['name']
               + " is waiting for you to select what to pillage."));
 
   const button_id_prefix = 'pillage_sel_' + punit['id'] + '_';
@@ -49,7 +47,7 @@ export function popup_pillage_selection_dialog(punit: any, tgt: any[]): void {
     buttons.push({
       id     : button_id_prefix + extra_id,
       'class': 'act_sel_button',
-      text   : extras[extra_id]['name'],
+      text   : store.extras[extra_id]['name'],
       click  : pillage_target_selected
     });
   }
@@ -84,7 +82,7 @@ export function pillage_target_selected(this: any, ev: any): void {
   const extra_id = parseInt(params[2], 10);
   const punit_id = parseInt(params[1], 10);
 
-  request_unit_do_action(ACTION_PILLAGE, punit_id, units[punit_id].tile,
+  request_unit_do_action(ACTION_PILLAGE, punit_id, store.units[punit_id].tile,
                          extra_id);
   $(this).dialog('close');
 }

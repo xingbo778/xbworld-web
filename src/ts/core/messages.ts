@@ -25,7 +25,7 @@ import { isLongturn } from '../client/clientCore';
 import { is_small_screen } from '../renderer/mapview';
 
 // EventAggregator is loaded as a global script
-declare const EventAggregator: any;
+const EventAggregator = (window as any).EventAggregator;
 
 const is_longturn = isLongturn;
 const civclient_state = clientState();

@@ -23,10 +23,8 @@ import { clientIsObserver as client_is_observer } from '../client/clientState';
 import { cityOwnerPlayerId as city_owner_player_id } from '../data/city';
 import { packet_web_cma_clear } from '../net/packetConstants';
 
-// send_request is a global function
-declare function send_request(packet: string): void;
-// client is a global
-declare const client: any;
+import { send_request } from '../net/connection';
+import { store } from '../data/store';
 // packet_web_cma_set may not be defined in packetConstants; define locally
 const packet_web_cma_set = 257;
 
@@ -44,9 +42,9 @@ export let _cma_allow_specialists: boolean = true;
 **************************************************************************/
 export function show_city_governor_tab(): boolean | void {
   // Reject cases which can't show the Governor:
-  if (client_is_observer() || client.conn.playing == null) return false;
+  if (client_is_observer() || store.client.conn.playing == null) return false;
   if (!active_city) return false;
-  if (city_owner_player_id(active_city) != client.conn.playing.playerno) {
+  if (city_owner_player_id(active_city) != store.client.conn.playing.playerno) {
     $("#city_governor_tab").html("City Governor available only for domestic cities.");
     return false;
   }

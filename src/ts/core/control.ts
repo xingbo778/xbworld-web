@@ -64,7 +64,7 @@ import { update_unit_order_commands } from './control/unitFocus';
 import * as S from './control/controlState';
 
 declare const $: any;
-declare const RENDERER_2DCANVAS: number;
+import { RENDERER_2DCANVAS } from './constants';
 
 // ---------------------------------------------------------------------------
 // Helper functions used only in control_init
