@@ -3,14 +3,7 @@ import { setupWindowSize as setup_window_size } from '../client/clientMain';
 import { store } from '../data/store';
 
 const client = store.client;
-export let observing: boolean = false;
 export let update_player_info_pregame_queued: boolean = false;
-
-export const QUALITY_MEDIUM: number = 2;
-export const QUALITY_HIGH: number = 3;
-
-export let graphics_quality: number = QUALITY_HIGH;
-export let antialiasing_setting: boolean = true;
 
 /**
  * Sanitize a username string for safe display.

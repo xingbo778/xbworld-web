@@ -35,7 +35,6 @@ import { message_log } from '../../core/messages';
 import { E_BEGINNER_HELP } from '../../data/eventConstants';
 import { get_what_can_unit_pillage_from } from '../../data/unit';
 import { normal_tile_height } from '../../renderer/tilesetConfig';
-import { observing } from '../../core/pregame';
 import { auto_center_on_unit } from '../../ui/options';
 import * as S from './controlState';
 // Circular imports — OK, only used inside functions
@@ -497,7 +496,7 @@ export function update_unit_order_commands(): { [key: string]: any } {
 }
 
 export function init_game_unit_panel(): void {
-  if (observing) return;
+  if (store.observing) return;
   S.setUnitpanelActive(true);
 
   const jq = (window as any).$;
