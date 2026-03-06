@@ -15,9 +15,19 @@ import {
   can_player_build_unit_direct,
   get_units_from_tech,
 } from '@/data/unittype';
+import { store } from '@/data/store';
+import { TECH_KNOWN } from '@/data/tech';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-const win = window as any;
+
+// Helper to create a player with inventions
+function makePlayerWithTechs(knownTechs: number[]): any {
+  const inventions: Record<number, number> = {};
+  for (const t of knownTechs) {
+    inventions[t] = TECH_KNOWN;
+  }
+  return { inventions };
+}
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -89,18 +99,11 @@ describe('utype_can_do_action', () => {
 
 describe('can_player_build_unit_direct', () => {
   beforeEach(() => {
-    win.TECH_KNOWN = 2;
-    win.player_invention_state = (p: any, tech: number) => {
-      if (p?.known_techs?.includes(tech)) return 2; // TECH_KNOWN
-      return 0;
-    };
-    win.unit_types = {};
+    (store as any).unitTypes = {};
   });
 
   afterEach(() => {
-    delete win.TECH_KNOWN;
-    delete win.player_invention_state;
-    delete win.unit_types;
+    (store as any).unitTypes = {};
   });
 
   it('should return false for null player', () => {
@@ -108,40 +111,40 @@ describe('can_player_build_unit_direct', () => {
   });
 
   it('should return false for null unittype', () => {
-    expect(can_player_build_unit_direct({ known_techs: [] }, null)).toBe(false);
+    expect(can_player_build_unit_direct(makePlayerWithTechs([]), null)).toBe(false);
   });
 
   it('should return true when player knows required tech', () => {
-    const player = { known_techs: [10] };
+    const player = makePlayerWithTechs([10]);
     const utype = { tech_requirement: 10 };
     expect(can_player_build_unit_direct(player, utype)).toBe(true);
   });
 
   it('should return false when player lacks required tech', () => {
-    const player = { known_techs: [5] };
+    const player = makePlayerWithTechs([5]);
     const utype = { tech_requirement: 10 };
     expect(can_player_build_unit_direct(player, utype)).toBe(false);
   });
 
   it('should return true when no tech requirement', () => {
-    const player = { known_techs: [] };
+    const player = makePlayerWithTechs([]);
     const utype = { tech_requirement: -1 };
     expect(can_player_build_unit_direct(player, utype)).toBe(true);
   });
 
   it('should return false when obsoleted_by unit is buildable', () => {
-    const player = { known_techs: [10, 20] };
+    const player = makePlayerWithTechs([10, 20]);
     const utype = { tech_requirement: 10, obsoleted_by: 2 };
-    win.unit_types = {
+    (store as any).unitTypes = {
       2: { tech_requirement: 20 },
     };
     expect(can_player_build_unit_direct(player, utype)).toBe(false);
   });
 
   it('should return true when obsoleting unit tech is not known', () => {
-    const player = { known_techs: [10] };
+    const player = makePlayerWithTechs([10]);
     const utype = { tech_requirement: 10, obsoleted_by: 2 };
-    win.unit_types = {
+    (store as any).unitTypes = {
       2: { tech_requirement: 20 },
     };
     expect(can_player_build_unit_direct(player, utype)).toBe(true);
@@ -154,7 +157,7 @@ describe('can_player_build_unit_direct', () => {
 
 describe('get_units_from_tech', () => {
   beforeEach(() => {
-    win.unit_types = {
+    (store as any).unitTypes = {
       0: { id: 0, name: 'Warriors', tech_requirement: -1 },
       1: { id: 1, name: 'Phalanx', tech_requirement: 5 },
       2: { id: 2, name: 'Musketeers', tech_requirement: 10 },
@@ -163,7 +166,7 @@ describe('get_units_from_tech', () => {
   });
 
   afterEach(() => {
-    delete win.unit_types;
+    (store as any).unitTypes = {};
   });
 
   it('should return units requiring the given tech', () => {

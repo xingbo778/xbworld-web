@@ -346,7 +346,7 @@ export function update_map_canvas(canvas_x: number, canvas_y: number, width: num
     s['map_x'] < 0 || s['map_x'] > store.mapInfo!['xsize'] || s['map_y'] < 0 || s['map_y'] > store.mapInfo!['ysize'] ||
     t['map_x'] < 0 || t['map_x'] > store.mapInfo!['xsize'] || t['map_y'] < 0 || t['map_y'] > store.mapInfo!['ysize'] ||
     u['map_x'] < 0 || u['map_x'] > store.mapInfo!['xsize'] || u['map_y'] < 0 || u['map_y'] > store.mapInfo!['ysize']) {
-    canvas_put_rectangle(store.mapviewCanvasCtx, "rgb(0,0,0)", canvas_x, canvas_y, width, height);
+    canvas_put_rectangle(store.mapviewCanvasCtx!, "rgb(0,0,0)", canvas_x, canvas_y, width, height);
   }
 
   // mapview_layer_iterate
@@ -354,11 +354,11 @@ export function update_map_canvas(canvas_x: number, canvas_y: number, width: num
 
     // set layer-specific canvas properties here.
     if (layer == LAYER_SPECIAL1) {
-      store.mapviewCanvasCtx.lineWidth = 2;
-      store.mapviewCanvasCtx.lineCap = 'butt';
-      if (store.dashedSupport) store.mapviewCanvasCtx.setLineDash([4, 4]);
+      store.mapviewCanvasCtx!.lineWidth = 2;
+      store.mapviewCanvasCtx!.lineCap = 'butt';
+      if (store.dashedSupport) store.mapviewCanvasCtx!.setLineDash([4, 4]);
     } else if (layer == LAYER_CITY1) {
-      if (store.dashedSupport) store.mapviewCanvasCtx.setLineDash([]);
+      if (store.dashedSupport) store.mapviewCanvasCtx!.setLineDash([]);
     }
 
     //gui_rect_iterate begin
@@ -428,9 +428,9 @@ export function update_map_canvas(canvas_x: number, canvas_y: number, width: num
 
 
         if (ptile != null) {
-          put_one_tile(store.mapviewCanvasCtx, layer, ptile, cx, cy, null);
+          put_one_tile(store.mapviewCanvasCtx!, layer, ptile, cx, cy, null);
         } else if (pcorner != null) {
-          put_one_element(store.mapviewCanvasCtx, layer, null, null, pcorner,
+          put_one_element(store.mapviewCanvasCtx!, layer, null, null, pcorner,
             null, null, cx, cy, null);
         }
       }
@@ -438,7 +438,7 @@ export function update_map_canvas(canvas_x: number, canvas_y: number, width: num
   }
 
   if (map_select_active && map_select_setting_enabled) {
-    canvas_put_select_rectangle(store.mapviewCanvasCtx, map_select_x, map_select_y,
+    canvas_put_select_rectangle(store.mapviewCanvasCtx!, map_select_x, map_select_y,
       mouse_x - map_select_x, mouse_y - map_select_y);
   }
 }
@@ -660,7 +660,7 @@ export function update_map_slide(): void {
     sy = Math.floor((dy * (-1 * mapview_slide['i'] / mapview_slide['max'])));
   }
 
-  store.mapviewCanvasCtx.drawImage(store.bufferCanvas, sx, sy,
+  store.mapviewCanvasCtx!.drawImage(store.bufferCanvas!, sx, sy,
     mapview['width']!, mapview['height']!,
     0, 0, mapview['width']!, mapview['height']!);
 }

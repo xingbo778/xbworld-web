@@ -1,5 +1,8 @@
 import type { UnitType, Player } from './types';
 import { ACTION_COUNT, MAX_NUM_UNITS } from '../core/constants';
+import { store } from './store';
+import { actionByNumber as action_by_number, actionHasResult as action_has_result } from './actions';
+import { playerInventionState as player_invention_state, TECH_KNOWN } from './tech';
 export enum UCF {
   TERRAIN_SPEED = 0,
   TERRAIN_DEFENSE = 1,
@@ -50,12 +53,13 @@ export function can_player_build_unit_direct(p: any, punittype: any): boolean {
   }
 
   if (punittype['obsoleted_by'] != null && punittype['obsoleted_by'] >= 0) {
-    const obs_type = unit_types[punittype['obsoleted_by']];
+    const obs_type = store.unitTypes[punittype['obsoleted_by']];
     if (obs_type != null) {
-      if (obs_type['tech_requirement'] == null || obs_type['tech_requirement'] < 0) {
+      const obsTechReq = obs_type['tech_requirement'] as number | null | undefined;
+      if (obsTechReq == null || obsTechReq < 0) {
         return false;
       }
-      if (player_invention_state(p, obs_type['tech_requirement']) === TECH_KNOWN) {
+      if (player_invention_state(p, obsTechReq) === TECH_KNOWN) {
         return false;
       }
     }
@@ -66,8 +70,8 @@ export function can_player_build_unit_direct(p: any, punittype: any): boolean {
 
 export function get_units_from_tech(tech_id: number): UnitType[] {
   const result: UnitType[] = [];
-  for (const unit_type_id in unit_types) {
-    const punit_type = unit_types[unit_type_id] as UnitType;
+  for (const unit_type_id in store.unitTypes) {
+    const punit_type = store.unitTypes[unit_type_id] as UnitType;
     if (punit_type == null) continue;
     if (punit_type.tech_requirement === tech_id) {
       result.push(punit_type);

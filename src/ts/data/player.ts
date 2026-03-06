@@ -4,6 +4,7 @@
  */
 
 import type { Player, City } from './types';
+import { store } from './store';
 export const MAX_NUM_PLAYERS = 30;
 export const MAX_AI_LOVE = 1000;
 
@@ -27,26 +28,26 @@ export const enum PlayerFlag {
 export const research_data: Record<number, any> = {};
 
 export function valid_player_by_number(playerno: number): Player | null {
-  if (players[playerno] == null) return null;
-  return players[playerno];
+  if (store.players[playerno] == null) return null;
+  return store.players[playerno];
 }
 
 export function player_by_number(playerno: number): Player | null {
-  if (players[playerno] == null) return null;
-  return players[playerno];
+  if (store.players[playerno] == null) return null;
+  return store.players[playerno];
 }
 
 export function player_by_name(pname: string): Player | null {
-  for (const player_id in players) {
-    const pplayer = players[player_id];
+  for (const player_id in store.players) {
+    const pplayer = store.players[player_id];
     if (pplayer.name === pname) return pplayer;
   }
   return null;
 }
 
 export function player_by_full_username(pname: string): Player | null {
-  for (const player_id in players) {
-    const pplayer = players[player_id];
+  for (const player_id in store.players) {
+    const pplayer = store.players[player_id];
     if (pplayer.username === pname) return pplayer;
     if ('AI ' + pplayer.name === pname) return pplayer;
   }
@@ -54,8 +55,8 @@ export function player_by_full_username(pname: string): Player | null {
 }
 
 export function player_find_unit_by_id(pplayer: Player, unit_id: number): any | null {
-  for (const id in units) {
-    const punit = units[id];
+  for (const id in store.units) {
+    const punit = store.units[id];
     if (punit.owner === pplayer.playerno && punit.id === unit_id) {
       return punit;
     }
@@ -93,7 +94,7 @@ export function get_diplstate_text(state_id: number): string {
 }
 
 export function get_embassy_text(player_id: number): string {
-  const pplayer = players[player_id];
+  const pplayer = store.players[player_id];
   if (pplayer == null) return '';
   if (pplayer.embassy_txt != null) return pplayer.embassy_txt;
   return '';
@@ -114,8 +115,8 @@ export function get_ai_level_text(player: Player): string {
 export function get_player_connection_status(pplayer: Player): string {
   if (pplayer == null) return '';
 
-  for (const cid in connections) {
-    const pconn = connections[cid];
+  for (const cid in store.connections) {
+    const pconn = store.connections[cid];
     if (pconn.playing != null && pconn.playing.playerno === pplayer.playerno) {
       return 'connected';
     }
@@ -131,8 +132,8 @@ export function research_get(pplayer: Player): any | null {
 }
 
 export function player_has_wonder(playerno: number, improvement_id: number): boolean {
-  for (const city_id in cities) {
-    const pcity = cities[city_id] as City;
+  for (const city_id in store.cities) {
+    const pcity = store.cities[city_id] as City;
     if (
       pcity.owner === playerno &&
       pcity.improvements != null &&
@@ -168,8 +169,8 @@ export function get_invalid_username_reason(username: string): string | null {
 
 export function player_capital(player: Player): City | null {
   if (player == null) return null;
-  for (const city_id in cities) {
-    const pcity = cities[city_id] as City;
+  for (const city_id in store.cities) {
+    const pcity = store.cities[city_id] as City;
     if (pcity.owner === player.playerno && is_capital(pcity)) {
       return pcity;
     }
@@ -184,8 +185,8 @@ export function does_player_own_city(player: Player, city: City): boolean {
 
 export function is_capital(pcity: City): boolean {
   if (pcity.improvements == null) return false;
-  for (const imp_id in improvements) {
-    const imp = improvements[imp_id];
+  for (const imp_id in store.improvements) {
+    const imp = store.improvements[imp_id];
     if (imp != null && imp.genus === 0 && pcity.improvements[imp.id] === true) {
       return true;
     }

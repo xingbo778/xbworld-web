@@ -322,7 +322,7 @@ export function updateNationScreen(): void {
   }
 
   /* Fetch online (connected) players on this game from Freeciv-proxy. */
-  const statusUrl = '/civsocket/' + (parseInt(store.civserverport) + 1000) + '/status';
+  const statusUrl = '/civsocket/' + (parseInt(String(store.civserverport)) + 1000) + '/status';
   fetch(statusUrl, { cache: 'no-store' })
     .then(function (response) { return response.text(); })
     .then(function (data: string) {

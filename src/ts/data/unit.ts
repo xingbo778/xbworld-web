@@ -8,6 +8,17 @@ import { store } from './store';
 import type { Unit, UnitType, City, Tile, Player } from './types';
 import { player_by_number } from './player';
 import { indexToTile as index_to_tile } from './map';
+import { utype_can_do_action } from './unittype';
+import { tileHasExtra as tile_has_extra } from './tile';
+import { isExtraRemovedBy as is_extra_removed_by } from './extra';
+import { EXTRA_NONE } from './extra';
+import {
+  O_FOOD, O_SHIELD, O_GOLD,
+  ACTION_PILLAGE, ACTIVITY_PILLAGE,
+  VUT_EXTRA, ERM_PILLAGE,
+} from './fcTypes';
+import { BitVector } from '../utils/bitvector';
+import { RENDERER_2DCANVAS } from '../core/constants';
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
@@ -64,10 +75,10 @@ interface AnimTuple {
 // ---------------------------------------------------------------------------
 
 export function idex_lookup_unit(id: number): Unit | undefined {
-  return units[id];
+  return store.units[id];
 }
 
-export function unit_owner(punit: Unit): Player | undefined {
+export function unit_owner(punit: Unit): Player | null {
   return player_by_number(punit.owner);
 }
 
@@ -76,13 +87,18 @@ export function unit_owner(punit: Unit): Player | undefined {
 // ---------------------------------------------------------------------------
 
 export function client_remove_unit(punit: Unit): void {
-  control_unit_killed(punit);
+  // Use dynamic import to avoid circular dependency (data→core)
+  import('../core/control/unitFocus').then(m => {
+    m.control_unit_killed(punit);
+  });
 
-  if (unit_is_in_focus(punit)) {
-    current_focus = [];
+  // Check focus via store
+  const focused = store.currentFocus || [];
+  if (focused.some((u: any) => u.id === punit.id)) {
+    store.currentFocus = [];
   }
 
-  delete units[punit.id];
+  delete store.units[punit.id];
 }
 
 // ---------------------------------------------------------------------------
@@ -97,8 +113,8 @@ export function tile_units(ptile: Tile | null): Unit[] | null {
 export function get_supported_units(pcity: City | null): Unit[] | null {
   if (pcity == null) return null;
   const result: Unit[] = [];
-  for (const unit_id in units) {
-    const punit = units[unit_id] as Unit;
+  for (const unit_id in store.units) {
+    const punit = store.units[unit_id] as Unit;
     if (punit.homecity === pcity.id) {
       result.push(punit);
     }
@@ -157,7 +173,7 @@ export function unit_list_without(unit_list: Unit[], punit: Unit): Unit[] {
 // ---------------------------------------------------------------------------
 
 export function unit_type(punit: Unit): UnitType | undefined {
-  return unit_types[punit.type];
+  return store.unitTypes[punit.type];
 }
 
 export function unit_can_do_action(punit: Unit, act_id: number): boolean {
@@ -218,7 +234,7 @@ export function update_unit_anim_list(old_unit: Unit | null, new_unit: Unit | nu
 
   if (anim_units_count > anim_units_max) return;
 
-  if (renderer === RENDERER_2DCANVAS && !is_unit_visible(new_unit)) return;
+  if (store.renderer === RENDERER_2DCANVAS && !is_unit_visible(new_unit)) return;
 
   if ((old_unit as any)['anim_list'] == null) (old_unit as any)['anim_list'] = [];
 
@@ -266,15 +282,15 @@ export function get_unit_anim_offset(punit: Unit): { x: number; y: number } {
 
     const i = Math.floor((anim_tuple_dst.i + 2) / 3);
 
-    const r = map_to_gui_pos(src_tile['x'], src_tile['y']);
+    const r = (window as any).map_to_gui_pos(src_tile['x'], src_tile['y']);
     const src_gx = r['gui_dx'];
     const src_gy = r['gui_dy'];
 
-    const s = map_to_gui_pos(dst_tile['x'], dst_tile['y']);
+    const s = (window as any).map_to_gui_pos(dst_tile['x'], dst_tile['y']);
     const dst_gx = s['gui_dx'];
     const dst_gy = s['gui_dy'];
 
-    const t = map_to_gui_pos(u_tile['x'], u_tile['y']);
+    const t = (window as any).map_to_gui_pos(u_tile['x'], u_tile['y']);
     const punit_gx = t['gui_dx'];
     const punit_gy = t['gui_dy'];
 
@@ -298,8 +314,8 @@ export function get_unit_anim_offset(punit: Unit): { x: number; y: number } {
 }
 
 export function reset_unit_anim_list(): void {
-  for (const unit_id in units) {
-    const punit = units[unit_id];
+  for (const unit_id in store.units) {
+    const punit = store.units[unit_id];
     punit['anim_list'] = [];
   }
   anim_units_count = 0;
@@ -310,8 +326,8 @@ export function reset_unit_anim_list(): void {
 // ---------------------------------------------------------------------------
 
 export function get_unit_homecity_name(punit: Unit): string | null {
-  if (punit.homecity !== 0 && cities[punit.homecity] != null) {
-    return decodeURIComponent(cities[punit.homecity]['name']);
+  if (punit.homecity !== 0 && store.cities[punit.homecity] != null) {
+    return decodeURIComponent(store.cities[punit.homecity]['name']);
   }
   return null;
 }
@@ -324,15 +340,16 @@ export function is_unit_visible(punit: Unit | null): boolean {
   if (punit == null || punit.tile == null) return false;
 
   const u_tile = index_to_tile(punit.tile);
-  const r = map_to_gui_pos(u_tile['x'], u_tile['y']);
+  const r = (window as any).map_to_gui_pos(u_tile['x'], u_tile['y']);
   const unit_gui_x: number = r['gui_dx'];
   const unit_gui_y: number = r['gui_dy'];
 
+  const mv = (window as any).mapview;
   if (
-    unit_gui_x < mapview['gui_x0'] ||
-    unit_gui_y < mapview['gui_y0'] ||
-    unit_gui_x > mapview['gui_x0'] + mapview['width'] ||
-    unit_gui_y > mapview['gui_y0'] + mapview['height']
+    unit_gui_x < mv['gui_x0'] ||
+    unit_gui_y < mv['gui_y0'] ||
+    unit_gui_x > mv['gui_x0'] + mv['width'] ||
+    unit_gui_y > mv['gui_y0'] + mv['height']
   ) {
     return false;
   }
@@ -346,8 +363,8 @@ export function is_unit_visible(punit: Unit | null): boolean {
 
 export function unittype_ids_alphabetic(): string[] {
   const unittype_names: string[] = [];
-  for (const unit_id in unit_types) {
-    const punit_type = unit_types[unit_id];
+  for (const unit_id in store.unitTypes) {
+    const punit_type = store.unitTypes[unit_id];
     unittype_names.push(punit_type['name']);
   }
 
@@ -355,8 +372,8 @@ export function unittype_ids_alphabetic(): string[] {
 
   const unittype_id_list: string[] = [];
   for (const unit_name of unittype_names) {
-    for (const unit_id in unit_types) {
-      const punit_type = unit_types[unit_id];
+    for (const unit_id in store.unitTypes) {
+      const punit_type = store.unitTypes[unit_id];
       if (unit_name === punit_type['name']) {
         unittype_id_list.push(unit_id);
       }
@@ -407,7 +424,7 @@ export function get_what_can_unit_pillage_from(punit: Unit | null, ptile: any): 
     ptile = index_to_tile(punit.tile);
   }
 
-  if (terrains[ptile.terrain].pillage_time === 0) return targets;
+  if (store.terrains[ptile.terrain].pillage_time === 0) return targets;
   if (!utype_can_do_action(unit_type(punit), ACTION_PILLAGE)) return targets;
 
   const cannot_pillage = new BitVector([]);
@@ -419,9 +436,9 @@ export function get_what_can_unit_pillage_from(punit: Unit | null, ptile: any): 
     }
   }
 
-  for (let i = 0; i < ruleset_control['num_extra_types']; i++) {
+  for (let i = 0; i < (store.rulesControl as any)['num_extra_types']; i++) {
     if (tile_has_extra(ptile, i)) {
-      const extra = extras[i];
+      const extra = store.extras[i] as any;
       for (let j = 0; j < extra.reqs.length; j++) {
         const req = extra.reqs[j];
         if (req.kind === VUT_EXTRA && req.present === true) {
@@ -433,9 +450,9 @@ export function get_what_can_unit_pillage_from(punit: Unit | null, ptile: any): 
     }
   }
 
-  for (let i = 0; i < ruleset_control['num_extra_types']; i++) {
-    if (is_extra_removed_by(extras[i], ERM_PILLAGE) && !cannot_pillage.isSet(i)) {
-      if (game_info!.pillage_select) {
+  for (let i = 0; i < (store.rulesControl as any)['num_extra_types']; i++) {
+    if (is_extra_removed_by(store.extras[i], ERM_PILLAGE) && !cannot_pillage.isSet(i)) {
+      if (store.gameInfo!.pillage_select) {
         targets.push(i);
       } else {
         targets.push(EXTRA_NONE);

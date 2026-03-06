@@ -25,10 +25,10 @@ import {
   MAX_NUM_PLAYERS,
   MAX_AI_LOVE,
 } from '@/data/player';
+import { store } from '@/data/store';
 import type { Player, City } from '@/data/types';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-const win = window as any;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -97,14 +97,14 @@ describe('Player constants', () => {
 
 describe('valid_player_by_number / player_by_number', () => {
   beforeEach(() => {
-    win.players = {
+    (store as any).players = {
       0: makePlayer({ playerno: 0, name: 'Alice' }),
       1: makePlayer({ playerno: 1, name: 'Bob' }),
     };
   });
 
   afterEach(() => {
-    delete win.players;
+    (store as any).players = {};
   });
 
   it('should return the player for a valid number', () => {
@@ -120,14 +120,14 @@ describe('valid_player_by_number / player_by_number', () => {
 
 describe('player_by_name', () => {
   beforeEach(() => {
-    win.players = {
+    (store as any).players = {
       0: makePlayer({ playerno: 0, name: 'Alice' }),
       1: makePlayer({ playerno: 1, name: 'Bob' }),
     };
   });
 
   afterEach(() => {
-    delete win.players;
+    (store as any).players = {};
   });
 
   it('should find player by name', () => {
@@ -141,14 +141,14 @@ describe('player_by_name', () => {
 
 describe('player_by_full_username', () => {
   beforeEach(() => {
-    win.players = {
+    (store as any).players = {
       0: makePlayer({ playerno: 0, name: 'Alice', username: 'alice123' }),
       1: makePlayer({ playerno: 1, name: 'BotPlayer', username: '' }),
     };
   });
 
   afterEach(() => {
-    delete win.players;
+    (store as any).players = {};
   });
 
   it('should find player by username', () => {
@@ -166,7 +166,7 @@ describe('player_by_full_username', () => {
 
 describe('player_find_unit_by_id', () => {
   beforeEach(() => {
-    win.units = {
+    (store as any).units = {
       10: { id: 10, owner: 0 },
       11: { id: 11, owner: 1 },
       12: { id: 12, owner: 0 },
@@ -174,7 +174,7 @@ describe('player_find_unit_by_id', () => {
   });
 
   afterEach(() => {
-    delete win.units;
+    (store as any).units = {};
   });
 
   it('should find unit belonging to player', () => {
@@ -223,14 +223,14 @@ describe('get_diplstate_text', () => {
 
 describe('get_embassy_text', () => {
   beforeEach(() => {
-    win.players = {
+    (store as any).players = {
       0: makePlayer({ playerno: 0, embassy_txt: 'Embassy established' }),
       1: makePlayer({ playerno: 1, embassy_txt: '' }),
     };
   });
 
   afterEach(() => {
-    delete win.players;
+    (store as any).players = {};
   });
 
   it('should return embassy text for player', () => {
@@ -265,15 +265,15 @@ describe('get_ai_level_text', () => {
 
 describe('get_player_connection_status', () => {
   beforeEach(() => {
-    win.connections = {};
+    (store as any).connections = {};
   });
 
   afterEach(() => {
-    delete win.connections;
+    (store as any).connections = {};
   });
 
   it('should return "connected" when player has active connection', () => {
-    win.connections = {
+    (store as any).connections = {
       0: { playing: { playerno: 0 } },
     };
     expect(get_player_connection_status(makePlayer({ playerno: 0 }))).toBe('connected');
@@ -323,14 +323,14 @@ describe('research_get', () => {
 
 describe('player_has_wonder', () => {
   beforeEach(() => {
-    win.cities = {
+    (store as any).cities = {
       1: makeCity({ id: 1, owner: 0, improvements: { 10: true, 11: false } as any }),
       2: makeCity({ id: 2, owner: 1, improvements: { 10: true } as any }),
     };
   });
 
   afterEach(() => {
-    delete win.cities;
+    (store as any).cities = {};
   });
 
   it('should return true when player owns city with wonder', () => {
@@ -400,11 +400,11 @@ describe('get_invalid_username_reason', () => {
 
 describe('player_capital', () => {
   beforeEach(() => {
-    win.improvements = {
+    (store as any).improvements = {
       0: { id: 0, name: 'Palace', genus: 0 },
       1: { id: 1, name: 'Granary', genus: 1 },
     };
-    win.cities = {
+    (store as any).cities = {
       1: makeCity({ id: 1, owner: 0, name: 'Rome', improvements: { 0: true, 1: true } as any }),
       2: makeCity({ id: 2, owner: 0, name: 'Milan', improvements: { 1: true } as any }),
       3: makeCity({ id: 3, owner: 1, name: 'Paris', improvements: { 0: true } as any }),
@@ -412,8 +412,8 @@ describe('player_capital', () => {
   });
 
   afterEach(() => {
-    delete win.improvements;
-    delete win.cities;
+    (store as any).improvements = {};
+    (store as any).cities = {};
   });
 
   it('should return the capital city of the player', () => {
@@ -422,8 +422,7 @@ describe('player_capital', () => {
   });
 
   it('should return null when player has no capital', () => {
-    // Player 0's cities: only city 2 (no Palace)
-    win.cities = {
+    (store as any).cities = {
       2: makeCity({ id: 2, owner: 0, name: 'Milan', improvements: { 1: true } as any }),
     };
     expect(player_capital(makePlayer({ playerno: 0 }))).toBeNull();
