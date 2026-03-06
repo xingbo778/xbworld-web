@@ -15,6 +15,7 @@ import {
 import { clientState as client_state, clientIsObserver, clientPlaying } from '../client/clientState';
 import { updateNationScreen as update_nation_screen } from '../data/nation';
 import { isSmallScreen as is_small_screen, getTilesetFileExtension as get_tileset_file_extention } from '../utils/helpers';
+import { setHtml as domSetHtml } from '../utils/dom';
 import { get_treaty_agree_thumb_up, get_treaty_disagree_thumb_down } from '../renderer/tilespec';
 import { DiplState } from '../data/player';
 import type { Player, Nation } from '../data/types';
@@ -104,10 +105,10 @@ export function accept_treaty(counterpart: number, I_accepted: boolean, other_ac
       + disagree_sprite['height'] + "px; margin: 5px; '>"
       + "</div>";
     const selfEl = document.getElementById("agree_self_" + counterpart);
-    if (selfEl) selfEl.innerHTML = I_accepted ? agree_html : disagree_html;
+    if (selfEl) domSetHtml(selfEl, I_accepted ? agree_html : disagree_html);
 
     const otherEl = document.getElementById("agree_counterpart_" + counterpart);
-    if (otherEl) otherEl.innerHTML = other_accepted ? agree_html : disagree_html;
+    if (otherEl) domSetHtml(otherEl, other_accepted ? agree_html : disagree_html);
   }
 }
 
@@ -188,7 +189,7 @@ export function show_diplomacy_clauses(counterpart_id: number): void {
   }
 
   const msgEl = document.getElementById("diplomacy_messages_" + counterpart_id);
-  if (msgEl) msgEl.innerHTML = diplo_html;
+  if (msgEl) domSetHtml(msgEl, diplo_html);
 }
 
 /**************************************************************************
@@ -234,7 +235,7 @@ export function remove_clause(remove_clause_obj: DiplomacyClause): void {
 export function client_diplomacy_clause_string(counterpart: number, giver: number, type: number, value: number): string {
   // DOM side effect for gold clause inputs (not in the pure logic function)
   if (type === CLAUSE_GOLD) {
-    if (giver === clientPlaying()['playerno']) {
+    if (giver === clientPlaying()!['playerno']) {
       const el = document.getElementById("self_gold_" + counterpart) as HTMLInputElement | null;
       if (el) el.value = String(value);
     } else {
@@ -270,7 +271,7 @@ export function diplomacy_cancel_treaty(player_id: number): void {
  ...
 **************************************************************************/
 export function create_diplomacy_dialog(counterpart: Player): void {
-  const pplayer = clientPlaying();
+  const pplayer = clientPlaying()!;
   const counterpart_id = counterpart['playerno'];
 
   // reset diplomacy_dialog div.
@@ -295,7 +296,7 @@ export function create_diplomacy_dialog(counterpart: Player): void {
     // Title bar
     const titleBar = document.createElement('div');
     titleBar.style.cssText = 'background:#333;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #555;';
-    titleBar.innerHTML = '<span style="font-weight:bold;">' + title + '</span>';
+    domSetHtml(titleBar, '<span style="font-weight:bold;">' + title + '</span>');
     const btnRow = document.createElement('div');
     btnRow.style.cssText = 'display:flex;gap:6px;';
     const acceptBtn = document.createElement('button');

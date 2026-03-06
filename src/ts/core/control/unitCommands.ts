@@ -103,7 +103,7 @@ export function key_unit_unload() {
     const punit = units_on_tile[i];
 
     if (punit['transported'] && punit['transported_by'] > 0
-      && clientPlaying() != null && punit['owner'] == clientPlaying().playerno) {
+      && clientPlaying() != null && punit['owner'] == clientPlaying()!.playerno) {
       request_new_unit_activity(punit, ACTIVITY_IDLE, EXTRA_NONE);
       request_unit_do_action(ACTION_TRANSPORT_DEBOARD, punit['id'],
         punit['transported_by']);
@@ -497,7 +497,7 @@ export function key_unit_move(dir: number) {
       && (tile_city(newtile) == null
         || tile_city(newtile)!['owner'] == clientPlaying()?.playerno)
       && !tile_has_extra(newtile, EXTRA_HUT())
-      && (newtile['extras_owner'] == clientPlaying().playerno
+      && (newtile['extras_owner'] == clientPlaying()!.playerno
         || !tile_has_territory_claiming_extra(newtile))) {
       order["order"] = ORDER_MOVE;
     }

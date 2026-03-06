@@ -27,7 +27,7 @@ export let draw_units: boolean = true;
 export let draw_focus_unit: boolean = false;
 
 export function init_options_dialog(): void {
-  if (audio != null && !audio.source.src) {
+  if (audio != null && !(audio.source as { src?: string })?.src) {
     if (!supports_mp3()) {
       audio.load("/music/" + music_list[Math.floor(Math.random() * music_list.length)] + ".ogg");
     } else {

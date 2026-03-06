@@ -115,7 +115,7 @@ export function blockUI(message: string): void {
   unblockUI();
   blockOverlay = create('div');
   blockOverlay.className = 'xb-block-overlay';
-  blockOverlay.innerHTML = `<div class="xb-block-message">${message}</div>`;
+  setHtml(blockOverlay, `<div class="xb-block-message">${message}</div>`);
   document.body.appendChild(blockOverlay);
 }
 

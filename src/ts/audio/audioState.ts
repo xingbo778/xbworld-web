@@ -5,16 +5,21 @@
  * on `window` via `(window as any)`.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+/** audiojs player instance shape */
+interface AudioPlayer {
+  play: () => void;
+  load: (src: string) => void;
+  [key: string]: unknown;
+}
 
 export let music_list: string[] = [
   'battle-epic', 'battle2', 'battle3', 'battle4',
   'battle5', 'battle6', 'battle7', 'battle8',
 ];
 
-export let audio: any = null;
+export let audio: AudioPlayer | null = null;
 
-export function setAudio(value: any): void {
+export function setAudio(value: AudioPlayer | null): void {
   audio = value;
 }
 

@@ -1,7 +1,9 @@
+import { setHtml as domSetHtml } from '../utils/dom';
 import { store } from '../data/store';
 import { canCityBuildNow, generateProductionList, getCityProductionTypeSprite as get_city_production_type_sprite, getCityProductionTime as get_city_production_time } from '../data/city';
+import type { ProductionItem } from '../data/city';
 import { VUT_UTYPE, VUT_IMPROVEMENT, FC_INFINITY } from '../data/fcTypes';
-import { get_improvement_image_sprite } from '../renderer/tilespec';
+import { get_improvement_image_sprite, get_unit_type_image_sprite } from '../renderer/tilespec';
 import { clientIsObserver } from '../client/clientState';
 import { send_request as sendRequest } from '../net/connection';
 import { packet_city_worklist } from '../net/packetConstants';
@@ -13,35 +15,51 @@ import {
   set_city_prod_clicks, set_opt_show_unreachable_items
 } from './cityDialogState';
 import { send_city_change } from './cityDialog';
+import type { City, Improvement, UnitType } from '../data/types';
+import type { SpriteInfo } from '../renderer/spriteGetters';
 
-function ac(): any { return active_city; }
+/** An entry in a city's worklist (kind + value). */
+interface WorklistEntry {
+  kind: number;
+  value: number;
+  [key: string]: unknown;
+}
+
+/** A worklist item with display information. */
+interface WorklistItem {
+  name: string;
+  kind: number;
+  value: number;
+  helptext: unknown;
+  build_cost: number | string;
+  sprite: SpriteInfo | null;
+}
+
+function ac(): City | null { return active_city; }
 function byId(id: string): HTMLElement | null { return document.getElementById(id); }
-function setHtml(id: string, html: string): void { const el = byId(id); if (el) el.innerHTML = html; }
+function setHtml(id: string, html: string): void { const el = byId(id); if (el) domSetHtml(el, html); }
 function setHeight(id: string, px: number): void { const el = byId(id); if (el) el.style.height = px + 'px'; }
 function setBtnEnabled(id: string, enabled: boolean): void {
   const el = byId(id) as HTMLButtonElement | null;
   if (el) el.disabled = !enabled;
 }
 
-// Dummy function for external reference
-function get_unit_type_image_sprite(unit_type: any): any {}
-
-export function city_worklist_dialog(pcity: any): void {
+export function city_worklist_dialog(pcity: City): void {
   if (pcity == null) return;
-  const universals_list: any[] = [];
-  let kind: any;
-  let value: any;
+  const universals_list: WorklistItem[] = [];
+  let kind: number;
+  let value: number;
 
-  if (pcity['worklist'] != null && pcity['worklist'].length != 0) {
-    const work_list: any[] = pcity['worklist'];
+  if (pcity['worklist'] != null && (pcity['worklist'] as WorklistEntry[]).length != 0) {
+    const work_list: WorklistEntry[] = pcity['worklist'] as WorklistEntry[];
     for (let i = 0; i < work_list.length; i++) {
-      const work_item: any = work_list[i];
+      const work_item: WorklistEntry = work_list[i];
       kind = work_item['kind'];
       value = work_item['value'];
-      if (kind == null || value == null || work_item.length == 0) continue;
+      if (kind == null || value == null) continue;
       if (kind == VUT_IMPROVEMENT) {
-        const pimpr: any = store.improvements[value];
-	let build_cost: any = pimpr['build_cost'];
+        const pimpr: Improvement = store.improvements[value];
+	let build_cost: number | string = pimpr['build_cost'];
 	if (pimpr['name'] == "Coinage") build_cost = "-";
 	universals_list.push({"name" : pimpr['name'],
 		"kind" : kind,
@@ -50,7 +68,7 @@ export function city_worklist_dialog(pcity: any): void {
 		"build_cost" : build_cost,
 		"sprite" : get_improvement_image_sprite(pimpr)});
       } else if (kind == VUT_UTYPE) {
-        const putype: any = store.unitTypes[value];
+        const putype: UnitType = store.unitTypes[value];
         universals_list.push({"name" : putype['name'],
 		"kind" : kind,
 		"value" : value,
@@ -65,8 +83,8 @@ export function city_worklist_dialog(pcity: any): void {
 
   let worklist_html: string = "<table class='worklist_table'><tr><td>Type</td><td>Name</td><td>Cost</td></tr>";
   for (let j = 0; j < universals_list.length; j++) {
-    const universal: any = universals_list[j];
-    const sprite: any = universal['sprite'];
+    const universal: WorklistItem = universals_list[j];
+    const sprite: SpriteInfo | null = universal['sprite'];
     if (sprite == null) {
       console.log("Missing sprite for " + universal['name']);
       continue;
@@ -107,11 +125,11 @@ export function city_worklist_dialog(pcity: any): void {
   }
 
   set_worklist_dialog_active(true);
-  const turns_to_complete: any = get_city_production_time(pcity);
-  const prod_type: any = get_city_production_type_sprite(pcity);
+  const turns_to_complete: number = get_city_production_time(pcity);
+  const prod_type: { type: UnitType | Improvement; sprite: unknown } | null = get_city_production_type_sprite(pcity);
   let prod_img_html: string = "";
   if (prod_type != null) {
-    const sprite: any = prod_type['sprite'];
+    const sprite = prod_type['sprite'] as SpriteInfo;
     prod_img_html = "<div style='background: transparent url("
            + sprite['image-src']
            + ");background-position:-" + sprite['tileset-x'] + "px -" + sprite['tileset-y']
@@ -200,17 +218,17 @@ export function city_worklist_dialog(pcity: any): void {
   update_worklist_actions();
 }
 
-export function populate_worklist_production_choices(pcity: any): void {
-  const production_list: any[] = generateProductionList();
+export function populate_worklist_production_choices(pcity: City): void {
+  const production_list: ProductionItem[] = generateProductionList();
   let production_html: string = "<table class='worklist_table'><tr><td>Type</td><td>Name</td><td title='Attack/Defense/Firepower'>Info</td><td>Cost</td></tr>";
   for (let a = 0; a < production_list.length; a++) {
-    const sprite: any = production_list[a]['sprite'];
+    const sprite = production_list[a]['sprite'] as SpriteInfo | null;
     if (sprite == null) {
       console.log("Missing sprite for " + production_list[a]['value']);
       continue;
     }
-    const kind: any = production_list[a]['kind'];
-    const value: any = production_list[a]['value'];
+    const kind: number = production_list[a]['kind'];
+    const value: number = production_list[a]['value'];
     const can_build: boolean = canCityBuildNow(pcity, kind, value);
 
     if (can_build || opt_show_unreachable_items) {
@@ -259,7 +277,7 @@ export function populate_worklist_production_choices(pcity: any): void {
     });
 
     if (production_selection.length > 0) {
-      production_selection.forEach(function (v: any) {
+      production_selection.forEach(function (v: { kind: number; value: number }) {
         const match = choicesContainer?.querySelector(
           "[data-value='" + v.value + "'][data-kind='" + v.kind + "']"
         );
@@ -290,7 +308,7 @@ export function populate_worklist_production_choices(pcity: any): void {
   }
 }
 
-export function extract_universal(element: any): any {
+export function extract_universal(element: HTMLElement): WorklistEntry {
   const el = element as HTMLElement;
   return {
     value: parseFloat(el.dataset.value || el.getAttribute('data-value') || '0'),
@@ -298,7 +316,7 @@ export function extract_universal(element: any): any {
   };
 }
 
-export function find_universal_in_worklist(universal: any, worklist: any[]): number {
+export function find_universal_in_worklist(universal: WorklistEntry, worklist: WorklistEntry[]): number {
   for (let i = 0; i < worklist.length; i++) {
     if (worklist[i].kind === universal.kind &&
         worklist[i].value === universal.value) {
@@ -308,8 +326,8 @@ export function find_universal_in_worklist(universal: any, worklist: any[]): num
   return -1;
 }
 
-export function handle_worklist_select(event: any, ui: any): void {
-  const selected: any = extract_universal(ui.selected);
+export function handle_worklist_select(event: Event, ui: { selected: HTMLElement }): void {
+  const selected: WorklistEntry = extract_universal(ui.selected);
   const idx: number = find_universal_in_worklist(selected, production_selection);
   if (idx < 0) {
     production_selection.push(selected);
@@ -317,8 +335,8 @@ export function handle_worklist_select(event: any, ui: any): void {
   }
 }
 
-export function handle_worklist_unselect(event: any, ui: any): void {
-  const selected: any = extract_universal(ui.unselected);
+export function handle_worklist_unselect(event: Event, ui: { unselected: HTMLElement }): void {
+  const selected: WorklistEntry = extract_universal(ui.unselected);
   const idx: number = find_universal_in_worklist(selected, production_selection);
   if (idx >= 0) {
     production_selection.splice(idx, 1);
@@ -326,8 +344,8 @@ export function handle_worklist_unselect(event: any, ui: any): void {
   }
 }
 
-export function handle_current_worklist_select(event: any, ui: any): void {
-  const idx: number = parseInt((ui.selected as HTMLElement).dataset.wlitem || '0', 10);
+export function handle_current_worklist_select(event: Event, ui: { selected: HTMLElement }): void {
+  const idx: number = parseInt(ui.selected.dataset.wlitem || '0', 10);
   let i: number = worklist_selection.length - 1;
   while (i >= 0 && worklist_selection[i] > idx)
     i--;
@@ -337,8 +355,8 @@ export function handle_current_worklist_select(event: any, ui: any): void {
   }
 }
 
-export function handle_current_worklist_unselect(event: any, ui: any): void {
-  const idx: number = parseInt((ui.unselected as HTMLElement).dataset.wlitem || '0', 10);
+export function handle_current_worklist_unselect(event: Event, ui: { unselected: HTMLElement }): void {
+  const idx: number = parseInt(ui.unselected.dataset.wlitem || '0', 10);
   let i: number = worklist_selection.length - 1;
   while (i >= 0 && worklist_selection[i] > idx)
     i--;
@@ -348,7 +366,7 @@ export function handle_current_worklist_unselect(event: any, ui: any): void {
   }
 }
 
-export function handle_current_worklist_click(this: any, event: any): void {
+export function handle_current_worklist_click(this: HTMLElement, event: Event): void {
   event.stopPropagation();
 
   const element = this as HTMLElement;
@@ -376,7 +394,7 @@ export function update_worklist_actions(): void {
     setBtnEnabled("city_worklist_remove_btn", true);
 
     if (worklist_selection[worklist_selection.length - 1] ===
-        (active_city as any)['worklist'].length - 1) {
+        ((active_city as City)['worklist'] as WorklistEntry[]).length - 1) {
       setBtnEnabled("city_worklist_down_btn", false);
     } else {
       setBtnEnabled("city_worklist_down_btn", true);
@@ -414,7 +432,7 @@ export function update_worklist_actions(): void {
 }
 
 export function send_city_worklist(city_id: number): void {
-  const worklist: any[] = (cities[city_id] as any)['worklist'];
+  const worklist: WorklistEntry[] = cities[city_id]['worklist'] as WorklistEntry[];
   const overflow: number = worklist.length - MAX_LEN_WORKLIST;
   if (overflow > 0) {
     worklist.splice(MAX_LEN_WORKLIST, overflow);
@@ -425,13 +443,13 @@ export function send_city_worklist(city_id: number): void {
                                worklist: worklist}));
 }
 
-export function send_city_worklist_add(city_id: number, kind: any, value: any): void {
-  const pcity: any = cities[city_id];
-  if (pcity['worklist'].length >= MAX_LEN_WORKLIST) {
+export function send_city_worklist_add(city_id: number, kind: number, value: number): void {
+  const pcity: City = cities[city_id];
+  if ((pcity['worklist'] as WorklistEntry[]).length >= MAX_LEN_WORKLIST) {
     return;
   }
 
-  pcity['worklist'].push({"kind" : kind, "value" : value});
+  (pcity['worklist'] as WorklistEntry[]).push({"kind" : kind, "value" : value});
 
   send_city_worklist(city_id);
 }
@@ -439,21 +457,21 @@ export function send_city_worklist_add(city_id: number, kind: any, value: any): 
 export function city_change_production(): void {
   if (clientIsObserver()) return;
   if (production_selection.length === 1) {
-    send_city_change(ac()['id'], production_selection[0].kind,
+    send_city_change(ac()!['id'], production_selection[0].kind,
                      production_selection[0].value);
   }
 }
 
 export function city_add_to_worklist(): void {
   if (production_selection.length > 0) {
-    ac()['worklist'] = ac()['worklist'].concat(production_selection);
-    send_city_worklist(ac()['id']);
+    ac()!['worklist'] = (ac()!['worklist'] as WorklistEntry[]).concat(production_selection);
+    send_city_worklist(ac()!['id']);
   }
 }
 
-export function handle_current_worklist_direct_remove(this: any): void {
+export function handle_current_worklist_direct_remove(this: HTMLElement): void {
   const idx: number = parseInt((this as HTMLElement).dataset.wlitem || '0', 10);
-  ac()['worklist'].splice(idx, 1);
+  (ac()!['worklist'] as WorklistEntry[]).splice(idx, 1);
 
   // User may dblclick a task while having other selected
   let i: number = worklist_selection.length - 1;
@@ -465,7 +483,7 @@ export function handle_current_worklist_direct_remove(this: any): void {
     worklist_selection.splice(i, 1);
   }
 
-  send_city_worklist(ac()['id']);
+  send_city_worklist(ac()!['id']);
 }
 
 export function city_insert_in_worklist(): void {
@@ -473,11 +491,11 @@ export function city_insert_in_worklist(): void {
   if (count === 0) return;
 
   let i: number;
-  const wl: any[] = ac()['worklist'];
+  const wl: WorklistEntry[] = ac()!['worklist'] as WorklistEntry[];
 
   if (worklist_selection.length === 0) {
 
-    wl.splice(...([0, 0] as any[]).concat(production_selection) as [number, number, ...any[]]);
+    wl.splice(0, 0, ...production_selection);
 
     // Initialize the selection with the inserted items
     for (i = 0; i < count; i++) {
@@ -486,34 +504,34 @@ export function city_insert_in_worklist(): void {
 
   } else {
 
-    wl.splice(...([worklist_selection[0], 0] as any[]).concat(production_selection) as [number, number, ...any[]]);
+    wl.splice(worklist_selection[0], 0, ...production_selection);
 
     for (i = 0; i < worklist_selection.length; i++) {
       worklist_selection[i] += count;
     }
   }
 
-  send_city_worklist(ac()['id']);
+  send_city_worklist(ac()!['id']);
 }
 
 export function city_worklist_task_up(): void {
   let count: number = worklist_selection.length;
   if (count === 0) return;
 
-  let swap: any;
-  const wl: any[] = ac()['worklist'];
+  let swap: WorklistEntry;
+  const wl: WorklistEntry[] = ac()!['worklist'] as WorklistEntry[];
 
   if (worklist_selection[0] === 0) {
     worklist_selection.shift();
-    if (wl[0].kind !== ac()['production_kind'] ||
-        wl[0].value !== ac()['production_value']) {
+    if (wl[0].kind !== ac()!['production_kind'] ||
+        wl[0].value !== ac()!['production_value']) {
       swap = wl[0];
       wl[0] = {
-        kind : ac()['production_kind'],
-        value: ac()['production_value']
+        kind : ac()!['production_kind'],
+        value: ac()!['production_value']
       };
 
-      send_city_change(ac()['id'], swap.kind, swap.value);
+      send_city_change(ac()!['id'], swap.kind, swap.value);
     }
     count--;
   }
@@ -526,15 +544,15 @@ export function city_worklist_task_up(): void {
     worklist_selection[i]--;
   }
 
-  send_city_worklist(ac()['id']);
+  send_city_worklist(ac()!['id']);
 }
 
 export function city_worklist_task_down(): void {
   let count: number = worklist_selection.length;
   if (count === 0) return;
 
-  let swap: any;
-  const wl: any[] = ac()['worklist'];
+  let swap: WorklistEntry;
+  const wl: WorklistEntry[] = ac()!['worklist'] as WorklistEntry[];
 
   if (worklist_selection[--count] === wl.length - 1) return;
 
@@ -547,7 +565,7 @@ export function city_worklist_task_down(): void {
     count--;
   }
 
-  send_city_worklist(ac()['id']);
+  send_city_worklist(ac()!['id']);
 }
 
 export function city_exchange_worklist_task(): void {
@@ -556,7 +574,7 @@ export function city_exchange_worklist_task(): void {
 
   let i: number;
   let same: boolean = true;
-  const wl: any[] = ac()['worklist'];
+  const wl: WorklistEntry[] = ac()!['worklist'] as WorklistEntry[];
   const task_l: number = worklist_selection.length;
   if (prod_l === task_l) {
     for (i = 0; i < prod_l; i++) {
@@ -569,7 +587,7 @@ export function city_exchange_worklist_task(): void {
     }
   } else if (task_l === 1) {
     i = worklist_selection[0];
-    wl.splice(...([i, 1] as any[]).concat(production_selection) as [number, number, ...any[]]);
+    wl.splice(i, 1, ...production_selection);
     same = false;
     while (--prod_l) {
       worklist_selection.push(++i);
@@ -577,7 +595,7 @@ export function city_exchange_worklist_task(): void {
   }
 
   if (!same) {
-    send_city_worklist(ac()['id']);
+    send_city_worklist(ac()!['id']);
   }
 }
 
@@ -585,12 +603,12 @@ export function city_worklist_task_remove(): void {
   let count: number = worklist_selection.length;
   if (count === 0) return;
 
-  const wl: any[] = ac()['worklist'];
+  const wl: WorklistEntry[] = ac()!['worklist'] as WorklistEntry[];
 
   while (--count >= 0) {
     wl.splice(worklist_selection[count], 1);
   }
   set_worklist_selection([]);
 
-  send_city_worklist(ac()['id']);
+  send_city_worklist(ac()!['id']);
 }

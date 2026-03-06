@@ -256,7 +256,7 @@ export function do_map_click(ptile: Tile, qtype: number, first_time_called: bool
     S.setActionTgtSelActive(false);
   } else {
     if (pcity != null) {
-      if (clientPlaying() != null && pcity['owner'] == clientPlaying().playerno) {
+      if (clientPlaying() != null && pcity['owner'] == clientPlaying()!.playerno) {
         if (sunits != null && sunits.length > 0
           && sunits[0]['activity'] == ACTIVITY_IDLE) {
           set_unit_focus_and_redraw(sunits[0]);
@@ -276,7 +276,7 @@ export function do_map_click(ptile: Tile, qtype: number, first_time_called: bool
       set_unit_focus_and_redraw(null);
 
     } else if (sunits != null && sunits.length > 0) {
-      if (clientPlaying() != null && sunits[0]['owner'] == clientPlaying().playerno) {
+      if (clientPlaying() != null && sunits[0]['owner'] == clientPlaying()!.playerno) {
         if (sunits.length == 1) {
           const unit = sunits[0];
           set_unit_focus_and_activate(unit);
@@ -402,7 +402,7 @@ export function request_goto_path(unit_id: number, dst_x: number, dst_y: number)
     sendGotoPathReq(unit_id, map_pos_to_tile(dst_x, dst_y)['index']);
     S.setCurrentGotoTurns(null as any);
     const unitTextDetails = document.getElementById("unit_text_details");
-    if (unitTextDetails) unitTextDetails.innerHTML = "Choose unit goto";
+    if (unitTextDetails) unitTextDetails.textContent = "Choose unit goto";
     setTimeout(update_mouse_cursor, 700);
   } else {
     const cached = S.goto_request_map[unit_id + "," + dst_x + "," + dst_y];
@@ -453,7 +453,7 @@ export function update_goto_path(goto_packet: Record<string, unknown> & { unit_i
 
   if (S.current_goto_turns != undefined) {
     const activeUnitInfo = document.getElementById("active_unit_info");
-    if (activeUnitInfo) activeUnitInfo.innerHTML = "Turns for goto: " + S.current_goto_turns;
+    if (activeUnitInfo) activeUnitInfo.textContent = "Turns for goto: " + S.current_goto_turns;
   }
   update_mouse_cursor();
 }

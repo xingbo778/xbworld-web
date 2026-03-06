@@ -290,7 +290,7 @@ export function map_select_units(canvas_x: number, canvas_y: number): void {
     if (cunits == null) continue;
     for (let i = 0; i < cunits.length; i++) {
       const aunit = cunits[i];
-      if (aunit['owner'] == clientPlaying().playerno) {
+      if (aunit['owner'] == clientPlaying()!.playerno) {
         selected_units.push(aunit);
       }
     }
@@ -325,7 +325,7 @@ export function recenter_button_pressed(canvas_x: number, canvas_y: number): voi
   if (can_client_change_view() && ptile != null && orig_tile != null) {
     const sunit = find_visible_unit(orig_tile);
     if (!client_is_observer() && sunit != null
-        && sunit['owner'] == clientPlaying().playerno) {
+        && sunit['owner'] == clientPlaying()!.playerno) {
       /* the user right-clicked on own unit, show context menu instead of recenter. */
       if (current_focus.length <= 1) set_unit_focus(sunit);
       const canvasEl = document.getElementById('canvas')!;
@@ -345,7 +345,7 @@ export function recenter_button_pressed(canvas_x: number, canvas_y: number): voi
 /**************************************************************************
   Received tile info text.
 **************************************************************************/
-export function handle_web_info_text_message(packet: any): void {
+export function handle_web_info_text_message(packet: { message: string; [key: string]: unknown }): void {
   let message = decodeURIComponent(packet['message']);
   const lines = message.split('\n');
 

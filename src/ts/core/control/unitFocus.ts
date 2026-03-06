@@ -38,6 +38,7 @@ import { E_BEGINNER_HELP } from '../../data/eventConstants';
 import { get_what_can_unit_pillage_from } from '../../data/unit';
 import { normal_tile_height } from '../../renderer/tilesetConfig';
 import { auto_center_on_unit } from '../../ui/options';
+import { setHtml as domSetHtml } from '../../utils/dom';
 import * as S from './controlState';
 // Circular imports — OK, only used inside functions
 import { should_ask_server_for_actions, can_ask_server_for_actions, action_selection_next_in_focus } from './actionSelection';
@@ -216,14 +217,14 @@ export function advance_unit_focus(): void {
       for (const city_id_str in store.cities) {
         const city_id = parseInt(city_id_str);
         const pcity = store.cities[city_id];
-        if (city_owner_player_id(pcity) == clientPlaying().playerno) {
+        if (city_owner_player_id(pcity) == clientPlaying()!.playerno) {
           center_tile_mapcanvas(map_city_tile(pcity));
           break;
         }
       }
     }
     const turnDoneBtn = document.getElementById('turn_done_button');
-    if (turnDoneBtn) turnDoneBtn.innerHTML = "<span style='color: green;'>✅</span> Turn Done";
+    if (turnDoneBtn) domSetHtml(turnDoneBtn, "<span style='color: green;'>✅</span> Turn Done");
     if (!S.end_turn_info_message_shown) {
       S.setEndTurnInfoMessageShown(true);
       message_log.update({ event: E_BEGINNER_HELP, message: "All units have moved, click the \"Turn Done\" button to end your turn." });
@@ -298,14 +299,14 @@ export function update_unit_order_commands(): { [key: string]: { name: string } 
         hideEl('order_railroad');
         hideEl('order_maglev');
         if (!(tile_has_extra(ptile, FC_EXTRA_RIVER())
-          && player_invention_state(clientPlaying(), tech_id_by_name('Bridge Building') as unknown as number) == FC_TECH_UNKNOWN)) {
+          && player_invention_state(clientPlaying()!, tech_id_by_name('Bridge Building') as unknown as number) == FC_TECH_UNKNOWN)) {
           unit_actions["road"] = { name: "Build road (R)" };
           showEl('order_road');
         } else {
           hideEl('order_road');
         }
       } else if (!tile_has_extra(ptile, FC_EXTRA_RAIL())
-        && player_invention_state(clientPlaying(),
+        && player_invention_state(clientPlaying()!,
           tech_id_by_name('Railroad') as unknown as number) == FC_TECH_KNOWN
         && tile_has_extra(ptile, FC_EXTRA_ROAD())) {
         hideEl('order_road');
@@ -314,7 +315,7 @@ export function update_unit_order_commands(): { [key: string]: { name: string } 
         unit_actions['railroad'] = { name: "Build railroad (R)" };
       } else if (typeof store.extraIds['EXTRA_MAGLEV'] !== 'undefined'
         && !tile_has_extra(ptile, FC_EXTRA_MAGLEV())
-        && player_invention_state(clientPlaying(),
+        && player_invention_state(clientPlaying()!,
           tech_id_by_name('Superconductors') as unknown as number) == FC_TECH_KNOWN
         && tile_has_extra(ptile, FC_EXTRA_RAIL())) {
         hideEl('order_road');
@@ -359,7 +360,7 @@ export function update_unit_order_commands(): { [key: string]: { name: string } 
           showEl('order_irrigate');
           hideEl('order_build_farmland');
           unit_actions["irrigation"] = { name: "Irrigation (I)" };
-        } else if (!tile_has_extra(ptile, FC_EXTRA_FARMLAND()) && player_invention_state(clientPlaying(), tech_id_by_name('Refrigeration') as unknown as number) == FC_TECH_KNOWN) {
+        } else if (!tile_has_extra(ptile, FC_EXTRA_FARMLAND()) && player_invention_state(clientPlaying()!, tech_id_by_name('Refrigeration') as unknown as number) == FC_TECH_KNOWN) {
           showEl('order_build_farmland');
           hideEl('order_irrigate');
           unit_actions["irrigation"] = { name: "Build farmland (I)" };
@@ -377,11 +378,11 @@ export function update_unit_order_commands(): { [key: string]: { name: string } 
       } else {
         hideEl('order_forest_add');
       }
-      if (player_invention_state(clientPlaying(), tech_id_by_name('Construction') as unknown as number) == FC_TECH_KNOWN) {
+      if (player_invention_state(clientPlaying()!, tech_id_by_name('Construction') as unknown as number) == FC_TECH_KNOWN) {
         unit_actions["fortress"] = { name: string_unqualify(terrain_control['gui_type_base0'] as string) + " (Shift-F)" };
       }
 
-      if (player_invention_state(clientPlaying(), tech_id_by_name('Radio') as unknown as number) == FC_TECH_KNOWN) {
+      if (player_invention_state(clientPlaying()!, tech_id_by_name('Radio') as unknown as number) == FC_TECH_KNOWN) {
         unit_actions["airbase"] = { name: string_unqualify(terrain_control['gui_type_base1'] as string) + " (E)" };
       }
 
@@ -425,7 +426,7 @@ export function update_unit_order_commands(): { [key: string]: { name: string } 
 
     if (!client_is_observer() && clientPlaying() != null
       && get_what_can_unit_pillage_from(punit, ptile).length > 0
-      && (pcity == null || city_owner_player_id(pcity) !== clientPlaying().playerno)) {
+      && (pcity == null || city_owner_player_id(pcity) !== clientPlaying()!.playerno)) {
       showEl('order_pillage');
       unit_actions["pillage"] = { name: "Pillage (Shift-P)" };
     } else {
@@ -443,7 +444,7 @@ export function update_unit_order_commands(): { [key: string]: { name: string } 
       unit_actions["airlift"] = { name: "Airlift (Shift-L)" };
     }
 
-    if (pcity != null && ptype != null && store.unitTypes[ptype['obsoleted_by'] as number] != null && can_player_build_unit_direct(clientPlaying(), store.unitTypes[ptype['obsoleted_by'] as number])) {
+    if (pcity != null && ptype != null && store.unitTypes[ptype['obsoleted_by'] as number] != null && can_player_build_unit_direct(clientPlaying()!, store.unitTypes[ptype['obsoleted_by'] as number])) {
       unit_actions["upgrade"] = { name: "Upgrade unit (U)" };
     }
     if (ptype != null && ptype['name'] != "Explorer") {
@@ -533,7 +534,7 @@ export function find_best_focus_candidate(accept_current: boolean): Unit | null 
   for (const unit_id_str in store.units) {
     const unit_id = parseInt(unit_id_str);
     punit = store.units[unit_id];
-    if (clientPlaying() != null && punit['owner'] == clientPlaying().playerno) {
+    if (clientPlaying() != null && punit['owner'] == clientPlaying()!.playerno) {
       sorted_units.push(punit);
     }
   }
@@ -543,7 +544,7 @@ export function find_best_focus_candidate(accept_current: boolean): Unit | null 
     punit = sorted_units[i];
     if ((!unit_is_in_focus(punit) || accept_current)
       && clientPlaying() != null
-      && punit['owner'] == clientPlaying().playerno
+      && punit['owner'] == clientPlaying()!.playerno
       && ((punit['activity'] == FC_ACTIVITY_IDLE
         && !punit['done_moving']
         && punit['movesleft'] > 0)
@@ -730,7 +731,7 @@ export function update_active_units_dialog(): void {
     const ptype = unit_type(aunit);
     unit_info_html += "<div id='active_unit_info' title='" + (ptype ? ptype['helptext'] : '') + "'>";
 
-    if (clientPlaying() != null && S.current_focus[0]['owner'] != clientPlaying().playerno) {
+    if (clientPlaying() != null && S.current_focus[0]['owner'] != clientPlaying()!.playerno) {
       unit_info_html += "<b>" + store.nations[store.players[S.current_focus[0]['owner']]['nation']]['adjective'] + "</b> ";
     }
 
@@ -738,7 +739,7 @@ export function update_active_units_dialog(): void {
     if (get_unit_homecity_name(aunit) != null) {
       unit_info_html += " " + get_unit_homecity_name(aunit) + " ";
     }
-    if (clientPlaying() != null && S.current_focus[0]['owner'] == clientPlaying().playerno) {
+    if (clientPlaying() != null && S.current_focus[0]['owner'] == clientPlaying()!.playerno) {
       unit_info_html += "<span>" + get_unit_moves_left(aunit) + "</span> ";
     }
     unit_info_html += "<br><span title='Attack strength'>A:" + (ptype ? ptype['attack_strength'] : 0)
@@ -754,7 +755,7 @@ export function update_active_units_dialog(): void {
     }
 
     unit_info_html += "</div>";
-  } else if (S.current_focus.length >= 1 && clientPlaying() != null && S.current_focus[0]['owner'] != clientPlaying().playerno) {
+  } else if (S.current_focus.length >= 1 && clientPlaying() != null && S.current_focus[0]['owner'] != clientPlaying()!.playerno) {
     unit_info_html += "<div id='active_unit_info'>" + S.current_focus.length + " foreign units  (" +
       store.nations[store.players[S.current_focus[0]['owner']]['nation']]['adjective']
       + ")</div> ";
@@ -763,7 +764,7 @@ export function update_active_units_dialog(): void {
   }
 
   const gameUnitInfo = document.getElementById('game_unit_info');
-  if (gameUnitInfo) gameUnitInfo.innerHTML = unit_info_html;
+  if (gameUnitInfo) domSetHtml(gameUnitInfo, unit_info_html);
 
   const panelEl = document.getElementById('game_unit_panel');
   const panelParent = panelEl?.parentElement;

@@ -108,9 +108,9 @@ export function update_mouse_cursor(): void {
     canvasDiv.style.cursor = "crosshair";
   } else if (S.goto_active && S.current_goto_turns == null) {
     canvasDiv.style.cursor = "not-allowed";
-  } else if (pcity != null && clientPlaying() != null && city_owner_player_id(pcity) == clientPlaying().playerno) {
+  } else if (pcity != null && clientPlaying() != null && city_owner_player_id(pcity) == clientPlaying()!.playerno) {
     canvasDiv.style.cursor = "pointer";
-  } else if (punit != null && clientPlaying() != null && punit['owner'] == clientPlaying().playerno) {
+  } else if (punit != null && clientPlaying() != null && punit['owner'] == clientPlaying()!.playerno) {
     canvasDiv.style.cursor = "pointer";
   } else {
     canvasDiv.style.cursor = "default";
@@ -120,7 +120,7 @@ export function update_mouse_cursor(): void {
 export function set_mouse_touch_started_on_unit(ptile: Tile | null): void {
   if (ptile == null) return;
   const sunit = find_visible_unit(ptile);
-  if (sunit != null && clientPlaying() != null && sunit['owner'] == clientPlaying().playerno) {
+  if (sunit != null && clientPlaying() != null && sunit['owner'] == clientPlaying()!.playerno) {
     S.setMouseTouchStartedOnUnit(true);
   } else {
     S.setMouseTouchStartedOnUnit(false);
@@ -133,7 +133,7 @@ export function check_mouse_drag_unit(ptile: Tile | null): void {
   const sunit = find_visible_unit(ptile);
 
   if (sunit != null) {
-    if (clientPlaying() != null && sunit['owner'] == clientPlaying().playerno) {
+    if (clientPlaying() != null && sunit['owner'] == clientPlaying()!.playerno) {
       set_unit_focus(sunit);
       activate_goto();
     }

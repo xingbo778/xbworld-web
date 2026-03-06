@@ -224,6 +224,7 @@ export interface ConnPingPacket {
 }
 
 export interface AuthenticationReqPacket {
+  message: string;
   [key: string]: unknown;
 }
 

@@ -161,12 +161,9 @@ export function validateUsername(): boolean {
 export function isUsernameValidShow(username: string | null): boolean {
   const reason = getInvalidUsernameReason(username);
   if (reason != null) {
-    const safeUsername = (username ?? '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;');
     const valEl = document.getElementById('username_validation_result');
     if (valEl) {
-      valEl.innerHTML = "The username '" + safeUsername + "' is " + reason + '.';
+      valEl.textContent = "The username '" + (username ?? '') + "' is " + reason + '.';
       valEl.style.display = '';
     }
     return false;

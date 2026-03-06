@@ -476,25 +476,26 @@ export function put_one_element(pcanvas: CanvasRenderingContext2D, layer: number
 /**************************************************************************
   Draw an array of drawn sprites onto the canvas.
 **************************************************************************/
-export function put_drawn_sprites(pcanvas: CanvasRenderingContext2D, canvas_x: number, canvas_y: number, pdrawn: any[], fog: boolean): void {
+export function put_drawn_sprites(pcanvas: CanvasRenderingContext2D, canvas_x: number, canvas_y: number, pdrawn: SpriteEntry[], fog: boolean): void {
   for (let i = 0; i < pdrawn.length; i++) {
+    const sprite = pdrawn[i] as Record<string, unknown>;
     let offset_x = 0, offset_y = 0;
-    if ('offset_x' in pdrawn[i]) {
-      offset_x += pdrawn[i]['offset_x'];
+    if ('offset_x' in sprite) {
+      offset_x += sprite['offset_x'] as number;
     }
-    if ('offset_y' in pdrawn[i]) {
-      offset_y += pdrawn[i]['offset_y'];
+    if ('offset_y' in sprite) {
+      offset_y += sprite['offset_y'] as number;
     }
-    if (pdrawn[i]['key'] == "city_text") {
-      mapview_put_city_bar(pcanvas, pdrawn[i]['city'], canvas_x + offset_x, canvas_y + offset_y);
-    } else if (pdrawn[i]['key'] == "border") {
-      mapview_put_border_line(pcanvas, pdrawn[i]['dir'], pdrawn[i]['color'], canvas_x, canvas_y);
-    } else if (pdrawn[i]['key'] == "goto_line") {
-      mapview_put_goto_line(pcanvas, pdrawn[i]['goto_dir'], canvas_x, canvas_y);
-    } else if (pdrawn[i]['key'] == "tile_label") {
-      mapview_put_tile_label(pcanvas, pdrawn[i]['tile'], canvas_x + offset_x, canvas_y + offset_y);
+    if (sprite['key'] == "city_text") {
+      mapview_put_city_bar(pcanvas, sprite['city'] as City, canvas_x + offset_x, canvas_y + offset_y);
+    } else if (sprite['key'] == "border") {
+      mapview_put_border_line(pcanvas, sprite['dir'] as number, sprite['color'] as string, canvas_x, canvas_y);
+    } else if (sprite['key'] == "goto_line") {
+      mapview_put_goto_line(pcanvas, sprite['goto_dir'] as number, canvas_x, canvas_y);
+    } else if (sprite['key'] == "tile_label") {
+      mapview_put_tile_label(pcanvas, sprite['tile'] as Tile, canvas_x + offset_x, canvas_y + offset_y);
     } else {
-      mapview_put_tile(pcanvas, pdrawn[i]['key'], canvas_x + offset_x, canvas_y + offset_y);
+      mapview_put_tile(pcanvas, sprite['key'] as string, canvas_x + offset_x, canvas_y + offset_y);
     }
   }
 }

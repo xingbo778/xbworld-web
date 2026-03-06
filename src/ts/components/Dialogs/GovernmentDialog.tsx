@@ -7,6 +7,7 @@ import { sendPlayerChangeGovernment, sendReportReq } from '../../net/commands';
 import { clientIsObserver, clientPlaying } from '../../client/clientState';
 import { isSmallScreen } from '../../utils/helpers';
 import { getTilesetFileExtension } from '../../utils/helpers';
+import { setHtml } from '../../utils/dom';
 
 export const REPORT_WONDERS_OF_THE_WORLD = 0;
 export const REPORT_WONDERS_OF_THE_WORLD_LONG = 1;
@@ -63,15 +64,16 @@ export function init_civ_dialog(): void {
     if (!pnation['customized']) {
       civ_description += `<img src='/images/flags/${tag}-web${getTilesetFileExtension()}' width='180'>`;
     }
-    civ_description += `<br><div>${pplayer['name']} rules the ${store.nations[pplayer['nation']]['adjective']} with the form of government: ${store.governments[clientPlaying()!['government']]['name']}</div><br>`;
+    civ_description += `<br><div>${pplayer['name']} rules the ${store.nations[pplayer['nation']]['adjective']} with the form of government: ${store.governments[clientPlaying()!['government']!]['name']}</div><br>`;
 
     const nationTitleEl = document.getElementById('nation_title');
-    if (nationTitleEl) nationTitleEl.innerHTML = 'The ' + store.nations[pplayer['nation']]['adjective'] + ' nation';
+    if (nationTitleEl) nationTitleEl.textContent = 'The ' + store.nations[pplayer['nation']]['adjective'] + ' nation';
     const civTextEl = document.getElementById('civ_dialog_text');
-    if (civTextEl) civTextEl.innerHTML = civ_description;
+    // Intentional: civ_description contains trusted HTML (flag img, player info)
+    if (civTextEl) setHtml(civTextEl, civ_description);
   } else {
     const civTextEl = document.getElementById('civ_dialog_text');
-    if (civTextEl) civTextEl.innerHTML = "This dialog isn't available as observer.";
+    if (civTextEl) civTextEl.textContent = "This dialog isn't available as observer.";
   }
 }
 
@@ -82,7 +84,7 @@ export function GovernmentDialog() {
   const player = clientPlaying();
   if (!player) return null;
 
-  const currentGovName = store.governments?.[player['government']]?.name ?? '';
+  const currentGovName = store.governments?.[player['government']!]?.name ?? '';
 
   const govEntries: { id: number; name: string; helptext: string; canGet: boolean; isCurrent: boolean }[] = [];
   for (const govId in store.governments) {

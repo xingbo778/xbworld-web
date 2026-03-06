@@ -97,7 +97,28 @@ export const tilelabel_offset_x: number = 0;
 export const dither_offset_x: number[] = [normal_tile_width / 2, 0, normal_tile_width / 2, 0];
 export const dither_offset_y: number[] = [0, normal_tile_height / 2, normal_tile_height / 2, 0];
 
-export const ts_layer: any[] = [];
+export interface TilesetLayer {
+  match_types?: string[];
+  [key: string]: unknown;
+}
+
+export interface TilesetTileConfig {
+  is_blended?: number;
+  num_layers?: number;
+  mine_sprite?: string;
+  [key: string]: unknown;
+}
+
+export interface TileTypeSetupEntry {
+  match_style: number;
+  sprite_type: number;
+  mine_tag: string;
+  match_indices: number;
+  match_index: number[];
+  dither: boolean;
+}
+
+export const ts_layer: TilesetLayer[] = [];
 
 //[layer0]
 ts_layer[0] = {};
@@ -113,7 +134,7 @@ ts_layer[2]['match_types'] = ["water", "ice"];
 
 // Water graphics referenced by terrain.ruleset
 
-export const ts_tiles: any = {};
+export const ts_tiles: Record<string, TilesetTileConfig> = {};
 
 
 ts_tiles['lake'] = {};
@@ -218,7 +239,7 @@ ts_tiles['inaccessible']['layer0_match_type'] = "land";
 
 
 
-export const tile_types_setup: any = 
+export const tile_types_setup: Record<string, TileTypeSetupEntry> =
 {
 "l0.lake":	{"match_style":MATCH_PAIR,"sprite_type":CELL_CORNER,"mine_tag":"(null)","match_indices":2,"match_index":[0,2],"dither":false},
 "l0.coast":	{"match_style":MATCH_FULL,"sprite_type":CELL_CORNER,"mine_tag":"(null)","match_indices":3,"match_index":[0,1,2],"dither":false},

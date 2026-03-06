@@ -1,3 +1,4 @@
+import { setHtml as domSetHtml } from '../utils/dom';
 import { initTabs } from './tabs';
 import { swal } from '../components/Dialogs/SwalDialog';
 import { initTableSort } from '../utils/tableSort';
@@ -87,7 +88,7 @@ export {
 } from './cityWorklist';
 
 function byId(id: string): HTMLElement | null { return document.getElementById(id); }
-function setHtml(id: string, html: unknown): void { const el = byId(id); if (el) el.innerHTML = String(html); }
+function setHtml(id: string, html: unknown): void { const el = byId(id); if (el) domSetHtml(el, String(html)); }
 
 // Register update_city_screen with the lazy proxy in cityDialogState
 set_city_screen_updater_fn(update_city_screen);
@@ -129,7 +130,7 @@ export function show_city_dialog(pcity: City): void {
   // Title bar
   const titleBar = document.createElement('div');
   titleBar.style.cssText = 'background:#333;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #555;';
-  titleBar.innerHTML = '<span style="font-weight:bold;">' + decodeURIComponent(pcity['name']) + ' (' + pcity['size'] + ')</span>';
+  domSetHtml(titleBar, '<span style="font-weight:bold;">' + decodeURIComponent(pcity['name']) + ' (' + pcity['size'] + ')</span>');
   const btnRow = document.createElement('div');
   btnRow.style.cssText = 'display:flex;gap:6px;';
 
@@ -149,7 +150,7 @@ export function show_city_dialog(pcity: City): void {
   // Content area
   const contentArea = document.createElement('div');
   contentArea.style.cssText = 'padding:8px;overflow:auto;height:calc(100% - 50px);';
-  contentArea.innerHTML = getCityDialogHtml();
+  domSetHtml(contentArea, getCityDialogHtml());
   dlg.appendChild(contentArea);
 
   const cityCanvas = byId('city_canvas');
@@ -272,7 +273,7 @@ export function show_city_dialog(pcity: City): void {
 export function request_city_buy(): void {
   if (clientIsObserver()) return;
   const pcity = active_city;
-  const pplayer = clientPlaying();
+  const pplayer = clientPlaying()!;
 
   // reset dialog page.
   byId('dialog')?.remove();
@@ -305,9 +306,9 @@ export function request_city_buy(): void {
   buyDlg.id = 'dialog';
   buyDlg.style.cssText = 'position:fixed;z-index:5000;background:#222;border:1px solid #555;padding:16px;'
     + 'top:30%;left:50%;transform:translateX(-50%);width:' + (is_small_screen() ? '95%' : '50%') + ';color:#fff;';
-  buyDlg.innerHTML = '<div style="font-weight:bold;margin-bottom:8px;">Buy It!</div>'
+  domSetHtml(buyDlg, '<div style="font-weight:bold;margin-bottom:8px;">Buy It!</div>'
     + buy_question_string + treasury_text + '<div style="margin-top:12px;display:flex;gap:8px;">'
-    + '<button id="buy_yes_btn">Yes</button><button id="buy_no_btn">No</button></div>';
+    + '<button id="buy_yes_btn">Yes</button><button id="buy_no_btn">No</button></div>');
   document.getElementById('game_page')?.appendChild(buyDlg);
 
   byId('buy_yes_btn')?.addEventListener('click', function() { send_city_buy(); buyDlg.remove(); });
@@ -378,11 +379,11 @@ export function city_name_dialog(suggested_name: string, unit_id: number): void 
   nameDlg.id = 'city_name_dialog';
   nameDlg.style.cssText = 'position:fixed;z-index:5000;background:#222;border:1px solid #555;padding:16px;'
     + 'top:30%;left:50%;transform:translateX(-50%);width:300px;color:#fff;';
-  nameDlg.innerHTML = '<div style="font-weight:bold;margin-bottom:8px;">Build New City</div>'
+  domSetHtml(nameDlg, '<div style="font-weight:bold;margin-bottom:8px;">Build New City</div>'
     + '<div>What should we call our new city?</div>'
     + '<input id="city_name_req" type="text" style="width:100%;margin:8px 0;">'
     + '<div style="display:flex;gap:8px;"><button id="city_name_ok">Ok</button>'
-    + '<button id="city_name_cancel">Cancel</button></div>';
+    + '<button id="city_name_cancel">Cancel</button></div>');
   document.getElementById('game_page')?.appendChild(nameDlg);
 
   const nameInput = byId('city_name_req') as HTMLInputElement;
@@ -487,11 +488,11 @@ export function rename_city(): void {
   renameDlg.id = 'city_name_dialog';
   renameDlg.style.cssText = 'position:fixed;z-index:5000;background:#222;border:1px solid #555;padding:16px;'
     + 'top:30%;left:50%;transform:translateX(-50%);width:300px;color:#fff;';
-  renameDlg.innerHTML = '<div style="font-weight:bold;margin-bottom:8px;">Rename City</div>'
+  domSetHtml(renameDlg, '<div style="font-weight:bold;margin-bottom:8px;">Rename City</div>'
     + '<div>What should we call this city?</div>'
     + '<input id="city_name_req" type="text" style="width:100%;margin:8px 0;">'
     + '<div style="display:flex;gap:8px;"><button id="rename_ok">Ok</button>'
-    + '<button id="rename_cancel">Cancel</button></div>';
+    + '<button id="rename_cancel">Cancel</button></div>');
   document.getElementById('game_page')?.appendChild(renameDlg);
 
   const nameInput = byId('city_name_req') as HTMLInputElement;

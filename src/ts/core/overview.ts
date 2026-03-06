@@ -343,7 +343,7 @@ export function overview_tile_color(map_x: number, map_y: number): number {
   if (pcity != null) {
     if (clientPlaying() == null) {
       return COLOR_OVERVIEW_ENEMY_CITY;
-    } else if (city_owner_player_id(pcity) == clientPlaying()['id']) {
+    } else if (city_owner_player_id(pcity) == clientPlaying()!['id']) {
       return COLOR_OVERVIEW_MY_CITY;
     } else {
       return COLOR_OVERVIEW_ENEMY_CITY;
@@ -354,7 +354,7 @@ export function overview_tile_color(map_x: number, map_y: number): number {
   if (punit != null) {
     if (clientPlaying() == null) {
       return COLOR_OVERVIEW_ENEMY_UNIT;
-    } else if (punit.owner == clientPlaying()['id']) {
+    } else if (punit.owner == clientPlaying()!['id']) {
       return COLOR_OVERVIEW_MY_UNIT;
     } else if (punit.owner != null && punit.owner != 255) {
       return palette_color_offset + punit.owner;

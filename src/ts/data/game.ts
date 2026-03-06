@@ -3,6 +3,7 @@ import { store } from './store';
 import { cityPopulation as city_population } from './city';
 import { clientState as client_state, C_S_RUNNING, clientPlaying } from '../client/clientState';
 import { numberWithCommas, isSmallScreen as is_small_screen } from '../utils/helpers';
+import { setHtml } from '../utils/dom';
 
 export const IDENTITY_NUMBER_ZERO = 0;
 
@@ -43,10 +44,10 @@ export function update_game_status_panel(): void {
   let status_html = '';
 
   if (clientPlaying() != null) {
-    const pplayer = clientPlaying();
-    const tax = clientPlaying()['tax'];
-    const lux = clientPlaying()['luxury'];
-    const sci = clientPlaying()['science'];
+    const pplayer = clientPlaying()!;
+    const tax = pplayer['tax'];
+    const lux = pplayer['luxury'];
+    const sci = pplayer['science'];
 
     let net_income: string | number = pplayer['expected_income'];
     if (pplayer['expected_income'] > 0) {
@@ -59,7 +60,7 @@ export function update_game_status_panel(): void {
         store.nations[pplayer['nation']]['adjective'] +
         "</b> &nbsp;&nbsp; <span title='Population'>👤</span>: ";
     if (!is_small_screen())
-      status_html += '<b>' + civ_population(clientPlaying().playerno) + '</b>  &nbsp;&nbsp;';
+      status_html += '<b>' + civ_population(clientPlaying()!.playerno) + '</b>  &nbsp;&nbsp;';
     if (!is_small_screen())
       status_html +=
         "<span title='Year (turn)'>🕐</span>: <b>" +
@@ -93,7 +94,7 @@ export function update_game_status_panel(): void {
   if (window.innerWidth - sum_width() > 800) {
     if (panelTop) {
       panelTop.style.display = '';
-      panelTop.innerHTML = status_html;
+      setHtml(panelTop, status_html);
     }
     if (panelBottom) {
       panelBottom.style.display = 'none';
@@ -105,7 +106,7 @@ export function update_game_status_panel(): void {
     if (panelBottom) {
       panelBottom.style.display = '';
       panelBottom.style.width = window.innerWidth + 'px';
-      panelBottom.innerHTML = status_html;
+      setHtml(panelBottom, status_html);
     }
   }
 

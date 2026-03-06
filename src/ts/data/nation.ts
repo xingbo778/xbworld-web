@@ -25,6 +25,7 @@ import { clientIsObserver, clientPlaying, canClientControl, clientState, C_S_OVE
 import { isLongturn } from '../client/clientCore';
 import { setDefaultMapviewActive } from '../client/clientMain';
 import { isSmallScreen as is_small_screen } from '../utils/helpers';
+import { setHtml } from '../utils/dom';
 import { center_tile_mapcanvas } from '../core/control/mapClick';
 import { send_message } from '../net/connection';
 import { sendDiplomacyCancelPact, sendDiplomacyInitMeeting, sendChatMessage } from '../net/commands';
@@ -130,12 +131,12 @@ export function colLove(pplayer: Player): string {
   if (
     clientIsObserver() ||
     store.client?.conn?.playing == null ||
-    pplayer['playerno'] === clientPlaying()['playerno'] ||
-    pplayer['flags'].isSet(PlayerFlag.PLRF_AI) === false
+    pplayer['playerno'] === clientPlaying()!['playerno'] ||
+    pplayer['flags']!.isSet(PlayerFlag.PLRF_AI) === false
   ) {
     return '-';
   } else {
-    return loveText(pplayer['love'][clientPlaying()['playerno']]);
+    return loveText(pplayer['love']![clientPlaying()!['playerno']]);
   }
 }
 
@@ -173,7 +174,7 @@ export function updateNationScreen(): void {
     if (
       !clientIsObserver() &&
       clientPlaying() != null &&
-      Number(player_id) === clientPlaying()['playerno']
+      Number(player_id) === clientPlaying()!['playerno']
     ) {
       plr_class = 'nation_row_self';
     }
@@ -207,7 +208,7 @@ export function updateNationScreen(): void {
       getScoreText(pplayer) +
       '</td>' +
       '<td>' +
-      (pplayer['flags'].isSet(PlayerFlag.PLRF_AI)
+      (pplayer['flags']!.isSet(PlayerFlag.PLRF_AI)
         ? get_ai_level_text(pplayer) + ' AI'
         : 'Human') +
       '</td><td>' +
@@ -218,7 +219,7 @@ export function updateNationScreen(): void {
       !clientIsObserver() &&
       clientPlaying() != null &&
       diplstates[Number(player_id)] != null &&
-      Number(player_id) !== clientPlaying()['playerno']
+      Number(player_id) !== clientPlaying()!['playerno']
     ) {
       nation_list_html += '<td>' + get_diplstate_text(diplstates[Number(player_id)]) + '</td>';
     } else {
@@ -229,13 +230,13 @@ export function updateNationScreen(): void {
     nation_list_html += '<td>';
     if (!clientIsObserver() && clientPlaying() != null) {
       if (
-        pplayer['gives_shared_vision'].isSet(clientPlaying()['playerno']) &&
-        clientPlaying()['gives_shared_vision'].isSet(Number(player_id))
+        pplayer['gives_shared_vision']!.isSet(clientPlaying()!['playerno']) &&
+        clientPlaying()!['gives_shared_vision']!.isSet(Number(player_id))
       ) {
         nation_list_html += 'Both ways';
-      } else if (pplayer['gives_shared_vision'].isSet(clientPlaying()['playerno'])) {
+      } else if (pplayer['gives_shared_vision']!.isSet(clientPlaying()!['playerno'])) {
         nation_list_html += 'To you';
-      } else if (clientPlaying()['gives_shared_vision'].isSet(Number(player_id))) {
+      } else if (clientPlaying()!['gives_shared_vision']!.isSet(Number(player_id))) {
         nation_list_html += 'To them';
       } else {
         nation_list_html += 'None';
@@ -245,33 +246,33 @@ export function updateNationScreen(): void {
     nation_list_html += "<td class='nation_team'>" + (pplayer['team'] + 1) + '</td>';
 
     let pstate = ' ';
-    if (pplayer['phase_done'] && !pplayer['flags'].isSet(PlayerFlag.PLRF_AI)) {
+    if (pplayer['phase_done'] && !pplayer['flags']!.isSet(PlayerFlag.PLRF_AI)) {
       pstate = 'Done';
-    } else if (!pplayer['flags'].isSet(PlayerFlag.PLRF_AI) && (pplayer['nturns_idle'] ?? 0) > 1) {
+    } else if (!pplayer['flags']!.isSet(PlayerFlag.PLRF_AI) && (pplayer['nturns_idle'] ?? 0) > 1) {
       pstate += 'Idle for ' + pplayer['nturns_idle'] + ' turns';
-    } else if (!pplayer['phase_done'] && !pplayer['flags'].isSet(PlayerFlag.PLRF_AI)) {
+    } else if (!pplayer['phase_done'] && !pplayer['flags']!.isSet(PlayerFlag.PLRF_AI)) {
       pstate = 'Moving';
     }
     nation_list_html += "<td id='player_state_" + player_id + "'>" + pstate + '</td>';
     nation_list_html += '</tr>';
 
-    if (!pplayer['flags'].isSet(PlayerFlag.PLRF_AI) && pplayer['is_alive'] && (pplayer['nturns_idle'] ?? 0) <= 4) {
+    if (!pplayer['flags']!.isSet(PlayerFlag.PLRF_AI) && pplayer['is_alive'] && (pplayer['nturns_idle'] ?? 0) <= 4) {
       no_humans++;
     }
-    if (pplayer['flags'].isSet(PlayerFlag.PLRF_AI) && pplayer['is_alive']) no_ais++;
+    if (pplayer['flags']!.isSet(PlayerFlag.PLRF_AI) && pplayer['is_alive']) no_ais++;
   }
 
   nation_list_html += '</tbody></table>';
 
   const nationsListEl = document.getElementById('nations_list');
-  if (nationsListEl) nationsListEl.innerHTML = nation_list_html;
+  setHtml(nationsListEl, nation_list_html);
 
   const nationsTitleEl = document.getElementById('nations_title');
-  if (nationsTitleEl) nationsTitleEl.innerHTML = 'Nations of the World';
+  if (nationsTitleEl) nationsTitleEl.textContent = 'Nations of the World';
 
   const nationsLabelEl = document.getElementById('nations_label');
   if (nationsLabelEl) {
-    nationsLabelEl.innerHTML =
+    nationsLabelEl.textContent =
       'Human players: ' +
         no_humans +
         '. AIs: ' +
@@ -341,7 +342,7 @@ export function updateNationScreen(): void {
         if (online_players[pplayer['username'].toLowerCase()]) {
           const stateEl = document.getElementById('player_state_' + player_id);
           if (stateEl) {
-            stateEl.innerHTML = "<span style='color: #00EE00;'><b>Online</b></span>";
+            setHtml(stateEl, "<span style='color: #00EE00;'><b>Online</b></span>");
           }
         }
       }
@@ -395,12 +396,12 @@ export function selectANation(): void {
   if (pplayer == null) return;
 
   const selected_myself =
-    clientPlaying() != null && player_id === clientPlaying()['playerno'];
+    clientPlaying() != null && player_id === clientPlaying()!['playerno'];
   const both_alive_and_different =
     clientPlaying() != null &&
-    player_id !== clientPlaying()['playerno'] &&
+    player_id !== clientPlaying()!['playerno'] &&
     pplayer['is_alive'] &&
-    clientPlaying()['is_alive'];
+    clientPlaying()!['is_alive'];
 
   if (
     pplayer['is_alive'] &&
@@ -427,14 +428,14 @@ export function selectANation(): void {
 
   if (
 
-    !pplayer['flags'].isSet(PlayerFlag.PLRF_AI) &&
+    !pplayer['flags']!.isSet(PlayerFlag.PLRF_AI) &&
     diplstates[player_id] != null &&
     diplstates[player_id] === DiplState.DS_NO_CONTACT
   ) {
     jqButtonDisable('meet_player_button');
   }
 
-  if (pplayer['flags'].isSet(PlayerFlag.PLRF_AI) || selected_myself) {
+  if (pplayer['flags']!.isSet(PlayerFlag.PLRF_AI) || selected_myself) {
     jqButtonDisable('send_message_button');
   } else {
     jqButtonEnable('send_message_button');
@@ -443,7 +444,7 @@ export function selectANation(): void {
   if (
     !clientIsObserver() &&
     both_alive_and_different &&
-    pplayer['team'] !== clientPlaying()['team'] &&
+    pplayer['team'] !== clientPlaying()!['team'] &&
     diplstates[player_id] != null &&
     diplstates[player_id] !== DiplState.DS_WAR &&
     diplstates[player_id] !== DiplState.DS_NO_CONTACT
@@ -468,8 +469,8 @@ export function selectANation(): void {
   if (
     canClientControl() &&
     both_alive_and_different &&
-    pplayer['team'] !== clientPlaying()['team'] &&
-    clientPlaying()['gives_shared_vision'].isSet(player_id)
+    pplayer['team'] !== clientPlaying()!['team'] &&
+    clientPlaying()!['gives_shared_vision']!.isSet(player_id)
   ) {
     jqButtonEnable('withdraw_vision_button');
   } else {
@@ -488,7 +489,7 @@ export function selectANation(): void {
   if (
 
     clientIsObserver() &&
-    pplayer['flags'].isSet(PlayerFlag.PLRF_AI) &&
+    pplayer['flags']!.isSet(PlayerFlag.PLRF_AI) &&
     store.nations[pplayer['nation']]['is_playable'] &&
     getUrlVar('multi') === 'true'
   ) {
@@ -648,7 +649,7 @@ export function showSendPrivateMessageDialog(): void {
 
   const intro_html =
     "Message: <input id='private_message_text' type='text' size='50' maxlength='80'>";
-  dialogEl.innerHTML = intro_html;
+  setHtml(dialogEl, intro_html);
   dialogEl.setAttribute('title', 'Send private message to ' + name);
 
   // Show as a simple modal dialog

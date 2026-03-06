@@ -126,7 +126,7 @@ export function getCurrentBulbsOutput(): {
   let teamUpkeep = 0;
 
   if (!client_is_observer() && clientPlaying() != null) {
-    const cplayer = clientPlaying().playerno;
+    const cplayer = clientPlaying()!.playerno;
     for (const cityId in store.cities) {
       const city = store.cities[cityId];
       if (city.owner === cplayer) {
@@ -136,7 +136,7 @@ export function getCurrentBulbsOutput(): {
     selfUpkeep = clientPlaying()?.tech_upkeep ?? 0;
 
     if (store.gameInfo?.['team_pooled_research']) {
-      const team = clientPlaying()?.team;
+      const team = clientPlaying()!.team;
       for (const playerId in store.players) {
         const player = store.players[playerId];
         if (player.team === team && player.is_alive) {

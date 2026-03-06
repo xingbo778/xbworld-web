@@ -126,7 +126,7 @@ export function handle_research_info(packet: ResearchInfoPacket): void {
 
   if (!clientIsObserver() && old_inventions != null
       && clientPlaying() != null
-      && clientPlaying()['playerno'] === packet['id']) {
+      && clientPlaying()!['playerno'] === packet['id']) {
     for (let i = 0; i < packet['inventions'].length; i++) {
       if (packet['inventions'][i] !== old_inventions[i]
           && packet['inventions'][i] === TECH_KNOWN) {

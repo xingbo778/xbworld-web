@@ -1,8 +1,8 @@
 import { store } from '../data/store';
 import { actionProbPossible as action_prob_possible } from '../data/actions';
 
-type ActProb = { min: number; max: number };
-type ActProbMap = Record<number, ActProb>;
+export type ActProb = { min: number; max: number };
+export type ActProbMap = Record<number, ActProb>;
 
 import { send_request as sendRequest } from '../net/connection';
 import {

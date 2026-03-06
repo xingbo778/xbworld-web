@@ -31,7 +31,7 @@ export function show_intelligence_report_dialog(): void {
   const pplayer = store.players[selected_player]!;
 
   if (client_is_observer()
-      || clientPlaying()?.['real_embassy']?.isSet(selected_player)) {
+      || (clientPlaying()?.['real_embassy'] as { isSet(bit: number): boolean } | undefined)?.isSet(selected_player)) {
     show_intelligence_report_embassy(pplayer);
   } else {
     show_intelligence_report_hearsay(pplayer);

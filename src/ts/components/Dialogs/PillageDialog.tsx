@@ -6,6 +6,7 @@ import { request_unit_do_action } from '../../core/control/unitCommands';
 import { store } from '../../data/store';
 import { EXTRA_NONE } from '../../data/extra';
 import { ACTION_PILLAGE } from '../../data/fcTypes';
+import type { Unit } from '../../data/types';
 
 interface PillageState {
   open: boolean;
@@ -21,7 +22,7 @@ const state = signal<PillageState>({
   targets: [],
 });
 
-export function openPillageDialog(punit: any, tgt: number[]): void {
+export function openPillageDialog(punit: Unit, tgt: number[]): void {
   if (!punit) return;
   if (clientIsObserver()) return;
   if (!tgt || tgt.length === 0) return;

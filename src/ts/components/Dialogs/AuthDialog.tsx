@@ -15,7 +15,7 @@ const state = signal<AuthState>({
   message: '',
 });
 
-export function showAuthDialog(packet: any): void {
+export function showAuthDialog(packet: { message: string; [key: string]: unknown }): void {
   state.value = { open: true, message: packet['message'] || '' };
 }
 

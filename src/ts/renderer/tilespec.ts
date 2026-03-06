@@ -823,7 +823,7 @@ export function get_city_occupied_sprite(pcity: City): string {
   const punits = tile_units(ptile);
 
   if (!store.observing && clientPlaying() != null
-    && owner_id != clientPlaying().playerno && pcity['occupied']) {
+    && owner_id != clientPlaying()!.playerno && pcity['occupied']) {
     return "citybar.occupied";
   } else if (punits != null && punits.length == 1) {
     return "citybar.occupancy_1";
@@ -924,7 +924,7 @@ function get_unit_nation_flag_sprite(punit: Unit): SpriteEntry {
 
   if ((unit_type(punit) as any)?.['flags']?.isSet?.(UTYF_FLAGLESS)
     && clientPlaying() != null
-    && owner_id != clientPlaying().playerno) {
+    && owner_id != clientPlaying()!.playerno) {
     return { "key": "" };
   } else {
     const owner = store.players[owner_id];

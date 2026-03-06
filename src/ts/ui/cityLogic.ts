@@ -223,7 +223,7 @@ export function buildCityListHtml(): { html: string; count: number } {
   let count: number = 0;
   for (const city_id in cities) {
     const pcity: City = cities[city_id as any];
-    if (clientPlaying() != null && cityOwner(pcity) != null && cityOwner(pcity).playerno == clientPlaying().playerno) {
+    if (clientPlaying() != null && cityOwner(pcity) != null && cityOwner(pcity).playerno == clientPlaying()!.playerno) {
       count++;
       const prod_type = get_city_production_type(pcity);
       let turns_to_complete_str: string;

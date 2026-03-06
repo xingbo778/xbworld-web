@@ -3,7 +3,7 @@
  * Uses native HTML dialog element with custom styling.
  */
 
-import { create, on } from '../utils/dom';
+import { create, on, setHtml } from '../utils/dom';
 
 interface DialogOptions {
   title: string;
@@ -52,7 +52,7 @@ export function showDialog(id: string, options: DialogOptions): HTMLDialogElemen
   header.appendChild(controls);
 
   const body = create('div', { class: 'xb-dialog-body' });
-  body.innerHTML = options.content;
+  setHtml(body, options.content);
 
   dialog.appendChild(header);
   dialog.appendChild(body);

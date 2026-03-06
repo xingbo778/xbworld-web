@@ -52,7 +52,7 @@ export function chat_context_get_recipients(): ChatRecipient[] {
 
   let self = -1;
   if (clientPlaying() != null) {
-    self = clientPlaying()['playerno'];
+    self = clientPlaying()!['playerno'];
   }
 
   for (const player_id_str in store.players) {
@@ -60,7 +60,7 @@ export function chat_context_get_recipients(): ChatRecipient[] {
     if (player_id == self) continue;
 
     const pplayer = store.players[player_id];
-    if (pplayer['flags'].isSet(FC_PLRF_AI)) continue;
+    if (pplayer['flags']!.isSet(FC_PLRF_AI)) continue;
     if (!pplayer['is_alive']) continue;
     if (is_longturn() && pplayer['name'].indexOf("New Available Player") != -1) continue;
 
@@ -118,7 +118,7 @@ export function chat_context_dialog_show(recipients: ChatRecipient[]): void {
 
   let self = -1;
   if (clientPlaying() != null) {
-    self = clientPlaying()['playerno'];
+    self = clientPlaying()!['playerno'];
   }
 
   const tbody_el = document.createElement('tbody');
@@ -207,7 +207,7 @@ export function set_chat_direction(player_id: number | null): void {
     ctx.fillText(S.CHAT_ICON_EVERYBODY, 7, 15);
     player_name = 'everybody';
   } else if (clientPlaying() != null
-    && player_id == clientPlaying()['playerno']) {
+    && player_id == clientPlaying()!['playerno']) {
     ctx.clearRect(0, 0, 29, 20);
     ctx.font = "18px FontAwesome";
     ctx.fillStyle = "rgba(192, 192, 192, 1)";
@@ -265,7 +265,7 @@ export function check_text_input(event: KeyboardEvent, chatboxtextarea: HTMLInpu
     if (S.chat_send_to != null && S.chat_send_to >= 0
       && is_unprefixed_message(message)) {
       if (clientPlaying() != null
-        && S.chat_send_to == clientPlaying()['playerno']) {
+        && S.chat_send_to == clientPlaying()!['playerno']) {
         message = ". " + encode_message_text(message);
       } else {
         const pplayer = store.players[S.chat_send_to];

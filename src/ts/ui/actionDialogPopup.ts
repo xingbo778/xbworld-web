@@ -1,3 +1,4 @@
+import { setHtml } from '../utils/dom';
 import { store } from '../data/store';
 import { clientIsObserver, clientPlaying } from '../client/clientState';
 import { unit_owner, tile_units } from '../data/unit';
@@ -36,7 +37,7 @@ import {
 } from '../data/fcTypes';
 import { logNormal, logError } from '../core/log';
 
-import { create_act_sel_button } from './actionDialogFormat';
+import { create_act_sel_button, type ActProbMap } from './actionDialogFormat';
 import {
   act_sel_queue_may_be_done,
   act_sel_queue_done,
@@ -78,7 +79,7 @@ function createNativeDialog(
 
   if (content) {
     const body = document.createElement('div');
-    body.innerHTML = content;
+    setHtml(body, content);
     dlg.appendChild(body);
   }
 
@@ -106,7 +107,7 @@ function removeDialog(dlgId: string): void {
 /****************************************************************************
   Ask the player to select an action.
 ****************************************************************************/
-export function popup_action_selection(actor_unit: Unit, action_probabilities: any,
+export function popup_action_selection(actor_unit: Unit, action_probabilities: ActProbMap,
   target_tile: Tile | null, target_extra: Extra | null,
   target_unit: Unit | null, target_city: City | null): void {
   if (clientIsObserver()) return;
@@ -402,14 +403,14 @@ export function create_steal_tech_button(parent_id: string, tech: Tech,
   Select what tech to steal when doing targeted tech theft.
 **************************************************************************/
 export function popup_steal_tech_selection_dialog(actor_unit: Unit, target_city: City,
-  act_probs: any, action_id: number): void {
+  act_probs: ActProbMap, action_id: number): void {
   const dlgId = "stealtech_dialog_" + actor_unit['id'];
   const buttons: { text: string; click: () => void }[] = [];
   let untargeted_action_id: number = ACTION_COUNT;
 
   for (const tech_id in store.techs) {
     const tech = store.techs[tech_id];
-    const act_kn = player_invention_state(clientPlaying(), tech['id']);
+    const act_kn = player_invention_state(clientPlaying()!, tech['id']);
     const tgt_kn = player_invention_state(store.players[target_city['owner'] as number], tech['id']);
 
     if ((tgt_kn == TECH_KNOWN)

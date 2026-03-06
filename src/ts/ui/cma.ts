@@ -49,9 +49,9 @@ export function show_city_governor_tab(): boolean | void {
   // Reject cases which can't show the Governor:
   if (client_is_observer() || clientPlaying() == null) return false;
   if (!active_city) return false;
-  if (city_owner_player_id(active_city) != clientPlaying().playerno) {
+  if (city_owner_player_id(active_city) != clientPlaying()!.playerno) {
     const govTab = document.getElementById('city_governor_tab');
-    if (govTab) govTab.innerHTML = "City Governor available only for domestic cities.";
+    if (govTab) govTab.textContent = "City Governor available only for domestic cities.";
     return false;
   }
   const cmaIds = ['cma_food', 'cma_shield', 'cma_trade', 'cma_gold', 'cma_luxury', 'cma_science'];

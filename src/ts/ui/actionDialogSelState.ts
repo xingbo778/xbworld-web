@@ -11,6 +11,7 @@ import { EXTRA_NONE } from '../data/extra';
 import type { Unit, City, Tile, Extra } from '../data/types';
 
 import { popup_action_selection } from './actionDialogPopup';
+import type { ActProbMap } from './actionDialogFormat';
 
 const TILE_INDEX_NONE = -1;
 
@@ -143,7 +144,7 @@ export function action_selection_target_extra(): number {
 export function action_selection_refresh(actor_unit: Unit,
   target_city: City | null, target_unit: Unit | null, target_tile: Tile | null,
   target_extra: Extra | null,
-  act_probs: Record<number, unknown>): void {
+  act_probs: ActProbMap): void {
   let id: string;
 
   document.getElementById("act_sel_dialog_" + actor_unit['id'])?.remove();

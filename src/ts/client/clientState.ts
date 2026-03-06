@@ -10,6 +10,7 @@
 
 import { ClientState } from '../core/constants';
 import { store } from '../data/store';
+import type { Player } from '../data/types';
 // ---------------------------------------------------------------------------
 // State accessors — read from store
 // ---------------------------------------------------------------------------
@@ -77,9 +78,8 @@ export function clientIsObserver(): boolean {
 
 /**
  * Returns the current playing player object, or null if not playing.
- * Typed as `any` to avoid TS2571 "Object is of type unknown" in callers.
  */
-export function clientPlaying(): any {
+export function clientPlaying(): Player | null {
   return store.client?.conn?.playing ?? null;
 }
 

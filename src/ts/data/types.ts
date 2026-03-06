@@ -3,6 +3,8 @@
  * These interfaces mirror the server packet structures.
  */
 
+import type { BitVector } from '../utils/bitvector';
+
 export interface GameInfo {
   turn: number;
   year: number;
@@ -125,9 +127,9 @@ export interface Player {
   expected_income: number;
   team: number;
   embassy_txt: string;
-  flags?: any;
-  gives_shared_vision?: any;
-  love?: any;
+  flags?: BitVector;
+  gives_shared_vision?: BitVector;
+  love?: number[];
   nturns_idle?: number;
   phase_done?: boolean;
   government?: number;

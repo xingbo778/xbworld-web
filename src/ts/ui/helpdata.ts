@@ -17,6 +17,7 @@
 
 **********************************************************************/
 
+import { setHtml as domSetHtml } from '../utils/dom';
 import { is_wonder, get_improvement_requirements } from '../data/improvement';
 import { unittype_ids_alphabetic } from '../data/unit';
 import { U_NOT_OBSOLETED } from '../data/unittype';
@@ -34,7 +35,7 @@ function get_helpdata(): Record<string, { text: string }> { return (store as any
 function get_freeciv_wiki_docs(): Record<string, any> { return (store as any).freeciv_wiki_docs || {}; }
 
 function byId(id: string): HTMLElement | null { return document.getElementById(id); }
-function setHtml(id: string, html: string): void { const el = byId(id); if (el) el.innerHTML = html; }
+function setHtml(id: string, html: string): void { const el = byId(id); if (el) domSetHtml(el, html); }
 function appendLi(parentId: string, helptag: string, text: string): void {
   const li = document.createElement('li');
   li.dataset.helptag = helptag;
@@ -410,12 +411,12 @@ export function generate_help_text(key: string): void {
           const helptext = doc.querySelector('#utype' + utype_id + ' .helptext');
           if (helptext) {
             const el = byId('helptext');
-            if (el) el.innerHTML = helptext.innerHTML;
+            if (el) domSetHtml(el, helptext.innerHTML);
           }
           const upkeep = doc.querySelector('#utype' + utype_id + ' .upkeep');
           if (upkeep) {
             const el = byId('utype_fact_upkeep');
-            if (el) el.innerHTML = upkeep.innerHTML;
+            if (el) domSetHtml(el, upkeep.innerHTML);
           }
         })
         .catch(() => {});
@@ -429,7 +430,7 @@ export function generate_help_text(key: string): void {
           const helptext = doc.querySelector('#gov' + gov_id + ' .helptext');
           if (helptext) {
             const el = byId('helptext');
-            if (el) el.innerHTML = helptext.innerHTML;
+            if (el) domSetHtml(el, helptext.innerHTML);
           }
         })
         .catch(() => {});

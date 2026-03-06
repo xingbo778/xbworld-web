@@ -1,6 +1,7 @@
 import { clientState as client_state, C_S_PREPARING } from '../client/clientState';
 import { setupWindowSize as setup_window_size } from '../client/clientMain';
 import { store } from '../data/store';
+import { setHtml } from '../utils/dom';
 
 const client = store.client;
 export let update_player_info_pregame_queued: boolean = false;
@@ -47,7 +48,7 @@ export function update_game_info_pregame(): void {
   }
 
   const pregameGameInfo = document.getElementById('pregame_game_info');
-  if (pregameGameInfo) pregameGameInfo.innerHTML = game_info_html;
+  setHtml(pregameGameInfo, game_info_html);
   setup_window_size();
 }
 
@@ -81,7 +82,7 @@ export function update_player_info_pregame_real(): void {
     }
   }
   const pregamePlayerList = document.getElementById('pregame_player_list');
-  if (pregamePlayerList) pregamePlayerList.innerHTML = player_html;
+  setHtml(pregamePlayerList, player_html);
 
   for (const id in store.players) {
     const player = store.players[id as any];

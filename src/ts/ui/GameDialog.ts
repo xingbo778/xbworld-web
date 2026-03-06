@@ -354,7 +354,7 @@ export class GameDialog {
 
   private _renderButtons(): void {
     if (!this.buttonBar || !this.options.buttons) return;
-    this.buttonBar.innerHTML = '';
+    this.buttonBar.textContent = '';
 
     if (Array.isArray(this.options.buttons)) {
       for (const btn of this.options.buttons) {

@@ -175,7 +175,7 @@ export function showDialogMessage(title: string, message: string): void {
 /**
  * Shows the authentication/password dialog for private servers.
  */
-export function showAuthDialog(packet: any): void {
+export function showAuthDialog(packet: { message: string; [key: string]: unknown }): void {
   showAuthDialogPreact(packet);
 }
 

@@ -48,7 +48,7 @@ export function handle_player_info(packet: PlayerInfoPacket): void {
   }
 
   if (clientPlaying() != null
-      && packet['playerno'] === clientPlaying()['playerno']) {
+      && packet['playerno'] === clientPlaying()!['playerno']) {
     store.client.conn.playing = store.players[packet['playerno']];
   }
 }
@@ -57,7 +57,7 @@ export function handle_web_player_info_addition(packet: WebPlayerInfoAdditionPac
   Object.assign(store.players[packet['playerno']], packet);
 
   if (clientPlaying() != null) {
-    if (packet['playerno'] === clientPlaying()['playerno']) {
+    if (packet['playerno'] === clientPlaying()!['playerno']) {
       store.client.conn.playing = store.players[packet['playerno']];
       update_game_status_panel();
       update_net_income();
@@ -82,25 +82,25 @@ export function handle_player_diplstate(packet: PlayerDiplstatePacket): void {
 
   if (store.client == null || clientPlaying() == null) return;
 
-  if (packet['plr2'] === clientPlaying()['playerno']) {
-    const ds: any = store.players[packet['plr1']].diplstates;
+  if (packet['plr2'] === clientPlaying()!['playerno']) {
+    const ds = (store.players[packet['plr1']] as unknown as { diplstates?: Record<number, { state: number }> }).diplstates;
     if (ds != undefined && ds[packet['plr2']] != undefined
         && ds[packet['plr2']]['state'] !== packet['type']) {
       need_players_dialog_update = true;
     }
   }
 
-  if (packet['type'] === DiplState.DS_WAR && packet['plr2'] === clientPlaying()['playerno']
+  if (packet['type'] === DiplState.DS_WAR && packet['plr2'] === clientPlaying()!['playerno']
       && store.diplstates[packet['plr1']] !== DiplState.DS_WAR && store.diplstates[packet['plr1']] !== DiplState.DS_NO_CONTACT) {
     // alert_war removed — observer mode only
-  } else if (packet['type'] === DiplState.DS_WAR && packet['plr1'] === clientPlaying()['playerno']
+  } else if (packet['type'] === DiplState.DS_WAR && packet['plr1'] === clientPlaying()!['playerno']
       && store.diplstates[packet['plr2']] !== DiplState.DS_WAR && store.diplstates[packet['plr2']] !== DiplState.DS_NO_CONTACT) {
     // alert_war removed — observer mode only
   }
 
-  if (packet['plr1'] === clientPlaying()['playerno']) {
+  if (packet['plr1'] === clientPlaying()!['playerno']) {
     store.diplstates[packet['plr2']] = packet['type'];
-  } else if (packet['plr2'] === clientPlaying()['playerno']) {
+  } else if (packet['plr2'] === clientPlaying()!['playerno']) {
     store.diplstates[packet['plr1']] = packet['type'];
   }
 

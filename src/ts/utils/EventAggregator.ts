@@ -23,7 +23,7 @@ export class EventAggregator {
   delayTimeout: number;
   dataPolicy: number;
   timer: ReturnType<typeof setTimeout> | null = null;
-  data: any;
+  data: unknown;
   burst = false;
   delays = 0;
   count = 0;
@@ -73,7 +73,7 @@ export class EventAggregator {
     }
   }
 
-  update(data?: any): void {
+  update(data?: unknown): void {
     switch (this.dataPolicy) {
       case DP_FIRST:
         if (this.count === 0) this.data = data;
@@ -82,7 +82,7 @@ export class EventAggregator {
         this.data = data;
         break;
       case DP_ALL:
-        this.data.push(data);
+        (this.data as unknown[]).push(data);
         break;
     }
     this.count++;
