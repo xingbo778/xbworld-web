@@ -64,7 +64,7 @@ export function format_action_probability(probability: { min: number; max: numbe
   Format the label of an action selection button.
 **************************************************************************/
 export function format_action_label(action_id: number, action_probabilities: ActProbMap): string {
-  return store.actions[action_id]['ui_name'].replace("%s", "").replace("%s",
+  return (store.actions[action_id]['ui_name'] as string).replace("%s", "").replace("%s",
     format_action_probability(action_probabilities[action_id]));
 }
 

@@ -2,6 +2,7 @@
  * Player and diplomacy state handlers.
  */
 import { store } from '../../data/store';
+import type { Tile, Unit, City } from '../../data/types';
 import { BitVector } from '../../utils/bitvector';
 import { sendUnitGetActions } from '../commands';
 import { IDENTITY_NUMBER_ZERO } from '../../core/constants';
@@ -20,10 +21,15 @@ import {
   action_selection_target_unit, action_selection_target_tile,
   action_selection_target_extra,
 } from '../../ui/actionDialog';
+import type {
+  BasePacket,
+  PlayerInfoPacket, WebPlayerInfoAdditionPacket,
+  PlayerRemovePacket, PlayerDiplstatePacket,
+} from './packetTypes';
 
 const REQEST_BACKGROUND_REFRESH = 1;
 
-export function handle_player_info(packet: any): void {
+export function handle_player_info(packet: PlayerInfoPacket): void {
   if (packet['name'] != null) {
     packet['name'] = decodeURIComponent(packet['name']);
   }
@@ -47,7 +53,7 @@ export function handle_player_info(packet: any): void {
   }
 }
 
-export function handle_web_player_info_addition(packet: any): void {
+export function handle_web_player_info_addition(packet: WebPlayerInfoAdditionPacket): void {
   Object.assign(store.players[packet['playerno']], packet);
 
   if (clientPlaying() != null) {
@@ -64,14 +70,14 @@ export function handle_web_player_info_addition(packet: any): void {
   assign_nation_color(store.players[packet['playerno']]['nation']);
 }
 
-export function handle_player_remove(packet: any): void {
+export function handle_player_remove(packet: PlayerRemovePacket): void {
   delete store.players[packet['playerno']];
   update_player_info_pregame();
 }
 
-export function handle_player_attribute_chunk(_packet: any): void { /* no-op */ }
+export function handle_player_attribute_chunk(_packet: BasePacket): void { /* no-op */ }
 
-export function handle_player_diplstate(packet: any): void {
+export function handle_player_diplstate(packet: PlayerDiplstatePacket): void {
   let need_players_dialog_update = false;
 
   if (store.client == null || clientPlaying() == null) return;
@@ -109,9 +115,9 @@ export function handle_player_diplstate(packet: any): void {
 
   if (need_players_dialog_update
       && action_selection_actor_unit() !== IDENTITY_NUMBER_ZERO) {
-    let tgt_tile: any;
-    let tgt_unit: any;
-    let tgt_city: any;
+    let tgt_tile: Tile | null | undefined;
+    let tgt_unit: Unit | null | undefined;
+    let tgt_city: City | null | undefined;
 
     if ((action_selection_target_unit() !== IDENTITY_NUMBER_ZERO
          && ((tgt_unit = game_find_unit_by_number(action_selection_target_unit())))

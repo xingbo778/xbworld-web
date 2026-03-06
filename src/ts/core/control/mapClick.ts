@@ -54,10 +54,10 @@ export function order_wants_direction(order: number, act_id: number, ptile: Tile
     case ORDER_ACTION_MOVE:
       return true;
     case Order.PERFORM_ACTION:
-      if (action['min_distance'] > 0) {
+      if ((action['min_distance'] as number) > 0) {
         return true;
       }
-      if (action['max_distance'] < 1) {
+      if ((action['max_distance'] as number) < 1) {
         return false;
       }
       if (tile_city(ptile) != null
@@ -132,7 +132,7 @@ export function do_map_click(ptile: Tile, qtype: number, first_time_called: bool
       for (let s = 0; s < S.current_focus.length; s++) {
         punit = S.current_focus[s];
         const goto_path = S.goto_request_map[punit['id'] + "," + ptile['x'] + "," + ptile['y']];
-        if (goto_path == null) {
+        if (goto_path == null || goto_path === true) {
           continue;
         }
 
@@ -405,7 +405,8 @@ export function request_goto_path(unit_id: number, dst_x: number, dst_y: number)
     if (unitTextDetails) unitTextDetails.innerHTML = "Choose unit goto";
     setTimeout(update_mouse_cursor, 700);
   } else {
-    update_goto_path(S.goto_request_map[unit_id + "," + dst_x + "," + dst_y]);
+    const cached = S.goto_request_map[unit_id + "," + dst_x + "," + dst_y];
+    if (cached !== true) update_goto_path(cached);
   }
 }
 
@@ -425,7 +426,7 @@ export function check_request_goto_path() {
   S.setPrevMouseY(S.mouse_y);
 }
 
-export function update_goto_path(goto_packet: Record<string, unknown> & { unit_id: number; dest: number; dir: number[]; turns: number }) {
+export function update_goto_path(goto_packet: Record<string, unknown> & { unit_id: number; dest: number; dir: number[]; length: number; turns: number }) {
   const punit = store.units[goto_packet['unit_id']];
   if (punit == null) return;
   const t0 = index_to_tile(punit['tile']);

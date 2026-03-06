@@ -17,8 +17,15 @@ import { get_units_in_focus, update_unit_focus, update_active_units_dialog } fro
 import { auto_center_on_focus_unit } from '../../core/control/unitFocus';
 import { update_game_info_pregame } from '../../core/pregame';
 import { reset_unit_anim_list } from '../../data/unit';
+import type {
+  BasePacket,
+  GameInfoPacket, CalendarInfoPacket, NewYearPacket,
+  TimeoutInfoPacket, TradeRouteInfoPacket, EndgamePlayerPacket,
+  UnknownResearchPacket, ScenarioInfoPacket, ScenarioDescriptionPacket,
+  ResearchInfoPacket,
+} from './packetTypes';
 
-export function handle_game_info(packet: any): void {
+export function handle_game_info(packet: GameInfoPacket): void {
   store.gameInfo = packet;
 
   if (
@@ -35,70 +42,70 @@ export function handle_game_info(packet: any): void {
   }
 }
 
-export function handle_calendar_info(packet: any): void {
+export function handle_calendar_info(packet: CalendarInfoPacket): void {
   store.calendarInfo = packet;
 }
 
-export function handle_spaceship_info(_packet: any): void {
+export function handle_spaceship_info(_packet: BasePacket): void {
   // spaceship/spacerace feature removed
 }
 
-export function handle_new_year(packet: any): void {
+export function handle_new_year(packet: NewYearPacket): void {
   if (!store.gameInfo) return;
   store.gameInfo['year'] = packet['year'];
   store.gameInfo['fragments'] = packet['fragments'];
   store.gameInfo['turn'] = packet['turn'];
 }
 
-export function handle_timeout_info(packet: any): void {
+export function handle_timeout_info(packet: TimeoutInfoPacket): void {
   store.lastTurnChangeTime = Math.ceil(packet['last_turn_change_time']);
   store.secondsToPhasedone = Math.floor(packet['seconds_to_phasedone']);
   store.secondsToPhasedoneSync = new Date().getTime();
 }
 
-export function handle_trade_route_info(packet: any): void {
+export function handle_trade_route_info(packet: TradeRouteInfoPacket): void {
   if (city_trade_routes[packet['city']] == null) {
     city_trade_routes[packet['city']] = {};
   }
   city_trade_routes[packet['city']][packet['index']] = packet;
 }
 
-export function handle_endgame_player(packet: any): void {
+export function handle_endgame_player(packet: EndgamePlayerPacket): void {
   store.endgamePlayerInfo.push(packet);
   (window as unknown as Record<string, unknown>)['endgame_player_info'] = store.endgamePlayerInfo;  // legacy JS bridge
 }
 
-export function handle_unknown_research(packet: any): void {
+export function handle_unknown_research(packet: UnknownResearchPacket): void {
   delete research_data[packet['id']];
 }
 
-export function handle_end_phase(_packet: any): void {
+export function handle_end_phase(_packet: BasePacket): void {
   chatbox_clip_messages();
 }
 
-export function handle_start_phase(_packet: any): void {
+export function handle_start_phase(_packet: BasePacket): void {
   set_client_state(C_S_RUNNING);
   setPhaseStart();
   store.savedThisTurn = false;
 }
 
-export function handle_endgame_report(_packet: any): void {
+export function handle_endgame_report(_packet: BasePacket): void {
   set_client_state(C_S_OVER);
 }
 
-export function handle_scenario_info(packet: any): void {
+export function handle_scenario_info(packet: ScenarioInfoPacket): void {
   store.scenarioInfo = packet;
 }
 
-export function handle_scenario_description(packet: any): void {
+export function handle_scenario_description(packet: ScenarioDescriptionPacket): void {
   store.scenarioInfo!['description'] = packet['description'];
   update_game_info_pregame();
 }
 
-export function handle_research_info(packet: any): void {
-  let old_inventions: any = null;
+export function handle_research_info(packet: ResearchInfoPacket): void {
+  let old_inventions: number[] | null = null;
   if (research_data[packet['id']] != null) {
-    old_inventions = research_data[packet['id']]['inventions'];
+    old_inventions = research_data[packet['id']]['inventions'] as number[];
   }
 
   research_data[packet['id']] = packet;
@@ -133,7 +140,7 @@ export function handle_research_info(packet: any): void {
   bulbs_output_updater.update();
 }
 
-export function handle_begin_turn(_packet: any): void {
+export function handle_begin_turn(_packet: BasePacket): void {
   if (typeof mark_all_dirty === 'function') mark_all_dirty();
 
   if (!store.observing) {
@@ -156,7 +163,7 @@ export function handle_begin_turn(_packet: any): void {
   if (is_tech_tree_init && tech_dialog_active) update_tech_screen();
 }
 
-export function handle_end_turn(_packet: any): void {
+export function handle_end_turn(_packet: BasePacket): void {
   reset_unit_anim_list();
   if (!store.observing) {
     const btn = document.getElementById('turn_done_button') as HTMLButtonElement | null;

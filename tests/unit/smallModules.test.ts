@@ -192,8 +192,8 @@ describe('extra.ts', () => {
 describe('actions.ts', () => {
   beforeEach(() => {
     store.actions = {
-      0: { id: 0, result: 10, ui_name: 'Attack' },
-      1: { id: 1, result: 20, ui_name: 'Fortify' },
+      0: { id: 0, result: 10, ui_name: 'Attack', enablers: [] },
+      1: { id: 1, result: 20, ui_name: 'Fortify', enablers: [] },
     };
   });
 
@@ -213,11 +213,11 @@ describe('actions.ts', () => {
 
   describe('actionHasResult', () => {
     it('should return true when result matches', () => {
-      expect(actionHasResult(store.actions[0], 10)).toBe(true);
+      expect(actionHasResult(actionByNumber(0), 10)).toBe(true);
     });
 
     it('should return false when result does not match', () => {
-      expect(actionHasResult(store.actions[0], 20)).toBe(false);
+      expect(actionHasResult(actionByNumber(0), 20)).toBe(false);
     });
 
     it('should return null for null action', () => {

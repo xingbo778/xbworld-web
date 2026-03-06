@@ -19,8 +19,12 @@ import type {
   Tech,
   Improvement,
   Connection,
+  MapInfo,
+  Unit,
+  GameInfo,
+  CalendarInfo,
 } from '../../data/types';
-
+import type { ResearchData } from '../../data/player';
 // ---------------------------------------------------------------------------
 // Base packet -- used for stub/TODO handlers that ignore packet contents
 // ---------------------------------------------------------------------------
@@ -249,5 +253,320 @@ export interface ServerSettingConstPacket {
 
 export interface ServerSettingUpdatePacket {
   id: number;
+  [key: string]: unknown;
+}
+
+// ---------------------------------------------------------------------------
+// City packets
+// ---------------------------------------------------------------------------
+
+/**
+ * Full city info — handler mutates name, improvements (number[] -> BitVector),
+ * city_options (number[] -> BitVector), and adds unhappy.
+ * Stored into store.cities as City via cast.
+ */
+export interface CityInfoPacket {
+  id: number;
+  tile: number;
+  name: string;
+  owner: number;
+  improvements: unknown;
+  city_options: unknown;
+  [key: string]: unknown;
+}
+
+/**
+ * City short info — handler mutates name and improvements
+ * (number[] -> BitVector). Stored into store.cities as City via cast.
+ */
+export interface CityShortInfoPacket {
+  id: number;
+  tile: number;
+  name: string;
+  improvements: unknown;
+  [key: string]: unknown;
+}
+
+export interface CityNationalitiesPacket {
+  id: number;
+  [key: string]: unknown;
+}
+
+export interface CityRallyPointPacket {
+  id: number;
+  [key: string]: unknown;
+}
+
+export interface WebCityInfoAdditionPacket {
+  id: number;
+  [key: string]: unknown;
+}
+
+export interface CityUpdateCountersPacket {
+  id: number;
+  counters: unknown;
+  [key: string]: unknown;
+}
+
+export interface CityRemovePacket {
+  city_id: number;
+  [key: string]: unknown;
+}
+
+export interface CityNameSuggestionInfoPacket {
+  name: string;
+  unit_id: number;
+  [key: string]: unknown;
+}
+
+export interface CitySabotageListPacket {
+  request_kind: number;
+  actor_id: number;
+  city_id: number;
+  improvements: number[];
+  act_id: number;
+  [key: string]: unknown;
+}
+
+// ---------------------------------------------------------------------------
+// Map packets
+// ---------------------------------------------------------------------------
+
+export interface TileInfoPacket {
+  tile: number;
+  extras: unknown;
+  [key: string]: unknown;
+}
+
+/** Extends MapInfo so it can be assigned directly to store.mapInfo. */
+export interface MapInfoPacket extends MapInfo {}
+
+export interface NukeTileInfoPacket {
+  tile: number;
+  [key: string]: unknown;
+}
+
+// ---------------------------------------------------------------------------
+// Chat / message packets
+// ---------------------------------------------------------------------------
+
+export interface ChatMsgPacket {
+  message: string;
+  conn_id: number;
+  event: number;
+  tile: number;
+  [key: string]: unknown;
+}
+
+export interface PageMsgPacket {
+  headline: string;
+  caption: string;
+  event: number;
+  parts: number;
+  [key: string]: unknown;
+}
+
+export interface PageMsgPartPacket {
+  lines: string;
+  [key: string]: unknown;
+}
+
+// ---------------------------------------------------------------------------
+// Freeze / thaw packets (all use BasePacket — no fields accessed)
+// ---------------------------------------------------------------------------
+
+// (handled via BasePacket)
+
+// ---------------------------------------------------------------------------
+// Unit packets
+// ---------------------------------------------------------------------------
+
+export interface UnitRemovePacket {
+  unit_id: number;
+  [key: string]: unknown;
+}
+
+/**
+ * Unit info / short info packet. Extends Unit so it can be stored directly.
+ * The handler adds `anim_list` and sets `facing` before storing.
+ */
+export interface UnitInfoPacket extends Unit {}
+
+export interface UnitCombatInfoPacket {
+  attacker_unit_id: number;
+  defender_unit_id: number;
+  attacker_hp: number;
+  defender_hp: number;
+  [key: string]: unknown;
+}
+
+export interface UnitActionAnswerPacket {
+  actor_id: number;
+  target_id: number;
+  cost: number;
+  action_type: number;
+  request_kind: number;
+  [key: string]: unknown;
+}
+
+export interface UnitActionsPacket {
+  actor_unit_id: number;
+  target_unit_id: number;
+  target_city_id: number;
+  target_tile_id: number;
+  target_extra_id: number;
+  action_probabilities: { min: number; max: number }[];
+  request_kind: number;
+  [key: string]: unknown;
+}
+
+// ---------------------------------------------------------------------------
+// Player packets
+// ---------------------------------------------------------------------------
+
+export interface PlayerInfoPacket {
+  playerno: number;
+  name?: string;
+  flags?: number[];
+  gives_shared_vision?: number[];
+  [key: string]: unknown;
+}
+
+export interface WebPlayerInfoAdditionPacket {
+  playerno: number;
+  nation: number;
+  [key: string]: unknown;
+}
+
+export interface PlayerRemovePacket {
+  playerno: number;
+  [key: string]: unknown;
+}
+
+export interface PlayerDiplstatePacket {
+  plr1: number;
+  plr2: number;
+  type: number;
+  turns_left: number;
+  contact_turns_left: number;
+  [key: string]: unknown;
+}
+
+// ---------------------------------------------------------------------------
+// Game state packets
+// ---------------------------------------------------------------------------
+
+/** Extends GameInfo so it can be assigned directly to store.gameInfo. */
+export interface GameInfoPacket extends GameInfo {}
+
+/** Extends CalendarInfo so it can be assigned directly to store.calendarInfo. */
+export interface CalendarInfoPacket extends CalendarInfo {}
+
+export interface NewYearPacket {
+  year: number;
+  fragments: number;
+  turn: number;
+  [key: string]: unknown;
+}
+
+export interface TimeoutInfoPacket {
+  last_turn_change_time: number;
+  seconds_to_phasedone: number;
+  [key: string]: unknown;
+}
+
+export interface TradeRouteInfoPacket {
+  city: number;
+  index: number;
+  [key: string]: unknown;
+}
+
+export interface EndgamePlayerPacket {
+  [key: string]: unknown;
+}
+
+export interface UnknownResearchPacket {
+  id: number;
+  [key: string]: unknown;
+}
+
+export interface ScenarioInfoPacket {
+  [key: string]: unknown;
+}
+
+export interface ScenarioDescriptionPacket {
+  description: string;
+  [key: string]: unknown;
+}
+
+/** Extends ResearchData so it can be stored directly into research_data. */
+export interface ResearchInfoPacket extends ResearchData {
+  id: number;
+  inventions: number[];
+  team: number;
+}
+
+// ---------------------------------------------------------------------------
+// Diplomacy packets
+// ---------------------------------------------------------------------------
+
+export interface DiplomacyInitMeetingPacket {
+  counterpart: number;
+  [key: string]: unknown;
+}
+
+export interface DiplomacyCancelMeetingPacket {
+  counterpart: number;
+  [key: string]: unknown;
+}
+
+export interface DiplomacyCreateClausePacket {
+  counterpart: number;
+  giver: number;
+  type: number;
+  value: number;
+  [key: string]: unknown;
+}
+
+export interface DiplomacyRemoveClausePacket {
+  counterpart: number;
+  giver: number;
+  type: number;
+  value: number;
+  [key: string]: unknown;
+}
+
+export interface DiplomacyAcceptTreatyPacket {
+  counterpart: number;
+  I_accepted: boolean;
+  other_accepted: boolean;
+  [key: string]: unknown;
+}
+
+// ---------------------------------------------------------------------------
+// Goto packet
+// ---------------------------------------------------------------------------
+
+export interface WebGotoPathPacket {
+  unit_id: number;
+  dest: number;
+  dir: number[];
+  turns: number;
+  length: number;
+  [key: string]: unknown;
+}
+
+// ---------------------------------------------------------------------------
+// Unit orders (outgoing command packet)
+// ---------------------------------------------------------------------------
+
+export interface UnitOrdersPacket {
+  unit_id: number;
+  src_tile: number;
+  length: number;
+  repeat: boolean;
+  vigilant: boolean;
+  dest_tile: number;
+  orders: Record<string, number>[];
   [key: string]: unknown;
 }

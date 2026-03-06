@@ -14,6 +14,7 @@ import { update_map_canvas_check } from '../renderer/mapviewCommon';
 import { handle_web_info_text_message } from '../renderer/mapctrl';
 import { update_goto_path } from '../core/control/mapClick';
 import { goto_active } from '../core/control/controlState';
+import type { BasePacket, WebGotoPathPacket } from './handlers/packetTypes';
 
 // Re-export all handlers from sub-modules
 export {
@@ -112,7 +113,7 @@ export {
 } from './handlers/chat';
 
 // Goto handler (small, stays here)
-export function handle_web_goto_path(packet: any): void {
+export function handle_web_goto_path(packet: WebGotoPathPacket): void {
   if (goto_active) {
     update_goto_path(packet);
   }
@@ -212,7 +213,13 @@ import {
 // Packet Router
 // ============================================================================
 
-export const packet_hand_table: Record<number, (packet: any) => void> = {
+// The packet routing table is inherently heterogeneous: each handler expects
+// a different packet subtype, but the router dispatches by pid at runtime.
+// Individual handlers are fully typed; the table erases to BasePacket for
+// the common wire shape (every packet has `[key: string]: unknown`).
+type PacketHandler = (packet: BasePacket) => void;
+// Cast needed: handler params are subtypes of BasePacket (contravariance).
+export const packet_hand_table = {
   0:   handle_processing_started,
   1:   handle_processing_finished,
   21:  handle_investigate_started,
@@ -344,15 +351,15 @@ export const packet_hand_table: Record<number, (packet: any) => void> = {
   259: handle_web_player_info_addition,
   260: handle_web_ruleset_unit_addition,
   288: handle_web_goto_path,
-};
+} as unknown as Record<number, PacketHandler>;
 
 // Register handle_web_info_text_message from mapctrl
-packet_hand_table[290] = handle_web_info_text_message;
+packet_hand_table[290] = handle_web_info_text_message as PacketHandler;
 
 /**
  * Main packet dispatch function.
  */
-export function client_handle_packet(packets: any[]): void {
+export function client_handle_packet(packets: (BasePacket & { pid: number })[] | null): void {
   if (packets == null) return;
   try {
     for (let i = 0; i < packets.length; i++) {
@@ -374,6 +381,6 @@ export function client_handle_packet(packets: any[]): void {
   }
 }
 
-export function register_packet_handler(pid: number, handler: (packet: any) => void): void {
+export function register_packet_handler(pid: number, handler: PacketHandler): void {
   packet_hand_table[pid] = handler;
 }

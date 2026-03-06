@@ -29,6 +29,7 @@ import {
   packet_conn_pong, packet_client_info,
   packet_web_cma_clear, packet_web_goto_path_req, packet_web_info_text_req,
 } from './packetConstants';
+import type { UnitOrdersPacket } from './handlers/packetTypes';
 
 function send(packet: Record<string, unknown>): void {
   send_request(JSON.stringify(packet));
@@ -122,7 +123,7 @@ export function sendUnitSscsSet(unitId: number, type: number, value: number): vo
   send({ pid: packet_unit_sscs_set, unit_id: unitId, type, value });
 }
 
-export function sendUnitOrders(packet: any): void {
+export function sendUnitOrders(packet: UnitOrdersPacket): void {
   // Unit orders packet is complex (has arrays), pass through
   send({ pid: packet_unit_orders, ...packet });
 }

@@ -57,29 +57,29 @@ class GameStore {
   serverSettings: Record<string, ServerSetting> = {};
 
   // Ruleset data (previously window globals)
-  resources: Record<number, any> = {};
-  gameRules: any = null;
-  specialists: Record<number, any> = {};
-  nationGroups: any[] = [];
-  cityRules: Record<number, any> = {};
-  actions: Record<number, any> = {};
-  goods: Record<number, any> = {};
-  clauseInfos: Record<number, any> = {};
-  effects: Record<string, any[]> = {};
-  unitClasses: Record<number, any> = {};
-  terrainControl: any = {};
+  resources: Record<number, Record<string, unknown> & { id: number }> = {};
+  gameRules: Record<string, unknown> | null = null;
+  specialists: Record<number, Record<string, unknown> & { id: number }> = {};
+  nationGroups: unknown[] = [];
+  cityRules: Record<number, Record<string, unknown> & { style_id: number }> = {};
+  actions: Record<number, Record<string, unknown> & { id: number; enablers: unknown[] }> = {};
+  goods: Record<number, Record<string, unknown> & { id: number }> = {};
+  clauseInfos: Record<number, Record<string, unknown> & { type: number }> = {};
+  effects: Record<string, (Record<string, unknown> & { effect_type: number })[]> = {};
+  unitClasses: Record<number, Record<string, unknown> & { id: number; flags: number[] }> = {};
+  terrainControl: Record<string, unknown> & { move_fragments?: number } = {};
   singleMove: number | undefined = undefined;
   extraIds: Record<string, number> = {};  // EXTRA_ROAD, EXTRA_RAIL, etc.
 
   // Rendering/runtime state (previously window globals)
   renderer: number = 0;  // RENDERER_2DCANVAS etc.
-  sprites: Record<string, any> = {};
-  tileset: Record<string, any> = {};
+  sprites: Record<string, HTMLCanvasElement> = {};
+  tileset: Record<string, number[]> = {};
   scenarioInfo: Record<string, unknown> | null = null;
   selectedPlayer: number = -1;
-  diplstates: Record<number, any> = {};
+  diplstates: Record<number, number> = {};
   civserverport: string | number = '';
-  freecivWikiDocs: Record<string, string> = {};
+  freecivWikiDocs: Record<string, { image: string | null; summary: string; title: string }> = {};
 
   // Canvas/map rendering state
   mapviewCanvasCtx: CanvasRenderingContext2D | null = null;
@@ -108,7 +108,7 @@ class GameStore {
   endgamePlayerInfo: Record<string, unknown>[] = [];
   benchmarkStart: number = 0;
   autoAttack: boolean = false;
-  cityTileMap: any = null;
+  cityTileMap: { radius_sq: number; radius: number; base_sorted: number[][]; maps: (number[] | null)[] } | null = null;
 
   client: ClientState = {
     conn: { id: 0, playing: null },

@@ -6,10 +6,11 @@ import { BitVector } from '../../utils/bitvector';
 import { mapInitTopology, mapAllocate, indexToTile } from '../../data/map';
 import { mark_tile_dirty, mapdeco_init } from '../../renderer/mapviewCommon';
 import { play_sound } from '../../audio/sounds';
+import type { TileInfoPacket, MapInfoPacket, NukeTileInfoPacket } from './packetTypes';
 
-export function handle_tile_info(packet: any): void {
+export function handle_tile_info(packet: TileInfoPacket): void {
   if (store.tiles != null) {
-    packet['extras'] = new BitVector(packet['extras']);
+    packet['extras'] = new BitVector(packet['extras'] as number[]);
 
     Object.assign(store.tiles[packet['tile']], packet);
 
@@ -19,14 +20,14 @@ export function handle_tile_info(packet: any): void {
   }
 }
 
-export function handle_map_info(packet: any): void {
+export function handle_map_info(packet: MapInfoPacket): void {
   store.mapInfo = packet;
   mapInitTopology(false);
   mapAllocate();
   mapdeco_init();
 }
 
-export function handle_nuke_tile_info(packet: any): void {
+export function handle_nuke_tile_info(packet: NukeTileInfoPacket): void {
   const ptile = indexToTile(packet['tile']);
   ptile['nuke'] = 60;
   play_sound('LrgExpl.ogg');

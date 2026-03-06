@@ -32,7 +32,7 @@ interface Action {
  * Returns null if no action with the given id exists.
  */
 export function actionByNumber(actId: number): Action | null {
-  const actions = store.actions as Record<number, Action>;
+  const actions = store.actions as unknown as Record<number, Action>;
   if (actions[actId] == undefined) {
     console.log('Asked for non existing action numbered %d', actId);
     return null;

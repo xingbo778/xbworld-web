@@ -196,8 +196,8 @@ export function buildSpecialistHtml(
   }
 
   for (let u = 0; u < (pcity as any)['specialists_size']; u++) {
-    const spec_type_name: string = store.specialists[u]['plural_name'];
-    const spec_gfx_key: string = "specialist." + store.specialists[u]['rule_name'] + "_0";
+    const spec_type_name: string = store.specialists[u]['plural_name'] as string;
+    const spec_gfx_key: string = "specialist." + (store.specialists[u]['rule_name'] as string) + "_0";
     for (let j = 0; j < (pcity as any)['specialists'][u]; j++) {
       const sprite = getSpecialistSprite(spec_gfx_key);
       if (sprite == null) continue;

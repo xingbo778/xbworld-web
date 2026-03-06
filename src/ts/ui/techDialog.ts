@@ -29,7 +29,7 @@ function loadWikiDocs(): void {
     .catch(() => { /* wiki docs unavailable, non-critical */ });
 }
 // Wiki docs are loaded on-demand when the user first opens tech info
-const freeciv_wiki_docs = new Proxy({} as Record<string, any>, {
+const freeciv_wiki_docs = new Proxy({} as Record<string, { image: string | null; summary: string; title: string } | undefined>, {
   get: (_target, prop: string) => (store.freecivWikiDocs || {})[prop],
 });
 import { mouse_x, mouse_y } from '../core/control/controlState';

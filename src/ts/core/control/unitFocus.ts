@@ -378,11 +378,11 @@ export function update_unit_order_commands(): { [key: string]: { name: string } 
         hideEl('order_forest_add');
       }
       if (player_invention_state(clientPlaying(), tech_id_by_name('Construction') as unknown as number) == FC_TECH_KNOWN) {
-        unit_actions["fortress"] = { name: string_unqualify(terrain_control['gui_type_base0']) + " (Shift-F)" };
+        unit_actions["fortress"] = { name: string_unqualify(terrain_control['gui_type_base0'] as string) + " (Shift-F)" };
       }
 
       if (player_invention_state(clientPlaying(), tech_id_by_name('Radio') as unknown as number) == FC_TECH_KNOWN) {
-        unit_actions["airbase"] = { name: string_unqualify(terrain_control['gui_type_base1']) + " (E)" };
+        unit_actions["airbase"] = { name: string_unqualify(terrain_control['gui_type_base1'] as string) + " (E)" };
       }
 
     } else {

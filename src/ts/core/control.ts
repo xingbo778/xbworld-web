@@ -146,21 +146,30 @@ export function control_init(): void {
     if (!S.allow_right_click) e.preventDefault();
   }, false);
 
-  const context_options: any = {
+  interface ContextMenuOptions {
+    selector: string;
+    zIndex?: number;
+    autoHide?: boolean;
+    callback: (key: string, options: Record<string, unknown>) => void;
+    build: ($trigger: unknown, e: Event) => false | { callback: (key: string, options: Record<string, unknown>) => void; items: Record<string, unknown> };
+    position?: (opt: Record<string, unknown> & { $menu: { css: (props: Record<string, unknown>) => void } }, x: number, y: number) => void;
+  }
+
+  const context_options: ContextMenuOptions = {
     selector: (RENDERER_2DCANVAS) ? '#canvas' : '#canvas_div',
     zIndex: 5000,
     autoHide: true,
-    callback: function(key: string, options: any) {
+    callback: function(key: string, options: Record<string, unknown>) {
       handle_context_menu_callback(key);
     },
-    build: function($trigger: any, e: Event) {
+    build: function($trigger: unknown, e: Event) {
       if (!S.context_menu_active) {
         S.setContextMenuActive(true);
         return false;
       }
       const unit_actions = update_unit_order_commands();
       return {
-        callback: function(key: string, options: any) {
+        callback: function(key: string, options: Record<string, unknown>) {
           handle_context_menu_callback(key);
         },
         items: unit_actions
@@ -169,7 +178,7 @@ export function control_init(): void {
   };
 
   if (!is_touch_device()) {
-    context_options['position'] = function(opt: any, x: number, y: number) {
+    context_options.position = function(opt: Record<string, unknown> & { $menu: { css: (props: Record<string, unknown>) => void } }, x: number, y: number) {
       if (is_touch_device()) return;
       const canvasDivEl = document.getElementById('canvas_div');
       const canvasEl = document.getElementById('canvas');

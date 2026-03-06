@@ -2,6 +2,7 @@
  * Unit packet handlers.
  */
 import { store } from '../../data/store';
+import type { Unit, Tile } from '../../data/types';
 import { sendUnitGetActions } from '../commands';
 import {
   ACTION_ATTACK, ACTION_SUICIDE_ATTACK,
@@ -43,6 +44,10 @@ import {
   popup_incite_dialog, popup_unit_upgrade_dlg,
   action_selection_refresh, action_selection_close,
 } from '../../ui/actionDialog';
+import type {
+  UnitRemovePacket, UnitInfoPacket, UnitCombatInfoPacket,
+  UnitActionAnswerPacket, UnitActionsPacket,
+} from './packetTypes';
 
 const auto_attack_actions = [
   ACTION_ATTACK, ACTION_SUICIDE_ATTACK,
@@ -52,7 +57,7 @@ const REQEST_PLAYER_INITIATED = 0;
 const REQEST_BACKGROUND_REFRESH = 1;
 const REQEST_BACKGROUND_FAST_AUTO_ATTACK = 2;
 
-export function handle_unit_remove(packet: any): void {
+export function handle_unit_remove(packet: UnitRemovePacket): void {
   const punit = game_find_unit_by_number(packet['unit_id']);
   if (punit == null) return;
 
@@ -69,7 +74,7 @@ export function handle_unit_remove(packet: any): void {
   client_remove_unit(punit);
 }
 
-export function handle_unit_info(packet: any): void {
+export function handle_unit_info(packet: UnitInfoPacket): void {
   if (typeof mark_tile_dirty === 'function' && packet['tile'] != null) {
     mark_tile_dirty(packet['tile']);
     const old_unit = store.units[packet['id']];
@@ -80,7 +85,7 @@ export function handle_unit_info(packet: any): void {
   handle_unit_packet_common(packet);
 }
 
-export function handle_unit_short_info(packet: any): void {
+export function handle_unit_short_info(packet: UnitInfoPacket): void {
   if (typeof mark_tile_dirty === 'function' && packet['tile'] != null) {
     mark_tile_dirty(packet['tile']);
     const old_unit = store.units[packet['id']];
@@ -91,13 +96,13 @@ export function handle_unit_short_info(packet: any): void {
   handle_unit_packet_common(packet);
 }
 
-export function action_decision_handle(punit: any): void {
+export function action_decision_handle(punit: Unit): void {
   for (let a = 0; a < auto_attack_actions.length; a++) {
     const action = auto_attack_actions[a];
     if (utype_can_do_action(unit_type(punit), action) && store.autoAttack) {
       sendUnitGetActions(
         punit['id'], IDENTITY_NUMBER_ZERO,
-        punit['action_decision_tile'], EXTRA_NONE,
+        punit['action_decision_tile'] as number, EXTRA_NONE,
         REQEST_BACKGROUND_FAST_AUTO_ATTACK
       );
       return;
@@ -107,9 +112,9 @@ export function action_decision_handle(punit: any): void {
 }
 
 export function action_decision_maybe_auto(
-  actor_unit: any, action_probabilities: any,
-  target_tile: any, target_extra: any,
-  target_unit: any, _target_city: any
+  actor_unit: Unit, action_probabilities: { min: number; max: number }[],
+  target_tile: Tile, target_extra: unknown,
+  target_unit: Unit | undefined, _target_city: unknown
 ): void {
   for (let a = 0; a < auto_attack_actions.length; a++) {
     const action = auto_attack_actions[a];
@@ -127,11 +132,11 @@ export function action_decision_maybe_auto(
   action_decision_request(actor_unit);
 }
 
-export function update_client_state(value: any): void {
+export function update_client_state(value: number): void {
   setClientState(value);
 }
 
-export function handle_unit_packet_common(packet_unit: any): void {
+export function handle_unit_packet_common(packet_unit: UnitInfoPacket): void {
   const punit = player_find_unit_by_id(
     unit_owner(packet_unit) as any, packet_unit['id']
   );
@@ -141,10 +146,10 @@ export function handle_unit_packet_common(packet_unit: any): void {
   }
 
   if (punit == null && game_find_unit_by_number(packet_unit['id']) != null) {
-    handle_unit_remove(packet_unit['id']);
+    handle_unit_remove(packet_unit['id'] as unknown as UnitRemovePacket);
   }
 
-  let old_tile: any = null;
+  let old_tile: Tile | null = null;
   if (punit != null) old_tile = indexToTile(punit['tile']);
 
   if (store.units[packet_unit['id']] == null) {
@@ -186,7 +191,7 @@ export function handle_unit_packet_common(packet_unit: any): void {
   }
 }
 
-export function handle_unit_combat_info(packet: any): void {
+export function handle_unit_combat_info(packet: UnitCombatInfoPacket): void {
   const attacker = store.units[packet['attacker_unit_id']];
   const defender = store.units[packet['defender_unit_id']];
   const attacker_hp = packet['attacker_hp'];
@@ -200,7 +205,7 @@ export function handle_unit_combat_info(packet: any): void {
   }
 }
 
-export function handle_unit_action_answer(packet: any): void {
+export function handle_unit_action_answer(packet: UnitActionAnswerPacket): void {
   const diplomat_id = packet['actor_id'];
   const target_id = packet['target_id'];
   const cost = packet['cost'];
@@ -253,7 +258,7 @@ export function handle_unit_action_answer(packet: any): void {
   act_sel_queue_done(diplomat_id);
 }
 
-export function handle_unit_actions(packet: any): void {
+export function handle_unit_actions(packet: UnitActionsPacket): void {
   const actor_unit_id = packet['actor_unit_id'];
   const target_unit_id = packet['target_unit_id'];
   const target_city_id = packet['target_city_id'];
@@ -270,7 +275,7 @@ export function handle_unit_actions(packet: any): void {
   let hasActions = false;
 
   if (pdiplomat != null && ptile != null) {
-    action_probabilities.forEach(function(prob: any) {
+    action_probabilities.forEach(function(prob) {
       if (actionProbPossible(prob)) {
         hasActions = true;
       }
@@ -295,9 +300,9 @@ export function handle_unit_actions(packet: any): void {
                                action_probabilities);
     break;
   case REQEST_BACKGROUND_FAST_AUTO_ATTACK:
-    action_decision_maybe_auto(pdiplomat, action_probabilities,
-                                 ptile, target_extra,
-                                 target_unit, target_city);
+    action_decision_maybe_auto(pdiplomat!, action_probabilities,
+                                 ptile!, target_extra,
+                                 target_unit!, target_city);
     break;
   default:
     console.log('handle_unit_actions(): unrecognized request_kind %d',

@@ -41,9 +41,9 @@ import type {
 import type { UnitType, Extra } from '../../data/types';
 
 // Module-local state
-export let terrain_control: any = {};
-let roads: any[] = [];
-let bases: any[] = [];
+export let terrain_control: RulesetTerrainControlPacket | Record<string, never> = {};
+let roads: Extra[] = [];
+let bases: Extra[] = [];
 
 export function handle_ruleset_terrain(packet: RulesetTerrainPacket): void {
   if (packet['name'] === 'Lake') packet['graphic_str'] = packet['graphic_alt'];
@@ -92,8 +92,8 @@ export function handle_ruleset_description_part(packet: RulesetDescriptionPartPa
 }
 
 export function handle_ruleset_action(packet: RulesetActionPacket): void {
-  store.actions[packet['id']] = packet;
-  packet['enablers'] = [];
+  const action = { ...packet, enablers: [] as unknown[] };
+  store.actions[action['id']] = action;
 }
 
 export function handle_ruleset_goods(packet: RulesetGoodsPacket): void {

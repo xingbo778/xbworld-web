@@ -58,7 +58,7 @@ export let airlift_active: boolean = false;
 export let action_tgt_sel_active: boolean = false;
 export let goto_last_order: number = -1;
 export let goto_last_action: number = -1;
-export let goto_request_map: { [key: string]: any } = {};
+export let goto_request_map: { [key: string]: true | (Record<string, unknown> & { unit_id: number; dest: number; dir: number[]; length: number; turns: number }) } = {};
 export let goto_turns_request_map: { [key: string]: number } = {};
 export let current_goto_turns: number = 0;
 
@@ -68,7 +68,7 @@ export function setAirliftActive(v: boolean) { airlift_active = v; }
 export function setActionTgtSelActive(v: boolean) { action_tgt_sel_active = v; }
 export function setGotoLastOrder(v: number) { goto_last_order = v; }
 export function setGotoLastAction(v: number) { goto_last_action = v; }
-export function setGotoRequestMap(v: { [key: string]: any }) { goto_request_map = v; }
+export function setGotoRequestMap(v: { [key: string]: true | (Record<string, unknown> & { unit_id: number; dest: number; dir: number[]; length: number; turns: number }) }) { goto_request_map = v; }
 export function setGotoTurnsRequestMap(v: { [key: string]: number }) { goto_turns_request_map = v; }
 export function setCurrentGotoTurns(v: number) { current_goto_turns = v; }
 
