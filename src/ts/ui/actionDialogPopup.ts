@@ -410,7 +410,7 @@ export function popup_steal_tech_selection_dialog(actor_unit: Unit, target_city:
   for (const tech_id in store.techs) {
     const tech = store.techs[tech_id];
     const act_kn = player_invention_state(clientPlaying(), tech['id']);
-    const tgt_kn = player_invention_state(target_city['owner'], tech['id']);
+    const tgt_kn = player_invention_state(store.players[target_city['owner'] as number], tech['id']);
 
     if ((tgt_kn == TECH_KNOWN)
       && ((act_kn == TECH_PREREQS_KNOWN)

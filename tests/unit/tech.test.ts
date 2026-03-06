@@ -67,26 +67,26 @@ describe('Tech constants', () => {
 
 describe('playerInventionState', () => {
   it('should return TECH_KNOWN when player has the tech', () => {
-    const player = { inventions: { 5: TECH_KNOWN, 10: TECH_PREREQS_KNOWN } };
+    const player = { inventions: { 5: TECH_KNOWN, 10: TECH_PREREQS_KNOWN } } as any;
     expect(playerInventionState(player, 5)).toBe(TECH_KNOWN);
   });
 
   it('should return TECH_PREREQS_KNOWN when prereqs are known', () => {
-    const player = { inventions: { 5: TECH_KNOWN, 10: TECH_PREREQS_KNOWN } };
+    const player = { inventions: { 5: TECH_KNOWN, 10: TECH_PREREQS_KNOWN } } as any;
     expect(playerInventionState(player, 10)).toBe(TECH_PREREQS_KNOWN);
   });
 
   it('should return TECH_UNKNOWN when tech is not in inventions', () => {
-    const player = { inventions: { 5: TECH_KNOWN } };
+    const player = { inventions: { 5: TECH_KNOWN } } as any;
     expect(playerInventionState(player, 99)).toBe(TECH_UNKNOWN);
   });
 
   it('should return TECH_UNKNOWN for null player', () => {
-    expect(playerInventionState(null, 5)).toBe(TECH_UNKNOWN);
+    expect(playerInventionState(null as any, 5)).toBe(TECH_UNKNOWN);
   });
 
   it('should return TECH_UNKNOWN when inventions is null', () => {
-    const player = { inventions: null };
+    const player = { inventions: null } as any;
     expect(playerInventionState(player, 5)).toBe(TECH_UNKNOWN);
   });
 });

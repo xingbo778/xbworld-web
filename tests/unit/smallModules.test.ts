@@ -64,7 +64,7 @@ describe('improvement.ts', () => {
       { id: 2, name: 'Great Wall', soundtag: 'w_great_wall', reqs: [{ kind: 1, value: 10, present: true }] },
       { id: 3, name: 'Library', soundtag: 'b_library', reqs: [] },
     ];
-    buildings.forEach((b) => improvements_add_building(b));
+    buildings.forEach((b) => improvements_add_building(b as any));
   });
 
   afterEach(() => {

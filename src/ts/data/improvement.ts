@@ -8,6 +8,7 @@
 
 import { MAX_NUM_BUILDINGS } from '../core/constants';
 import { store } from './store';
+import type { Improvement } from './types';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -36,7 +37,7 @@ export function improvements_init(): void {
 /**
  * Add a new improvement definition.
  */
-export function improvements_add_building(improvement: any): void {
+export function improvements_add_building(improvement: Improvement): void {
   store.improvements[improvement.id] = improvement;
   improvements_name_index[improvement.name] = improvement.id;
 }
@@ -48,9 +49,9 @@ export function improvements_add_building(improvement: any): void {
 /**
  * Returns list of improvements that require the given tech.
  */
-export function get_improvements_from_tech(techId: number): any[] {
-  const improvements = store.improvements as Record<string, any>;
-  const result: any[] = [];
+export function get_improvements_from_tech(techId: number): Improvement[] {
+  const improvements = store.improvements;
+  const result: Improvement[] = [];
   for (const improvementId in improvements) {
     const pimprovement = improvements[improvementId];
     const reqs = get_improvement_requirements(parseInt(improvementId, 10));
@@ -67,15 +68,15 @@ export function get_improvements_from_tech(techId: number): any[] {
  * Returns true if the improvement is a wonder.
  * Wonders have a soundtag starting with 'w'.
  */
-export function is_wonder(improvement: any): boolean {
-  return improvement['soundtag'][0] === 'w';
+export function is_wonder(improvement: Improvement): boolean {
+  return (improvement['soundtag'] as string)[0] === 'w';
 }
 
 /**
  * Returns list of tech ids which are a requirement for the given improvement.
  */
 export function get_improvement_requirements(improvementId: number): number[] {
-  const improvements = store.improvements as Record<number, any>;
+  const improvements: Record<number, any> = store.improvements;
   const result: number[] = [];
   const improvement = improvements[improvementId];
   if (improvement != null && improvement['reqs'] != null) {

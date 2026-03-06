@@ -91,7 +91,7 @@ export interface Requirement {
  * Is there a source tech within range of the target?
  */
 export function isTechInRange(
-  targetPlayer: any,
+  targetPlayer: Player | null,
   range: number,
   tech: number,
 ): number {
@@ -128,7 +128,7 @@ export function isTechInRange(
  * Checks the requirement to see if it is active on the given target.
  */
 export function isReqActive(
-  targetPlayer: any,
+  targetPlayer: Player | null,
   targetCity: unknown,
   targetBuilding: unknown,
   targetTile: unknown,
@@ -224,7 +224,7 @@ export function isReqActive(
  * Returns TRUE only if all requirements are active.
  */
 export function areReqsActive(
-  targetPlayer: any,
+  targetPlayer: Player | null,
   targetCity: unknown,
   targetBuilding: unknown,
   targetTile: unknown,

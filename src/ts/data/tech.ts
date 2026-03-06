@@ -8,6 +8,7 @@
 
 import { O_SCIENCE } from './fcTypes';
 import { store } from './store';
+import type { Player, Tech } from './types';
 import { research_data } from './player';
 import { clientIsObserver as client_is_observer, clientPlaying } from '../client/clientState';
 
@@ -45,15 +46,16 @@ export const A_FIRST = 1;
  * This can be: TECH_KNOWN, TECH_UNKNOWN, or TECH_PREREQS_KNOWN.
  * Should be called with existing techs or A_FUTURE.
  */
-export function playerInventionState(pplayer: any, techId: number): number {
+export function playerInventionState(pplayer: Player, techId: number): number {
   if (pplayer == null) {
     return TECH_UNKNOWN;
   } else {
+    const inventions = pplayer['inventions'] as Record<number, number> | undefined;
     if (
-      pplayer['inventions'] != null &&
-      pplayer['inventions'][techId] != null
+      inventions != null &&
+      inventions[techId] != null
     ) {
-      return pplayer['inventions'][techId];
+      return inventions[techId];
     } else {
       return TECH_UNKNOWN;
     }
@@ -163,7 +165,7 @@ export function getCurrentBulbsOutput(): {
 }
 
 /** Returns a textual description of current bulbs output. */
-export function getCurrentBulbsOutputText(cbo?: any): string {
+export function getCurrentBulbsOutputText(cbo?: ReturnType<typeof getCurrentBulbsOutput>): string {
   if (cbo === undefined) {
     cbo = getCurrentBulbsOutput();
   }

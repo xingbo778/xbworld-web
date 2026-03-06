@@ -55,12 +55,12 @@ describe('isTechInRange', () => {
   // playerInventionState is a direct import.
 
   it('should return TRI_YES when player knows the tech (PLAYER range)', () => {
-    const player = { inventions: { 5: TECH_KNOWN, 10: TECH_KNOWN, 15: TECH_KNOWN } };
+    const player = { inventions: { 5: TECH_KNOWN, 10: TECH_KNOWN, 15: TECH_KNOWN } } as any;
     expect(isTechInRange(player, REQ_RANGE_PLAYER, 10)).toBe(TRI_YES);
   });
 
   it('should return TRI_NO when player does not know the tech', () => {
-    const player = { inventions: { 5: TECH_KNOWN, 10: TECH_KNOWN, 15: TECH_KNOWN } };
+    const player = { inventions: { 5: TECH_KNOWN, 10: TECH_KNOWN, 15: TECH_KNOWN } } as any;
     expect(isTechInRange(player, REQ_RANGE_PLAYER, 20)).toBe(TRI_NO);
   });
 
@@ -69,17 +69,17 @@ describe('isTechInRange', () => {
   });
 
   it('should return TRI_MAYBE for TEAM range (unimplemented)', () => {
-    const player = { inventions: { 5: TECH_KNOWN } };
+    const player = { inventions: { 5: TECH_KNOWN } } as any;
     expect(isTechInRange(player, REQ_RANGE_TEAM, 5)).toBe(TRI_MAYBE);
   });
 
   it('should return TRI_MAYBE for WORLD range (unimplemented)', () => {
-    const player = { inventions: { 5: TECH_KNOWN } };
+    const player = { inventions: { 5: TECH_KNOWN } } as any;
     expect(isTechInRange(player, REQ_RANGE_WORLD, 5)).toBe(TRI_MAYBE);
   });
 
   it('should return TRI_MAYBE for invalid range (LOCAL)', () => {
-    const player = { inventions: { 5: TECH_KNOWN } };
+    const player = { inventions: { 5: TECH_KNOWN } } as any;
     expect(isTechInRange(player, REQ_RANGE_LOCAL, 5)).toBe(TRI_MAYBE);
   });
 });
@@ -97,37 +97,37 @@ describe('isReqActive', () => {
   });
 
   it('should return true when tech requirement is met', () => {
-    const player = { inventions: { 10: TECH_KNOWN } };
+    const player = { inventions: { 10: TECH_KNOWN } } as any;
     const req = makeReq({ kind: VUT_ADVANCE, range: REQ_RANGE_PLAYER, value: 10, present: true });
     expect(isReqActive(player, null, null, null, null, null, null, req, RPT_POSSIBLE)).toBe(true);
   });
 
   it('should return false when tech requirement is not met', () => {
-    const player = { inventions: { 5: TECH_KNOWN } };
+    const player = { inventions: { 5: TECH_KNOWN } } as any;
     const req = makeReq({ kind: VUT_ADVANCE, range: REQ_RANGE_PLAYER, value: 10, present: true });
     expect(isReqActive(player, null, null, null, null, null, null, req, RPT_POSSIBLE)).toBe(false);
   });
 
   it('should handle negated requirement (present=false)', () => {
-    const player = { inventions: { 10: TECH_KNOWN } };
+    const player = { inventions: { 10: TECH_KNOWN } } as any;
     const req = makeReq({ kind: VUT_ADVANCE, range: REQ_RANGE_PLAYER, value: 10, present: false });
     expect(isReqActive(player, null, null, null, null, null, null, req, RPT_POSSIBLE)).toBe(false);
   });
 
   it('should return true for negated requirement when tech is not known', () => {
-    const player = { inventions: { 5: TECH_KNOWN } };
+    const player = { inventions: { 5: TECH_KNOWN } } as any;
     const req = makeReq({ kind: VUT_ADVANCE, range: REQ_RANGE_PLAYER, value: 10, present: false });
     expect(isReqActive(player, null, null, null, null, null, null, req, RPT_POSSIBLE)).toBe(true);
   });
 
   it('should handle VUT_GOVERNMENT requirement', () => {
-    const player = { government: 3 };
+    const player = { government: 3 } as any;
     const req = makeReq({ kind: VUT_GOVERNMENT, value: 3, present: true });
     expect(isReqActive(player, null, null, null, null, null, null, req, RPT_POSSIBLE)).toBe(true);
   });
 
   it('should return false when government does not match', () => {
-    const player = { government: 2 };
+    const player = { government: 2 } as any;
     const req = makeReq({ kind: VUT_GOVERNMENT, value: 3, present: true });
     expect(isReqActive(player, null, null, null, null, null, null, req, RPT_POSSIBLE)).toBe(false);
   });
@@ -161,7 +161,7 @@ describe('areReqsActive', () => {
   // No window globals needed — see isTechInRange comment.
 
   it('should return true when all requirements are met', () => {
-    const player = { inventions: { 5: TECH_KNOWN, 10: TECH_KNOWN }, government: 3 };
+    const player = { inventions: { 5: TECH_KNOWN, 10: TECH_KNOWN }, government: 3 } as any;
     const reqs = [
       makeReq({ kind: VUT_ADVANCE, range: REQ_RANGE_PLAYER, value: 5, present: true }),
       makeReq({ kind: VUT_ADVANCE, range: REQ_RANGE_PLAYER, value: 10, present: true }),
@@ -171,7 +171,7 @@ describe('areReqsActive', () => {
   });
 
   it('should return false when any requirement is not met', () => {
-    const player = { inventions: { 5: TECH_KNOWN }, government: 3 };
+    const player = { inventions: { 5: TECH_KNOWN }, government: 3 } as any;
     const reqs = [
       makeReq({ kind: VUT_ADVANCE, range: REQ_RANGE_PLAYER, value: 5, present: true }),
       makeReq({ kind: VUT_ADVANCE, range: REQ_RANGE_PLAYER, value: 10, present: true }),
