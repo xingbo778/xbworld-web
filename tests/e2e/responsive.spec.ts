@@ -51,12 +51,12 @@ test.describe('Responsive Design', () => {
     await page.goto('/webclient/index.html');
     await dismissDialogAndShowGame(page);
 
-    // In observer mode, civ_tab and cities_tab are removed.
-    // Verify that the remaining tabs (map, tech, players, opt, hel) are present.
+    // In observer mode, civ_tab, cities_tab, opt_tab, and hel_tab are removed.
+    // Verify that the remaining tabs (map, tech, players) are present.
     const mapTab = page.locator('#map_tab a');
     await expect(mapTab).toBeAttached();
 
-    const optTab = page.locator('#opt_tab a');
+    const optTab = page.locator('#players_tab a');
     await expect(optTab).toBeAttached();
   });
 
@@ -72,7 +72,7 @@ test.describe('Responsive Design', () => {
     const techTab = page.locator('#tech_tab a');
     await expect(techTab).toBeVisible();
 
-    const optTab = page.locator('#opt_tab a');
+    const optTab = page.locator('#players_tab a');
     await expect(optTab).toBeVisible();
   });
 });

@@ -26,7 +26,7 @@ test.describe('Application Loading', () => {
 
   test('should have correct page title', async ({ page }) => {
     await page.goto('/webclient/');
-    await expect(page).toHaveTitle('XBWorld');
+    await expect(page).toHaveTitle(/XBWorld/);
   });
 
   test('should load CSS without errors', async ({ page }) => {

@@ -189,6 +189,7 @@ export function base_set_mapview_origin(gui_x0: number, gui_y0: number): void {
 
   mapview['gui_x0'] = gui_x0;
   mapview['gui_y0'] = gui_y0;
+  dirty_all = true;
 }
 
 /****************************************************************************

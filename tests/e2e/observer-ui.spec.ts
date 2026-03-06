@@ -39,19 +39,19 @@ test.describe('Observer UI Elements', () => {
 
   // ─── Tab Structure ────────────────────────────────────────────────
 
-  test('visible tabs: Map, Research, Nations, Options, Manual', async ({ page }) => {
+  test('visible tabs: Map, Research, Nations', async ({ page }) => {
     // These tabs SHOULD be visible for observer
     await expect(page.locator('#map_tab')).toBeVisible();
     await expect(page.locator('#tech_tab')).toBeVisible();
     await expect(page.locator('#players_tab')).toBeVisible();
-    await expect(page.locator('#opt_tab')).toBeVisible();
-    await expect(page.locator('#hel_tab')).toBeVisible();
   });
 
-  test('removed tabs: Government and Cities should not exist', async ({ page }) => {
+  test('removed tabs: Government, Cities, Options, Manual should not exist', async ({ page }) => {
     // These tabs are REMOVED from DOM for observers
     await expect(page.locator('#civ_tab')).toHaveCount(0);
     await expect(page.locator('#cities_tab')).toHaveCount(0);
+    await expect(page.locator('#opt_tab')).toHaveCount(0);
+    await expect(page.locator('#hel_tab')).toHaveCount(0);
   });
 
   test('tab switching works', async ({ page }) => {
@@ -64,16 +64,6 @@ test.describe('Observer UI Elements', () => {
     await page.locator('#players_tab a').click();
     await page.waitForTimeout(500);
     await expect(page.locator('#tabs-nat')).toBeVisible();
-
-    // Switch to Options tab
-    await page.locator('#opt_tab a').click();
-    await page.waitForTimeout(500);
-    await expect(page.locator('#tabs-opt')).toBeVisible();
-
-    // Switch to Manual tab
-    await page.locator('#hel_tab a').click();
-    await page.waitForTimeout(500);
-    await expect(page.locator('#tabs-hel')).toBeVisible();
 
     // Switch back to Map tab
     await page.locator('#map_tab a').click();
@@ -221,34 +211,6 @@ test.describe('Observer UI Elements', () => {
     await expect(page.locator('#nations_list')).toBeAttached();
   });
 
-  // ─── Options Tab ──────────────────────────────────────────────────
-
-  test('options tab: all buttons visible', async ({ page }) => {
-    await page.locator('#opt_tab a').click();
-    await page.waitForTimeout(500);
-
-    await expect(page.locator('#save_button')).toBeVisible();
-    await expect(page.locator('#fullscreen_button')).toBeVisible();
-    await expect(page.locator('#surrender_button')).toBeVisible();
-    await expect(page.locator('#end_button')).toBeVisible();
-  });
-
-  test('options tab: music audio element exists', async ({ page }) => {
-    await page.locator('#opt_tab a').click();
-    await page.waitForTimeout(500);
-
-    await expect(page.locator('#tabs-opt audio')).toBeAttached();
-  });
-
-  // ─── Manual Tab ───────────────────────────────────────────────────
-
-  test('manual tab: help container exists', async ({ page }) => {
-    await page.locator('#hel_tab a').click();
-    await page.waitForTimeout(500);
-
-    await expect(page.locator('#tabs-hel')).toBeVisible();
-  });
-
   // ─── Observer-Removed Elements ────────────────────────────────────
 
   test('government dialog removed from DOM', async ({ page }) => {
@@ -323,10 +285,6 @@ test.describe('Observer UI Elements', () => {
     await page.locator('#tech_tab a').click();
     await page.waitForTimeout(500);
     await page.locator('#players_tab a').click();
-    await page.waitForTimeout(500);
-    await page.locator('#opt_tab a').click();
-    await page.waitForTimeout(500);
-    await page.locator('#hel_tab a').click();
     await page.waitForTimeout(500);
     await page.locator('#map_tab a').click();
     await page.waitForTimeout(1000);

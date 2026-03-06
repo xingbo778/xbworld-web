@@ -31,7 +31,7 @@ test.describe('Tab Navigation', () => {
     await expect(mapTab).toBeVisible();
   });
 
-  // Note: civ_tab and cities_tab are removed in observer mode (civClientInit)
+  // Note: civ_tab, cities_tab, opt_tab, hel_tab are removed in observer mode (civClientInit)
   // so we only test tabs that exist in observer mode
 
   test('should switch to research tab', async ({ page }) => {
@@ -46,22 +46,21 @@ test.describe('Tab Navigation', () => {
     await expect(natTab).toBeVisible();
   });
 
-  test('should switch to options tab', async ({ page }) => {
-    await page.click('#opt_tab a');
-    const optTab = page.locator('#tabs-opt');
-    await expect(optTab).toBeVisible();
-  });
-
   test('should switch back to map tab', async ({ page }) => {
-    await page.click('#opt_tab a');
+    await page.click('#tech_tab a');
     await page.click('#map_tab a');
     const mapTab = page.locator('#tabs-map');
     await expect(mapTab).toBeVisible();
   });
 
   test('should highlight active tab', async ({ page }) => {
-    await page.click('#opt_tab a');
-    const optLi = page.locator('#opt_tab');
-    await expect(optLi).toHaveClass(/ui-state-active/);
+    await page.click('#tech_tab a');
+    const techLi = page.locator('#tech_tab');
+    await expect(techLi).toHaveClass(/ui-state-active/);
+  });
+
+  test('opt_tab and hel_tab should be removed in observer mode', async ({ page }) => {
+    await expect(page.locator('#opt_tab')).toHaveCount(0);
+    await expect(page.locator('#hel_tab')).toHaveCount(0);
   });
 });

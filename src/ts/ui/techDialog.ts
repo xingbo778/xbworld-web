@@ -695,8 +695,9 @@ export function show_observer_tech_dialog(): void {
     if (pr == null) continue;
 
     const researching: number = pr['researching'];
-    if (techs[researching] != null) {
-      msg += pname + ": " + techs[researching]['name'] + "<br>";
+    const techData = store.techs[researching];
+    if (techData != null) {
+      msg += pname + ": " + techData['name'] + "<br>";
     }
   }
   if (technologies) {

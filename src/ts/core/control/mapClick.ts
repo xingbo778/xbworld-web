@@ -465,6 +465,7 @@ export function update_goto_path(goto_packet: any) {
 }
 
 export function center_tile_mapcanvas(ptile: any) {
+  if (ptile == null) return;
   center_tile_mapcanvas_2d(ptile);
 }
 

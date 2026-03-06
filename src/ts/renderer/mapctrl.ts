@@ -19,14 +19,14 @@
 
 import { store } from '../data/store';
 
-import { canvas_pos_to_tile, mapview } from './mapviewCommon';
+import { canvas_pos_to_tile, mapview, mark_all_dirty } from './mapviewCommon';
 import { mapPosToTile } from '../data/map';
 const map_pos_to_tile = mapPosToTile;
 import { tile_units } from '../data/unit';
 import { find_visible_unit, set_unit_focus, action_selection_next_in_focus, update_active_units_dialog } from '../core/control';
 import { current_focus, goto_active, goto_request_map, request_goto_path, context_menu_active, keyboard_input as keyboard_input_ref, mapview_mouse_movement as mapview_mouse_movement_ref, SELECT_POPUP, popit, do_map_click, update_mouse_cursor, set_mouse_touch_started_on_unit, check_mouse_drag_unit } from '../core/control';
 import { mouse_moved_cb } from '../core/control/mouse';
-import { setMapviewMouseMovement, setContextMenuActive, setKeyboardInput, setCurrentFocus } from '../core/control/controlState';
+import { mouse_x, mouse_y, setMouseX, setMouseY, setMapviewMouseMovement, setContextMenuActive, setKeyboardInput, setCurrentFocus } from '../core/control/controlState';
 import { player_by_full_username, get_player_connection_status } from '../data/player';
 import { clientIsObserver as client_is_observer, clientPlaying, canClientChangeView as can_client_change_view } from '../client/clientState';
 import { isTouchDevice as is_touch_device, isRightMouseSelectionSupported as is_right_mouse_selection_supported } from '../utils/helpers';
@@ -36,8 +36,7 @@ import { IDENTITY_NUMBER_ZERO } from '../core/constants';
 import { enable_mapview_slide } from './mapview';
 import { center_tile_mapcanvas } from '../core/control';
 
-export let mouse_x: number;
-export let mouse_y: number;
+export { mouse_x, mouse_y };
 export let touch_start_x: number;
 export let touch_start_y: number;
 
@@ -180,8 +179,8 @@ export function mapview_touch_end(e: any): void {
 export function mapview_touch_move(e: any): void {
   const canvasEl = document.getElementById('canvas')!;
   const rect = canvasEl.getBoundingClientRect();
-  mouse_x = e.touches[0].pageX - (rect.left + window.scrollX);
-  mouse_y = e.touches[0].pageY - (rect.top + window.scrollY);
+  setMouseX(e.touches[0].pageX - (rect.left + window.scrollX));
+  setMouseY(e.touches[0].pageY - (rect.top + window.scrollY));
 
   const diff_x = (touch_start_x - mouse_x) * 2;
   const diff_y = (touch_start_y - mouse_y) * 2;
@@ -194,6 +193,7 @@ export function mapview_touch_move(e: any): void {
 
     mapview['gui_x0'] = (mapview['gui_x0'] ?? 0) + diff_x;
     mapview['gui_y0'] = (mapview['gui_y0'] ?? 0) + diff_y;
+    mark_all_dirty();
   }
 
   if (clientPlaying() == null) return;

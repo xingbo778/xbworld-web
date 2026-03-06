@@ -74,8 +74,8 @@ export function civClientInit(): void {
   (window as any).observing = true;
   store.gameType = 'observe';
   (window as any).game_type = 'observe';
-  // Remove observer-irrelevant UI elements
-  for (const id of ['civ_tab', 'cities_tab', 'pregame_buttons', 'game_unit_orders_default', 'civ_dialog', 'game_unit_panel']) {
+  // Remove observer-irrelevant UI elements (both tab buttons and their panels)
+  for (const id of ['civ_tab', 'cities_tab', 'opt_tab', 'hel_tab', 'pregame_buttons', 'game_unit_orders_default', 'civ_dialog', 'game_unit_panel', 'tabs-cities', 'tabs-opt', 'tabs-hel', 'tabs-civ']) {
     document.getElementById(id)?.remove();
   }
 

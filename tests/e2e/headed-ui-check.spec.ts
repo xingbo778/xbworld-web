@@ -99,20 +99,7 @@ test.describe('Headed UI Visual Check', () => {
     await page.waitForTimeout(500);
     await page.screenshot({ path: path.join(SCREENSHOT_DIR, '09-nations-tab.png'), fullPage: true });
 
-    // 8. Switch to Options tab
-    await page.click('#opt_tab a');
-    await page.waitForTimeout(500);
-    await page.screenshot({ path: path.join(SCREENSHOT_DIR, '10-options-tab.png'), fullPage: true });
-
-    // 9. Switch to Help tab
-    const helpTab = page.locator('#hel_tab a');
-    if (await helpTab.isVisible()) {
-      await helpTab.click();
-      await page.waitForTimeout(500);
-      await page.screenshot({ path: path.join(SCREENSHOT_DIR, '11-help-tab.png'), fullPage: true });
-    }
-
-    // 10. Back to Map tab
+    // 8. Back to Map tab
     await page.click('#map_tab a');
     await page.waitForTimeout(500);
     await page.screenshot({ path: path.join(SCREENSHOT_DIR, '12-back-to-map.png'), fullPage: true });
@@ -150,11 +137,15 @@ test.describe('Headed UI Visual Check', () => {
     const gamePageVisible = await page.locator('#game_page').isVisible();
     expect(gamePageVisible).toBe(true);
 
-    // Verify civ_tab and cities_tab are removed (observer mode)
+    // Verify civ_tab, cities_tab, opt_tab, and hel_tab are removed (observer mode)
     const civTab = await page.locator('#civ_tab').count();
     const citiesTab = await page.locator('#cities_tab').count();
+    const optTab = await page.locator('#opt_tab').count();
+    const helTab = await page.locator('#hel_tab').count();
     expect(civTab).toBe(0);
     expect(citiesTab).toBe(0);
+    expect(optTab).toBe(0);
+    expect(helTab).toBe(0);
 
     console.log('All UI checks passed!');
   });

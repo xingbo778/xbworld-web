@@ -176,9 +176,9 @@ function sendGameInit(ws, username) {
 
   // 10. Nation definitions (pid 148) — must come before player info
   const NATIONS = [
-    { id: 0, adjective: 'Roman', rule_name: 'roman', translation_name: 'Roman', flag_graphic: 'f.roman', color: 'rgb(255,0,0)' },
-    { id: 1, adjective: 'Egyptian', rule_name: 'egyptian', translation_name: 'Egyptian', flag_graphic: 'f.egypt', color: 'rgb(0,0,255)' },
-    { id: 2, adjective: 'Indian', rule_name: 'indian', translation_name: 'Indian', flag_graphic: 'f.india', color: 'rgb(0,200,0)' },
+    { id: 0, adjective: 'Roman', rule_name: 'roman', translation_name: 'Roman', flag_graphic: 'f.roman', color: 'rgb(255,0,0)', legend: 'The Roman Empire' },
+    { id: 1, adjective: 'Egyptian', rule_name: 'egyptian', translation_name: 'Egyptian', flag_graphic: 'f.egypt', color: 'rgb(0,0,255)', legend: 'Ancient Egypt' },
+    { id: 2, adjective: 'Indian', rule_name: 'indian', translation_name: 'Indian', flag_graphic: 'f.india', color: 'rgb(0,200,0)', legend: 'The Indian Subcontinent' },
   ];
   for (const n of NATIONS) {
     sendPackets(ws, [{
@@ -189,6 +189,7 @@ function sendGameInit(ws, username) {
       translation_name: n.translation_name,
       flag_graphic: n.flag_graphic,
       color: n.color,
+      legend: n.legend,
       leader_count: 0,
       leaders: [],
       style: 0,
@@ -219,8 +220,41 @@ function sendGameInit(ws, username) {
       color_valid: true,
       color_red: ai.color[0], color_green: ai.color[1], color_blue: ai.color[2],
       multip: [], multip_target: [],
+      flags: [1],  // bit 0 = PLRF_AI
       diplstates: [], gives_shared_vision: [0],
       wonders: [], tech_upkeep: 0,
+    }]);
+  }
+
+  // 11b. Research info (pid 60) — one per player
+  const MOCK_TECHS = ['Alphabet', 'Pottery', 'Bronze Working'];
+  for (const ai of AI_PLAYERS) {
+    sendPackets(ws, [{
+      pid: 60,
+      id: ai.playerno,
+      researching: ai.playerno,  // tech id they're researching
+      researching_cost: 50 + ai.playerno * 10,
+      bulbs_researched: 20 + ai.playerno * 5,
+      tech_goal: -1,
+      inventions: [],
+    }]);
+  }
+
+  // 11c. Tech definitions (pid 140) — minimal set for display
+  for (let i = 0; i < MOCK_TECHS.length; i++) {
+    sendPackets(ws, [{
+      pid: 144,
+      id: i,
+      name: MOCK_TECHS[i],
+      rule_name: MOCK_TECHS[i].toLowerCase().replace(/ /g, '_'),
+      req: [-1, -1],
+      root_req: -1,
+      flags: [0],
+      helptext: '',
+      graphic_str: '',
+      graphic_alt: '',
+      cost: 50 + i * 10,
+      num_reqs: 0,
     }]);
   }
 
