@@ -51,7 +51,10 @@ export function global_keyboard_listener(ev: KeyboardEvent) {
   }
   civclient_handle_key(keyboard_key, ev.keyCode, ev['ctrlKey'], ev['altKey'], ev['shiftKey'], ev);
 
-  if ((window as any).renderer == RENDERER_2DCANVAS) (window as any).$('#canvas').contextMenu('hide');
+  if ((window as any).renderer == RENDERER_2DCANVAS) {
+    const canvasEl = document.getElementById('canvas');
+    (canvasEl as any)?.contextMenu?.('hide');
+  }
 }
 
 export function civclient_handle_key(keyboard_key: string, key_code: number, ctrl: boolean, alt: boolean, shift: boolean, the_event: KeyboardEvent) {
@@ -253,9 +256,11 @@ export function map_handle_key(keyboard_key: string, key_code: number, ctrl: boo
 
       S.setContextMenuActive(true);
       if ((window as any).renderer == RENDERER_2DCANVAS) {
-        (window as any).$('#canvas').contextMenu(true);
+        const canvasEl = document.getElementById('canvas');
+        (canvasEl as any)?.contextMenu?.(true);
       } else {
-        (window as any).$('#canvas_div').contextMenu(true);
+        const canvasDivEl = document.getElementById('canvas_div');
+        (canvasDivEl as any)?.contextMenu?.(true);
       }
 
       S.setParadropActive(false);

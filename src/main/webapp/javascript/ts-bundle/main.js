@@ -2770,12 +2770,14 @@ function init_options_dialog() {
       audio.load("/music/" + music_list[Math.floor(Math.random() * music_list.length)] + ".mp3");
     }
   }
-  $(".setting_button").tooltip();
-  $("#play_sounds_setting").prop("checked", sounds_enabled);
-  $("#play_sounds_setting").change(function() {
-    sounds_enabled = this.checked;
-    localStorage.setItem("sndFX", JSON.stringify(sounds_enabled));
-  });
+  const soundsCheckbox = document.getElementById("play_sounds_setting");
+  if (soundsCheckbox) {
+    soundsCheckbox.checked = sounds_enabled;
+    soundsCheckbox.addEventListener("change", function() {
+      sounds_enabled = this.checked;
+      localStorage.setItem("sndFX", JSON.stringify(sounds_enabled));
+    });
+  }
 }
 function initTableSort(selector, options) {
   const table = document.querySelector(selector);
@@ -3767,7 +3769,6 @@ function update_player_info_pregame_real() {
     plrEl.setAttribute("name", player["name"]);
     plrEl.setAttribute("playerid", String(player["playerno"]));
   }
-  window.$(".pregame_player_name").tooltip();
   update_player_info_pregame_queued = false;
 }
 function ruledir_from_ruleset_name(ruleset_name, fall_back_dir) {
@@ -12854,7 +12855,10 @@ function global_keyboard_listener(ev) {
     }
   }
   civclient_handle_key(keyboard_key, ev.keyCode, ev["ctrlKey"], ev["altKey"], ev["shiftKey"]);
-  if (window.renderer == RENDERER_2DCANVAS$1) window.$("#canvas").contextMenu("hide");
+  if (window.renderer == RENDERER_2DCANVAS$1) {
+    const canvasEl = document.getElementById("canvas");
+    canvasEl?.contextMenu?.("hide");
+  }
 }
 function civclient_handle_key(keyboard_key, key_code, ctrl, alt, shift, the_event) {
   switch (keyboard_key) {
@@ -13026,9 +13030,11 @@ function map_handle_key(keyboard_key, key_code, ctrl, alt, shift, the_event) {
       setMapviewMouseMovement(false);
       setContextMenuActive(true);
       if (window.renderer == RENDERER_2DCANVAS$1) {
-        window.$("#canvas").contextMenu(true);
+        const canvasEl = document.getElementById("canvas");
+        canvasEl?.contextMenu?.(true);
       } else {
-        window.$("#canvas_div").contextMenu(true);
+        const canvasDivEl = document.getElementById("canvas_div");
+        canvasDivEl?.contextMenu?.(true);
       }
       setParadropActive(false);
       setAirliftActive(false);

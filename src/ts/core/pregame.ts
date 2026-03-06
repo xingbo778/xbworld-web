@@ -120,7 +120,7 @@ export function update_player_info_pregame_real(): void {
     plrEl.setAttribute("name", player['name']);
     plrEl.setAttribute("playerid", String(player['playerno']));
   }
-  (window as any).$(".pregame_player_name").tooltip();
+  // Tooltip was a jQuery UI no-op; native title attribute already set above.
 
   update_player_info_pregame_queued = false;
 }
