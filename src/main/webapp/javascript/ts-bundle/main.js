@@ -6538,11 +6538,45 @@ function select_tgt_extra(actor_unit, target_unit, target_tile, potential_tgt_ex
 }
 const TILE_INDEX_NONE = -1;
 let auto_attack = false;
+function createNativeDialog(dlgId, title, content, buttons, opts) {
+  document.getElementById(dlgId)?.remove();
+  const dlg = document.createElement("div");
+  dlg.id = dlgId;
+  dlg.className = "act_sel_dialog";
+  const w2 = opts?.width || "390px";
+  dlg.style.cssText = "position:fixed;z-index:5000;background:#222;border:1px solid #555;padding:16px;top:20%;left:50%;transform:translateX(-50%);width:" + w2 + ";max-height:70vh;overflow-y:auto;color:#fff;";
+  if (title) {
+    const h2 = document.createElement("h3");
+    h2.textContent = title;
+    h2.style.cssText = "margin:0 0 8px;";
+    dlg.appendChild(h2);
+  }
+  if (content) {
+    const body = document.createElement("div");
+    body.innerHTML = content;
+    dlg.appendChild(body);
+  }
+  const btnContainer = document.createElement("div");
+  btnContainer.style.cssText = "margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;";
+  for (const b2 of buttons) {
+    const btn = document.createElement("button");
+    if (b2.id) btn.id = b2.id;
+    if (b2.class) btn.className = b2.class;
+    btn.textContent = b2.text;
+    if (b2.title) btn.title = b2.title;
+    btn.addEventListener("click", b2.click);
+    btnContainer.appendChild(btn);
+  }
+  dlg.appendChild(btnContainer);
+  document.getElementById("game_page")?.appendChild(dlg);
+  return dlg;
+}
+function removeDialog(dlgId) {
+  document.getElementById(dlgId)?.remove();
+}
 function popup_action_selection(actor_unit, action_probabilities, target_tile, target_extra, target_unit, target_city) {
   if (clientIsObserver()) return;
-  const id = "#act_sel_dialog_" + actor_unit["id"];
-  $(id).remove();
-  $("<div id='act_sel_dialog_" + actor_unit["id"] + "'></div>").appendTo("div#game_page");
+  const dlgId = "act_sel_dialog_" + actor_unit["id"];
   if (action_selection_in_progress_for != IDENTITY_NUMBER_ZERO && action_selection_in_progress_for != actor_unit["id"]) {
     logNormal(
       "Looks like unit %d has an action selection dialog open but a dialog for unit %d is about to be opened.",
@@ -6556,7 +6590,6 @@ function popup_action_selection(actor_unit, action_probabilities, target_tile, t
     action_selection_close();
   }
   const actor_homecity = store.cities[actor_unit["homecity"]];
-  const buttons = [];
   let dhtml = "";
   if (target_city != null) {
     dhtml += "Your " + store.unitTypes[actor_unit["type"]]["name"];
@@ -6569,301 +6602,228 @@ function popup_action_selection(actor_unit, action_probabilities, target_tile, t
   } else {
     dhtml += "Your " + store.unitTypes[actor_unit["type"]]["name"] + " is waiting for your command.";
   }
-  $(id).html(dhtml);
-  $(id).attr("actor_unit", actor_unit != null ? actor_unit["id"] : IDENTITY_NUMBER_ZERO);
-  $(id).attr("target_city", target_city != null ? target_city["id"] : IDENTITY_NUMBER_ZERO);
-  $(id).attr("target_unit", target_unit != null ? target_unit["id"] : IDENTITY_NUMBER_ZERO);
-  $(id).attr("target_tile", target_tile != null ? target_tile["index"] : TILE_INDEX_NONE);
-  $(id).attr("target_extra", target_extra != null ? target_extra["id"] : EXTRA_NONE$1);
+  const buttons = [];
   for (let tgt_kind = ATK_CITY; tgt_kind < ATK_COUNT; tgt_kind++) {
     let tgt_id = -1;
     let sub_tgt_id = -1;
     switch (tgt_kind) {
       case ATK_CITY:
-        if (target_city != null) {
-          tgt_id = target_city["id"];
-        }
+        if (target_city != null) tgt_id = target_city["id"];
         break;
       case ATK_UNIT:
-        if (target_unit != null) {
-          tgt_id = target_unit["id"];
-        }
+        if (target_unit != null) tgt_id = target_unit["id"];
         break;
       case ATK_UNITS:
-        if (target_tile != null) {
-          tgt_id = target_tile["index"];
-        }
+        if (target_tile != null) tgt_id = target_tile["index"];
         break;
       case ATK_TILE:
       case ATK_EXTRAS:
-        if (target_tile != null) {
-          tgt_id = target_tile["index"];
-        }
-        if (target_extra != null) {
-          sub_tgt_id = target_extra["id"];
-        }
+        if (target_tile != null) tgt_id = target_tile["index"];
+        if (target_extra != null) sub_tgt_id = target_extra["id"];
         break;
       case ATK_SELF:
-        if (actor_unit != null) {
-          tgt_id = actor_unit["id"];
-        }
+        if (actor_unit != null) tgt_id = actor_unit["id"];
         break;
       default:
         logError("Unsupported action target kind " + tgt_kind);
         break;
     }
     for (let action_id = 0; action_id < ACTION_COUNT$1; action_id++) {
-      if (window.actions[action_id]["tgt_kind"] == tgt_kind && actionProbPossible(
-        action_probabilities[action_id]
-      )) {
-        buttons.push(create_act_sel_button(
-          id,
+      if (window.actions[action_id]["tgt_kind"] == tgt_kind && actionProbPossible(action_probabilities[action_id])) {
+        const b2 = create_act_sel_button(
+          "#" + dlgId,
           actor_unit["id"],
           tgt_id,
           sub_tgt_id,
           action_id,
           action_probabilities
-        ));
+        );
+        buttons.push({ text: b2.text, id: b2.id, class: b2["class"], title: b2.title, click: b2.click });
       }
     }
   }
   if (target_unit != null && tile_units(target_tile).length > 1) {
     buttons.push({
       id: "act_sel_tgt_unit_switch" + actor_unit["id"],
-      "class": "act_sel_button",
+      class: "act_sel_button",
       text: "Change unit target",
       click: function() {
-        select_tgt_unit(
-          actor_unit,
-          target_tile,
-          tile_units(target_tile) ?? []
-        );
+        select_tgt_unit(actor_unit, target_tile, tile_units(target_tile) ?? []);
         _set_action_selection_restart(true);
-        $(id).dialog("close");
+        removeDialog(dlgId);
       }
     });
   }
   if (target_extra != null) {
     buttons.push({
       id: "act_sel_tgt_extra_switch" + actor_unit["id"],
-      "class": "act_sel_button",
+      class: "act_sel_button",
       text: "Change extra target",
       click: function() {
         select_tgt_extra(
           actor_unit,
           target_unit,
           target_tile,
-          list_potential_target_extras(
-            actor_unit,
-            target_tile
-          )
+          list_potential_target_extras(actor_unit, target_tile)
         );
         _set_action_selection_restart(true);
-        $(id).dialog("close");
+        removeDialog(dlgId);
       }
     });
   }
   if (actionProbPossible(action_probabilities[ACTION_ATTACK])) {
     if (!auto_attack) {
-      const button = {
+      buttons.push({
         id: "act_sel_" + ACTION_ATTACK + "_" + actor_unit["id"],
-        "class": "act_sel_button",
+        class: "act_sel_button",
         text: "Auto attack from now on!",
         title: "Attack without showing this attack dialog in the future",
         click: function() {
-          request_unit_do_action(
-            ACTION_ATTACK,
-            actor_unit["id"],
-            target_tile["index"]
-          );
+          request_unit_do_action(ACTION_ATTACK, actor_unit["id"], target_tile["index"]);
           auto_attack = true;
-          $(id).remove();
+          removeDialog(dlgId);
           act_sel_queue_may_be_done(actor_unit["id"]);
         }
-      };
-      buttons.push(button);
+      });
     }
   }
   buttons.push({
     id: "act_sel_wait" + actor_unit["id"],
-    "class": "act_sel_button",
+    class: "act_sel_button",
     text: "Wait",
     click: function() {
       _set_did_not_decide(true);
-      $(id).dialog("close");
+      removeDialog(dlgId);
+      act_sel_queue_may_be_done(actor_unit["id"]);
     }
   });
   buttons.push({
     id: "act_sel_cancel" + actor_unit["id"],
-    "class": "act_sel_button",
+    class: "act_sel_button",
     text: "Cancel",
     click: function() {
-      $(id).remove();
+      removeDialog(dlgId);
       act_sel_queue_may_be_done(actor_unit["id"]);
     }
   });
-  $(id).attr(
-    "title",
-    "Choose Your " + store.unitTypes[actor_unit["type"]]["name"] + "'s Strategy"
-  );
-  $(id).dialog({
-    bgiframe: true,
-    modal: true,
-    dialogClass: "act_sel_dialog",
-    width: "390",
-    close: function() {
-      act_sel_queue_may_be_done(actor_unit["id"]);
-    },
+  const dlg = createNativeDialog(
+    dlgId,
+    "Choose Your " + store.unitTypes[actor_unit["type"]]["name"] + "'s Strategy",
+    dhtml,
     buttons
-  });
-  $(id).dialog("open");
+  );
+  dlg.setAttribute("actor_unit", String(actor_unit != null ? actor_unit["id"] : IDENTITY_NUMBER_ZERO));
+  dlg.setAttribute("target_city", String(target_city != null ? target_city["id"] : IDENTITY_NUMBER_ZERO));
+  dlg.setAttribute("target_unit", String(target_unit != null ? target_unit["id"] : IDENTITY_NUMBER_ZERO));
+  dlg.setAttribute("target_tile", String(target_tile != null ? target_tile["index"] : TILE_INDEX_NONE));
+  dlg.setAttribute("target_extra", String(target_extra != null ? target_extra["id"] : EXTRA_NONE$1));
   set_is_more_user_input_needed(false);
 }
 function popup_bribe_dialog(actor_unit, target_unit, cost, act_id) {
-  let bribe_possible = false;
+  const dlgId = "bribe_unit_dialog_" + actor_unit["id"];
   let dhtml = "";
-  const id = "#bribe_unit_dialog_" + actor_unit["id"];
-  $(id).remove();
-  $("<div id='bribe_unit_dialog_" + actor_unit["id"] + "'></div>").appendTo("div#game_page");
   dhtml += "Treasury contains " + unit_owner(actor_unit)["gold"] + " gold. ";
   dhtml += "The price of bribing " + store.nations[unit_owner(target_unit)["nation"]]["adjective"] + " " + store.unitTypes[target_unit["type"]]["name"] + " is " + cost + ". ";
-  bribe_possible = cost <= unit_owner(actor_unit)["gold"];
+  const bribe_possible = cost <= unit_owner(actor_unit)["gold"];
   if (!bribe_possible) {
-    dhtml += "Traitors Demand Too Much!";
-    dhtml += "<br>";
+    dhtml += "Traitors Demand Too Much!<br>";
   }
-  $(id).html(dhtml);
-  const close_button = { Close: function() {
-    $(id).dialog("close");
-  } };
-  const bribe_close_button = {
-    "Cancel": function() {
-      $(id).dialog("close");
-    },
-    "Do it!": function() {
-      request_unit_do_action(act_id, actor_unit["id"], target_unit["id"]);
-      $(id).dialog("close");
-    }
-  };
-  $(id).attr("title", "About that bribery you requested...");
-  $(id).dialog({
-    bgiframe: true,
-    modal: true,
-    close: function() {
+  const buttons = [];
+  if (bribe_possible) {
+    buttons.push({
+      text: "Do it!",
+      click: function() {
+        request_unit_do_action(act_id, actor_unit["id"], target_unit["id"]);
+        removeDialog(dlgId);
+        act_sel_queue_done(actor_unit["id"]);
+      }
+    });
+  }
+  buttons.push({
+    text: bribe_possible ? "Cancel" : "Close",
+    click: function() {
+      removeDialog(dlgId);
       act_sel_queue_done(actor_unit["id"]);
-    },
-    buttons: bribe_possible ? bribe_close_button : close_button,
-    height: "auto",
-    width: "auto"
+    }
   });
-  $(id).dialog("open");
+  createNativeDialog(dlgId, "About that bribery you requested...", dhtml, buttons);
 }
 function popup_incite_dialog(actor_unit, target_city, cost, act_id) {
-  let incite_possible;
-  let id;
-  let dhtml;
-  id = "#incite_city_dialog_" + actor_unit["id"];
-  $(id).remove();
-  $("<div id='incite_city_dialog_" + actor_unit["id"] + "'></div>").appendTo("div#game_page");
-  dhtml = "";
-  dhtml += "Treasury contains " + unit_owner(actor_unit)["gold"] + " gold.";
-  dhtml += " ";
+  const dlgId = "incite_city_dialog_" + actor_unit["id"];
+  let dhtml = "";
+  dhtml += "Treasury contains " + unit_owner(actor_unit)["gold"] + " gold. ";
   dhtml += "The price of inciting " + decodeURIComponent(target_city["name"]) + " is " + cost + ".";
-  incite_possible = cost != INCITE_IMPOSSIBLE_COST && cost <= unit_owner(actor_unit)["gold"];
+  const incite_possible = cost != INCITE_IMPOSSIBLE_COST && cost <= unit_owner(actor_unit)["gold"];
   if (!incite_possible) {
-    dhtml += " ";
-    dhtml += "Traitors Demand Too Much!";
-    dhtml += "<br>";
+    dhtml += " Traitors Demand Too Much!<br>";
   }
-  $(id).html(dhtml);
-  const close_button = { Close: function() {
-    $(id).dialog("close");
-  } };
-  const incite_close_buttons = {
-    "Cancel": function() {
-      $(id).dialog("close");
-    },
-    "Do it!": function() {
-      request_unit_do_action(act_id, actor_unit["id"], target_city["id"]);
-      $(id).dialog("close");
-    }
-  };
-  $(id).attr("title", "About that incite you requested...");
-  $(id).dialog({
-    bgiframe: true,
-    modal: true,
-    close: function() {
+  const buttons = [];
+  if (incite_possible) {
+    buttons.push({
+      text: "Do it!",
+      click: function() {
+        request_unit_do_action(act_id, actor_unit["id"], target_city["id"]);
+        removeDialog(dlgId);
+        act_sel_queue_done(actor_unit["id"]);
+      }
+    });
+  }
+  buttons.push({
+    text: incite_possible ? "Cancel" : "Close",
+    click: function() {
+      removeDialog(dlgId);
       act_sel_queue_done(actor_unit["id"]);
-    },
-    buttons: incite_possible ? incite_close_buttons : close_button,
-    height: "auto",
-    width: "auto"
+    }
   });
-  $(id).dialog("open");
+  createNativeDialog(dlgId, "About that incite you requested...", dhtml, buttons);
 }
 function popup_unit_upgrade_dlg(actor_unit, target_city, cost, act_id) {
-  let upgrade_possible;
-  let id;
-  let dhtml;
-  id = "#upgrade_unit_dialog_" + actor_unit["id"];
-  $(id).remove();
-  $("<div id='upgrade_unit_dialog_" + actor_unit["id"] + "'></div>").appendTo("div#game_page");
-  dhtml = "";
-  dhtml += "Treasury contains " + unit_owner(actor_unit)["gold"] + " gold.";
-  dhtml += " ";
+  const dlgId = "upgrade_unit_dialog_" + actor_unit["id"];
+  let dhtml = "";
+  dhtml += "Treasury contains " + unit_owner(actor_unit)["gold"] + " gold. ";
   dhtml += "The price of upgrading our " + store.unitTypes[actor_unit["type"]]["name"] + " is " + cost + ".";
-  upgrade_possible = cost <= unit_owner(actor_unit)["gold"];
-  $(id).html(dhtml);
-  const close_button = { Close: function() {
-    $(id).dialog("close");
-  } };
-  const upgrade_close_buttons = {
-    "Cancel": function() {
-      $(id).dialog("close");
-    },
-    "Do it!": function() {
-      request_unit_do_action(act_id, actor_unit["id"], target_city["id"]);
-      $(id).dialog("close");
-    }
-  };
-  $(id).attr("title", "Unit upgrade");
-  $(id).dialog({
-    bgiframe: true,
-    modal: true,
-    close: function() {
+  const upgrade_possible = cost <= unit_owner(actor_unit)["gold"];
+  const buttons = [];
+  if (upgrade_possible) {
+    buttons.push({
+      text: "Do it!",
+      click: function() {
+        request_unit_do_action(act_id, actor_unit["id"], target_city["id"]);
+        removeDialog(dlgId);
+        act_sel_queue_done(actor_unit["id"]);
+      }
+    });
+  }
+  buttons.push({
+    text: upgrade_possible ? "Cancel" : "Close",
+    click: function() {
+      removeDialog(dlgId);
       act_sel_queue_done(actor_unit["id"]);
-    },
-    buttons: upgrade_possible ? upgrade_close_buttons : close_button,
-    height: "auto",
-    width: "auto"
+    }
   });
-  $(id).dialog("open");
+  createNativeDialog(dlgId, "Unit upgrade", dhtml, buttons);
 }
 function create_steal_tech_button(parent_id, tech, actor_id, city_id, action_id) {
-  const button = {
+  return {
     text: tech["name"],
     click: function() {
       request_unit_do_action(action_id, actor_id, city_id, tech["id"]);
-      $("#" + parent_id).remove();
+      removeDialog(parent_id);
       act_sel_queue_done(actor_id);
     }
   };
-  return button;
 }
 function popup_steal_tech_selection_dialog(actor_unit, target_city, act_probs, action_id) {
-  const id = "stealtech_dialog_" + actor_unit["id"];
+  const dlgId = "stealtech_dialog_" + actor_unit["id"];
   const buttons = [];
   let untargeted_action_id = ACTION_COUNT$1;
-  $("#" + id).remove();
-  $("<div id='" + id + "'></div>").appendTo("div#game_page");
-  $("#" + id).attr("title", "Select Advance to Steal");
   for (const tech_id in store.techs) {
     const tech = store.techs[tech_id];
     const act_kn = playerInventionState(clientPlaying(), tech["id"]);
     const tgt_kn = playerInventionState(target_city["owner"], tech["id"]);
     if (tgt_kn == TECH_KNOWN$2 && (act_kn == TECH_PREREQS_KNOWN$1 || store.gameInfo["tech_steal_allow_holes"] && act_kn == TECH_UNKNOWN$1)) {
       buttons.push(create_steal_tech_button(
-        id,
+        dlgId,
         tech,
         actor_unit["id"],
         target_city["id"],
@@ -6876,9 +6836,7 @@ function popup_steal_tech_selection_dialog(actor_unit, target_city, act_probs, a
   } else if (action_id == ACTION_SPY_TARGETED_STEAL_TECH) {
     untargeted_action_id = ACTION_SPY_STEAL_TECH;
   }
-  if (untargeted_action_id != ACTION_COUNT$1 && actionProbPossible(
-    act_probs[untargeted_action_id]
-  )) {
+  if (untargeted_action_id != ACTION_COUNT$1 && actionProbPossible(act_probs[untargeted_action_id])) {
     buttons.push({
       text: "At " + store.unitTypes[actor_unit["type"]]["name"] + "'s Discretion",
       click: function() {
@@ -6887,7 +6845,7 @@ function popup_steal_tech_selection_dialog(actor_unit, target_city, act_probs, a
           actor_unit["id"],
           target_city["id"]
         );
-        $("#" + id).remove();
+        removeDialog(dlgId);
         act_sel_queue_done(actor_unit["id"]);
       }
     });
@@ -6895,19 +6853,11 @@ function popup_steal_tech_selection_dialog(actor_unit, target_city, act_probs, a
   buttons.push({
     text: "Cancel",
     click: function() {
-      $("#" + id).remove();
+      removeDialog(dlgId);
       act_sel_queue_done(actor_unit["id"]);
     }
   });
-  $("#" + id).dialog({
-    modal: true,
-    close: function() {
-      act_sel_queue_done(actor_unit["id"]);
-    },
-    buttons,
-    width: "90%"
-  });
-  $("#" + id).dialog("open");
+  createNativeDialog(dlgId, "Select Advance to Steal", "", buttons, { width: "90%" });
 }
 function create_sabotage_impr_button(improvement, parent_id, actor_unit_id, target_city_id, act_id) {
   return {
@@ -6919,23 +6869,20 @@ function create_sabotage_impr_button(improvement, parent_id, actor_unit_id, targ
         target_city_id,
         improvement["id"]
       );
-      $("#" + parent_id).remove();
+      removeDialog(parent_id);
       act_sel_queue_done(actor_unit_id);
     }
   };
 }
 function popup_sabotage_dialog(actor_unit, target_city, city_imprs, act_id) {
-  const id = "sabotage_impr_dialog_" + actor_unit["id"];
+  const dlgId = "sabotage_impr_dialog_" + actor_unit["id"];
   const buttons = [];
-  $("#" + id).remove();
-  $("<div id='" + id + "'></div>").appendTo("div#game_page");
-  $("#" + id).attr("title", "Select Improvement to Sabotage");
   for (let i2 = 0; i2 < (store.rulesControl?.["num_impr_types"] ?? 0); i2++) {
     const improvement = store.improvements[i2];
     if (city_imprs.isSet(i2) && improvement["sabotage"] > 0) {
       buttons.push(create_sabotage_impr_button(
         improvement,
-        id,
+        dlgId,
         actor_unit["id"],
         target_city["id"],
         act_id
@@ -6945,19 +6892,11 @@ function popup_sabotage_dialog(actor_unit, target_city, city_imprs, act_id) {
   buttons.push({
     text: "Cancel",
     click: function() {
-      $("#" + id).remove();
+      removeDialog(dlgId);
       act_sel_queue_done(actor_unit["id"]);
     }
   });
-  $("#" + id).dialog({
-    modal: true,
-    close: function() {
-      act_sel_queue_done(actor_unit["id"]);
-    },
-    buttons,
-    width: "90%"
-  });
-  $("#" + id).dialog("open");
+  createNativeDialog(dlgId, "Select Improvement to Sabotage", "", buttons, { width: "90%" });
 }
 const REQEST_PLAYER_INITIATED$3 = 0;
 function format_act_prob_part(prob) {

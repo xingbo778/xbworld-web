@@ -45,9 +45,60 @@ import { select_tgt_unit, select_tgt_extra, list_potential_target_extras } from 
 
 const TILE_INDEX_NONE = -1;
 
-declare const $: any; // Declare jQuery
-
 let auto_attack: boolean = false;
+
+/**
+ * Helper: create a native dialog div with buttons.
+ * Replaces jQuery UI dialog pattern.
+ */
+function createNativeDialog(
+  dlgId: string,
+  title: string,
+  content: string,
+  buttons: { text: string; id?: string; class?: string; title?: string; click: () => void }[],
+  opts?: { width?: string; onClose?: () => void }
+): HTMLDivElement {
+  document.getElementById(dlgId)?.remove();
+
+  const dlg = document.createElement('div');
+  dlg.id = dlgId;
+  dlg.className = 'act_sel_dialog';
+  const w = opts?.width || '390px';
+  dlg.style.cssText = 'position:fixed;z-index:5000;background:#222;border:1px solid #555;padding:16px;top:20%;left:50%;transform:translateX(-50%);width:' + w + ';max-height:70vh;overflow-y:auto;color:#fff;';
+
+  if (title) {
+    const h = document.createElement('h3');
+    h.textContent = title;
+    h.style.cssText = 'margin:0 0 8px;';
+    dlg.appendChild(h);
+  }
+
+  if (content) {
+    const body = document.createElement('div');
+    body.innerHTML = content;
+    dlg.appendChild(body);
+  }
+
+  const btnContainer = document.createElement('div');
+  btnContainer.style.cssText = 'margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;';
+  for (const b of buttons) {
+    const btn = document.createElement('button');
+    if (b.id) btn.id = b.id;
+    if (b.class) btn.className = b.class;
+    btn.textContent = b.text;
+    if (b.title) btn.title = b.title;
+    btn.addEventListener('click', b.click);
+    btnContainer.appendChild(btn);
+  }
+  dlg.appendChild(btnContainer);
+
+  document.getElementById('game_page')?.appendChild(dlg);
+  return dlg;
+}
+
+function removeDialog(dlgId: string): void {
+  document.getElementById(dlgId)?.remove();
+}
 
 /****************************************************************************
   Ask the player to select an action.
@@ -56,10 +107,8 @@ export function popup_action_selection(actor_unit: any, action_probabilities: an
   target_tile: any, target_extra: any,
   target_unit: any, target_city: any): void {
   if (clientIsObserver()) return;
-  // reset dialog page.
-  const id = "#act_sel_dialog_" + actor_unit['id'];
-  $(id).remove();
-  $("<div id='act_sel_dialog_" + actor_unit['id'] + "'></div>").appendTo("div#game_page");
+
+  const dlgId = "act_sel_dialog_" + actor_unit['id'];
 
   if (action_selection_in_progress_for != IDENTITY_NUMBER_ZERO
     && action_selection_in_progress_for != actor_unit['id']) {
@@ -73,18 +122,13 @@ export function popup_action_selection(actor_unit: any, action_probabilities: an
 
   const actor_homecity = store.cities[actor_unit['homecity']];
 
-  const buttons: any[] = [];
-
   let dhtml: string = "";
 
   if (target_city != null) {
     dhtml += "Your " + store.unitTypes[actor_unit['type']]['name'];
-
-    /* Some units don't have a home city. */
     if (actor_homecity != null) {
       dhtml += " from " + decodeURIComponent(actor_homecity['name']);
     }
-
     dhtml += " has arrived at " + decodeURIComponent(target_city['name'])
       + ". What is your command?";
   } else if (target_unit != null) {
@@ -97,55 +141,30 @@ export function popup_action_selection(actor_unit: any, action_probabilities: an
       + " is waiting for your command.";
   }
 
-  $(id).html(dhtml);
+  const buttons: { text: string; id?: string; class?: string; title?: string; click: () => void }[] = [];
 
-  /* Store actor and target information in the dialog */
-  $(id).attr("actor_unit", actor_unit != null ? actor_unit['id']
-    : IDENTITY_NUMBER_ZERO);
-  $(id).attr("target_city", target_city != null ? target_city['id']
-    : IDENTITY_NUMBER_ZERO);
-  $(id).attr("target_unit", target_unit != null ? target_unit['id']
-    : IDENTITY_NUMBER_ZERO);
-  $(id).attr("target_tile", target_tile != null ? target_tile['index']
-    : TILE_INDEX_NONE);
-  $(id).attr("target_extra", target_extra != null ? target_extra['id']
-    : EXTRA_NONE);
-
-  /* Show a button for each enabled action. The buttons are sorted by
-   * target kind first and then by action id number. */
+  /* Show a button for each enabled action. */
   for (let tgt_kind = ATK_CITY; tgt_kind < ATK_COUNT; tgt_kind++) {
     let tgt_id: number = -1;
     let sub_tgt_id: number = -1;
 
     switch (tgt_kind) {
       case ATK_CITY:
-        if (target_city != null) {
-          tgt_id = target_city['id'];
-        }
+        if (target_city != null) tgt_id = target_city['id'];
         break;
       case ATK_UNIT:
-        if (target_unit != null) {
-          tgt_id = target_unit['id'];
-        }
+        if (target_unit != null) tgt_id = target_unit['id'];
         break;
       case ATK_UNITS:
-        if (target_tile != null) {
-          tgt_id = target_tile['index'];
-        }
+        if (target_tile != null) tgt_id = target_tile['index'];
         break;
       case ATK_TILE:
       case ATK_EXTRAS:
-        if (target_tile != null) {
-          tgt_id = target_tile['index'];
-        }
-        if (target_extra != null) {
-          sub_tgt_id = target_extra['id'];
-        }
+        if (target_tile != null) tgt_id = target_tile['index'];
+        if (target_extra != null) sub_tgt_id = target_extra['id'];
         break;
       case ATK_SELF:
-        if (actor_unit != null) {
-          tgt_id = actor_unit['id'];
-        }
+        if (actor_unit != null) tgt_id = actor_unit['id'];
         break;
       default:
         logError("Unsupported action target kind " + tgt_kind);
@@ -154,27 +173,23 @@ export function popup_action_selection(actor_unit: any, action_probabilities: an
 
     for (let action_id = 0; action_id < ACTION_COUNT; action_id++) {
       if ((window as any).actions[action_id]['tgt_kind'] == tgt_kind
-        && action_prob_possible(
-          action_probabilities[action_id])) {
-        buttons.push(create_act_sel_button(id, actor_unit['id'],
-          tgt_id, sub_tgt_id, action_id,
-          action_probabilities));
+        && action_prob_possible(action_probabilities[action_id])) {
+        const b = create_act_sel_button("#" + dlgId, actor_unit['id'],
+          tgt_id, sub_tgt_id, action_id, action_probabilities);
+        buttons.push({ text: b.text, id: b.id, class: b['class'], title: b.title, click: b.click });
       }
     }
   }
 
-  if (target_unit != null
-    && tile_units(target_tile)!.length > 1) {
+  if (target_unit != null && tile_units(target_tile)!.length > 1) {
     buttons.push({
       id: "act_sel_tgt_unit_switch" + actor_unit['id'],
-      "class": 'act_sel_button',
+      class: 'act_sel_button',
       text: 'Change unit target',
       click: function () {
-        select_tgt_unit(actor_unit,
-          target_tile, tile_units(target_tile) ?? []);
-
+        select_tgt_unit(actor_unit, target_tile, tile_units(target_tile) ?? []);
         _set_action_selection_restart(true);
-        $(id).dialog('close');
+        removeDialog(dlgId);
       }
     });
   }
@@ -182,91 +197,78 @@ export function popup_action_selection(actor_unit: any, action_probabilities: an
   if (target_extra != null) {
     buttons.push({
       id: "act_sel_tgt_extra_switch" + actor_unit['id'],
-      "class": 'act_sel_button',
+      class: 'act_sel_button',
       text: 'Change extra target',
       click: function () {
         select_tgt_extra(actor_unit, target_unit, target_tile,
-          list_potential_target_extras(actor_unit,
-            target_tile));
-
+          list_potential_target_extras(actor_unit, target_tile));
         _set_action_selection_restart(true);
-        $(id).dialog('close');
+        removeDialog(dlgId);
       }
     });
   }
 
-  /* Special-case handling for auto-attack. */
   if (action_prob_possible(action_probabilities[ACTION_ATTACK])) {
     if (!auto_attack) {
-      const button = {
+      buttons.push({
         id: "act_sel_" + ACTION_ATTACK + "_" + actor_unit['id'],
-        "class": 'act_sel_button',
+        class: 'act_sel_button',
         text: "Auto attack from now on!",
         title: "Attack without showing this attack dialog in the future",
         click: function () {
-          request_unit_do_action(ACTION_ATTACK,
-            actor_unit['id'], target_tile['index']);
+          request_unit_do_action(ACTION_ATTACK, actor_unit['id'], target_tile['index']);
           auto_attack = true;
-          $(id).remove();
+          removeDialog(dlgId);
           act_sel_queue_may_be_done(actor_unit['id']);
         }
-      };
-      buttons.push(button);
+      });
     }
   }
 
   buttons.push({
     id: "act_sel_wait" + actor_unit['id'],
-    "class": 'act_sel_button',
+    class: 'act_sel_button',
     text: 'Wait',
     click: function () {
       _set_did_not_decide(true);
-      $(id).dialog("close");
+      removeDialog(dlgId);
+      act_sel_queue_may_be_done(actor_unit['id']);
     }
   });
 
   buttons.push({
     id: "act_sel_cancel" + actor_unit['id'],
-    "class": 'act_sel_button',
+    class: 'act_sel_button',
     text: 'Cancel',
     click: function () {
-      $(id).remove();
+      removeDialog(dlgId);
       act_sel_queue_may_be_done(actor_unit['id']);
     }
   });
 
-  $(id).attr("title",
-    "Choose Your " + store.unitTypes[actor_unit['type']]['name']
-    + "'s Strategy");
-  $(id).dialog({
-    bgiframe: true,
-    modal: true,
-    dialogClass: "act_sel_dialog",
-    width: "390",
-    close: function () {
-      act_sel_queue_may_be_done(actor_unit['id']);
-    },
-    buttons: buttons
-  });
+  const dlg = createNativeDialog(
+    dlgId,
+    "Choose Your " + store.unitTypes[actor_unit['type']]['name'] + "'s Strategy",
+    dhtml,
+    buttons
+  );
 
-  $(id).dialog('open');
+  /* Store actor and target information in the dialog */
+  dlg.setAttribute("actor_unit", String(actor_unit != null ? actor_unit['id'] : IDENTITY_NUMBER_ZERO));
+  dlg.setAttribute("target_city", String(target_city != null ? target_city['id'] : IDENTITY_NUMBER_ZERO));
+  dlg.setAttribute("target_unit", String(target_unit != null ? target_unit['id'] : IDENTITY_NUMBER_ZERO));
+  dlg.setAttribute("target_tile", String(target_tile != null ? target_tile['index'] : TILE_INDEX_NONE));
+  dlg.setAttribute("target_extra", String(target_extra != null ? target_extra['id'] : EXTRA_NONE));
+
   set_is_more_user_input_needed(false);
 }
 
 /**************************************************************************
-  Show the player the price of bribing the unit and, if bribing is
-  possible, allow him to order it done.
+  Show the player the price of bribing the unit.
 **************************************************************************/
 export function popup_bribe_dialog(actor_unit: any, target_unit: any, cost: number, act_id: number): void {
-  let bribe_possible: boolean = false;
-  let dhtml: string = "";
-  const id = "#bribe_unit_dialog_" + actor_unit['id'];
-
-  /* Reset dialog page. */
-  $(id).remove();
-
-  $("<div id='bribe_unit_dialog_" + actor_unit['id'] + "'></div>")
-    .appendTo("div#game_page");
+  const dlgId = "bribe_unit_dialog_" + actor_unit['id'];
+  let dhtml = "";
 
   dhtml += "Treasury contains " + unit_owner(actor_unit)!['gold'] + " gold. ";
   dhtml += "The price of bribing "
@@ -274,176 +276,123 @@ export function popup_bribe_dialog(actor_unit: any, target_unit: any, cost: numb
     + " " + store.unitTypes[target_unit['type']]['name']
     + " is " + cost + ". ";
 
-  bribe_possible = cost <= unit_owner(actor_unit)!['gold'];
-
+  const bribe_possible = cost <= unit_owner(actor_unit)!['gold'];
   if (!bribe_possible) {
-    dhtml += "Traitors Demand Too Much!";
-    dhtml += "<br>";
+    dhtml += "Traitors Demand Too Much!<br>";
   }
 
-  $(id).html(dhtml);
-
-  const close_button = { Close: function () { $(id).dialog('close'); } };
-  const bribe_close_button = {
-    "Cancel": function () { $(id).dialog('close'); },
-    "Do it!": function () {
-      request_unit_do_action(act_id, actor_unit['id'], target_unit['id']);
-      $(id).dialog('close');
-    }
-  };
-
-  $(id).attr("title", "About that bribery you requested...");
-
-  $(id).dialog({
-    bgiframe: true,
-    modal: true,
-    close: function () {
+  const buttons: { text: string; click: () => void }[] = [];
+  if (bribe_possible) {
+    buttons.push({
+      text: 'Do it!',
+      click: function () {
+        request_unit_do_action(act_id, actor_unit['id'], target_unit['id']);
+        removeDialog(dlgId);
+        act_sel_queue_done(actor_unit['id']);
+      }
+    });
+  }
+  buttons.push({
+    text: bribe_possible ? 'Cancel' : 'Close',
+    click: function () {
+      removeDialog(dlgId);
       act_sel_queue_done(actor_unit['id']);
-    },
-    buttons: (bribe_possible ? bribe_close_button : close_button),
-    height: "auto",
-    width: "auto"
+    }
   });
 
-  $(id).dialog('open');
-
+  createNativeDialog(dlgId, "About that bribery you requested...", dhtml, buttons);
 }
 
 /**************************************************************************
-  Show the player the price of inviting the city and, if inciting is
-  possible, allow him to order it done.
+  Show the player the price of inciting the city.
 **************************************************************************/
 export function popup_incite_dialog(actor_unit: any, target_city: any, cost: number, act_id: number): void {
-  let incite_possible: boolean;
-  let id: string;
-  let dhtml: string;
+  const dlgId = "incite_city_dialog_" + actor_unit['id'];
+  let dhtml = "";
 
-  id = "#incite_city_dialog_" + actor_unit['id'];
-
-  /* Reset dialog page. */
-  $(id).remove();
-
-  $("<div id='incite_city_dialog_" + actor_unit['id'] + "'></div>")
-    .appendTo("div#game_page");
-
-  dhtml = "";
-
-  dhtml += "Treasury contains " + unit_owner(actor_unit)!['gold'] + " gold.";
-  dhtml += " ";
+  dhtml += "Treasury contains " + unit_owner(actor_unit)!['gold'] + " gold. ";
   dhtml += "The price of inciting "
     + decodeURIComponent(target_city['name'])
     + " is " + cost + ".";
 
-  incite_possible = cost != INCITE_IMPOSSIBLE_COST
+  const incite_possible = cost != INCITE_IMPOSSIBLE_COST
     && cost <= unit_owner(actor_unit)!['gold'];
 
   if (!incite_possible) {
-    dhtml += " ";
-    dhtml += "Traitors Demand Too Much!";
-    dhtml += "<br>";
+    dhtml += " Traitors Demand Too Much!<br>";
   }
 
-  $(id).html(dhtml);
-
-  const close_button = { Close: function () { $(id).dialog('close'); } };
-  const incite_close_buttons = {
-    'Cancel': function () { $(id).dialog('close'); },
-    'Do it!': function () {
-      request_unit_do_action(act_id, actor_unit['id'], target_city['id']);
-      $(id).dialog('close');
-    }
-  };
-
-  $(id).attr("title", "About that incite you requested...");
-
-  $(id).dialog({
-    bgiframe: true,
-    modal: true,
-    close: function () {
+  const buttons: { text: string; click: () => void }[] = [];
+  if (incite_possible) {
+    buttons.push({
+      text: 'Do it!',
+      click: function () {
+        request_unit_do_action(act_id, actor_unit['id'], target_city['id']);
+        removeDialog(dlgId);
+        act_sel_queue_done(actor_unit['id']);
+      }
+    });
+  }
+  buttons.push({
+    text: incite_possible ? 'Cancel' : 'Close',
+    click: function () {
+      removeDialog(dlgId);
       act_sel_queue_done(actor_unit['id']);
-    },
-    buttons: (incite_possible ? incite_close_buttons : close_button),
-    height: "auto",
-    width: "auto"
+    }
   });
 
-  $(id).dialog('open');
+  createNativeDialog(dlgId, "About that incite you requested...", dhtml, buttons);
 }
 
 /**************************************************************************
-  Show the player the price of upgrading the unit and, if upgrading is
-  affordable, allow him to order it done.
+  Show the player the price of upgrading the unit.
 **************************************************************************/
 export function popup_unit_upgrade_dlg(actor_unit: any, target_city: any, cost: number, act_id: number): void {
-  let upgrade_possible: boolean;
-  let id: string;
-  let dhtml: string;
+  const dlgId = "upgrade_unit_dialog_" + actor_unit['id'];
+  let dhtml = "";
 
-  id = "#upgrade_unit_dialog_" + actor_unit['id'];
-
-  /* Reset dialog page. */
-  $(id).remove();
-
-  $("<div id='upgrade_unit_dialog_" + actor_unit['id'] + "'></div>")
-    .appendTo("div#game_page");
-
-  dhtml = "";
-
-  dhtml += "Treasury contains " + unit_owner(actor_unit)!['gold'] + " gold.";
-  dhtml += " ";
+  dhtml += "Treasury contains " + unit_owner(actor_unit)!['gold'] + " gold. ";
   dhtml += "The price of upgrading our "
     + store.unitTypes[actor_unit['type']]['name']
     + " is " + cost + ".";
 
-  upgrade_possible = cost <= unit_owner(actor_unit)!['gold'];
+  const upgrade_possible = cost <= unit_owner(actor_unit)!['gold'];
 
-  $(id).html(dhtml);
-
-  const close_button = { Close: function () { $(id).dialog('close'); } };
-  const upgrade_close_buttons = {
-    'Cancel': function () { $(id).dialog('close'); },
-    'Do it!': function () {
-      request_unit_do_action(act_id, actor_unit['id'], target_city['id']);
-      $(id).dialog('close');
-    }
-  };
-
-  $(id).attr("title", "Unit upgrade");
-
-  $(id).dialog({
-    bgiframe: true,
-    modal: true,
-    close: function () {
+  const buttons: { text: string; click: () => void }[] = [];
+  if (upgrade_possible) {
+    buttons.push({
+      text: 'Do it!',
+      click: function () {
+        request_unit_do_action(act_id, actor_unit['id'], target_city['id']);
+        removeDialog(dlgId);
+        act_sel_queue_done(actor_unit['id']);
+      }
+    });
+  }
+  buttons.push({
+    text: upgrade_possible ? 'Cancel' : 'Close',
+    click: function () {
+      removeDialog(dlgId);
       act_sel_queue_done(actor_unit['id']);
-    },
-    buttons: (upgrade_possible ? upgrade_close_buttons
-      : close_button),
-    height: "auto",
-    width: "auto"
+    }
   });
 
-  $(id).dialog('open');
+  createNativeDialog(dlgId, "Unit upgrade", dhtml, buttons);
 }
 
 /**************************************************************************
   Create a button that steals a tech.
-
-  Needed because of JavaScript's scoping rules.
 **************************************************************************/
 export function create_steal_tech_button(parent_id: string, tech: any,
   actor_id: number, city_id: number, action_id: number): any {
-  /* Create the initial button with this tech */
-  const button = {
+  return {
     text: tech['name'],
     click: function () {
       request_unit_do_action(action_id, actor_id, city_id, tech['id']);
-      $("#" + parent_id).remove();
+      removeDialog(parent_id);
       act_sel_queue_done(actor_id);
     }
   };
-
-  /* The button is ready. */
-  return button;
 }
 
 /**************************************************************************
@@ -451,44 +400,24 @@ export function create_steal_tech_button(parent_id: string, tech: any,
 **************************************************************************/
 export function popup_steal_tech_selection_dialog(actor_unit: any, target_city: any,
   act_probs: any, action_id: number): void {
-  const id = "stealtech_dialog_" + actor_unit['id'];
-  const buttons: any[] = [];
+  const dlgId = "stealtech_dialog_" + actor_unit['id'];
+  const buttons: { text: string; click: () => void }[] = [];
   let untargeted_action_id: number = ACTION_COUNT;
 
-  /* Reset dialog page. */
-  $("#" + id).remove();
-  $("<div id='" + id + "'></div>").appendTo("div#game_page");
-
-  /* Set dialog title */
-  $("#" + id).attr("title", "Select Advance to Steal");
-
-  /* List the alternatives */
   for (const tech_id in store.techs) {
-    /* JavaScript for each iterates over keys. */
     const tech = store.techs[tech_id];
-
-    /* Actor and target player tech known state. */
     const act_kn = player_invention_state(clientPlaying(), tech['id']);
     const tgt_kn = player_invention_state(target_city['owner'], tech['id']);
 
-    /* Can steal a tech if the target player knows it and the actor player
-     * has the pre requirements. Some rulesets allows the player to steal
-     * techs the player don't know the prereqs of. */
     if ((tgt_kn == TECH_KNOWN)
       && ((act_kn == TECH_PREREQS_KNOWN)
         || ((store.gameInfo as any)['tech_steal_allow_holes']
           && (act_kn == TECH_UNKNOWN)))) {
-      /* Add a button for stealing this tech to the dialog. */
-      buttons.push(create_steal_tech_button(id, tech,
-        actor_unit['id'],
-        target_city['id'],
-        action_id));
+      buttons.push(create_steal_tech_button(dlgId, tech,
+        actor_unit['id'], target_city['id'], action_id));
     }
   }
 
-  /* The player may change his mind after selecting targeted tech theft and
-   * go for the untargeted version after concluding that no listed tech is
-   * worth the extra risk. */
   if (action_id == ACTION_SPY_TARGETED_STEAL_TECH_ESC) {
     untargeted_action_id = ACTION_SPY_STEAL_TECH_ESC;
   } else if (action_id == ACTION_SPY_TARGETED_STEAL_TECH) {
@@ -496,58 +425,40 @@ export function popup_steal_tech_selection_dialog(actor_unit: any, target_city: 
   }
 
   if (untargeted_action_id != ACTION_COUNT
-    && action_prob_possible(
-      act_probs[untargeted_action_id])) {
-    /* Untargeted tech theft may be legal. Add it as an alternative. */
+    && action_prob_possible(act_probs[untargeted_action_id])) {
     buttons.push({
-      text: "At " + store.unitTypes[actor_unit['type']]['name']
-        + "'s Discretion",
+      text: "At " + store.unitTypes[actor_unit['type']]['name'] + "'s Discretion",
       click: function () {
         request_unit_do_action(untargeted_action_id,
           actor_unit['id'], target_city['id']);
-        $("#" + id).remove();
+        removeDialog(dlgId);
         act_sel_queue_done(actor_unit['id']);
       }
     });
   }
 
-  /* Allow the user to cancel. */
   buttons.push({
     text: 'Cancel',
     click: function () {
-      $("#" + id).remove();
+      removeDialog(dlgId);
       act_sel_queue_done(actor_unit['id']);
     }
   });
 
-  /* Create the dialog. */
-  $("#" + id).dialog({
-    modal: true,
-    close: function () {
-      act_sel_queue_done(actor_unit['id']);
-    },
-    buttons: buttons,
-    width: "90%"
-  });
-
-  /* Show the dialog. */
-  $("#" + id).dialog('open');
+  createNativeDialog(dlgId, "Select Advance to Steal", "", buttons, { width: '90%' });
 }
 
 /**************************************************************************
   Create a button that orders a spy to try to sabotage an improvement.
-
-  Needed because of JavaScript's scoping rules.
 **************************************************************************/
 export function create_sabotage_impr_button(improvement: any, parent_id: string,
   actor_unit_id: number, target_city_id: number, act_id: number): any {
-  /* Create the initial button with this tech */
   return {
     text: improvement['name'],
     click: function () {
       request_unit_do_action(act_id, actor_unit_id, target_city_id,
         improvement['id']);
-      $("#" + parent_id).remove();
+      removeDialog(parent_id);
       act_sel_queue_done(actor_unit_id);
     }
   };
@@ -557,50 +468,24 @@ export function create_sabotage_impr_button(improvement: any, parent_id: string,
   Select what improvement to sabotage when doing targeted sabotage city.
 **************************************************************************/
 export function popup_sabotage_dialog(actor_unit: any, target_city: any, city_imprs: any, act_id: number): void {
-  const id = "sabotage_impr_dialog_" + actor_unit['id'];
-  const buttons: any[] = [];
+  const dlgId = "sabotage_impr_dialog_" + actor_unit['id'];
+  const buttons: { text: string; click: () => void }[] = [];
 
-  /* Reset dialog page. */
-  $("#" + id).remove();
-  $("<div id='" + id + "'></div>").appendTo("div#game_page");
-
-  /* Set dialog title */
-  $("#" + id).attr("title", "Select Improvement to Sabotage");
-
-  /* List the alternatives */
   for (let i = 0; i < ((store.rulesControl as any)?.['num_impr_types'] ?? 0); i++) {
     const improvement: any = store.improvements[i];
-
-    if (city_imprs.isSet(i)
-      && improvement['sabotage'] > 0) {
-      /* The building is in the city. The probability of successfully
-       * sabotaging it is above zero. */
-      buttons.push(create_sabotage_impr_button(improvement, id,
-        actor_unit['id'],
-        target_city['id'],
-        act_id));
+    if (city_imprs.isSet(i) && improvement['sabotage'] > 0) {
+      buttons.push(create_sabotage_impr_button(improvement, dlgId,
+        actor_unit['id'], target_city['id'], act_id));
     }
   }
 
-  /* Allow the user to cancel. */
   buttons.push({
     text: 'Cancel',
     click: function () {
-      $("#" + id).remove();
+      removeDialog(dlgId);
       act_sel_queue_done(actor_unit['id']);
     }
   });
 
-  /* Create the dialog. */
-  $("#" + id).dialog({
-    modal: true,
-    close: function () {
-      act_sel_queue_done(actor_unit['id']);
-    },
-    buttons: buttons,
-    width: "90%"
-  });
-
-  /* Show the dialog. */
-  $("#" + id).dialog('open');
+  createNativeDialog(dlgId, "Select Improvement to Sabotage", "", buttons, { width: '90%' });
 }
