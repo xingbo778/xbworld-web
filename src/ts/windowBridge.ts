@@ -52,7 +52,7 @@ w['show_tax_rates_dialog'] = show_tax_rates_dialog;
 import { center_tile_id } from './renderer/mapviewCommon';
 w['center_tile_id'] = center_tile_id;
 
-import { set_req_government } from './ui/governmentDialog';
+import { set_req_government } from './components/Dialogs/GovernmentDialog';
 w['set_req_government'] = set_req_government;
 
 import { show_tech_info_dialog, send_player_research } from './ui/techDialog';

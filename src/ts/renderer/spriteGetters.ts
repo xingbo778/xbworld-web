@@ -8,6 +8,8 @@ import { tileset_unit_type_graphic_tag, tileset_building_graphic_tag, tileset_te
 import { getTilesetFileExtension } from '../utils/helpers';
 import { store } from '../data/store';
 
+const _ts = Date.now();
+
 export function get_unit_image_sprite(punit: any): any {
   const from_type = get_unit_type_image_sprite(unit_type(punit));
   from_type["height"] = from_type["height"] - 2;
@@ -25,7 +27,7 @@ export function get_unit_type_image_sprite(punittype: any): any | null {
   const i = store.tileset[tag][4];
   return {
     "tag": tag,
-    "image-src": "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i + getTilesetFileExtension() + "?ts=" + _w.ts,
+    "image-src": "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i + getTilesetFileExtension() + "?ts=" + _ts,
     "tileset-x": tileset_x,
     "tileset-y": tileset_y,
     "width": width,
@@ -44,7 +46,7 @@ export function get_improvement_image_sprite(pimprovement: any): any | null {
   const i = store.tileset[tag][4];
   return {
     "tag": tag,
-    "image-src": "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i + getTilesetFileExtension() + "?ts=" + _w.ts,
+    "image-src": "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i + getTilesetFileExtension() + "?ts=" + _ts,
     "tileset-x": tileset_x,
     "tileset-y": tileset_y,
     "width": width,
@@ -62,7 +64,7 @@ export function get_specialist_image_sprite(tag: string): any | null {
   const i = store.tileset[tag][4];
   return {
     "tag": tag,
-    "image-src": "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i + getTilesetFileExtension() + "?ts=" + _w.ts,
+    "image-src": "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i + getTilesetFileExtension() + "?ts=" + _ts,
     "tileset-x": tileset_x,
     "tileset-y": tileset_y,
     "width": width,
@@ -81,7 +83,7 @@ export function get_technology_image_sprite(ptech: any): any | null {
   const i = store.tileset[tag][4];
   return {
     "tag": tag,
-    "image-src": "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i + getTilesetFileExtension() + "?ts=" + _w.ts,
+    "image-src": "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i + getTilesetFileExtension() + "?ts=" + _ts,
     "tileset-x": tileset_x,
     "tileset-y": tileset_y,
     "width": width,
@@ -98,7 +100,7 @@ export function get_treaty_agree_thumb_up(): any {
   const i = store.tileset[tag][4];
   return {
     "tag": tag,
-    "image-src": "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i + getTilesetFileExtension() + "?ts=" + _w.ts,
+    "image-src": "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i + getTilesetFileExtension() + "?ts=" + _ts,
     "tileset-x": tileset_x,
     "tileset-y": tileset_y,
     "width": width,
@@ -115,7 +117,7 @@ export function get_treaty_disagree_thumb_down(): any {
   const i = store.tileset[tag][4];
   return {
     "tag": tag,
-    "image-src": "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i + getTilesetFileExtension() + "?ts=" + _w.ts,
+    "image-src": "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i + getTilesetFileExtension() + "?ts=" + _ts,
     "tileset-x": tileset_x,
     "tileset-y": tileset_y,
     "width": width,

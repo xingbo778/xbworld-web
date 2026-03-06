@@ -131,13 +131,13 @@ import './ui/controls';
 import './ui/actionDialog';
 import './ui/cityDialog';
 import './ui/techDialog';
-import './ui/governmentDialog';
+import './components/Dialogs/GovernmentDialog';
 import './ui/cma';
 import './ui/diplomacy';
 import './ui/helpdata';
 import './ui/intelDialog';
 import './ui/options';
-import './ui/pillageDialog';
+import './components/Dialogs/PillageDialog';
 import './ui/rates';
 
 // ---------------------------------------------------------------------------

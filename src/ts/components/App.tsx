@@ -5,6 +5,7 @@ import { AuthDialog } from './Dialogs/AuthDialog';
 import { IntroDialog } from './Dialogs/IntroDialog';
 import { IntelDialog } from './Dialogs/IntelDialog';
 import { SwalDialog } from './Dialogs/SwalDialog';
+import { GovernmentDialog } from './Dialogs/GovernmentDialog';
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
       <IntroDialog />
       <IntelDialog />
       <SwalDialog />
+      <GovernmentDialog />
     </div>
   );
 }

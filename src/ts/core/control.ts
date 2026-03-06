@@ -33,7 +33,7 @@ import { network_stop } from '../net/connection';
 import { isTouchDevice as is_touch_device } from '../utils/helpers';
 import { update_city_screen } from '../ui/cityDialog';
 import { update_tech_screen } from '../ui/techDialog';
-import { init_civ_dialog } from '../ui/governmentDialog';
+import { init_civ_dialog } from '../components/Dialogs/GovernmentDialog';
 import { init_options_dialog } from '../ui/options';
 import { show_help } from '../ui/helpdata';
 import { show_intelligence_report_dialog } from '../ui/intelDialog';

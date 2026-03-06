@@ -22,7 +22,6 @@ import { player_capital, get_diplstate_text, research_get, DiplState } from '../
 import { TECH_KNOWN } from '../data/tech';
 import { clientIsObserver as client_is_observer, clientPlaying } from '../client/clientState';
 import { showDialogMessage as show_dialog_message } from '../client/civClient';
-import { governments } from '../ui/governmentDialog';
 import { showIntelDialog } from '../components/Dialogs/IntelDialog';
 
 export function show_intelligence_report_dialog(): void {
@@ -41,7 +40,7 @@ export function show_intelligence_report_dialog(): void {
 export function show_intelligence_report_hearsay(pplayer: any): void {
   let msg: string = "Ruler " + pplayer['name'] + "<br>";
   if (pplayer['government'] > 0) {
-    msg += "Government: " + governments[pplayer['government']]['name'] + "<br>";
+    msg += "Government: " + store.governments[pplayer['government']]['name'] + "<br>";
   }
 
   if (pplayer['gold'] > 0) {
@@ -60,7 +59,7 @@ export function show_intelligence_report_hearsay(pplayer: any): void {
 
 export function show_intelligence_report_embassy(pplayer: any): void {
   const capital: any = player_capital(pplayer);
-  const gov = governments[pplayer['government']];
+  const gov = store.governments[pplayer['government']];
   const govName = gov ? gov['name'] : '(Unknown)';
   const capitalName = capital ? capital.name : '(capital unknown)';
 
