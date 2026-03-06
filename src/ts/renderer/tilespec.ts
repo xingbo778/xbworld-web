@@ -1,4 +1,5 @@
 import { store } from '../data/store';
+import { clientPlaying } from '../client/clientState';
 import { cityTile as city_tile, getCityDxyToIndex as get_city_dxy_to_index } from '../data/city';
 import { game_find_city_by_number as find_city_by_number } from '../data/game';
 import { unit_type, tile_units, get_unit_anim_offset, unit_has_goto, idex_lookup_unit as find_unit_by_number } from '../data/unit';
@@ -844,8 +845,8 @@ export function get_city_occupied_sprite(pcity: any): string {
   const ptile = city_tile(pcity);
   const punits = tile_units(ptile);
 
-  if (!store.observing && store.client.conn.playing != null
-    && owner_id != store.client.conn.playing.playerno && pcity['occupied']) {
+  if (!store.observing && clientPlaying() != null
+    && owner_id != clientPlaying().playerno && pcity['occupied']) {
     return "citybar.occupied";
   } else if (punits != null && punits.length == 1) {
     return "citybar.occupancy_1";
@@ -945,8 +946,8 @@ export function get_unit_nation_flag_sprite(punit: any): any {
   const owner_id = punit['owner'];
 
   if ((unit_type(punit) as any)?.['flags']?.isSet?.(UTYF_FLAGLESS)
-    && store.client.conn.playing != null
-    && owner_id != store.client.conn.playing.playerno) {
+    && clientPlaying() != null
+    && owner_id != clientPlaying().playerno) {
     return [];
   } else {
     const owner = store.players[owner_id];

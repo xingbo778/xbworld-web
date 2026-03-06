@@ -9,7 +9,7 @@
 import { O_SCIENCE } from './fcTypes';
 import { store } from './store';
 import { research_data } from './player';
-import { clientIsObserver as client_is_observer } from '../client/clientState';
+import { clientIsObserver as client_is_observer, clientPlaying } from '../client/clientState';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -121,18 +121,18 @@ export function getCurrentBulbsOutput(): {
   let teamBulbs = 0;
   let teamUpkeep = 0;
 
-  if (!client_is_observer() && store.client?.conn?.playing != null) {
-    const cplayer = store.client.conn.playing.playerno;
+  if (!client_is_observer() && clientPlaying() != null) {
+    const cplayer = clientPlaying().playerno;
     for (const cityId in store.cities) {
       const city = store.cities[cityId];
       if (city.owner === cplayer) {
         selfBulbs += city.prod[O_SCIENCE];
       }
     }
-    selfUpkeep = store.client.conn.playing.tech_upkeep ?? 0;
+    selfUpkeep = clientPlaying()?.tech_upkeep ?? 0;
 
     if (store.gameInfo?.['team_pooled_research']) {
-      const team = store.client.conn.playing.team;
+      const team = clientPlaying()?.team;
       for (const playerId in store.players) {
         const player = store.players[playerId];
         if (player.team === team && player.is_alive) {

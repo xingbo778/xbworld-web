@@ -16,7 +16,7 @@ import { ACTION_COUNT, RENDERER_2DCANVAS } from '../../core/constants';
 import { send_request } from '../../net/connection';
 import { packet_unit_orders, packet_unit_sscs_set, packet_web_goto_path_req, packet_web_info_text_req } from '../../net/packetConstants';
 import { isTouchDevice as is_touch_device } from '../../utils/helpers';
-import { clientIsObserver as client_is_observer } from '../../client/clientState';
+import { clientIsObserver as client_is_observer, clientPlaying } from '../../client/clientState';
 import { message_log } from '../../core/messages';
 import { E_BEGINNER_HELP, E_BAD_COMMAND } from '../../data/eventConstants';
 import { canvas_pos_to_tile, center_tile_mapcanvas_2d } from '../../renderer/mapviewCommon';
@@ -256,7 +256,7 @@ export function do_map_click(ptile: any, qtype: any, first_time_called: boolean)
     S.setActionTgtSelActive(false);
   } else {
     if (pcity != null) {
-      if (store.client.conn.playing != null && pcity['owner'] == store.client.conn.playing.playerno) {
+      if (clientPlaying() != null && pcity['owner'] == clientPlaying().playerno) {
         if (sunits != null && sunits.length > 0
           && sunits[0]['activity'] == ACTIVITY_IDLE) {
           set_unit_focus_and_redraw(sunits[0]);
@@ -276,7 +276,7 @@ export function do_map_click(ptile: any, qtype: any, first_time_called: boolean)
       set_unit_focus_and_redraw(null);
 
     } else if (sunits != null && sunits.length > 0) {
-      if (store.client.conn.playing != null && sunits[0]['owner'] == store.client.conn.playing.playerno) {
+      if (clientPlaying() != null && sunits[0]['owner'] == clientPlaying().playerno) {
         if (sunits.length == 1) {
           const unit = sunits[0];
           set_unit_focus_and_activate(unit);

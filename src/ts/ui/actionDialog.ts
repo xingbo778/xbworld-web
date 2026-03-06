@@ -1,5 +1,5 @@
 import { store } from '../data/store';
-import { clientIsObserver } from '../client/clientState';
+import { clientIsObserver, clientPlaying } from '../client/clientState';
 import { game_find_city_by_number as find_city_by_number } from '../data/game';
 import { unit_owner, get_unit_homecity_name, unit_can_do_action, tile_units } from '../data/unit';
 import { game_find_unit_by_number as find_unit_by_number } from '../data/game';
@@ -696,7 +696,7 @@ export function popup_steal_tech_selection_dialog(actor_unit: any, target_city: 
     const tech = store.techs[tech_id];
 
     /* Actor and target player tech known state. */
-    const act_kn = player_invention_state(store.client.conn.playing, tech['id']);
+    const act_kn = player_invention_state(clientPlaying(), tech['id']);
     const tgt_kn = player_invention_state(target_city['owner'], tech['id']);
 
     /* Can steal a tech if the target player knows it and the actor player

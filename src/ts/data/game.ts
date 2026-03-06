@@ -1,7 +1,7 @@
 import type { City } from './types';
 import { store } from './store';
 import { cityPopulation as city_population } from './city';
-import { clientState as client_state, C_S_RUNNING } from '../client/clientState';
+import { clientState as client_state, C_S_RUNNING, clientPlaying } from '../client/clientState';
 import { is_small_screen } from '../renderer/mapview';
 import { numberWithCommas } from '../utils/helpers';
 
@@ -43,11 +43,11 @@ export function update_game_status_panel(): void {
 
   let status_html = '';
 
-  if (store.client.conn.playing != null) {
-    const pplayer = store.client.conn.playing;
-    const tax = store.client.conn.playing['tax'];
-    const lux = store.client.conn.playing['luxury'];
-    const sci = store.client.conn.playing['science'];
+  if (clientPlaying() != null) {
+    const pplayer = clientPlaying();
+    const tax = clientPlaying()['tax'];
+    const lux = clientPlaying()['luxury'];
+    const sci = clientPlaying()['science'];
 
     let net_income: string | number = pplayer['expected_income'];
     if (pplayer['expected_income'] > 0) {
@@ -60,7 +60,7 @@ export function update_game_status_panel(): void {
         store.nations[pplayer['nation']]['adjective'] +
         "</b> &nbsp;&nbsp; <span title='Population'>👤</span>: ";
     if (!is_small_screen())
-      status_html += '<b>' + civ_population(store.client.conn.playing.playerno) + '</b>  &nbsp;&nbsp;';
+      status_html += '<b>' + civ_population(clientPlaying().playerno) + '</b>  &nbsp;&nbsp;';
     if (!is_small_screen())
       status_html +=
         "<span title='Year (turn)'>🕐</span>: <b>" +

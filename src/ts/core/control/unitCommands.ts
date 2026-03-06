@@ -26,7 +26,7 @@ import {
 import { message_log } from '../../core/messages';
 import { E_BEGINNER_HELP, E_BAD_COMMAND } from '../../data/eventConstants';
 import { action_decision_clear_want } from './actionSelection';
-import { clientIsObserver } from '../../client/clientState';
+import { clientIsObserver, clientPlaying } from '../../client/clientState';
 import * as S from './controlState';
 // Circular imports — OK, only used inside functions at runtime
 import { get_units_in_focus, advance_unit_focus, update_unit_focus, update_active_units_dialog, update_unit_order_commands, set_unit_focus_and_redraw, auto_center_on_focus_unit, find_a_focus_unit_tile_to_center_on } from './unitFocus';
@@ -102,7 +102,7 @@ export function key_unit_unload() {
     const punit = units_on_tile[i];
 
     if (punit['transported'] && punit['transported_by'] > 0
-      && store.client.conn.playing != null && punit['owner'] == store.client.conn.playing.playerno) {
+      && clientPlaying() != null && punit['owner'] == clientPlaying().playerno) {
       request_new_unit_activity(punit, ACTIVITY_IDLE, EXTRA_NONE);
       request_unit_do_action(ACTION_TRANSPORT_DEBOARD, punit['id'],
         punit['transported_by']);
@@ -525,14 +525,14 @@ export function key_unit_move(dir: number) {
     };
 
     if (punit['transported']
-      && store.client.conn.playing != null
+      && clientPlaying() != null
       && newtile['units'].every(function (ounit: any) {
-        return ounit['owner'] == store.client.conn.playing!.playerno;
+        return ounit['owner'] == clientPlaying()?.playerno;
       })
       && (tile_city(newtile) == null
-        || tile_city(newtile)!['owner'] == store.client.conn.playing!.playerno)
+        || tile_city(newtile)!['owner'] == clientPlaying()?.playerno)
       && !tile_has_extra(newtile, EXTRA_HUT)
-      && (newtile['extras_owner'] == store.client.conn.playing.playerno
+      && (newtile['extras_owner'] == clientPlaying().playerno
         || !tile_has_territory_claiming_extra(newtile))) {
       order["order"] = ORDER_MOVE;
     }

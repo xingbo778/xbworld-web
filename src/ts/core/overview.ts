@@ -29,7 +29,7 @@ import { center_tile_mapcanvas } from './control';
 import { base_canvas_to_map_pos, canvas_pos_to_tile, mapview, mapview_slide } from '../renderer/mapviewCommon';
 import { RENDERER_2DCANVAS } from './constants';
 import { color_rbg_to_list } from '../renderer/tilespec';
-import { clientState as client_state, C_S_RUNNING, C_S_OVER } from '../client/clientState';
+import { clientState as client_state, C_S_RUNNING, C_S_OVER, clientPlaying } from '../client/clientState';
 
 // Alias snake_case names to camelCase imports
 const map_pos_to_tile = mapPosToTile;
@@ -339,9 +339,9 @@ export function overview_tile_color(map_x: number, map_y: number): number {
   const pcity: any = tile_city(ptile);
 
   if (pcity != null) {
-    if (store.client.conn.playing == null) {
+    if (clientPlaying() == null) {
       return COLOR_OVERVIEW_ENEMY_CITY;
-    } else if (city_owner_player_id(pcity) == store.client.conn.playing['id']) {
+    } else if (city_owner_player_id(pcity) == clientPlaying()['id']) {
       return COLOR_OVERVIEW_MY_CITY;
     } else {
       return COLOR_OVERVIEW_ENEMY_CITY;
@@ -350,9 +350,9 @@ export function overview_tile_color(map_x: number, map_y: number): number {
 
   const punit: any = find_visible_unit(ptile);
   if (punit != null) {
-    if (store.client.conn.playing == null) {
+    if (clientPlaying() == null) {
       return COLOR_OVERVIEW_ENEMY_UNIT;
-    } else if (punit['owner'] == store.client.conn.playing['id']) {
+    } else if (punit['owner'] == clientPlaying()['id']) {
       return COLOR_OVERVIEW_MY_UNIT;
     } else if (punit['owner'] != null && punit['owner'] != 255) {
       return palette_color_offset + punit['owner'];

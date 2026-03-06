@@ -14,6 +14,7 @@ import {
   CAPITAL_PRIMARY,
 } from './fcTypes';
 import { store } from './store';
+import { clientPlaying } from '../client/clientState';
 import {
   indexToTile,
   mapVectorToSqDistance,
@@ -86,13 +87,13 @@ export function cityOwner(pcity: any): any {
 
 /** Removes a city from the game. */
 export function removeCity(pcityId: number): void {
-  if (pcityId == null || store.client?.conn?.playing == null) return;
+  if (pcityId == null || clientPlaying() == null) return;
   const pcity = store.cities[pcityId];
   if (pcity == null) return;
 
   const update =
-    store.client.conn.playing.playerno &&
-    cityOwner(pcity).playerno === store.client.conn.playing.playerno;
+    clientPlaying()?.playerno &&
+    cityOwner(pcity).playerno === clientPlaying()?.playerno;
   const ptile = cityTile(store.cities[pcityId]);
   delete store.cities[pcityId];
   if (update) {

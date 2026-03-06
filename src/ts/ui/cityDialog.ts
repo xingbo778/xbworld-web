@@ -12,7 +12,7 @@ import { VUT_UTYPE, VUT_IMPROVEMENT, FC_INFINITY, O_FOOD, O_SHIELD, O_TRADE, O_G
 import { get_improvement_image_sprite } from '../renderer/tilespec';
 import { RENDERER_2DCANVAS } from '../core/constants';
 import { tile_units } from '../data/unit';
-import { clientState as client_state, C_S_RUNNING, clientIsObserver } from '../client/clientState';
+import { clientState as client_state, C_S_RUNNING, clientIsObserver, clientPlaying } from '../client/clientState';
 import { send_request as sendRequest } from '../net/connection';
 import { packet_city_options_req, packet_city_buy, packet_city_change, packet_city_make_specialist, packet_city_make_worker, packet_city_rename, packet_city_sell, packet_city_change_specialist, packet_city_worklist } from '../net/packetConstants';
 import { isSmallScreen as is_small_screen, numberWithCommas, isTouchDevice as is_touch_device, blur_input_on_touchdevice } from '../utils/helpers';
@@ -379,7 +379,7 @@ export function show_city_dialog(pcity: any): void {
 export function request_city_buy(): void {
   if (clientIsObserver()) return;
   const pcity: any = active_city;
-  const pplayer: any = store.client.conn.playing;
+  const pplayer: any = clientPlaying();
 
   // reset dialog page.
   $("#dialog").remove();
@@ -569,7 +569,7 @@ export function city_name_dialog(suggested_name: string, unit_id: number): void 
 }
 
 export function next_city(): void {
-  if (!store.client.conn.playing) return;
+  if (!clientPlaying()) return;
 
   city_screen_updater.fireNow();
 
@@ -586,7 +586,7 @@ export function next_city(): void {
 }
 
 export function previous_city(): void {
-  if (!store.client.conn.playing) return;
+  if (!clientPlaying()) return;
 
   city_screen_updater.fireNow();
 
@@ -1220,7 +1220,7 @@ export function update_city_screen(): void {
   let count: number = 0;
   for (const city_id in cities){
     const pcity: any = cities[city_id];
-    if (store.client.conn.playing != null && city_owner(pcity) != null && city_owner(pcity).playerno == store.client.conn.playing.playerno) {
+    if (clientPlaying() != null && city_owner(pcity) != null && city_owner(pcity).playerno == clientPlaying().playerno) {
       count++; 
       const prod_type: any = get_city_production_type(pcity);
       let turns_to_complete_str: string;

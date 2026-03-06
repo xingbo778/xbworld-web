@@ -19,7 +19,7 @@
 
 declare const $: any;
 import { active_city } from './cityDialog';
-import { clientIsObserver as client_is_observer } from '../client/clientState';
+import { clientIsObserver as client_is_observer, clientPlaying } from '../client/clientState';
 import { cityOwnerPlayerId as city_owner_player_id } from '../data/city';
 import { packet_web_cma_clear } from '../net/packetConstants';
 
@@ -42,9 +42,9 @@ export let _cma_allow_specialists: boolean = true;
 **************************************************************************/
 export function show_city_governor_tab(): boolean | void {
   // Reject cases which can't show the Governor:
-  if (client_is_observer() || store.client.conn.playing == null) return false;
+  if (client_is_observer() || clientPlaying() == null) return false;
   if (!active_city) return false;
-  if (city_owner_player_id(active_city) != store.client.conn.playing.playerno) {
+  if (city_owner_player_id(active_city) != clientPlaying().playerno) {
     $("#city_governor_tab").html("City Governor available only for domestic cities.");
     return false;
   }

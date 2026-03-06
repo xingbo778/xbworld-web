@@ -6,7 +6,7 @@
  */
 
 import { isLongturn as is_longturn } from '../../client/clientCore';
-import { clientState as client_state, C_S_RUNNING } from '../../client/clientState';
+import { clientState as client_state, C_S_RUNNING, clientPlaying } from '../../client/clientState';
 import { DiplState, PlayerFlag } from '../../data/player';
 import { send_message } from '../../net/connection';
 import { isTouchDevice as is_touch_device } from '../../utils/helpers';
@@ -40,8 +40,8 @@ export function chat_context_get_recipients(): any[] {
   pm.push({ id: null, flag: null, description: 'Everybody' });
 
   let self = -1;
-  if (store.client.conn.playing != null) {
-    self = store.client.conn.playing['playerno'];
+  if (clientPlaying() != null) {
+    self = clientPlaying()['playerno'];
   }
 
   for (const player_id_str in store.players) {
@@ -109,8 +109,8 @@ export function chat_context_dialog_show(recipients: any[]): void {
   document.querySelector('div#game_page')!.appendChild(dlgDiv);
 
   let self = -1;
-  if (store.client.conn.playing != null) {
-    self = store.client.conn.playing['playerno'];
+  if (clientPlaying() != null) {
+    self = clientPlaying()['playerno'];
   }
 
   const tbody_el = document.createElement('tbody');
@@ -207,8 +207,8 @@ export function set_chat_direction(player_id: number | null): void {
     ctx.fillStyle = "rgba(192, 192, 192, 1)";
     ctx.fillText(S.CHAT_ICON_EVERYBODY, 7, 15);
     player_name = 'everybody';
-  } else if (store.client.conn.playing != null
-    && player_id == store.client.conn.playing['playerno']) {
+  } else if (clientPlaying() != null
+    && player_id == clientPlaying()['playerno']) {
     ctx.clearRect(0, 0, 29, 20);
     ctx.font = "18px FontAwesome";
     ctx.fillStyle = "rgba(192, 192, 192, 1)";
@@ -265,8 +265,8 @@ export function check_text_input(event: any, chatboxtextarea: any): boolean | un
 
     if (S.chat_send_to != null && S.chat_send_to >= 0
       && is_unprefixed_message(message)) {
-      if (store.client.conn.playing != null
-        && S.chat_send_to == store.client.conn.playing['playerno']) {
+      if (clientPlaying() != null
+        && S.chat_send_to == clientPlaying()['playerno']) {
         message = ". " + encode_message_text(message);
       } else {
         const pplayer = store.players[S.chat_send_to];

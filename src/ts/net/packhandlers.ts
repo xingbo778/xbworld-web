@@ -34,7 +34,7 @@ import { mapInitTopology, mapAllocate } from '../data/map';
 import { BitVector } from '../utils/bitvector';
 import { stringUnqualify } from '../utils/helpers';
 import { freelog } from '../core/log';
-import { C_S_RUNNING, C_S_PREPARING, C_S_OVER, clientState, clientIsObserver } from '../client/clientState';
+import { C_S_RUNNING, C_S_PREPARING, C_S_OVER, clientState, clientIsObserver, clientPlaying } from '../client/clientState';
 import { setClientState as set_client_state } from '../client/clientMain';
 import { setPhaseStart, requestObserveGame } from '../client/clientCore';
 import { set_client_page, get_client_page, PAGE_MAIN, PAGE_NETWORK, PAGE_START } from '../core/pages';
@@ -481,7 +481,7 @@ export function handle_conn_info(packet: any): void {
   }
 
   if (packet['id'] === store.client.conn.id) {
-    if (store.client.conn.playing !== packet['playing']) {
+    if (clientPlaying() !== packet['playing']) {
       set_client_state(C_S_PREPARING);
     }
   }
@@ -553,7 +553,7 @@ export function handle_city_info(packet: any): void {
     const pcity = packet;
     store.cities[packet['id']] = packet;
     if (C_S_RUNNING === clientState() && !(window as any).observing && (window as any).benchmark_start === 0
-        && !clientIsObserver() && packet['owner'] === store.client.conn.playing?.playerno) {
+        && !clientIsObserver() && packet['owner'] === clientPlaying()?.playerno) {
       show_city_dialog_by_id(packet['id']);
     }
   } else {
@@ -633,8 +633,8 @@ export function handle_player_info(packet: any): void {
     p['gives_shared_vision'] = new BitVector(p['gives_shared_vision']);
   }
 
-  if (store.client.conn.playing != null
-      && packet['playerno'] === store.client.conn.playing['playerno']) {
+  if (clientPlaying() != null
+      && packet['playerno'] === clientPlaying()['playerno']) {
     store.client.conn.playing = store.players[packet['playerno']];
   }
 }
@@ -642,8 +642,8 @@ export function handle_player_info(packet: any): void {
 export function handle_web_player_info_addition(packet: any): void {
   Object.assign(store.players[packet['playerno']], packet);
 
-  if (store.client.conn.playing != null) {
-    if (packet['playerno'] === store.client.conn.playing['playerno']) {
+  if (clientPlaying() != null) {
+    if (packet['playerno'] === clientPlaying()['playerno']) {
       store.client.conn.playing = store.players[packet['playerno']];
       update_game_status_panel();
       update_net_income();
@@ -1165,9 +1165,9 @@ export function handle_server_setting_control(_packet: any): void { /* TODO */ }
 export function handle_player_diplstate(packet: any): void {
   let need_players_dialog_update = false;
 
-  if (store.client == null || store.client.conn.playing == null) return;
+  if (store.client == null || clientPlaying() == null) return;
 
-  if (packet['plr2'] === store.client.conn.playing['playerno']) {
+  if (packet['plr2'] === clientPlaying()['playerno']) {
     const ds: any = store.players[packet['plr1']].diplstates;
     if (ds != undefined && ds[packet['plr2']] != undefined
         && ds[packet['plr2']]['state'] !== packet['type']) {
@@ -1175,17 +1175,17 @@ export function handle_player_diplstate(packet: any): void {
     }
   }
 
-  if (packet['type'] === (window as any).DS_WAR && packet['plr2'] === store.client.conn.playing['playerno']
+  if (packet['type'] === (window as any).DS_WAR && packet['plr2'] === clientPlaying()['playerno']
       && (window as any).diplstates[packet['plr1']] !== (window as any).DS_WAR && (window as any).diplstates[packet['plr1']] !== (window as any).DS_NO_CONTACT) {
     (window as any).alert_war(packet['plr1']);
-  } else if (packet['type'] === (window as any).DS_WAR && packet['plr1'] === store.client.conn.playing['playerno']
+  } else if (packet['type'] === (window as any).DS_WAR && packet['plr1'] === clientPlaying()['playerno']
       && (window as any).diplstates[packet['plr2']] !== (window as any).DS_WAR && (window as any).diplstates[packet['plr2']] !== (window as any).DS_NO_CONTACT) {
     (window as any).alert_war(packet['plr2']);
   }
 
-  if (packet['plr1'] === store.client.conn.playing['playerno']) {
+  if (packet['plr1'] === clientPlaying()['playerno']) {
     (window as any).diplstates[packet['plr2']] = packet['type'];
-  } else if (packet['plr2'] === store.client.conn.playing['playerno']) {
+  } else if (packet['plr2'] === clientPlaying()['playerno']) {
     (window as any).diplstates[packet['plr1']] = packet['type'];
   }
 
@@ -1254,8 +1254,8 @@ export function handle_research_info(packet: any): void {
   }
 
   if (!clientIsObserver() && old_inventions != null
-      && store.client.conn.playing != null
-      && store.client.conn.playing['playerno'] === packet['id']) {
+      && clientPlaying() != null
+      && clientPlaying()['playerno'] === packet['id']) {
     for (let i = 0; i < packet['inventions'].length; i++) {
       if (packet['inventions'][i] !== old_inventions[i]
           && packet['inventions'][i] === TECH_KNOWN) {

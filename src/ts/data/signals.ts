@@ -5,6 +5,7 @@
  */
 import { signal, computed } from '@preact/signals';
 import { store } from './store';
+import { clientPlaying } from '../client/clientState';
 import { globalEvents } from '../core/events';
 
 // Game state signals
@@ -41,7 +42,7 @@ function syncFromStore(): void {
   cityCount.value = Object.keys(store.cities).length;
   unitCount.value = Object.keys(store.units).length;
   isObserver.value = store.observing;
-  connectedPlayer.value = store.client.conn.playing?.playerno ?? null;
+  connectedPlayer.value = clientPlaying()?.playerno ?? null;
 }
 
 // Listen to global events that indicate data changes

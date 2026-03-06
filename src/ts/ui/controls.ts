@@ -5,7 +5,7 @@
 
 import { globalEvents } from '../core/events';
 import { store } from '../data/store';
-import { clientIsObserver } from '../client/clientState';
+import { clientIsObserver, clientPlaying } from '../client/clientState';
 import { send_request as sendRequest, send_message as sendMessage } from '../net/connection';
 import { $id, on } from '../utils/dom';
 
@@ -97,7 +97,7 @@ function handleTileClick(tileIndex: number): void {
   if (!tile) return;
 
   const unitsOnTile = Object.values(store.units).filter((u) => u.tile === tileIndex);
-  const myUnits = unitsOnTile.filter((u) => u.owner === store.client.conn.playing?.playerno);
+  const myUnits = unitsOnTile.filter((u) => u.owner === clientPlaying()?.playerno);
 
   if (myUnits.length > 0) {
     focusedUnitId = myUnits[0].id;
@@ -108,7 +108,7 @@ function handleTileClick(tileIndex: number): void {
 }
 
 function advanceUnitFocus(): void {
-  const myPlayerno = store.client.conn.playing?.playerno;
+  const myPlayerno = clientPlaying()?.playerno;
   if (myPlayerno == null) return;
 
   const myUnits = Object.values(store.units).filter(
