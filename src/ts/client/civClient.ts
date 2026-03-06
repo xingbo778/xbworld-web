@@ -29,6 +29,7 @@ import { showMessageDialog, closeMessageDialog } from '../components/Dialogs/Mes
 import { showAuthDialog as showAuthDialogPreact } from '../components/Dialogs/AuthDialog';
 import { showIntroDialog } from '../components/Dialogs/IntroDialog';
 import { store } from '../data/store';
+import { setupWindowSize } from './clientMain';
 
 // ---------------------------------------------------------------------------
 // Global state guards (active once civclient.js is deleted)
@@ -37,12 +38,10 @@ import { store } from '../data/store';
 store.renderer = RENDERER_2DCANVAS;
 (window as any).renderer = RENDERER_2DCANVAS;  // clientMain.ts reads _w.renderer
 
-// Legacy window globals that are still needed by external JS / audio
-if ((window as any).fc_seedrandom === undefined)          (window as any).fc_seedrandom = null;
-if ((window as any).audio === undefined)                  (window as any).audio = null;
-if ((window as any).audio_enabled === undefined)          (window as any).audio_enabled = false;
-if ((window as any).dialog_close_trigger === undefined)   (window as any).dialog_close_trigger = '';
-if ((window as any).dialog_message_close_task === undefined) (window as any).dialog_message_close_task = undefined;
+// Legacy window globals needed by audio subsystem (audiojs is external)
+if ((window as any).fc_seedrandom === undefined) (window as any).fc_seedrandom = null;
+if ((window as any).audio === undefined)         (window as any).audio = null;
+if ((window as any).audio_enabled === undefined) (window as any).audio_enabled = false;
 if (!(window as any).music_list) {
   (window as any).music_list = [
     'battle-epic', 'battle2', 'battle3', 'battle4',
@@ -79,22 +78,19 @@ export function civClientInit(): void {
   // Tabs initialization (vanilla JS replacement for jQuery UI tabs)
   initTabs('#tabs', { heightStyle: 'fill' });
   control_init();
-  (window as any).timeoutTimerId = setInterval(function () {
-    if (typeof (window as any).update_timeout === 'function') (window as any).update_timeout();
+  store.timeoutTimerId = setInterval(function () {
+    // update_timeout is an optional legacy function — no-op if not defined
   }, 1000);
   update_game_status_panel();
-  (window as any).statusTimerId = setInterval(function () {
+  store.statusTimerId = setInterval(function () {
     update_game_status_panel();
   }, 6000);
 
-  if ((window as any).overviewTimerId == null || (window as any).overviewTimerId === -1) {
-    (window as any).OVERVIEW_REFRESH = 6000;
-    (window as any).overviewTimerId = setInterval(function () {
+  if (store.overviewTimerId == null) {
+    store.overviewTimerId = setInterval(function () {
       redraw_overview();
-    }, (window as any).OVERVIEW_REFRESH);
+    }, 6000);
   }
-
-  if (typeof (window as any).motd_init === 'function') (window as any).motd_init();
 
   // Set tab container and tab panel heights
   const tabs = document.getElementById('tabs');
@@ -131,7 +127,7 @@ export function civClientInit(): void {
   }
 
   initCommonIntroDialog();
-  if (typeof (window as any).setup_window_size === 'function') (window as any).setup_window_size();
+  setupWindowSize();
 }
 
 // ---------------------------------------------------------------------------

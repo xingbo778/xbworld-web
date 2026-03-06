@@ -375,7 +375,7 @@ export function send_end_turn() {
 
   sendPlayerPhaseDone(store.gameInfo['turn']);
   // update_turn_change_timer is a legacy function, may not exist
-  (window as any).update_turn_change_timer?.();
+  // update_turn_change_timer was a legacy function — removed
 
   if (isLongturn()) {
     show_dialog_message("Turn done!",

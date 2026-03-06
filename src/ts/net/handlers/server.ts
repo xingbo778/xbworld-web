@@ -44,17 +44,7 @@ export function handle_server_join_reply(packet: any): void {
     const urlParams = new URLSearchParams(window.location.search);
     const urlAction = urlParams.get('action');
     const urlRuleset = urlParams.get('ruleset');
-    if ((urlAction === 'new' || urlAction === 'hack') && urlRuleset != null) {
-      (window as any).change_ruleset(urlRuleset);
-    }
-
-    if (store.autostart) {
-      if ((window as any).loadTimerId === -1) {
-        wait_for_text('You are logged in as', (window as any).pregame_start_game);
-      } else {
-        wait_for_text('Load complete', (window as any).pregame_start_game);
-      }
-    } else if (store.observing) {
+    if (store.observing) {
       wait_for_text('You are logged in as', requestObserveGame);
     }
   } else {
@@ -69,7 +59,7 @@ export function handle_conn_info(packet: any): void {
 
   if (packet['used'] === false) {
     if (pconn == null) {
-      freelog((window as any).LOG_VERBOSE, 'Server removed unknown connection ' + packet['id']);
+      freelog(0, 'Server removed unknown connection ' + packet['id']);
       return;
     }
     client_remove_cli_conn(pconn);
@@ -131,10 +121,8 @@ export function handle_conn_ping_info(packet: any): void {
   }
 }
 
-export function handle_single_want_hack_reply(packet: any): void {
-  if (typeof (window as any).handle_single_want_hack_reply_orig === 'function') {
-    (window as any).handle_single_want_hack_reply_orig(packet);
-  }
+export function handle_single_want_hack_reply(_packet: any): void {
+  // Legacy hack reply handler removed — observer mode only
 }
 
 export function handle_vote_new(_packet: any): void { /* TODO */ }

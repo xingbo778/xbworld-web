@@ -2,6 +2,7 @@ import { signal } from '@preact/signals';
 import { useRef, useEffect } from 'preact/hooks';
 import { Dialog } from '../Shared/Dialog';
 import { Button } from '../Shared/Button';
+import { store } from '../../data/store';
 
 interface IntroState {
   open: boolean;
@@ -43,7 +44,7 @@ export function IntroDialog() {
       state.value = { ...state.value, error: 'Username must be at least 3 characters.' };
       return;
     }
-    (window as any).username = name;
+    store.username = name;
     localStorage.setItem('username', name);
     closeIntroDialog();
   };

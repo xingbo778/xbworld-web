@@ -54,9 +54,7 @@ export function handle_web_city_info_addition(packet: any): void {
   if (store.cities[packet['id']] != null) {
     Object.assign(store.cities[packet['id']], packet);
   }
-  if (typeof (window as any).update_city_info_dialog === 'function') {
-    (window as any).update_city_info_dialog();
-  }
+  // update_city_info_dialog was a legacy UI function — removed in observer mode
 }
 
 export function handle_city_short_info(packet: any): void {

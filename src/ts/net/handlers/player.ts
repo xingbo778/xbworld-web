@@ -86,10 +86,10 @@ export function handle_player_diplstate(packet: any): void {
 
   if (packet['type'] === DiplState.DS_WAR && packet['plr2'] === clientPlaying()['playerno']
       && store.diplstates[packet['plr1']] !== DiplState.DS_WAR && store.diplstates[packet['plr1']] !== DiplState.DS_NO_CONTACT) {
-    (window as any).alert_war(packet['plr1']);
+    // alert_war removed — observer mode only
   } else if (packet['type'] === DiplState.DS_WAR && packet['plr1'] === clientPlaying()['playerno']
       && store.diplstates[packet['plr2']] !== DiplState.DS_WAR && store.diplstates[packet['plr2']] !== DiplState.DS_NO_CONTACT) {
-    (window as any).alert_war(packet['plr2']);
+    // alert_war removed — observer mode only
   }
 
   if (packet['plr1'] === clientPlaying()['playerno']) {

@@ -315,9 +315,7 @@ export function fill_sprite_array(layer: number, ptile: any, pedge: any, pcorner
         const pterrain = tile_terrain(ptile);
         sprite_array = sprite_array.concat(fill_terrain_sprite_layer(2, ptile, pterrain, tterrain_near));
 
-        if (typeof (window as any).fill_irrigation_sprite_array === 'function') {
-          sprite_array = sprite_array.concat((window as any).fill_irrigation_sprite_array(ptile, pcity));
-        }
+        // fill_irrigation_sprite_array was a legacy extension — removed
       }
       break;
 
@@ -1361,7 +1359,7 @@ function fill_layer2_sprite_array(ptile: any, pcity: any): any[] {
                            "offset_y": -normal_tile_height / 2});
     }
     if (tile_has_extra(ptile, _w.EXTRA_BUOY)) {
-      result_sprites.push((window as any).get_base_flag_sprite(ptile));
+      result_sprites.push(get_base_flag_sprite(ptile));
       result_sprites.push({"key": "base.buoy_mg",
                            "offset_y": -normal_tile_height / 2});
     }

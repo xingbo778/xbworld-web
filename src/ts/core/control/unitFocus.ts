@@ -635,7 +635,7 @@ export function auto_center_on_focus_unit(): void {
 
   if (ptile != null && auto_center_on_unit) {
     center_tile_mapcanvas(ptile);
-    (window as any).update_unit_position?.(ptile);
+    // update_unit_position was a legacy 3D renderer function — removed
   }
 }
 

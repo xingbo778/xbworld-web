@@ -10,6 +10,7 @@
  *   - Handle array-wrapped packets from the WebSocket proxy
  */
 
+import { store } from '../data/store';
 import { E_LOG_ERROR } from '../data/eventConstants';
 import { swal } from '../components/Dialogs/SwalDialog';
 
@@ -24,8 +25,6 @@ import { client_handle_packet } from './packhandlers';
 import { packet_chat_msg_req } from './packetConstants';
 import { blockUI, unblockUI } from '../utils/dom';
 const jsSHA = (window as any).jsSHA;
-const load_game_check: (() => void) | undefined = (window as any).load_game_check;
-const debug_active: boolean | undefined = (window as any).debug_active;
 
 const win = window as any;
 
@@ -58,7 +57,6 @@ export function network_init(): void {
   if (urlPort) {
     civserverport = urlPort;
     websocket_init();
-    if (typeof load_game_check === 'function') load_game_check();
     return;
   }
 
@@ -86,7 +84,6 @@ export function network_init(): void {
       if (port != null && result === 'success') {
         civserverport = port;
         websocket_init();
-        if (typeof load_game_check === 'function') load_game_check();
       } else {
         show_dialog_message('Network error', 'Invalid server port. Error: ' + result);
       }
@@ -224,7 +221,7 @@ export function send_request(packet_payload: string): void {
   if (ws != null) {
     ws.send(packet_payload);
   }
-  if (debug_active) {
+  if (store.debugActive) {
     clinet_last_send = new Date().getTime();
   }
 }

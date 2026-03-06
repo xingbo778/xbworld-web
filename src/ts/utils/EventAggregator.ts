@@ -123,5 +123,3 @@ export class EventAggregator {
   }
 }
 
-// Expose to window for legacy compatibility
-(window as any).EventAggregator = EventAggregator;

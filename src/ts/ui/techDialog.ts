@@ -464,7 +464,7 @@ export function get_tech_infobox_html(tech_id: number): string | null {
   const width: number = store.tileset[tag][2];
   const height: number = store.tileset[tag][3];
   const i: number = store.tileset[tag][4];
-  const image_src: string = "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i + get_tileset_file_extention() + "?ts=" + (window as any).ts;
+  const image_src: string = "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i + get_tileset_file_extention() + "?ts=" + Date.now();
   if (is_small_screen()) {
     infobox_html += "<div class='specific_tech' onclick='send_player_research(" + tech_id + ");' title='"
       + get_advances_text(tech_id).replace(/(<([^>]+)>)/ig, "") + "'>"

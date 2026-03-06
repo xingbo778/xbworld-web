@@ -456,9 +456,8 @@ export class GameDialog {
 }
 
 /**
- * Expose GameDialog to the global scope for use by legacy JS code.
- * Legacy code can use: new GameDialog('#selector', options)
+ * Expose GameDialog — no-op, all consumers now use ES imports.
  */
 export function exposeGameDialog(): void {
-  (window as any).GameDialog = GameDialog;
+  // Window exposure removed — all consumers use ES imports
 }

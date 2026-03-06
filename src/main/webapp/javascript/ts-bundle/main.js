@@ -1070,6 +1070,10 @@ class GameStore {
   autostart = false;
   civclientState = 0;
   // ClientState enum
+  // Timer IDs
+  timeoutTimerId = null;
+  statusTimerId = null;
+  overviewTimerId = null;
   reset() {
     this.tiles = {};
     this.terrains = {};
@@ -1249,7 +1253,6 @@ const ACT_DEC_ACTIVE = 2;
 const VUT_ADVANCE = 4;
 const VUT_IMPROVEMENT = 20;
 const VUT_UTYPE = 61;
-const RPT_CERTAIN = 1;
 const O_FOOD$1 = 0;
 const O_SHIELD$1 = 1;
 const O_TRADE = 2;
@@ -1751,15 +1754,6 @@ function get_player_connection_status(pplayer) {
 function research_get(pplayer) {
   if (pplayer == null) return null;
   return research_data[pplayer.playerno] ?? null;
-}
-function player_has_wonder(playerno, improvement_id) {
-  for (const city_id in cities) {
-    const pcity = cities[city_id];
-    if (pcity.owner === playerno && pcity.improvements != null && pcity.improvements[improvement_id] === true) {
-      return true;
-    }
-  }
-  return false;
 }
 function player_capital(player) {
   if (player == null) return null;
@@ -2365,7 +2359,6 @@ class EventAggregator {
     this.count = 0;
   }
 }
-window.EventAggregator = EventAggregator;
 const is_longturn = isLongturn;
 const civclient_state = clientState();
 let chatbox_active = true;
@@ -4848,23 +4841,6 @@ function governmentMaxRate(govtId) {
       return 100;
   }
 }
-function canPlayerGetGov(govtId) {
-  const client = store.client;
-  const governments2 = store.governments;
-  const areReqsActive = window.are_reqs_active;
-  return player_has_wonder(client.conn.playing.playerno, 63) || // hack for Statue of Liberty
-  areReqsActive(
-    client.conn.playing,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    governments2[govtId]["reqs"],
-    RPT_CERTAIN
-  );
-}
 function playing() {
   return store.client?.conn?.playing;
 }
@@ -5570,7 +5546,7 @@ function get_tech_infobox_html(tech_id) {
   const width = store.tileset[tag][2];
   const height = store.tileset[tag][3];
   const i2 = store.tileset[tag][4];
-  const image_src = "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i2 + getTilesetFileExtension() + "?ts=" + window.ts;
+  const image_src = "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i2 + getTilesetFileExtension() + "?ts=" + Date.now();
   if (isSmallScreen()) {
     infobox_html += "<div class='specific_tech' onclick='send_player_research(" + tech_id + ");' title='" + get_advances_text(tech_id).replace(/(<([^>]+)>)/ig, "") + "'>" + ptech["name"] + "</div>";
   } else {
@@ -5783,7 +5759,7 @@ function mouse_moved_cb(e2) {
     }
   } else {
     const cityCanvasEl = document.getElementById("city_canvas");
-    if (active_city != null && window.city_canvas != null && cityCanvasEl) {
+    if (active_city != null && cityCanvasEl) {
       const cityCanvasRect = cityCanvasEl.getBoundingClientRect();
       setMouseX(mouse_x - cityCanvasRect.left);
       setMouseY(mouse_y - cityCanvasRect.top);
@@ -6978,18 +6954,9 @@ function handle_server_join_reply(packet) {
     sendClientInfo();
     setClientState(C_S_PREPARING);
     const urlParams = new URLSearchParams(window.location.search);
-    const urlAction = urlParams.get("action");
-    const urlRuleset = urlParams.get("ruleset");
-    if ((urlAction === "new" || urlAction === "hack") && urlRuleset != null) {
-      window.change_ruleset(urlRuleset);
-    }
-    if (store.autostart) {
-      if (window.loadTimerId === -1) {
-        wait_for_text("You are logged in as", window.pregame_start_game);
-      } else {
-        wait_for_text("Load complete", window.pregame_start_game);
-      }
-    } else if (store.observing) {
+    urlParams.get("action");
+    urlParams.get("ruleset");
+    if (store.observing) {
       wait_for_text("You are logged in as", requestObserveGame);
     }
   } else {
@@ -7002,7 +6969,7 @@ function handle_conn_info(packet) {
   let pconn = find_conn_by_id(packet["id"]);
   if (packet["used"] === false) {
     if (pconn == null) {
-      freelog(window.LOG_VERBOSE, "Server removed unknown connection " + packet["id"]);
+      freelog(0, "Server removed unknown connection " + packet["id"]);
       return;
     }
     client_remove_cli_conn(pconn);
@@ -7064,10 +7031,7 @@ function handle_conn_ping_info(packet) {
     store.debugPingList.push(packet["ping_time"][0] * 1e3);
   }
 }
-function handle_single_want_hack_reply(packet) {
-  if (typeof window.handle_single_want_hack_reply_orig === "function") {
-    window.handle_single_want_hack_reply_orig(packet);
-  }
+function handle_single_want_hack_reply(_packet) {
 }
 function handle_vote_new(_packet) {
 }
@@ -7158,9 +7122,6 @@ function handle_city_rally_point(packet) {
 function handle_web_city_info_addition(packet) {
   if (store.cities[packet["id"]] != null) {
     Object.assign(store.cities[packet["id"]], packet);
-  }
-  if (typeof window.update_city_info_dialog === "function") {
-    window.update_city_info_dialog();
   }
 }
 function handle_city_short_info(packet) {
@@ -7283,11 +7244,8 @@ function handle_player_diplstate(packet) {
       need_players_dialog_update = true;
     }
   }
-  if (packet["type"] === DiplState.DS_WAR && packet["plr2"] === clientPlaying()["playerno"] && store.diplstates[packet["plr1"]] !== DiplState.DS_WAR && store.diplstates[packet["plr1"]] !== DiplState.DS_NO_CONTACT) {
-    window.alert_war(packet["plr1"]);
-  } else if (packet["type"] === DiplState.DS_WAR && packet["plr1"] === clientPlaying()["playerno"] && store.diplstates[packet["plr2"]] !== DiplState.DS_WAR && store.diplstates[packet["plr2"]] !== DiplState.DS_NO_CONTACT) {
-    window.alert_war(packet["plr2"]);
-  }
+  if (packet["type"] === DiplState.DS_WAR && packet["plr2"] === clientPlaying()["playerno"] && store.diplstates[packet["plr1"]] !== DiplState.DS_WAR && store.diplstates[packet["plr1"]] !== DiplState.DS_NO_CONTACT) ;
+  else if (packet["type"] === DiplState.DS_WAR && packet["plr1"] === clientPlaying()["playerno"] && store.diplstates[packet["plr2"]] !== DiplState.DS_WAR && store.diplstates[packet["plr2"]] !== DiplState.DS_NO_CONTACT) ;
   if (packet["plr1"] === clientPlaying()["playerno"]) {
     store.diplstates[packet["plr2"]] = packet["type"];
   } else if (packet["plr2"] === clientPlaying()["playerno"]) {
@@ -8283,7 +8241,6 @@ function auto_center_on_focus_unit() {
   const ptile = find_a_focus_unit_tile_to_center_on();
   if (ptile != null && auto_center_on_unit) {
     center_tile_mapcanvas(ptile);
-    window.update_unit_position?.(ptile);
   }
 }
 function find_a_focus_unit_tile_to_center_on() {
@@ -8702,7 +8659,6 @@ function send_end_turn() {
   const turnDoneBtn = document.getElementById("turn_done_button");
   if (turnDoneBtn) turnDoneBtn.disabled = true;
   sendPlayerPhaseDone(store.gameInfo["turn"]);
-  window.update_turn_change_timer?.();
   if (isLongturn()) {
     showDialogMessage(
       "Turn done!",
@@ -10875,9 +10831,6 @@ function fill_sprite_array(layer, ptile, pedge, pcorner, punit, pcity, citymode)
         const tterrain_near = tileTerrainNear(ptile);
         const pterrain = tileTerrain(ptile);
         sprite_array = sprite_array.concat(fill_terrain_sprite_layer(2, ptile, pterrain, tterrain_near));
-        if (typeof window.fill_irrigation_sprite_array === "function") {
-          sprite_array = sprite_array.concat(window.fill_irrigation_sprite_array(ptile, pcity));
-        }
       }
       break;
     case LAYER_ROADS:
@@ -11199,6 +11152,21 @@ function cardinal_index_str(idx) {
 }
 function get_city_flag_sprite(pcity) {
   const owner_id = pcity["owner"];
+  if (owner_id == null) return {};
+  const owner = store.players[owner_id];
+  if (owner == null) return {};
+  const nation_id = owner["nation"];
+  if (nation_id == null) return {};
+  const nation = store.nations[nation_id];
+  if (nation == null) return {};
+  return {
+    "key": "f." + nation["graphic_str"],
+    "offset_x": city_flag_offset_x,
+    "offset_y": -9
+  };
+}
+function get_base_flag_sprite(ptile) {
+  const owner_id = ptile["extras_owner"];
   if (owner_id == null) return {};
   const owner = store.players[owner_id];
   if (owner == null) return {};
@@ -11581,7 +11549,7 @@ function fill_layer2_sprite_array(ptile, pcity) {
       });
     }
     if (tileHasExtra(ptile, _w.EXTRA_BUOY)) {
-      result_sprites.push(window.get_base_flag_sprite(ptile));
+      result_sprites.push(get_base_flag_sprite(ptile));
       result_sprites.push({
         "key": "base.buoy_mg",
         "offset_y": -normal_tile_height / 2
@@ -12335,7 +12303,7 @@ function IntroDialog() {
       state$2.value = { ...state$2.value, error: "Username must be at least 3 characters." };
       return;
     }
-    window.username = name;
+    store.username = name;
     localStorage.setItem("username", name);
     closeIntroDialog();
   };
@@ -12387,8 +12355,6 @@ window.renderer = RENDERER_2DCANVAS$1;
 if (window.fc_seedrandom === void 0) window.fc_seedrandom = null;
 if (window.audio === void 0) window.audio = null;
 if (window.audio_enabled === void 0) window.audio_enabled = false;
-if (window.dialog_close_trigger === void 0) window.dialog_close_trigger = "";
-if (window.dialog_message_close_task === void 0) window.dialog_message_close_task = void 0;
 if (!window.music_list) {
   window.music_list = [
     "battle-epic",
@@ -12416,20 +12382,17 @@ function civClientInit() {
   game_init();
   initTabs("#tabs", { heightStyle: "fill" });
   control_init();
-  window.timeoutTimerId = setInterval(function() {
-    if (typeof window.update_timeout === "function") window.update_timeout();
+  store.timeoutTimerId = setInterval(function() {
   }, 1e3);
   update_game_status_panel();
-  window.statusTimerId = setInterval(function() {
+  store.statusTimerId = setInterval(function() {
     update_game_status_panel();
   }, 6e3);
-  if (window.overviewTimerId == null || window.overviewTimerId === -1) {
-    window.OVERVIEW_REFRESH = 6e3;
-    window.overviewTimerId = setInterval(function() {
+  if (store.overviewTimerId == null) {
+    store.overviewTimerId = setInterval(function() {
       redraw_overview();
-    }, window.OVERVIEW_REFRESH);
+    }, 6e3);
   }
-  if (typeof window.motd_init === "function") window.motd_init();
   const tabs = document.getElementById("tabs");
   if (tabs) tabs.style.height = window.innerHeight + "px";
   for (const id of ["tabs-map", "tabs-civ", "tabs-tec", "tabs-nat", "tabs-cities", "tabs-opt", "tabs-hel"]) {
@@ -12459,7 +12422,7 @@ function civClientInit() {
     });
   }
   initCommonIntroDialog();
-  if (typeof window.setup_window_size === "function") window.setup_window_size();
+  setupWindowSize();
 }
 function initCommonIntroDialog() {
   const saved = localStorage.getItem("username");
@@ -12488,8 +12451,6 @@ function getMessageLog() {
   return message_log;
 }
 const jsSHA = window.jsSHA;
-const load_game_check = window.load_game_check;
-const debug_active = window.debug_active;
 const win$3 = window;
 let clinet_last_send = 0;
 let debug_client_speed_list = [];
@@ -12510,7 +12471,6 @@ function network_init() {
   if (urlPort) {
     civserverport = urlPort;
     websocket_init();
-    if (typeof load_game_check === "function") load_game_check();
     return;
   }
   fetch("/civclientlauncher?action=observe", { method: "POST" }).then((response) => {
@@ -12530,7 +12490,6 @@ function network_init() {
     if (port != null && result === "success") {
       civserverport = port;
       websocket_init();
-      if (typeof load_game_check === "function") load_game_check();
     } else {
       showDialogMessage("Network error", "Invalid server port. Error: " + result);
     }
@@ -12633,7 +12592,7 @@ function send_request(packet_payload) {
   if (ws != null) {
     ws.send(packet_payload);
   }
-  if (debug_active) {
+  if (store.debugActive) {
     clinet_last_send = (/* @__PURE__ */ new Date()).getTime();
   }
 }
@@ -13207,7 +13166,6 @@ function handle_context_menu_callback(key) {
   }
 }
 let governments = {};
-let requested_gov = -1;
 function init_civ_dialog() {
   if (!clientIsObserver() && clientPlaying() != null) {
     const pplayer = clientPlaying();
@@ -13244,18 +13202,12 @@ function update_govt_dialog() {
     if (!btn) continue;
     btn.textContent = govt["name"];
     btn.title = govt["helptext"] || "";
-    if (!canPlayerGetGov(Number(govt_id))) {
+    {
       btn.disabled = true;
-    } else if (requested_gov == Number(govt_id)) {
-      btn.style.background = "green";
-    } else if (clientPlaying()?.["government"] == Number(govt_id)) {
-      btn.style.background = "#BBBBFF";
-      btn.style.fontWeight = "bolder";
     }
   }
 }
 function set_req_government(gov_id) {
-  requested_gov = gov_id;
   update_govt_dialog();
 }
 function get_tileset_file_extention() {
@@ -14629,329 +14581,6 @@ _$.fn.selectable = function() {
 _$.fn.tabs = function() {
   return this;
 };
-const DEFAULT_OPTIONS = {
-  title: "",
-  width: 300,
-  height: "auto",
-  modal: true,
-  draggable: true,
-  resizable: true,
-  closable: true,
-  closeOnEscape: true,
-  minimizable: false,
-  maximizable: false
-};
-const activeDialogs = /* @__PURE__ */ new Set();
-let topZIndex = 1e3;
-class GameDialog {
-  el;
-  wrapper;
-  titleBar;
-  titleText;
-  buttonBar = null;
-  contentEl;
-  options;
-  _state = "normal";
-  savedRect = null;
-  isDragging = false;
-  dragOffset = { x: 0, y: 0 };
-  constructor(selector, options = {}) {
-    this.options = { ...DEFAULT_OPTIONS, ...options };
-    if (typeof selector === "string") {
-      const found = document.querySelector(selector);
-      if (!found) throw new Error(`GameDialog: element not found: ${selector}`);
-      this.el = found;
-    } else {
-      this.el = selector;
-    }
-    this.wrapper = document.createElement("dialog");
-    this.wrapper.className = "game-dialog" + (this.options.dialogClass ? " " + this.options.dialogClass : "");
-    this.wrapper.setAttribute("role", "dialog");
-    this.titleBar = document.createElement("div");
-    this.titleBar.className = "game-dialog-titlebar";
-    this.titleText = document.createElement("span");
-    this.titleText.className = "game-dialog-title";
-    this.titleText.textContent = this.options.title || "";
-    this.titleBar.appendChild(this.titleText);
-    const titleButtons = document.createElement("div");
-    titleButtons.className = "game-dialog-titlebar-buttons";
-    if (this.options.minimizable) {
-      const minBtn = this._createTitleButton("_", "game-dialog-btn-minimize", () => this.minimize());
-      titleButtons.appendChild(minBtn);
-    }
-    if (this.options.maximizable) {
-      const maxBtn = this._createTitleButton("□", "game-dialog-btn-maximize", () => this.toggleMaximize());
-      titleButtons.appendChild(maxBtn);
-    }
-    if (this.options.closable !== false) {
-      const closeBtn = this._createTitleButton("×", "game-dialog-btn-close", () => this.close());
-      titleButtons.appendChild(closeBtn);
-    }
-    this.titleBar.appendChild(titleButtons);
-    this.wrapper.appendChild(this.titleBar);
-    this.contentEl = document.createElement("div");
-    this.contentEl.className = "game-dialog-content";
-    this.contentEl.appendChild(this.el);
-    this.el.style.display = "";
-    this.wrapper.appendChild(this.contentEl);
-    if (this.options.buttons) {
-      this.buttonBar = document.createElement("div");
-      this.buttonBar.className = "game-dialog-buttonpane";
-      this._renderButtons();
-      this.wrapper.appendChild(this.buttonBar);
-    }
-    if (this.options.width) {
-      this.wrapper.style.width = typeof this.options.width === "number" ? `${this.options.width}px` : this.options.width;
-    }
-    if (this.options.height && this.options.height !== "auto") {
-      this.wrapper.style.height = typeof this.options.height === "number" ? `${this.options.height}px` : String(this.options.height);
-    }
-    if (this.options.resizable) {
-      this.wrapper.style.resize = "both";
-      this.wrapper.style.overflow = "auto";
-    }
-    if (this.options.draggable) {
-      this._setupDrag();
-    }
-    if (this.options.closeOnEscape) {
-      this.wrapper.addEventListener("keydown", (e2) => {
-        if (e2.key === "Escape") {
-          e2.preventDefault();
-          this.close();
-        }
-      });
-      this.wrapper.addEventListener("cancel", (e2) => {
-        e2.preventDefault();
-        this.close();
-      });
-    }
-    this.wrapper.addEventListener("mousedown", () => this._bringToFront());
-    document.body.appendChild(this.wrapper);
-  }
-  /** Current dialog state */
-  get state() {
-    return this._state;
-  }
-  /** The underlying <dialog> element */
-  get widget() {
-    return this.wrapper;
-  }
-  /** Open the dialog */
-  open() {
-    if (this.options.modal) {
-      this.wrapper.showModal();
-    } else {
-      this.wrapper.show();
-    }
-    this._bringToFront();
-    this._applyPosition();
-    activeDialogs.add(this);
-    this.options.onOpen?.();
-  }
-  /** Close the dialog */
-  close() {
-    if (this.options.onBeforeClose && this.options.onBeforeClose() === false) {
-      return;
-    }
-    this.wrapper.close();
-    activeDialogs.delete(this);
-    this.options.onClose?.();
-  }
-  /** Minimize to title bar only */
-  minimize() {
-    if (this._state === "minimized") return;
-    this.savedRect = {
-      width: this.wrapper.style.width,
-      height: this.wrapper.style.height,
-      top: this.wrapper.style.top,
-      left: this.wrapper.style.left
-    };
-    this.contentEl.style.display = "none";
-    if (this.buttonBar) this.buttonBar.style.display = "none";
-    this.wrapper.style.height = "auto";
-    this.wrapper.style.resize = "none";
-    this._state = "minimized";
-    this.wrapper.classList.add("game-dialog-minimized");
-    this.wrapper.classList.remove("game-dialog-maximized");
-    this.options.onMinimize?.();
-  }
-  /** Restore from minimized or maximized state */
-  restore() {
-    if (this._state === "normal") return;
-    this.contentEl.style.display = "";
-    if (this.buttonBar) this.buttonBar.style.display = "";
-    if (this.savedRect) {
-      this.wrapper.style.width = this.savedRect.width;
-      this.wrapper.style.height = this.savedRect.height;
-      this.wrapper.style.top = this.savedRect.top;
-      this.wrapper.style.left = this.savedRect.left;
-    }
-    if (this.options.resizable) {
-      this.wrapper.style.resize = "both";
-    }
-    this._state = "normal";
-    this.wrapper.classList.remove("game-dialog-minimized", "game-dialog-maximized");
-    this.options.onRestore?.();
-  }
-  /** Maximize to fill the viewport */
-  maximize() {
-    if (this._state === "maximized") return;
-    if (this._state !== "minimized") {
-      this.savedRect = {
-        width: this.wrapper.style.width,
-        height: this.wrapper.style.height,
-        top: this.wrapper.style.top,
-        left: this.wrapper.style.left
-      };
-    }
-    this.contentEl.style.display = "";
-    if (this.buttonBar) this.buttonBar.style.display = "";
-    this.wrapper.style.width = "100vw";
-    this.wrapper.style.height = "100vh";
-    this.wrapper.style.top = "0";
-    this.wrapper.style.left = "0";
-    this.wrapper.style.resize = "none";
-    this._state = "maximized";
-    this.wrapper.classList.add("game-dialog-maximized");
-    this.wrapper.classList.remove("game-dialog-minimized");
-    this.options.onMaximize?.();
-  }
-  /** Toggle between maximized and normal */
-  toggleMaximize() {
-    if (this._state === "maximized") {
-      this.restore();
-    } else {
-      this.maximize();
-    }
-  }
-  /** Update the title text */
-  setTitle(title) {
-    this.titleText.textContent = title;
-  }
-  /** Set a dialog option dynamically */
-  setOption(key, value) {
-    this.options[key] = value;
-    if (key === "title") this.setTitle(value);
-    if (key === "draggable") {
-      if (value) this._setupDrag();
-    }
-    if (key === "width") {
-      this.wrapper.style.width = typeof value === "number" ? `${value}px` : String(value);
-    }
-    if (key === "height") {
-      this.wrapper.style.height = typeof value === "number" ? `${value}px` : String(value);
-    }
-  }
-  /** Destroy the dialog and restore the original element */
-  destroy() {
-    activeDialogs.delete(this);
-    if (this.wrapper.open) this.wrapper.close();
-    this.wrapper.parentNode?.insertBefore(this.el, this.wrapper);
-    this.wrapper.remove();
-  }
-  /** Check if dialog is open */
-  isOpen() {
-    return this.wrapper.open;
-  }
-  // --- Private helpers ---
-  _createTitleButton(text, className, onClick) {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = `game-dialog-titlebar-btn ${className}`;
-    btn.textContent = text;
-    btn.addEventListener("click", (e2) => {
-      e2.stopPropagation();
-      onClick();
-    });
-    return btn;
-  }
-  _renderButtons() {
-    if (!this.buttonBar || !this.options.buttons) return;
-    this.buttonBar.innerHTML = "";
-    if (Array.isArray(this.options.buttons)) {
-      for (const btn of this.options.buttons) {
-        const el = document.createElement("button");
-        el.type = "button";
-        el.className = "game-dialog-btn";
-        el.textContent = btn.text;
-        el.addEventListener("click", btn.click);
-        this.buttonBar.appendChild(el);
-      }
-    } else {
-      for (const [text, click] of Object.entries(this.options.buttons)) {
-        const el = document.createElement("button");
-        el.type = "button";
-        el.className = "game-dialog-btn";
-        el.textContent = text;
-        el.addEventListener("click", click);
-        this.buttonBar.appendChild(el);
-      }
-    }
-  }
-  _setupDrag() {
-    this.titleBar.style.cursor = "move";
-    this.titleBar.addEventListener("mousedown", (e2) => {
-      if (e2.target.tagName === "BUTTON") return;
-      this.isDragging = true;
-      const rect = this.wrapper.getBoundingClientRect();
-      this.dragOffset.x = e2.clientX - rect.left;
-      this.dragOffset.y = e2.clientY - rect.top;
-      e2.preventDefault();
-    });
-    document.addEventListener("mousemove", (e2) => {
-      if (!this.isDragging) return;
-      const x2 = e2.clientX - this.dragOffset.x;
-      const y2 = e2.clientY - this.dragOffset.y;
-      this.wrapper.style.left = `${x2}px`;
-      this.wrapper.style.top = `${y2}px`;
-      this.wrapper.style.margin = "0";
-    });
-    document.addEventListener("mouseup", () => {
-      this.isDragging = false;
-    });
-  }
-  _bringToFront() {
-    topZIndex++;
-    this.wrapper.style.zIndex = String(topZIndex);
-  }
-  _applyPosition() {
-    const pos = this.options.position;
-    if (!pos) return;
-    const target = pos.of || window;
-    pos.within || document.documentElement;
-    let targetRect;
-    if (target === window) {
-      targetRect = new DOMRect(0, 0, window.innerWidth, window.innerHeight);
-    } else {
-      targetRect = target.getBoundingClientRect();
-    }
-    const dialogRect = this.wrapper.getBoundingClientRect();
-    const myParts = (pos.my || "center").split(" ");
-    const atParts = (pos.at || "center").split(" ");
-    let atX = targetRect.left + targetRect.width / 2;
-    let atY = targetRect.top + targetRect.height / 2;
-    if (atParts[0] === "left") atX = targetRect.left;
-    else if (atParts[0] === "right") atX = targetRect.right;
-    if (atParts.length > 1) {
-      if (atParts[1] === "top") atY = targetRect.top;
-      else if (atParts[1] === "bottom") atY = targetRect.bottom;
-    }
-    let offsetX = -dialogRect.width / 2;
-    let offsetY = -dialogRect.height / 2;
-    if (myParts[0] === "left") offsetX = 0;
-    else if (myParts[0] === "right") offsetX = -dialogRect.width;
-    if (myParts.length > 1) {
-      if (myParts[1] === "top") offsetY = 0;
-      else if (myParts[1] === "bottom") offsetY = -dialogRect.height;
-    }
-    this.wrapper.style.left = `${atX + offsetX}px`;
-    this.wrapper.style.top = `${atY + offsetY}px`;
-    this.wrapper.style.margin = "0";
-  }
-}
-function exposeGameDialog() {
-  window.GameDialog = GameDialog;
-}
 let gotoActive = false;
 let focusedUnitId = null;
 const HOTKEYS = {
@@ -15262,7 +14891,6 @@ function init() {
   logNormal("[TS] XBWorld TypeScript modules loading...");
   syncStoreWithWindow();
   logNormal("[TS] Store ↔ window globals synced");
-  exposeGameDialog();
   logNormal("[TS] GameDialog component exposed");
   initControls();
   logNormal("[TS] Controls initialized");

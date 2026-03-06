@@ -65,8 +65,7 @@ export function mouse_moved_cb(e: MouseEvent): void {
     }
   } else {
     const cityCanvasEl = document.getElementById('city_canvas');
-    if (active_city != null && (window as any).city_canvas != null
-      && cityCanvasEl) {
+    if (active_city != null && cityCanvasEl) {
       const cityCanvasRect = cityCanvasEl.getBoundingClientRect();
       S.setMouseX(S.mouse_x - cityCanvasRect.left);
       S.setMouseY(S.mouse_y - cityCanvasRect.top);

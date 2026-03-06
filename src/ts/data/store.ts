@@ -123,6 +123,11 @@ class GameStore {
   autostart = false;
   civclientState: number = 0;  // ClientState enum
 
+  // Timer IDs
+  timeoutTimerId: ReturnType<typeof setInterval> | null = null;
+  statusTimerId: ReturnType<typeof setInterval> | null = null;
+  overviewTimerId: ReturnType<typeof setInterval> | null = null;
+
   reset(): void {
     this.tiles = {};
     this.terrains = {};
