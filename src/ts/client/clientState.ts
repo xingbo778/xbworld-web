@@ -16,7 +16,7 @@ import { store } from '../data/store';
 
 /**
  * Returns the current client state enum value.
- * Legacy global `civclient_state` is the source of truth.
+ * `store.civclientState` is the source of truth.
  */
 export function clientState(): number {
   return store.civclientState;
@@ -100,5 +100,4 @@ export const C_S_OVER = ClientState.OVER;
 /** Set the client state. */
 export function set_client_state(newState: number): void {
   store.civclientState = newState;
-  (window as any).civclient_state = newState;  // clientMain.ts reads _w.civclient_state
 }

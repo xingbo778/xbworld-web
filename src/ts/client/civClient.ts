@@ -36,12 +36,8 @@ import { setupWindowSize } from './clientMain';
 // ---------------------------------------------------------------------------
 // Initialize store defaults (renderer, etc.)
 store.renderer = RENDERER_2DCANVAS;
-(window as any).renderer = RENDERER_2DCANVAS;  // clientMain.ts reads _w.renderer
 
 // Legacy window globals needed by audio subsystem (audiojs is external)
-if ((window as any).fc_seedrandom === undefined) (window as any).fc_seedrandom = null;
-if ((window as any).audio === undefined)         (window as any).audio = null;
-if ((window as any).audio_enabled === undefined) (window as any).audio_enabled = false;
 if (!(window as any).music_list) {
   (window as any).music_list = [
     'battle-epic', 'battle2', 'battle3', 'battle4',

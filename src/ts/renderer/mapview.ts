@@ -38,7 +38,7 @@ let loaded_images: number = 0;
 
 export let sprites_init: boolean = false;
 
-let canvas_text_font: string = "16px Georgia, serif"; // with canvas text support
+export let canvas_text_font: string = "16px Georgia, serif"; // with canvas text support
 
 let fullfog: string[] = [];
 
@@ -79,13 +79,11 @@ export function init_mapview(): void {
   buffer_canvas = document.createElement('canvas');
   buffer_canvas_ctx = buffer_canvas.getContext('2d');
 
-  // Expose canvas contexts — store is canonical, window is for clientMain.ts _w pattern
+  // Expose canvas contexts via store (canonical source)
   store.mapviewCanvasCtx = mapview_canvas_ctx;
   store.bufferCanvas = buffer_canvas;
+  store.bufferCanvasCtx = buffer_canvas_ctx;
   store.mapviewCanvas = mapview_canvas;
-  (window as any).mapview_canvas_ctx = mapview_canvas_ctx;
-  (window as any).buffer_canvas = buffer_canvas;
-  (window as any).mapview_canvas = mapview_canvas;
 
   if (mapview_canvas_ctx && "imageSmoothingEnabled" in mapview_canvas_ctx) {
     // if this Boolean value is false, images won't be smoothed when scaled. This property is true by default.
@@ -418,7 +416,6 @@ export function set_city_mapview_active(): void {
 
   mapview_canvas_ctx = city_canvas.getContext("2d");
   store.mapviewCanvasCtx = mapview_canvas_ctx;
-  (window as any).mapview_canvas_ctx = mapview_canvas_ctx;
 
   mapview['width'] = citydlg_map_width;
   mapview['height'] = citydlg_map_height;
@@ -482,7 +479,6 @@ export function enable_mapview_slide(ptile: any): void {
   mapview_canvas = buffer_canvas;
   mapview_canvas_ctx = buffer_canvas_ctx;
   store.mapviewCanvasCtx = mapview_canvas_ctx;
-  (window as any).mapview_canvas_ctx = mapview_canvas_ctx;
 
   if (dx >= 0 && dy <= 0) {
     mapview['gui_y0'] -= Math.abs(dy);
@@ -517,7 +513,6 @@ export function enable_mapview_slide(ptile: any): void {
   mapview_canvas = document.getElementById('canvas') as HTMLCanvasElement;
   mapview_canvas_ctx = mapview_canvas.getContext("2d");
   store.mapviewCanvasCtx = mapview_canvas_ctx;
-  (window as any).mapview_canvas_ctx = mapview_canvas_ctx;
 
   if (buffer_canvas_ctx && mapview_canvas) {
     if (dx >= 0 && dy >= 0) {

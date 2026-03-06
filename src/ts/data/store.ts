@@ -84,6 +84,7 @@ class GameStore {
   // Canvas/map rendering state
   mapviewCanvasCtx: CanvasRenderingContext2D | null = null;
   bufferCanvas: HTMLCanvasElement | null = null;
+  bufferCanvasCtx: CanvasRenderingContext2D | null = null;
   mapviewCanvas: HTMLCanvasElement | null = null;
   dashedSupport: boolean = false;
   fullfog: string[] = [];
@@ -122,6 +123,8 @@ class GameStore {
   debugActive = false;
   autostart = false;
   civclientState: number = 0;  // ClientState enum
+  heightOffset: number = 52;
+  widthOffset: number = 10;
 
   // Timer IDs
   timeoutTimerId: ReturnType<typeof setInterval> | null = null;
