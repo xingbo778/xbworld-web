@@ -15,9 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-***********************************************************************/
-
-declare const $: any;
+**********************************************************************/
 
 import { is_wonder, get_improvement_requirements } from '../data/improvement';
 import { unittype_ids_alphabetic } from '../data/unit';
@@ -32,6 +30,15 @@ import { store } from '../data/store';
 function get_helpdata_order(): string[] { return (store as any).helpdata_order || []; }
 function get_helpdata(): Record<string, { text: string }> { return (store as any).helpdata || {}; }
 function get_freeciv_wiki_docs(): Record<string, any> { return (store as any).freeciv_wiki_docs || {}; }
+
+function byId(id: string): HTMLElement | null { return document.getElementById(id); }
+function setHtml(id: string, html: string): void { const el = byId(id); if (el) el.innerHTML = html; }
+function appendLi(parentId: string, helptag: string, text: string): void {
+  const li = document.createElement('li');
+  li.dataset.helptag = helptag;
+  li.textContent = text;
+  byId(parentId)?.appendChild(li);
+}
 
 export const toplevel_menu_items: string[] = [
   "help_terrain",
@@ -58,10 +65,18 @@ export const hidden_menu_items: string[] = [
  Show the Freeciv-web Help Dialog
 **************************************************************************/
 export function show_help(): void {
-  $("#tabs-hel").show();
-  $("#help_menu").remove();
-  $("#help_info_page").remove();
-  $("<ul id='help_menu'></ul><div id='help_info_page'></div>").appendTo("#tabs-hel");
+  const tabsHel = byId('tabs-hel');
+  if (tabsHel) tabsHel.style.display = '';
+  byId('help_menu')?.remove();
+  byId('help_info_page')?.remove();
+
+  const menu = document.createElement('ul');
+  menu.id = 'help_menu';
+  const infoPage = document.createElement('div');
+  infoPage.id = 'help_info_page';
+  tabsHel?.appendChild(menu);
+  tabsHel?.appendChild(infoPage);
+
   for (const sec_id in get_helpdata_order()) {
     const key: string = get_helpdata_order()[sec_id];
     if (hidden_menu_items.indexOf(key) > -1) {
@@ -72,19 +87,29 @@ export function show_help(): void {
       generate_help_toplevel(key);
     } else {
       const parent_key: string = find_parent_help_key(key);
-      $("<li id='" + key + "' data-helptag='" + key + "'>" + helpdata_tag_to_title(key) + "</li>").appendTo(parent_key);
+      const li = document.createElement('li');
+      li.id = key;
+      li.dataset.helptag = key;
+      li.textContent = helpdata_tag_to_title(key);
+      document.querySelector(parent_key)?.appendChild(li);
     }
   }
 
-  $("#help_menu").menu({
-    select: function(event: any, ui: any) {
-      handle_help_menu_select(ui);
-    },
+  // Make menu items clickable
+  menu.addEventListener('click', function(ev) {
+    const li = (ev.target as HTMLElement).closest('li[data-helptag]');
+    if (li) {
+      handle_help_menu_select_native(li as HTMLElement);
+    }
   });
 
   show_help_intro();
-  $("#tabs-hel").css("height", $(window).height() - 60);
-  $("#help_info_page").css("max-width", $(window).width() - $("#help_menu").width() - 60);
+  if (tabsHel) tabsHel.style.height = (window.innerHeight - 60) + 'px';
+  const menuEl = byId('help_menu');
+  const infoEl = byId('help_info_page');
+  if (infoEl && menuEl) {
+    infoEl.style.maxWidth = (window.innerWidth - menuEl.offsetWidth - 60) + 'px';
+  }
 }
 
 /**************************************************************************
@@ -92,7 +117,7 @@ export function show_help(): void {
 **************************************************************************/
 export function show_help_intro(): void {
   fetch("/docs/help_intro.txt").then(r => r.text()).then(data => {
-    $("#help_info_page").html(data);
+    setHtml('help_info_page', data);
   });
 }
 
@@ -105,42 +130,45 @@ export function generate_help_menu(key: string): void {
   if (key === "help_gen_terrain") {
     for (const terrain_id in store.terrains) {
       const terrain = store.terrains[terrain_id as any];
-      $("<li data-helptag='" + key + "_" + terrain["id"] + "'>" + terrain["name"] + "</li>").appendTo("#help_terrain_ul");
+      appendLi("help_terrain_ul", key + "_" + terrain["id"], terrain["name"]);
     }
   } else if (key === "help_gen_improvements") {
     for (impr_id in store.improvements) {
       improvement = store.improvements[impr_id as any];
       if (is_wonder(improvement)) continue;
-      $("<li data-helptag='" + key + "_" + improvement["id"] + "'>" + improvement["name"] + "</li>").appendTo("#help_city_improvements_ul");
+      appendLi("help_city_improvements_ul", key + "_" + improvement["id"], improvement["name"]);
     }
   } else if (key === "help_gen_wonders") {
     for (impr_id in store.improvements) {
       improvement = store.improvements[impr_id as any];
       if (!is_wonder(improvement)) continue;
-      $("<li data-helptag='" + key + "_" + improvement["id"] + "'>" + improvement["name"] + "</li>").appendTo("#help_wonders_of_the_world_ul");
+      appendLi("help_wonders_of_the_world_ul", key + "_" + improvement["id"], improvement["name"]);
     }
   } else if (key === "help_gen_units") {
     const unit_ids = unittype_ids_alphabetic();
     for (let i = 0; i < unit_ids.length; i++) {
       const unit_id = unit_ids[i];
       const punit_type: any = (store.unitTypes as any)[unit_id];
-
-      $("<li data-helptag='" + key + "_" + punit_type["id"] + "'>" + punit_type["name"] + "</li>").appendTo("#help_units_ul");
+      appendLi("help_units_ul", key + "_" + punit_type["id"], punit_type["name"]);
     }
   } else if (key === "help_gen_techs") {
     for (const tech_id in store.techs) {
       if (tech_id === "0") continue;
       const tech = store.techs[tech_id as any];
-      $("<li data-helptag='" + key + "_" + tech["id"] + "'>" + tech["name"] + "</li>").appendTo("#help_technology_ul");
+      appendLi("help_technology_ul", key + "_" + tech["id"], tech["name"]);
     }
   } else if (key === "help_gen_governments") {
     for (const gov_id in store.governments) {
       const pgov = store.governments[gov_id as any];
-
-      $("<li data-helptag='" + key + "_" + pgov["id"] + "'>" + pgov["name"] + "</li>").appendTo("#help_government_ul");
+      appendLi("help_government_ul", key + "_" + pgov["id"], pgov["name"]);
     }
   } else if (key === "help_gen_ruleset") {
-    $("<li id='" + key + "' data-helptag='" + key + "'>" + "About Current Ruleset" + "</li>").appendTo(find_parent_help_key(key));
+    const parent_key = find_parent_help_key(key);
+    const li = document.createElement('li');
+    li.id = key;
+    li.dataset.helptag = key;
+    li.textContent = "About Current Ruleset";
+    document.querySelector(parent_key)?.appendChild(li);
   }
 }
 
@@ -148,8 +176,7 @@ export function generate_help_menu(key: string): void {
 ...
 **************************************************************************/
 export function render_sprite(sprite: any): string {
-  const msg =
-    "<div class='help_unit_image' style=' background: transparent url(" +
+  return "<div class='help_unit_image' style=' background: transparent url(" +
     sprite["image-src"] +
     ");background-position:-" +
     sprite["tileset-x"] +
@@ -161,7 +188,6 @@ export function render_sprite(sprite: any): string {
     sprite["height"] +
     "px;'" +
     "></div>";
-  return msg;
 }
 
 /**************************************************************************
@@ -169,8 +195,16 @@ export function render_sprite(sprite: any): string {
 **************************************************************************/
 export function generate_help_toplevel(key: string): void {
   const parent_key = find_parent_help_key(key);
-  $("<li id='" + key + "' data-helptag='" + key + "'>" + helpdata_tag_to_title(key) + "</li>").appendTo(parent_key);
-  $("<ul id='" + key + "_ul' class='help_submenu'></ul>").appendTo("#" + key);
+  const li = document.createElement('li');
+  li.id = key;
+  li.dataset.helptag = key;
+  li.textContent = helpdata_tag_to_title(key);
+  document.querySelector(parent_key)?.appendChild(li);
+
+  const ul = document.createElement('ul');
+  ul.id = key + '_ul';
+  ul.className = 'help_submenu';
+  li.appendChild(ul);
 }
 
 /**************************************************************************
@@ -201,33 +235,36 @@ export function find_parent_help_key(key: string): string {
 /**************************************************************************
 ...
 **************************************************************************/
-export function handle_help_menu_select(ui: any): void {
-  const selected_tag: string = $(ui.item).data("helptag");
+function handle_help_menu_select_native(item: HTMLElement): void {
+  const selected_tag = item.dataset.helptag || '';
   if (selected_tag.indexOf("help_gen") !== -1) {
     generate_help_text(selected_tag);
   } else if (selected_tag === "help_copying") {
     fetch("/docs/LICENSE.txt").then(r => r.text()).then(data => {
-      $("#help_info_page").html("<h1>Freeciv-Web License</h1>" + data.replace(/\n/g, "<br>"));
+      setHtml('help_info_page', "<h1>Freeciv-Web License</h1>" + data.replace(/\n/g, "<br>"));
     });
   } else if (selected_tag === "help_controls") {
     fetch("/docs/controls.txt").then(r => r.text()).then(data => {
-      $("#help_info_page").html(data.replace(/\n/g, "<br>"));
+      setHtml('help_info_page', data.replace(/\n/g, "<br>"));
     });
   } else {
     const msg = "<h1>" + helpdata_tag_to_title(selected_tag) + "</h1>" + get_helpdata()[selected_tag]["text"];
-    $("#help_info_page").html(msg);
+    setHtml('help_info_page', msg);
   }
 
-  $("#help_info_page").focus();
+  byId('help_info_page')?.focus();
+}
+
+// Keep old export name for backward compat
+export function handle_help_menu_select(ui: any): void {
+  const item = ui.item?.[0] || ui.item;
+  if (item) handle_help_menu_select_native(item);
 }
 
 /**************************************************************************
   Returns a button that shows the extracted Wikipedia data about an item.
-
-  Returns an empty string ("") if no such data exists.
 **************************************************************************/
 export function wiki_on_item_button(item_name: string): string {
-  /* Item name shouldn't be a qualified string. */
   item_name = stringUnqualify(item_name);
 
   if (get_freeciv_wiki_docs()[item_name] == null) {
@@ -271,35 +308,22 @@ export function generate_help_text(key: string): void {
   if (key.indexOf("help_gen_terrain") !== -1) {
     const terrain = store.terrains[parseInt(key.replace("help_gen_terrain_", ""))];
     msg =
-      "<h1>" +
-      terrain["name"] +
-      "</h1>" +
+      "<h1>" + terrain["name"] + "</h1>" +
       terrain["helptext"] +
-      "<br><br>Movement cost: " +
-      terrain["movement_cost"] +
-      "<br>Defense bonus: " +
-      terrain["defense_bonus"] +
+      "<br><br>Movement cost: " + terrain["movement_cost"] +
+      "<br>Defense bonus: " + terrain["defense_bonus"] +
       "<br>Food/Prod/Trade: " +
-      terrain["output"][0] +
-      "/" +
-      terrain["output"][1] +
-      "/" +
-      terrain["output"][2];
+      terrain["output"][0] + "/" + terrain["output"][1] + "/" + terrain["output"][2];
   } else if (key.indexOf("help_gen_improvements") !== -1 || key.indexOf("help_gen_wonders") !== -1) {
     const improvement = store.improvements[
       parseInt(key.replace("help_gen_wonders_", "").replace("help_gen_improvements_", ""))
     ];
     msg =
-      "<h1>" +
-      improvement["name"] +
-      "</h1>" +
+      "<h1>" + improvement["name"] + "</h1>" +
       render_sprite(get_improvement_image_sprite(improvement)) +
-      "<br>" +
-      improvement["helptext"] +
-      "<br><br>Cost: " +
-      improvement["build_cost"] +
-      "<br>Upkeep: " +
-      improvement["upkeep"];
+      "<br>" + improvement["helptext"] +
+      "<br><br>Cost: " + improvement["build_cost"] +
+      "<br>Upkeep: " + improvement["upkeep"];
     const reqs = get_improvement_requirements(improvement["id"]);
     if (reqs != null) {
       msg += "<br>Requirements: ";
@@ -317,34 +341,18 @@ export function generate_help_text(key: string): void {
     msg += render_sprite(get_unit_type_image_sprite(punit_type));
     msg += "<br>";
     msg += "<div id='manual_non_helptext_facts'>";
-    msg += "<div id='utype_fact_cost'>";
-    msg += "Cost: " + punit_type["build_cost"];
-    msg += "</div>";
-    msg += "<div id='utype_fact_upkeep'>";
-    msg += "</div>";
-    msg += "<div id='utype_fact_attack_str'>";
-    msg += "Attack: " + punit_type["attack_strength"];
-    msg += "</div>";
-    msg += "<div id='utype_fact_defense_str'>";
-    msg += "Defense: " + punit_type["defense_strength"];
-    msg += "</div>";
-    msg += "<div id='utype_fact_firepower'>";
-    msg += "Firepower: " + punit_type["firepower"];
-    msg += "</div>";
-    msg += "<div id='utype_fact_hp'>";
-    msg += "Hitpoints: " + punit_type["hp"];
-    msg += "</div>";
-    msg += "<div id='utype_fact_move_rate'>";
-    msg += "Moves: " + move_points_text(punit_type["move_rate"]);
-    msg += "</div>";
-    msg += "<div id='utype_fact_vision'>";
-    msg += "Vision: " + punit_type["vision_radius_sq"];
-    msg += "</div>";
+    msg += "<div id='utype_fact_cost'>Cost: " + punit_type["build_cost"] + "</div>";
+    msg += "<div id='utype_fact_upkeep'></div>";
+    msg += "<div id='utype_fact_attack_str'>Attack: " + punit_type["attack_strength"] + "</div>";
+    msg += "<div id='utype_fact_defense_str'>Defense: " + punit_type["defense_strength"] + "</div>";
+    msg += "<div id='utype_fact_firepower'>Firepower: " + punit_type["firepower"] + "</div>";
+    msg += "<div id='utype_fact_hp'>Hitpoints: " + punit_type["hp"] + "</div>";
+    msg += "<div id='utype_fact_move_rate'>Moves: " + move_points_text(punit_type["move_rate"]) + "</div>";
+    msg += "<div id='utype_fact_vision'>Vision: " + punit_type["vision_radius_sq"] + "</div>";
 
     const ireqs = get_improvement_requirements(punit_type["impr_requirement"]);
     if (ireqs != null && ireqs.length > 0) {
-      msg += "<div id='utype_fact_req_building'>";
-      msg += "Building Requirements: ";
+      msg += "<div id='utype_fact_req_building'>Building Requirements: ";
       for (let m = 0; m < ireqs.length; m++) {
         msg += store.techs[ireqs[m]]["name"] + " ";
       }
@@ -353,86 +361,77 @@ export function generate_help_text(key: string): void {
 
     const treq = punit_type["tech_requirement"];
     if (treq != null && store.techs[treq] != null) {
-      msg += "<div id='utype_fact_req_tech'>";
-      msg += "Tech Requirements: " + store.techs[treq]["name"];
-      msg += "</div>";
+      msg += "<div id='utype_fact_req_tech'>Tech Requirements: " + store.techs[treq]["name"] + "</div>";
     }
 
     obsolete_by = store.unitTypes[punit_type["obsoleted_by"]];
-    msg += "<div id='utype_fact_obsolete'>";
-    msg += "Obsolete by: ";
+    msg += "<div id='utype_fact_obsolete'>Obsolete by: ";
     if (obsolete_by === U_NOT_OBSOLETED) {
       msg += "None";
     } else {
       msg += obsolete_by["name"];
     }
     msg += "</div>";
-
     msg += "</div>";
-
     msg += "<div id='helptext'><p>" + punit_type["helptext"] + "</p></div>";
-
     msg += wiki_on_item_button(punit_type["name"]);
-
     msg += "<div id='datastore' hidden='true'></div>";
   } else if (key.indexOf("help_gen_techs") !== -1) {
     const tech = store.techs[parseInt(key.replace("help_gen_techs_", ""))];
     msg =
-      "<h1>" +
-      tech["name"] +
-      "</h1>" +
+      "<h1>" + tech["name"] + "</h1>" +
       render_sprite(get_technology_image_sprite(tech)) +
-      "<br>" +
-      get_advances_text(tech["id"]);
+      "<br>" + get_advances_text(tech["id"]);
     msg += "<br><br>";
     msg += wiki_on_item_button(tech["name"]);
   } else if (key === "help_gen_ruleset") {
     msg = helpdata_format_current_ruleset();
   } else if (key.indexOf("help_gen_governments") !== -1) {
     const pgov = store.governments[parseInt(key.replace("help_gen_governments_", ""))];
-
     msg = "<h1>" + pgov["name"] + "</h1>";
     msg += "<div id='helptext'><p>" + pgov["helptext"] + "</p></div>";
-
     msg += wiki_on_item_button(pgov["name"]);
   }
 
-  $("#help_info_page").html(msg);
+  setHtml('help_info_page', msg);
 
-  /* Freeciv has code that generates certain help texts based on the
-   * ruleset. This code is written in C. It is huge. Replicating it in
-   * JavaScript would be a huge task and probably introduce bugs. Even if
-   * someone did it it would be hard to keep the replicated code in sync as
-   * the corresponding Freeciv C code kept evolving.
-   *
-   * Freeciv has the tool freeciv-manual. It can use the ruleset based auto
-   * help text generation. It can output HTML. Some of its HTML output is
-   * machine readable enough to be usable for Freeciv-web.
-   *
-   * Use the machine readable and wanted parts of freeciv-manual's output to
-   * add auto generated help texts for the current ruleset. */
+  /* Load auto-generated help from freeciv-manual HTML files */
   if (rulesetdir.length !== 0) {
     if (key.indexOf("help_gen_units") !== -1) {
       const utype_id = parseInt(key.replace("help_gen_units_", ""));
 
-      /* Add the auto generated unit type facts freeciv-manual prepends to
-       * the unit type's help text. */
-      $("#helptext").load("../man/" + rulesetdir + "7.html #utype" + utype_id + " .helptext");
-
-      /* Add the utype upkeep from freeciv-manual. */
-      $("#datastore").load("../man/" + rulesetdir + "7.html #utype" + utype_id + " .upkeep", function() {
-        $("#utype_fact_upkeep")[0].innerHTML = $("#datastore")[0].children[0].innerHTML;
-      });
+      fetch("../man/" + rulesetdir + "7.html")
+        .then(r => r.text())
+        .then(html => {
+          const doc = new DOMParser().parseFromString(html, 'text/html');
+          const helptext = doc.querySelector('#utype' + utype_id + ' .helptext');
+          if (helptext) {
+            const el = byId('helptext');
+            if (el) el.innerHTML = helptext.innerHTML;
+          }
+          const upkeep = doc.querySelector('#utype' + utype_id + ' .upkeep');
+          if (upkeep) {
+            const el = byId('utype_fact_upkeep');
+            if (el) el.innerHTML = upkeep.innerHTML;
+          }
+        })
+        .catch(() => {});
     } else if (key.indexOf("help_gen_governments") !== -1) {
       const gov_id = parseInt(key.replace("help_gen_governments_", ""));
 
-      /* Add the auto generated government facts freeciv-manual prepends to
-       * the government type's help text. */
-      $("#helptext").load("../man/" + rulesetdir + "6.html #gov" + gov_id + " .helptext");
+      fetch("../man/" + rulesetdir + "6.html")
+        .then(r => r.text())
+        .then(html => {
+          const doc = new DOMParser().parseFromString(html, 'text/html');
+          const helptext = doc.querySelector('#gov' + gov_id + ' .helptext');
+          if (helptext) {
+            const el = byId('helptext');
+            if (el) el.innerHTML = helptext.innerHTML;
+          }
+        })
+        .catch(() => {});
     }
   }
-
-  $(".help_button").button();
 }
 
 /**************************************************************************
