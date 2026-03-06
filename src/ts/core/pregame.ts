@@ -30,12 +30,12 @@ export function update_game_info_pregame(): void {
 
   if (store.scenarioInfo != null && store.scenarioInfo['is_scenario']) {
     game_info_html += "<p>";
-    game_info_html += store.scenarioInfo['description'].replace(/\n/g, "<br>");
+    game_info_html += String(store.scenarioInfo['description']).replace(/\n/g, "<br>");
     game_info_html += "</p>";
 
     if (store.scenarioInfo['authors']) {
       game_info_html += "<p>Scenario by ";
-      game_info_html += store.scenarioInfo['authors'].replace(/\n/g, "<br>");
+      game_info_html += String(store.scenarioInfo['authors']).replace(/\n/g, "<br>");
       game_info_html += "</p>";
     }
 

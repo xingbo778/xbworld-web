@@ -75,7 +75,7 @@ class GameStore {
   renderer: number = 0;  // RENDERER_2DCANVAS etc.
   sprites: Record<string, any> = {};
   tileset: Record<string, any> = {};
-  scenarioInfo: any = null;
+  scenarioInfo: Record<string, unknown> | null = null;
   selectedPlayer: number = -1;
   diplstates: Record<number, any> = {};
   civserverport: string | number = '';
@@ -92,7 +92,7 @@ class GameStore {
   contextMenuActive: boolean = false;
   keyboardInput: boolean = true;
   mapviewMouseMovement: boolean = false;
-  currentFocus: any[] = [];
+  currentFocus: Unit[] = [];
   soundsEnabled: boolean = false;
 
   // Timer/network state
@@ -101,10 +101,10 @@ class GameStore {
   secondsToPhasedone: number = 0;
   secondsToPhasedoneSync: number = 0;
   pingLast: number = 0;
-  connPingInfo: any = null;
+  connPingInfo: Record<string, unknown> | null = null;
   debugPingList: number[] = [];
   savedThisTurn: boolean = false;
-  endgamePlayerInfo: any[] = [];
+  endgamePlayerInfo: Record<string, unknown>[] = [];
   benchmarkStart: number = 0;
   autoAttack: boolean = false;
   cityTileMap: any = null;
