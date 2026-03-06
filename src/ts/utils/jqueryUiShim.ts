@@ -176,9 +176,16 @@ _$.fn.dialogExtend = function () { return this; };
 _$.fn.tooltip = function () { return this; };
 
 // ──────────────────────────────────────────────────────────────────────
-// .button() — no-op, CSS handles styling
+// .button() — minimal implementation for label and disabled state
 // ──────────────────────────────────────────────────────────────────────
-_$.fn.button = function () { return this; };
+_$.fn.button = function (opts?: any) {
+  if (!opts || typeof opts !== 'object') return this;
+  return this.each(function (this: HTMLButtonElement) {
+    if (opts.label) this.textContent = opts.label;
+    if (opts.disabled === true) this.disabled = true;
+    else if (opts.disabled === false) this.disabled = false;
+  });
+};
 
 // ──────────────────────────────────────────────────────────────────────
 // .menu() — no-op for observer mode
