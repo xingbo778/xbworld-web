@@ -30,7 +30,7 @@ import {
   packet_web_cma_clear, packet_web_goto_path_req, packet_web_info_text_req,
 } from './packetConstants';
 
-function send(packet: any): void {
+function send(packet: Record<string, unknown>): void {
   send_request(JSON.stringify(packet));
 }
 
@@ -54,11 +54,11 @@ export function sendCityBuy(cityId: number): void {
   send({ pid: packet_city_buy, city_id: cityId });
 }
 
-export function sendCityChange(cityId: number, kind: any, value: any): void {
+export function sendCityChange(cityId: number, kind: number, value: number): void {
   send({ pid: packet_city_change, city_id: cityId, production_kind: kind, production_value: value });
 }
 
-export function sendCityWorklist(cityId: number, worklist: any): void {
+export function sendCityWorklist(cityId: number, worklist: unknown): void {
   send({ pid: packet_city_worklist, city_id: cityId, worklist });
 }
 
@@ -198,7 +198,7 @@ export function sendDiplomacyCancelPact(otherPlayerId: number, clause: number): 
 
 const packet_web_cma_set = 257;
 
-export function sendCmaSet(cityId: number, cmParameter: any): void {
+export function sendCmaSet(cityId: number, cmParameter: unknown): void {
   send({ pid: packet_web_cma_set, id: cityId, cm_parameter: cmParameter });
 }
 

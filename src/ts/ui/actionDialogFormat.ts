@@ -1,6 +1,9 @@
 import { store } from '../data/store';
 import { actionProbPossible as action_prob_possible } from '../data/actions';
 
+type ActProb = { min: number; max: number };
+type ActProbMap = Record<number, ActProb>;
+
 import { send_request as sendRequest } from '../net/connection';
 import {
   packet_unit_action_query,
@@ -43,7 +46,7 @@ export function format_act_prob_part(prob: number): string {
 /****************************************************************************
   Format the probability that an action will be a success.
 ****************************************************************************/
-export function format_action_probability(probability: any): string {
+export function format_action_probability(probability: { min: number; max: number }): string {
   if (probability['min'] == probability['max']) {
     /* This is a regular and simple chance of success. */
     return " (" + format_act_prob_part(probability['max']) + ")";
@@ -60,7 +63,7 @@ export function format_action_probability(probability: any): string {
 /**************************************************************************
   Format the label of an action selection button.
 **************************************************************************/
-export function format_action_label(action_id: number, action_probabilities: any): string {
+export function format_action_label(action_id: number, action_probabilities: ActProbMap): string {
   return store.actions[action_id]['ui_name'].replace("%s", "").replace("%s",
     format_action_probability(action_probabilities[action_id]));
 }
@@ -68,7 +71,7 @@ export function format_action_label(action_id: number, action_probabilities: any
 /**************************************************************************
   Format the tooltip of an action selection button.
 **************************************************************************/
-export function format_action_tooltip(act_id: number, act_probs: any): string {
+export function format_action_tooltip(act_id: number, act_probs: ActProbMap): string {
   let out: string = "";
 
   if (act_probs[act_id]['min'] == act_probs[act_id]['max']) {
@@ -98,7 +101,7 @@ export function format_action_tooltip(act_id: number, act_probs: any): string {
 **************************************************************************/
 export function act_sel_click_function(parent_id: string,
   actor_unit_id: number, tgt_id: number, sub_tgt_id: number,
-  action_id: number, action_probabilities: any): () => void {
+  action_id: number, action_probabilities: ActProbMap): () => void {
   switch (action_id) {
     case ACTION_SPY_TARGETED_STEAL_TECH:
     case ACTION_SPY_TARGETED_STEAL_TECH_ESC:
@@ -158,7 +161,7 @@ export function act_sel_click_function(parent_id: string,
 **************************************************************************/
 export function create_act_sel_button(parent_id: string,
   actor_unit_id: number, tgt_id: number, sub_tgt_id: number,
-  action_id: number, action_probabilities: any): any {
+  action_id: number, action_probabilities: ActProbMap): { id: string; class: string; text: string; title: string; click: () => void } {
   /* Create the initial button with this action */
   const button = {
     id: "act_sel_" + action_id + "_" + actor_unit_id,
