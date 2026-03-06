@@ -24,7 +24,11 @@ import { showDialogMessage as show_dialog_message } from '../client/civClient';
 import { client_handle_packet } from './packhandlers';
 import { packet_chat_msg_req } from './packetConstants';
 import { blockUI, unblockUI } from '../utils/dom';
-const jsSHA = (window as any).jsSHA;
+async function sha512hex(text: string): Promise<string> {
+  const data = new TextEncoder().encode(text);
+  const hash = await crypto.subtle.digest('SHA-512', data);
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
 
 const win = window as any;
 
@@ -167,14 +171,12 @@ export function websocket_init(): void {
  * When the WebSocket connection is open and ready to communicate, then
  * send the first login message to the server.
  */
-export function check_websocket_ready(): void {
+export async function check_websocket_ready(): Promise<void> {
   if (ws != null && ws.readyState === 1) {
     let sha_password: string | null = null;
     const stored_password = localStorage.getItem('password') ?? '';
     if (stored_password != null && stored_password !== '') {
-      const shaObj = new jsSHA('SHA-512', 'TEXT');
-      shaObj.update(stored_password);
-      sha_password = encodeURIComponent(shaObj.getHash('HEX'));
+      sha_password = encodeURIComponent(await sha512hex(stored_password));
     }
 
     const login_message = {
