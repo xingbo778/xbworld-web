@@ -2,8 +2,7 @@ import type { City } from './types';
 import { store } from './store';
 import { cityPopulation as city_population } from './city';
 import { clientState as client_state, C_S_RUNNING, clientPlaying } from '../client/clientState';
-import { is_small_screen } from '../renderer/mapview';
-import { numberWithCommas } from '../utils/helpers';
+import { numberWithCommas, isSmallScreen as is_small_screen } from '../utils/helpers';
 
 export const IDENTITY_NUMBER_ZERO = 0;
 

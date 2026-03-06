@@ -1,4 +1,9 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+
+vi.mock('@/core/overview', () => ({
+  init_overview: vi.fn(),
+}));
+
 import {
   mapAllocate,
   mapPosToTile,

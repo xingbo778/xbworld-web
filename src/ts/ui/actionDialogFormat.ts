@@ -30,14 +30,8 @@ const REQEST_PLAYER_INITIATED = 0;
 
 // jQuery removed — using native DOM
 
-/**************************************************************************
-  Returns TRUE iff the given action probability represents that support
-  for finding this action probability currently is missing from Freeciv.
-**************************************************************************/
-export function action_prob_not_impl(probability: any): boolean {
-  return probability['min'] == 254
-    && probability['max'] == 0;
-}
+// Re-export from data layer (moved to fix circular dependency)
+export { action_prob_not_impl } from '../data/actions';
 
 /***************************************************************************
   Returns a part of an action probability in a user readable format.

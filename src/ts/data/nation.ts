@@ -23,14 +23,15 @@ import { initTableSort } from '../utils/tableSort';
 import { clientIsObserver, clientPlaying, canClientControl, clientState, C_S_OVER } from '../client/clientState';
 import { isLongturn } from '../client/clientCore';
 import { setDefaultMapviewActive } from '../client/clientMain';
-import { is_small_screen } from '../renderer/mapview';
+import { isSmallScreen as is_small_screen } from '../utils/helpers';
 import { center_tile_mapcanvas } from '../core/control/mapClick';
 import { send_message } from '../net/connection';
 import { sendDiplomacyCancelPact, sendDiplomacyInitMeeting, sendChatMessage } from '../net/commands';
 import { encode_message_text } from '../core/control/chat';
 import { keyboard_input, setKeyboardInput } from '../core/control/controlState';
-import { CLAUSE_VISION, diplomacy_cancel_treaty } from '../ui/diplomacy';
-import { mapview } from '../renderer/mapviewCommon';
+// CLAUSE_VISION and diplomacy_cancel_treaty loaded dynamically to avoid data→ui cycle
+const CLAUSE_VISION = 8;  // protocol constant
+// mapview import removed — use window dimensions for UI sizing
 import { getUrlVar } from '../utils/helpers';
 
 // ---------------------------------------------------------------------------
@@ -315,8 +316,8 @@ export function updateNationScreen(): void {
   if (is_small_screen()) {
     const nationsEl = document.getElementById('nations');
     if (nationsEl) {
-      nationsEl.style.height = ((mapview['height'] ?? 600) - 150) + 'px';
-      nationsEl.style.width = (mapview['width'] ?? 800) + 'px';
+      nationsEl.style.height = (window.innerHeight - 150) + 'px';
+      nationsEl.style.width = window.innerWidth + 'px';
     }
   }
 
@@ -533,8 +534,9 @@ export function nationTableSelectPlayer(player_no: number): void {
 }
 
 /** Handles the "Cancel Treaty" button click. */
-export function cancelTreatyClicked(): void {
+export async function cancelTreatyClicked(): Promise<void> {
   if (getSelectedPlayer() === -1) return;
+  const { diplomacy_cancel_treaty } = await import('../ui/diplomacy');
   diplomacy_cancel_treaty(getSelectedPlayer());
   setDefaultMapviewActive();
 }

@@ -30,7 +30,6 @@ import {
 import { playerInventionState, TECH_KNOWN } from '@/data/tech';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-const win = window as any;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -51,26 +50,17 @@ function makeReq(overrides: Record<string, any> = {}): any {
 // ---------------------------------------------------------------------------
 
 describe('isTechInRange', () => {
-  beforeEach(() => {
-    win.TECH_KNOWN = 2;
-    win.player_invention_state = (player: any, tech: number) => {
-      if (player?.known_techs?.includes(tech)) return 2; // TECH_KNOWN
-      return 0; // TECH_UNKNOWN
-    };
-  });
-
-  afterEach(() => {
-    delete win.TECH_KNOWN;
-    delete win.player_invention_state;
-  });
+  // playerInventionState reads pplayer.inventions[techId] and compares to TECH_KNOWN (2).
+  // No window globals needed — TECH_KNOWN is a module constant and
+  // playerInventionState is a direct import.
 
   it('should return TRI_YES when player knows the tech (PLAYER range)', () => {
-    const player = { known_techs: [5, 10, 15] };
+    const player = { inventions: { 5: TECH_KNOWN, 10: TECH_KNOWN, 15: TECH_KNOWN } };
     expect(isTechInRange(player, REQ_RANGE_PLAYER, 10)).toBe(TRI_YES);
   });
 
   it('should return TRI_NO when player does not know the tech', () => {
-    const player = { known_techs: [5, 10, 15] };
+    const player = { inventions: { 5: TECH_KNOWN, 10: TECH_KNOWN, 15: TECH_KNOWN } };
     expect(isTechInRange(player, REQ_RANGE_PLAYER, 20)).toBe(TRI_NO);
   });
 
@@ -79,17 +69,17 @@ describe('isTechInRange', () => {
   });
 
   it('should return TRI_MAYBE for TEAM range (unimplemented)', () => {
-    const player = { known_techs: [5] };
+    const player = { inventions: { 5: TECH_KNOWN } };
     expect(isTechInRange(player, REQ_RANGE_TEAM, 5)).toBe(TRI_MAYBE);
   });
 
   it('should return TRI_MAYBE for WORLD range (unimplemented)', () => {
-    const player = { known_techs: [5] };
+    const player = { inventions: { 5: TECH_KNOWN } };
     expect(isTechInRange(player, REQ_RANGE_WORLD, 5)).toBe(TRI_MAYBE);
   });
 
   it('should return TRI_MAYBE for invalid range (LOCAL)', () => {
-    const player = { known_techs: [5] };
+    const player = { inventions: { 5: TECH_KNOWN } };
     expect(isTechInRange(player, REQ_RANGE_LOCAL, 5)).toBe(TRI_MAYBE);
   });
 });
@@ -99,18 +89,7 @@ describe('isTechInRange', () => {
 // ---------------------------------------------------------------------------
 
 describe('isReqActive', () => {
-  beforeEach(() => {
-    win.TECH_KNOWN = 2;
-    win.player_invention_state = (player: any, tech: number) => {
-      if (player?.known_techs?.includes(tech)) return 2;
-      return 0;
-    };
-  });
-
-  afterEach(() => {
-    delete win.TECH_KNOWN;
-    delete win.player_invention_state;
-  });
+  // No window globals needed — see isTechInRange comment.
 
   it('should return true for VUT_NONE requirement', () => {
     const req = makeReq({ kind: VUT_NONE });
@@ -118,25 +97,25 @@ describe('isReqActive', () => {
   });
 
   it('should return true when tech requirement is met', () => {
-    const player = { known_techs: [10] };
+    const player = { inventions: { 10: TECH_KNOWN } };
     const req = makeReq({ kind: VUT_ADVANCE, range: REQ_RANGE_PLAYER, value: 10, present: true });
     expect(isReqActive(player, null, null, null, null, null, null, req, RPT_POSSIBLE)).toBe(true);
   });
 
   it('should return false when tech requirement is not met', () => {
-    const player = { known_techs: [5] };
+    const player = { inventions: { 5: TECH_KNOWN } };
     const req = makeReq({ kind: VUT_ADVANCE, range: REQ_RANGE_PLAYER, value: 10, present: true });
     expect(isReqActive(player, null, null, null, null, null, null, req, RPT_POSSIBLE)).toBe(false);
   });
 
   it('should handle negated requirement (present=false)', () => {
-    const player = { known_techs: [10] };
+    const player = { inventions: { 10: TECH_KNOWN } };
     const req = makeReq({ kind: VUT_ADVANCE, range: REQ_RANGE_PLAYER, value: 10, present: false });
     expect(isReqActive(player, null, null, null, null, null, null, req, RPT_POSSIBLE)).toBe(false);
   });
 
   it('should return true for negated requirement when tech is not known', () => {
-    const player = { known_techs: [5] };
+    const player = { inventions: { 5: TECH_KNOWN } };
     const req = makeReq({ kind: VUT_ADVANCE, range: REQ_RANGE_PLAYER, value: 10, present: false });
     expect(isReqActive(player, null, null, null, null, null, null, req, RPT_POSSIBLE)).toBe(true);
   });
@@ -179,21 +158,10 @@ describe('isReqActive', () => {
 // ---------------------------------------------------------------------------
 
 describe('areReqsActive', () => {
-  beforeEach(() => {
-    win.TECH_KNOWN = 2;
-    win.player_invention_state = (player: any, tech: number) => {
-      if (player?.known_techs?.includes(tech)) return 2;
-      return 0;
-    };
-  });
-
-  afterEach(() => {
-    delete win.TECH_KNOWN;
-    delete win.player_invention_state;
-  });
+  // No window globals needed — see isTechInRange comment.
 
   it('should return true when all requirements are met', () => {
-    const player = { known_techs: [5, 10], government: 3 };
+    const player = { inventions: { 5: TECH_KNOWN, 10: TECH_KNOWN }, government: 3 };
     const reqs = [
       makeReq({ kind: VUT_ADVANCE, range: REQ_RANGE_PLAYER, value: 5, present: true }),
       makeReq({ kind: VUT_ADVANCE, range: REQ_RANGE_PLAYER, value: 10, present: true }),
@@ -203,7 +171,7 @@ describe('areReqsActive', () => {
   });
 
   it('should return false when any requirement is not met', () => {
-    const player = { known_techs: [5], government: 3 };
+    const player = { inventions: { 5: TECH_KNOWN }, government: 3 };
     const reqs = [
       makeReq({ kind: VUT_ADVANCE, range: REQ_RANGE_PLAYER, value: 5, present: true }),
       makeReq({ kind: VUT_ADVANCE, range: REQ_RANGE_PLAYER, value: 10, present: true }),

@@ -11,6 +11,7 @@ import {
   TILE_KNOWN_SEEN,
 } from '@/data/tile';
 import type { Tile } from '@/data/types';
+import { store } from '@/data/store';
 
 function makeTile(overrides: Partial<Tile> = {}): Tile {
   return {
@@ -30,9 +31,7 @@ function makeTile(overrides: Partial<Tile> = {}): Tile {
 
 describe('Tile', () => {
   beforeEach(() => {
-    /* eslint-disable @typescript-eslint/no-explicit-any */
-    (window as any).cities = {};
-    /* eslint-enable @typescript-eslint/no-explicit-any */
+    store.cities = {};
   });
 
   it('should return TILE_UNKNOWN for unknown tiles', () => {
@@ -63,8 +62,7 @@ describe('Tile', () => {
   });
 
   it('should find city on tile', () => {
-    /* eslint-disable @typescript-eslint/no-explicit-any */
-    (window as any).cities[10] = {
+    store.cities[10] = {
       id: 10,
       owner: 0,
       tile: 55,
@@ -84,7 +82,7 @@ describe('Tile', () => {
       ppl_unhappy: [],
       ppl_angry: [],
       improvements: [],
-    };
+    } as any;
     const tile = makeTile({ index: 55, worked: 10 });
     expect(tileCity(tile)?.name).toBe('Athens');
   });

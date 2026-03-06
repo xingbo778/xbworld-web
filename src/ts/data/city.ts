@@ -28,13 +28,7 @@ import {
   get_unit_type_image_sprite,
   get_improvement_image_sprite,
 } from '../renderer/tilespec';
-import {
-  active_city,
-  city_trade_routes,
-  city_screen_updater,
-  goods,
-} from '../ui/cityDialog';
-import { bulbs_output_updater } from '../ui/techDialog';
+import { globalEvents } from '../core/events';
 
 // ---------------------------------------------------------------------------
 // Constants (also defined in city.js — will be removed from there)
@@ -97,8 +91,9 @@ export function removeCity(pcityId: number): void {
   const ptile = cityTile(store.cities[pcityId]);
   delete store.cities[pcityId];
   if (update) {
-    city_screen_updater?.update();
-    bulbs_output_updater?.update();
+    globalEvents.emit('city:removed', pcityId);
+    globalEvents.emit('city:screenUpdate');
+    globalEvents.emit('tech:bulbsUpdate');
   }
 }
 
@@ -405,7 +400,7 @@ export function dxyToCenterIndex(dx: number, dy: number, r: number): number {
 export function getCityDxyToIndex(dx: number, dy: number, pcity: any): number {
   buildCityTileMap(pcity.city_radius_sq);
   const cityTileMapIndex = dxyToCenterIndex(dx, dy, cityTileMap!.radius);
-  const ctile = cityTile(active_city);
+  const ctile = cityTile(pcity);
   return getCityTileMapForPos(ctile.x, ctile.y)[cityTileMapIndex];
 }
 
@@ -553,56 +548,7 @@ export let getCityTileMapForPos = function(x: number, y: number): number[] {
 // Trade routes
 // ---------------------------------------------------------------------------
 
-/** Shows traderoutes of active city (returns HTML string). */
-export function showCityTraderoutes(): string {
-  let msg: string;
-
-  if (active_city == null) {
-    return '';
-  }
-
-  const routes = city_trade_routes?.[active_city['id']];
-
-  if (active_city['traderoute_count'] !== 0 && routes == null) {
-    console.log(
-      "Can't find the trade routes " +
-        active_city['name'] +
-        ' is said to have',
-    );
-    return '';
-  }
-
-  msg = '';
-  for (let i = 0; i < active_city['traderoute_count']; i++) {
-    if (routes[i] == null) continue;
-
-    const tcityId = routes[i]['partner'];
-    if (tcityId === 0 || tcityId == null) continue;
-
-    let good = goods?.[routes[i]['goods']];
-    if (good == null) {
-      console.log('Missing good type ' + routes[i]['goods']);
-      good = { name: 'Unknown' };
-    }
-
-    const tcity = store.cities[tcityId];
-    if (tcity == null) continue;
-    msg += good['name'] + ' trade with ' + tcity['name'];
-    msg += ' gives ' + routes[i]['value'] + ' gold each turn.<br>';
-  }
-
-  if (msg === '') {
-    msg = 'No traderoutes.';
-    msg += ' (Open the Manual, select Economy and then Trade ';
-    msg += 'if you want to learn more about trade and trade routes.)';
-  }
-
-  // Also update the DOM if the element exists
-  const el = document.getElementById('city_traderoutes_tab');
-  if (el) el.innerHTML = msg;
-
-  return msg;
-}
+// showCityTraderoutes removed — dead code, now handled in ui/cityDialog.ts
 
 // ---------------------------------------------------------------------------
 // Expose to legacy JS

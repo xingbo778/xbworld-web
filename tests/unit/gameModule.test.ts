@@ -3,7 +3,14 @@
  *
  * Tests game utility functions migrated from legacy game.js.
  */
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
+// Mock isSmallScreen before importing game.ts
+vi.mock('@/utils/helpers', async (importOriginal) => ({
+  ...(await importOriginal()),
+  isSmallScreen: vi.fn(() => false),
+}));
+
 import {
   IDENTITY_NUMBER_ZERO,
   game_find_city_by_number,
@@ -11,9 +18,10 @@ import {
   current_turn_timeout,
   get_year_string,
 } from '@/data/game';
+import { store } from '@/data/store';
+import { isSmallScreen } from '@/utils/helpers';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-const win = window as any;
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -31,14 +39,14 @@ describe('Game constants', () => {
 
 describe('game_find_city_by_number', () => {
   beforeEach(() => {
-    win.cities = {
+    (store as any).cities = {
       10: { id: 10, name: 'Rome' },
       20: { id: 20, name: 'London' },
     };
   });
 
   afterEach(() => {
-    delete win.cities;
+    (store as any).cities = {};
   });
 
   it('should find city by number', () => {
@@ -57,14 +65,14 @@ describe('game_find_city_by_number', () => {
 
 describe('game_find_unit_by_number', () => {
   beforeEach(() => {
-    win.units = {
+    (store as any).units = {
       1: { id: 1, type: 0, name: 'Warriors' },
       2: { id: 2, type: 1, name: 'Settler' },
     };
   });
 
   afterEach(() => {
-    delete win.units;
+    (store as any).units = {};
   });
 
   it('should find unit by number', () => {
@@ -82,26 +90,26 @@ describe('game_find_unit_by_number', () => {
 
 describe('current_turn_timeout', () => {
   afterEach(() => {
-    delete win.game_info;
+    store.gameInfo = null;
   });
 
   it('should return 0 when game_info is null', () => {
-    win.game_info = null;
+    store.gameInfo = null;
     expect(current_turn_timeout()).toBe(0);
   });
 
   it('should return first_timeout on turn 1 when set', () => {
-    win.game_info = { turn: 1, first_timeout: 120, timeout: 60 };
+    store.gameInfo = { turn: 1, first_timeout: 120, timeout: 60 } as any;
     expect(current_turn_timeout()).toBe(120);
   });
 
   it('should return normal timeout on turn 1 when first_timeout is -1', () => {
-    win.game_info = { turn: 1, first_timeout: -1, timeout: 60 };
+    store.gameInfo = { turn: 1, first_timeout: -1, timeout: 60 } as any;
     expect(current_turn_timeout()).toBe(60);
   });
 
   it('should return normal timeout on later turns', () => {
-    win.game_info = { turn: 5, first_timeout: 120, timeout: 60 };
+    store.gameInfo = { turn: 5, first_timeout: 120, timeout: 60 } as any;
     expect(current_turn_timeout()).toBe(60);
   });
 });
@@ -112,33 +120,32 @@ describe('current_turn_timeout', () => {
 
 describe('get_year_string', () => {
   afterEach(() => {
-    delete win.game_info;
-    delete win.calendar_info;
-    delete win.is_small_screen;
+    store.gameInfo = null;
+    store.calendarInfo = null;
   });
 
   it('should format BC year correctly', () => {
-    win.game_info = { year: -4000, turn: 1 };
-    win.calendar_info = { negative_year_label: ' BC', positive_year_label: ' AD' };
-    win.is_small_screen = () => false;
+    store.gameInfo = { year: -4000, turn: 1 } as any;
+    store.calendarInfo = { negative_year_label: ' BC', positive_year_label: ' AD' } as any;
+    vi.mocked(isSmallScreen).mockReturnValue(false);
     const result = get_year_string();
     expect(result).toContain('4000 BC');
     expect(result).toContain('Turn:1');
   });
 
   it('should format AD year correctly', () => {
-    win.game_info = { year: 1500, turn: 100 };
-    win.calendar_info = { negative_year_label: ' BC', positive_year_label: ' AD' };
-    win.is_small_screen = () => false;
+    store.gameInfo = { year: 1500, turn: 100 } as any;
+    store.calendarInfo = { negative_year_label: ' BC', positive_year_label: ' AD' } as any;
+    vi.mocked(isSmallScreen).mockReturnValue(false);
     const result = get_year_string();
     expect(result).toContain('1500 AD');
     expect(result).toContain('Turn:100');
   });
 
   it('should use short format on small screen', () => {
-    win.game_info = { year: 1500, turn: 100 };
-    win.calendar_info = { negative_year_label: ' BC', positive_year_label: ' AD' };
-    win.is_small_screen = () => true;
+    store.gameInfo = { year: 1500, turn: 100 } as any;
+    store.calendarInfo = { negative_year_label: ' BC', positive_year_label: ' AD' } as any;
+    vi.mocked(isSmallScreen).mockReturnValue(true);
     const result = get_year_string();
     expect(result).toContain('T:100');
   });

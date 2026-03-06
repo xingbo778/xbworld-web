@@ -9,9 +9,8 @@
  * NOTE: is_touch_device is defined in control.js, not utility.js.
  */
 
-import { swal } from '../components/Dialogs/SwalDialog';
-import { mapPosToTile as map_pos_to_tile } from '../data/map';
-import { center_tile_mapcanvas } from '../core/control';
+// NOTE: No imports from core/control or data/map here — helpers must be
+// a leaf module with no heavy transitive dependencies.
 
 /** Deep clone a plain object (no circular refs). */
 export function clone<T>(obj: T): T {
@@ -122,15 +121,19 @@ export function isRightMouseSelectionSupported(): boolean {
 
 /**
  * Simple benchmark: scrolls the map 30 frames and reports average redraw time.
+ * Uses dynamic imports to avoid pulling core/control into the helpers module.
  */
 let benchmark_start = 0;
-export function civclient_benchmark(frame: number): void {
+export async function civclient_benchmark(frame: number): Promise<void> {
   if (frame === 0) benchmark_start = Date.now();
-  const ptile = map_pos_to_tile(frame + 5, frame + 5);
+  const { mapPosToTile } = await import('../data/map');
+  const { center_tile_mapcanvas } = await import('../core/control');
+  const ptile = mapPosToTile(frame + 5, frame + 5);
   center_tile_mapcanvas(ptile);
   if (frame < 30) {
     setTimeout(() => civclient_benchmark(frame + 1), 10);
   } else {
+    const { swal } = await import('../components/Dialogs/SwalDialog');
     const time = (Date.now() - benchmark_start) / 25;
     swal('Redraw time: ' + time);
   }

@@ -131,17 +131,17 @@ describe('extra.ts', () => {
   }
 
   beforeEach(() => {
-    win.extras = {
-      0: { id: 0, name: 'Road', causes: mockBV(0, 1), rmcauses: mockBV(), gui_type: 0 },
-      1: { id: 1, name: 'Fortress', causes: mockBV(0, 2), rmcauses: mockBV(1), gui_type: BASE_GUI_FORTRESS },
-      2: { id: 2, name: 'Airbase', causes: mockBV(0, 2), rmcauses: mockBV(1), gui_type: BASE_GUI_AIRBASE },
+    store.extras = {
+      0: { id: 0, name: 'Road', causes: mockBV(0, 1), rmcauses: mockBV(), gui_type: 0 } as any,
+      1: { id: 1, name: 'Fortress', causes: mockBV(0, 2), rmcauses: mockBV(1), gui_type: BASE_GUI_FORTRESS } as any,
+      2: { id: 2, name: 'Airbase', causes: mockBV(0, 2), rmcauses: mockBV(1), gui_type: BASE_GUI_AIRBASE } as any,
     };
-    win.ruleset_control = { num_extra_types: 10 };
+    store.rulesControl = { num_extra_types: 10 } as any;
   });
 
   afterEach(() => {
-    delete win.extras;
-    delete win.ruleset_control;
+    store.extras = {};
+    store.rulesControl = null;
   });
 
   describe('constants', () => {
@@ -165,22 +165,22 @@ describe('extra.ts', () => {
 
   describe('isExtraCausedBy', () => {
     it('should return true when cause bit is set', () => {
-      expect(isExtraCausedBy(win.extras[0], 0)).toBe(true);
-      expect(isExtraCausedBy(win.extras[0], 1)).toBe(true);
+      expect(isExtraCausedBy(store.extras[0], 0)).toBe(true);
+      expect(isExtraCausedBy(store.extras[0], 1)).toBe(true);
     });
 
     it('should return false when cause bit is not set', () => {
-      expect(isExtraCausedBy(win.extras[0], 2)).toBe(false);
+      expect(isExtraCausedBy(store.extras[0], 2)).toBe(false);
     });
   });
 
   describe('isExtraRemovedBy', () => {
     it('should return true when rmcause bit is set', () => {
-      expect(isExtraRemovedBy(win.extras[1], 1)).toBe(true);
+      expect(isExtraRemovedBy(store.extras[1], 1)).toBe(true);
     });
 
     it('should return false when rmcause bit is not set', () => {
-      expect(isExtraRemovedBy(win.extras[1], 0)).toBe(false);
+      expect(isExtraRemovedBy(store.extras[1], 0)).toBe(false);
     });
   });
 });
@@ -191,14 +191,14 @@ describe('extra.ts', () => {
 
 describe('actions.ts', () => {
   beforeEach(() => {
-    win.actions = {
+    store.actions = {
       0: { id: 0, result: 10, ui_name: 'Attack' },
       1: { id: 1, result: 20, ui_name: 'Fortify' },
     };
   });
 
   afterEach(() => {
-    delete win.actions;
+    store.actions = {};
   });
 
   describe('actionByNumber', () => {
@@ -213,11 +213,11 @@ describe('actions.ts', () => {
 
   describe('actionHasResult', () => {
     it('should return true when result matches', () => {
-      expect(actionHasResult(win.actions[0], 10)).toBe(true);
+      expect(actionHasResult(store.actions[0], 10)).toBe(true);
     });
 
     it('should return false when result does not match', () => {
-      expect(actionHasResult(win.actions[0], 20)).toBe(false);
+      expect(actionHasResult(store.actions[0], 20)).toBe(false);
     });
 
     it('should return null for null action', () => {
@@ -278,16 +278,16 @@ describe('government.ts', () => {
 
 describe('terrain.ts', () => {
   beforeEach(() => {
-    win.terrains = {
-      0: { id: 0, graphic_str: 'grassland', name: 'Grassland' },
-      1: { id: 1, graphic_str: 'floor', name: 'Ocean' },
-      2: { id: 2, graphic_str: 'coast', name: 'Coast' },
-      3: { id: 3, graphic_str: 'desert', name: 'Desert' },
+    store.terrains = {
+      0: { id: 0, graphic_str: 'grassland', name: 'Grassland' } as any,
+      1: { id: 1, graphic_str: 'floor', name: 'Ocean' } as any,
+      2: { id: 2, graphic_str: 'coast', name: 'Coast' } as any,
+      3: { id: 3, graphic_str: 'desert', name: 'Desert' } as any,
     };
   });
 
   afterEach(() => {
-    delete win.terrains;
+    store.terrains = {};
   });
 
   describe('tile_set_terrain / tile_terrain', () => {

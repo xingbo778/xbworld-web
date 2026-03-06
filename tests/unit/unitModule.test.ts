@@ -4,7 +4,16 @@
  * Tests unit query functions migrated from legacy unit.js.
  * Only tests pure functions that don't require renderer or complex DOM.
  */
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
+// Mock modules to break circular: unit → map → helpers → control → mapClick → unit
+vi.mock('@/core/overview', () => ({ init_overview: vi.fn() }));
+vi.mock('@/core/control', () => ({
+  center_tile_mapcanvas: vi.fn(),
+  control_init: vi.fn(),
+  find_visible_unit: vi.fn(),
+}));
+
 import {
   unit_list_size,
   unit_list_without,
@@ -12,9 +21,9 @@ import {
   get_unit_moves_left,
   ANIM_STEPS,
 } from '@/data/unit';
+import { store } from '@/data/store';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-const win = window as any;
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -77,11 +86,11 @@ describe('unit_list_without', () => {
 describe('move_points_text', () => {
   beforeEach(() => {
     // Default SINGLE_MOVE is 3 in most rulesets
-    win.SINGLE_MOVE = 3;
+    store.singleMove = 3;
   });
 
   afterEach(() => {
-    delete win.SINGLE_MOVE;
+    store.singleMove = undefined;
   });
 
   it('should display whole moves', () => {
@@ -108,11 +117,11 @@ describe('move_points_text', () => {
 
 describe('get_unit_moves_left', () => {
   beforeEach(() => {
-    win.SINGLE_MOVE = 3;
+    store.singleMove = 3;
   });
 
   afterEach(() => {
-    delete win.SINGLE_MOVE;
+    store.singleMove = undefined;
   });
 
   it('should return formatted moves string', () => {

@@ -9,6 +9,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { nativeToMapPos, mapToNativePos } from '@/data/map';
 import { move_points_text, get_unit_moves_left } from '@/data/unit';
 import { clientIsObserver } from '@/client/clientState';
+import { store } from '@/data/store';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const win = window as any;
@@ -50,25 +51,24 @@ describe('Pitfall #6: Return value property names must match Legacy', () => {
 
 describe('Pitfall #3: TS module variables vs window globals', () => {
   afterEach(() => {
-    delete win.SINGLE_MOVE;
+    store.singleMove = undefined;
   });
 
-  it('move_points_text should use window.SINGLE_MOVE, not module variable', () => {
-    // When SINGLE_MOVE is set on window (as Legacy packhand.js does),
-    // move_points_text should produce correct output
-    win.SINGLE_MOVE = 3; // Standard value from terrain_control.move_fragments
+  it('move_points_text should use store.singleMove', () => {
+    // SINGLE_MOVE is now read from store.singleMove (set by handle_ruleset_terrain_control)
+    store.singleMove = 3; // Standard value from terrain_control.move_fragments
     const result = move_points_text(3);
     expect(result).toBe('1');
   });
 
   it('move_points_text should handle fractional moves', () => {
-    win.SINGLE_MOVE = 3;
+    store.singleMove = 3;
     const result = move_points_text(5);
     expect(result).toBe('1 2/3');
   });
 
-  it('move_points_text should not return NaN when SINGLE_MOVE is set', () => {
-    win.SINGLE_MOVE = 3;
+  it('move_points_text should not return NaN when singleMove is set', () => {
+    store.singleMove = 3;
     const result = move_points_text(6);
     expect(result).not.toContain('NaN');
     expect(result).not.toContain('undefined');
@@ -76,36 +76,39 @@ describe('Pitfall #3: TS module variables vs window globals', () => {
   });
 
   it('move_points_text should handle zero moves', () => {
-    win.SINGLE_MOVE = 3;
+    store.singleMove = 3;
     const result = move_points_text(0);
     expect(result).toBe('0');
   });
 });
 
 describe('Pitfall #9: Optional chaining on uninitialized objects', () => {
+  const savedClient = store.client;
+  const savedObserving = store.observing;
+
   afterEach(() => {
-    delete win.client;
-    delete win.observing;
+    store.client = savedClient;
+    store.observing = savedObserving;
   });
 
   it('client_is_observer must return false when client is uninitialized', () => {
     // This is the root cause of the "map not centered" bug.
     // Legacy throws an error → caller catches → effectively false.
     // TS with ?. returns undefined == null → true (WRONG).
-    win.client = undefined;
-    win.observing = false;
+    (store as any).client = undefined;
+    store.observing = false;
     expect(clientIsObserver()).toBe(false);
   });
 
   it('client_is_observer must return false when client.conn is uninitialized', () => {
-    win.client = {};
-    win.observing = false;
+    store.client = {} as any;
+    store.observing = false;
     expect(clientIsObserver()).toBe(false);
   });
 
   it('client_is_observer must return true for actual observers', () => {
-    win.client = { conn: { playing: null, observer: false } };
-    win.observing = false;
+    store.client = { conn: { id: 0, playing: null, observer: false } };
+    store.observing = false;
     expect(clientIsObserver()).toBe(true);
   });
 });
@@ -125,17 +128,17 @@ describe('Pitfall #7: Module-local variables not accessible from TS', () => {
 
 describe('General: exposeToLegacy functions must not break Legacy behavior', () => {
   afterEach(() => {
-    delete win.SINGLE_MOVE;
+    store.singleMove = undefined;
   });
 
   it('get_unit_moves_left should return formatted string with moves', () => {
-    win.SINGLE_MOVE = 3;
+    store.singleMove = 3;
     const unit = { movesleft: 6 };
     expect(get_unit_moves_left(unit as any)).toBe('Moves:2');
   });
 
   it('get_unit_moves_left should handle unit with zero moves', () => {
-    win.SINGLE_MOVE = 3;
+    store.singleMove = 3;
     const unit = { movesleft: 0 };
     expect(get_unit_moves_left(unit as any)).toBe('Moves:0');
   });

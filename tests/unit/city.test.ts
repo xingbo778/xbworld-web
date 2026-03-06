@@ -47,6 +47,7 @@ import {
   FC_INFINITY,
 } from '@/data/fcTypes';
 import { universalBuildShieldCost } from '@/data/requirements';
+import { store } from '@/data/store';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const win = window as any;
@@ -141,14 +142,14 @@ describe('cityOwnerPlayerId', () => {
 
 describe('cityOwner', () => {
   beforeEach(() => {
-    win.players = {
+    (store as any).players = {
       0: { playerno: 0, name: 'Player0' },
       1: { playerno: 1, name: 'Player1' },
     };
   });
 
   afterEach(() => {
-    delete win.players;
+    (store as any).players = {};
   });
 
   it('should return the player object that owns the city', () => {
@@ -159,11 +160,14 @@ describe('cityOwner', () => {
 
 describe('cityTile', () => {
   beforeEach(() => {
-    win.index_to_tile = (idx: number) => ({ index: idx, x: idx % 10, y: Math.floor(idx / 10) });
+    // indexToTile reads from window.tiles via getTiles()
+    win.tiles = {
+      25: { index: 25, x: 5, y: 2 },
+    };
   });
 
   afterEach(() => {
-    delete win.index_to_tile;
+    delete win.tiles;
   });
 
   it('should return the tile for a city', () => {
@@ -221,13 +225,13 @@ describe('isPrimaryCapital', () => {
 
 describe('getCityProductionType', () => {
   beforeEach(() => {
-    win.unit_types = { 1: { id: 1, name: 'Warriors' }, 2: { id: 2, name: 'Phalanx' } };
-    win.improvements = { 10: { id: 10, name: 'Granary' }, 11: { id: 11, name: 'Library' } };
+    (store as any).unitTypes = { 1: { id: 1, name: 'Warriors' }, 2: { id: 2, name: 'Phalanx' } };
+    (store as any).improvements = { 10: { id: 10, name: 'Granary' }, 11: { id: 11, name: 'Library' } };
   });
 
   afterEach(() => {
-    delete win.unit_types;
-    delete win.improvements;
+    (store as any).unitTypes = {};
+    (store as any).improvements = {};
   });
 
   it('should return unit type when production_kind is VUT_UTYPE', () => {
@@ -251,13 +255,7 @@ describe('getCityProductionType', () => {
 });
 
 describe('cityTurnsToBuild', () => {
-  beforeEach(() => {
-    win.universal_build_shield_cost = (_city: any, target: any) => target.build_cost;
-  });
-
-  afterEach(() => {
-    delete win.universal_build_shield_cost;
-  });
+  // universalBuildShieldCost is imported directly and returns target.build_cost
 
   it('should return 1 when shield_stock >= cost', () => {
     const city = makeCity({ shield_stock: 50, surplus: [0, 5, 0, 0, 0, 0] });
@@ -294,18 +292,16 @@ describe('cityTurnsToBuild', () => {
 
 describe('getProductionProgress', () => {
   beforeEach(() => {
-    win.unit_types = { 1: { id: 1, name: 'Warriors', build_cost: 30 } };
-    win.improvements = {
+    (store as any).unitTypes = { 1: { id: 1, name: 'Warriors', build_cost: 30 } };
+    (store as any).improvements = {
       10: { id: 10, name: 'Granary', build_cost: 60 },
       11: { id: 11, name: 'Coinage', build_cost: 0 },
     };
-    win.universal_build_shield_cost = (_city: any, target: any) => target.build_cost;
   });
 
   afterEach(() => {
-    delete win.unit_types;
-    delete win.improvements;
-    delete win.universal_build_shield_cost;
+    (store as any).unitTypes = {};
+    (store as any).improvements = {};
   });
 
   it('should return "stock/cost" for unit production', () => {
@@ -387,11 +383,11 @@ describe('canCityBuildNow', () => {
 
 describe('cityHasBuilding', () => {
   beforeEach(() => {
-    win.ruleset_control = { num_impr_types: 50 };
+    (store as any).rulesControl = { num_impr_types: 50 };
   });
 
   afterEach(() => {
-    delete win.ruleset_control;
+    (store as any).rulesControl = null;
   });
 
   it('should return true when improvement is present', () => {
@@ -417,8 +413,8 @@ describe('cityHasBuilding', () => {
 
 describe('doesCityHaveImprovement', () => {
   beforeEach(() => {
-    win.ruleset_control = { num_impr_types: 3 };
-    win.improvements = {
+    (store as any).rulesControl = { num_impr_types: 3 };
+    (store as any).improvements = {
       0: { id: 0, name: 'Palace' },
       1: { id: 1, name: 'Granary' },
       2: { id: 2, name: 'Library' },
@@ -426,8 +422,8 @@ describe('doesCityHaveImprovement', () => {
   });
 
   afterEach(() => {
-    delete win.ruleset_control;
-    delete win.improvements;
+    (store as any).rulesControl = null;
+    (store as any).improvements = {};
   });
 
   it('should return true when city has the named improvement', () => {
@@ -447,13 +443,13 @@ describe('doesCityHaveImprovement', () => {
 
 describe('cityCanBuy', () => {
   beforeEach(() => {
-    win.improvements = { 10: { id: 10, name: 'Granary' }, 11: { id: 11, name: 'Coinage' } };
-    win.game_info = { turn: 5 };
+    (store as any).improvements = { 10: { id: 10, name: 'Granary' }, 11: { id: 11, name: 'Coinage' } };
+    store.gameInfo = { turn: 5 } as any;
   });
 
   afterEach(() => {
-    delete win.improvements;
-    delete win.game_info;
+    (store as any).improvements = {};
+    store.gameInfo = null;
   });
 
   it('should return true when city can buy', () => {

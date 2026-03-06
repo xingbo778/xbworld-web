@@ -6,7 +6,6 @@
  */
 
 import { store } from './store';
-import { action_prob_not_impl } from '../ui/actionDialogFormat';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -54,10 +53,16 @@ export function actionHasResult(paction: Action | null, result: number): boolean
 }
 
 /**
+ * Returns TRUE iff the action probability represents "not implemented".
+ * Moved here from ui/actionDialogFormat.ts to fix circular dependency.
+ */
+export function action_prob_not_impl(probability: ActionProb): boolean {
+  return probability.min === 254 && probability.max === 0;
+}
+
+/**
  * Returns true iff the given action probability belongs to an action that
  * may be possible.
- *
- * NOTE: action_prob_not_impl is defined in action_dialog.js (Legacy).
  */
 export function actionProbPossible(aprob: ActionProb): boolean {
   return 0 < aprob['max'] || action_prob_not_impl(aprob);

@@ -9,9 +9,9 @@ import {
   tileTerrain,
   isOceanTile,
 } from '@/data/terrain';
+import { store } from '@/data/store';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-const win = window as any;
 
 // ---------------------------------------------------------------------------
 // tileSetTerrain
@@ -37,7 +37,7 @@ describe('tileSetTerrain', () => {
 
 describe('tileTerrain', () => {
   beforeEach(() => {
-    win.terrains = {
+    (store as any).terrains = {
       0: { id: 0, name: 'Grassland', graphic_str: 'grassland' },
       1: { id: 1, name: 'Plains', graphic_str: 'plains' },
       2: { id: 2, name: 'Ocean', graphic_str: 'floor' },
@@ -46,7 +46,7 @@ describe('tileTerrain', () => {
   });
 
   afterEach(() => {
-    delete win.terrains;
+    (store as any).terrains = {};
   });
 
   it('should return terrain object for valid tile', () => {
@@ -62,7 +62,7 @@ describe('tileTerrain', () => {
   });
 
   it('should return undefined when terrains is not set', () => {
-    delete win.terrains;
+    (store as any).terrains = null;
     const tile = { terrain: 0 } as any;
     expect(tileTerrain(tile)).toBeUndefined();
   });
@@ -74,7 +74,7 @@ describe('tileTerrain', () => {
 
 describe('isOceanTile', () => {
   beforeEach(() => {
-    win.terrains = {
+    (store as any).terrains = {
       0: { id: 0, name: 'Grassland', graphic_str: 'grassland' },
       1: { id: 1, name: 'Plains', graphic_str: 'plains' },
       2: { id: 2, name: 'Ocean', graphic_str: 'floor' },
@@ -84,7 +84,7 @@ describe('isOceanTile', () => {
   });
 
   afterEach(() => {
-    delete win.terrains;
+    (store as any).terrains = {};
   });
 
   it('should return true for floor (deep ocean)', () => {
@@ -112,7 +112,7 @@ describe('isOceanTile', () => {
   });
 
   it('should return false when terrains is not set', () => {
-    delete win.terrains;
+    (store as any).terrains = null;
     const tile = { terrain: 0 } as any;
     expect(isOceanTile(tile)).toBe(false);
   });

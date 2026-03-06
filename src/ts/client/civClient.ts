@@ -210,16 +210,19 @@ export function switchRenderer(): void {
 // and set civclient_state > 0.
 // ---------------------------------------------------------------------------
 // Auto-init on DOMContentLoaded (replaces jQuery $(document).ready)
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
+// Skip in test environment to prevent side-effects during module import.
+if (!(globalThis as any).__VITEST__) {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      if (!store.civclientState) {
+        civClientInit();
+      }
+    });
+  } else {
+    // DOM already loaded (module scripts are deferred)
     if (!store.civclientState) {
       civClientInit();
     }
-  });
-} else {
-  // DOM already loaded (module scripts are deferred)
-  if (!store.civclientState) {
-    civClientInit();
   }
 }
 

@@ -10,9 +10,10 @@ import {
   getScoreText,
   colLove,
 } from '@/data/nation';
+import { store } from '@/data/store';
+import { PlayerFlag } from '@/data/player';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-const win = window as any;
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -99,19 +100,20 @@ describe('getScoreText', () => {
 
 describe('colLove', () => {
   beforeEach(() => {
-    win.client_is_observer = () => false;
-    win.client = {
+    // clientIsObserver reads store.observing and store.client.conn
+    store.observing = false;
+    // clientPlaying reads store.client.conn.playing
+    store.client = {
       conn: {
-        playing: { playerno: 0 },
+        id: 0,
+        playing: { playerno: 0 } as any,
       },
     };
-    win.PLRF_AI = 0;
   });
 
   afterEach(() => {
-    delete win.client_is_observer;
-    delete win.client;
-    delete win.PLRF_AI;
+    store.observing = false;
+    store.client = { conn: { id: 0, playing: null } };
   });
 
   it('should return "-" when player is the current player', () => {
@@ -124,7 +126,7 @@ describe('colLove', () => {
   });
 
   it('should return "-" when client is observer', () => {
-    win.client_is_observer = () => true;
+    store.observing = true;
     const pplayer = {
       playerno: 1,
       flags: { isSet: () => true },
@@ -145,7 +147,7 @@ describe('colLove', () => {
   it('should return love text for AI player', () => {
     const pplayer = {
       playerno: 1,
-      flags: { isSet: (flag: number) => flag === 0 },
+      flags: { isSet: (flag: number) => flag === PlayerFlag.PLRF_AI },
       love: { 0: 500 },
     };
     expect(colLove(pplayer)).toBe('Helpful');
@@ -154,7 +156,7 @@ describe('colLove', () => {
   it('should return "Genocidal" for AI with very low love', () => {
     const pplayer = {
       playerno: 1,
-      flags: { isSet: (flag: number) => flag === 0 },
+      flags: { isSet: (flag: number) => flag === PlayerFlag.PLRF_AI },
       love: { 0: -950 },
     };
     expect(colLove(pplayer)).toBe('Genocidal');

@@ -85,6 +85,10 @@ function setHtml(id: string, html: string): void { const el = byId(id); if (el) 
 // Register update_city_screen with the lazy proxy in cityDialogState
 set_city_screen_updater_fn(update_city_screen);
 
+// Subscribe to events from data layer (replaces direct import of updaters in city.ts)
+import { globalEvents } from '../core/events';
+globalEvents.on('city:screenUpdate', () => city_screen_updater?.update());
+
 /**************************************************************************
  ...
 **************************************************************************/

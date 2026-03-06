@@ -98,6 +98,10 @@ export const bulbs_output_updater: any = new EventAggregator(update_bulbs_output
                                                EventAggregator.DP_NONE,
                                                250, 3, 250);
 
+// Subscribe to events from data layer (replaces direct import in city.ts)
+import { globalEvents } from '../core/events';
+globalEvents.on('tech:bulbsUpdate', () => bulbs_output_updater?.update());
+
 /**************************************************************************
   Returns state of the tech for current pplayer.
   This can be: TECH_KNOWN, TECH_UNKNOWN, or TECH_PREREQS_KNOWN

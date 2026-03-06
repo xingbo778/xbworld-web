@@ -243,8 +243,8 @@ describe('GameDialog', () => {
 });
 
 describe('exposeGameDialog', () => {
-  it('should expose GameDialog to window', () => {
+  it('should be a no-op (all consumers use ES imports)', () => {
     exposeGameDialog();
-    expect((window as any).GameDialog).toBe(GameDialog);
+    expect((window as any).GameDialog).toBeUndefined();
   });
 });
