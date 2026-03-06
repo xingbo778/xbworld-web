@@ -2,10 +2,8 @@
  * Server/connection handlers — join, auth, conn_info, settings, etc.
  */
 import { store } from '../../data/store';
-import { packet_client_info, packet_conn_pong } from '../packetConstants';
-import { send_request } from '../connection';
+import { sendClientInfo, sendConnPong } from '../commands';
 import { swal } from '../../components/Dialogs/SwalDialog';
-import { GUI_WEB } from '../../data/fcTypes';
 import { C_S_PREPARING, clientPlaying } from '../../client/clientState';
 import { setClientState as set_client_state } from '../../client/clientMain';
 import { requestObserveGame } from '../../client/clientCore';
@@ -40,13 +38,7 @@ export function handle_server_join_reply(packet: any): void {
       set_client_page(PAGE_START);
     }
 
-    const client_info = {
-      'pid': packet_client_info,
-      'gui': GUI_WEB,
-      'emerg_version': 0,
-      'distribution': ''
-    };
-    send_request(JSON.stringify(client_info));
+    sendClientInfo();
     set_client_state(C_S_PREPARING);
 
     const urlParams = new URLSearchParams(window.location.search);
@@ -105,8 +97,7 @@ export function handle_conn_info(packet: any): void {
 
 export function handle_conn_ping(packet: any): void {
   (window as any).ping_last = new Date().getTime();
-  const pong_packet = { 'pid': packet_conn_pong };
-  send_request(JSON.stringify(pong_packet));
+  sendConnPong();
 }
 
 export function handle_authentication_req(packet: any): void {

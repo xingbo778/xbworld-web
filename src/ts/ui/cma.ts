@@ -21,12 +21,9 @@ declare const $: any;
 import { active_city } from './cityDialog';
 import { clientIsObserver as client_is_observer, clientPlaying } from '../client/clientState';
 import { cityOwnerPlayerId as city_owner_player_id } from '../data/city';
-import { packet_web_cma_clear } from '../net/packetConstants';
 
-import { send_request } from '../net/connection';
+import { sendCmaSet, sendCmaClear } from '../net/commands';
 import { store } from '../data/store';
-// packet_web_cma_set may not be defined in packetConstants; define locally
-const packet_web_cma_set = 257;
 
 // Governor Clipboard for copy/paste:
 export let _cma_val_sliders: number[] = [1,0,0,0,0,0];
@@ -119,14 +116,9 @@ export function request_new_cma(city_id: any): void {
                    && !$("#cma_gold").prop('checked') && !$("#cma_luxury").prop('checked') && !$("#cma_science").prop('checked') );
 
   if (!cma_disabled) {
-    const packet = {"pid" : packet_web_cma_set,
-                  "id" : city_id,
-                  "cm_parameter" : cm_parameter };
-    send_request(JSON.stringify(packet));
+    sendCmaSet(city_id, cm_parameter);
   } else {
-    const packet = {"pid" : packet_web_cma_clear,
-                  "id" : city_id};
-    send_request(JSON.stringify(packet));
+    sendCmaClear(city_id);
   }
 }
 

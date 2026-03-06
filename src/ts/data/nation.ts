@@ -25,10 +25,10 @@ import { isLongturn } from '../client/clientCore';
 import { setDefaultMapviewActive } from '../client/clientMain';
 import { is_small_screen } from '../renderer/mapview';
 import { center_tile_mapcanvas } from '../core/control/mapClick';
-import { send_request, send_message } from '../net/connection';
+import { send_message } from '../net/connection';
+import { sendDiplomacyCancelPact, sendDiplomacyInitMeeting, sendChatMessage } from '../net/commands';
 import { encode_message_text } from '../core/control/chat';
 import { keyboard_input, setKeyboardInput } from '../core/control/controlState';
-import { packet_chat_msg_req, packet_diplomacy_init_meeting_req, packet_diplomacy_cancel_pact } from '../net/packetConstants';
 import { CLAUSE_VISION, diplomacy_cancel_treaty } from '../ui/diplomacy';
 import { mapview } from '../renderer/mapviewCommon';
 import { getUrlVar } from '../utils/helpers';
@@ -546,12 +546,7 @@ export function cancelTreatyClicked(): void {
 /** Handles the "Withdraw Vision" button click. */
 export function withdrawVisionClicked(): void {
   if (getSelectedPlayer() === -1) return;
-  const packet = {
-    pid: packet_diplomacy_cancel_pact,
-    other_player_id: getSelectedPlayer(),
-    clause: CLAUSE_VISION,
-  };
-  send_request(JSON.stringify(packet));
+  sendDiplomacyCancelPact(getSelectedPlayer(), CLAUSE_VISION);
   setDefaultMapviewActive();
 }
 
@@ -560,11 +555,7 @@ export function nationMeetClicked(): void {
   if (getSelectedPlayer() === -1) return;
   const pplayer: any = store.players[getSelectedPlayer()];
   if (pplayer == null) return;
-  const packet = {
-    pid: packet_diplomacy_init_meeting_req,
-    counterpart: pplayer['playerno'],
-  };
-  send_request(JSON.stringify(packet));
+  sendDiplomacyInitMeeting(pplayer['playerno']);
   setDefaultMapviewActive();
 }
 
@@ -627,8 +618,7 @@ export function sendPrivateMessage(other_player_name: string): void {
   const inputEl = document.getElementById('private_message_text') as HTMLInputElement | null;
   const message =
     other_player_name + ': ' + encode_message_text(inputEl ? inputEl.value : '');
-  const packet = { pid: packet_chat_msg_req, message };
-  send_request(JSON.stringify(packet));
+  sendChatMessage(message);
   setKeyboardInput(true);
   const _$ = (window as any).$;
   if (_$) _$('#dialog').dialog('close');

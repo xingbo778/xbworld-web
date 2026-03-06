@@ -21,8 +21,7 @@ declare const $: any;
 
 import { store } from '../data/store';
 import { canPlayerGetGov as can_player_get_gov } from "../data/government";
-import { send_request } from "../net/connection";
-import { packet_player_change_government, packet_report_req } from "../net/packetConstants";
+import { sendPlayerChangeGovernment, sendReportReq } from "../net/commands";
 import { clientIsObserver as client_is_observer, clientPlaying } from "../client/clientState";
 import { isSmallScreen as is_small_screen } from "../utils/helpers";
 
@@ -138,13 +137,11 @@ export function set_req_government(gov_id: number): void {
 }
 
 export function send_player_change_government(govt_id: number): void {
-  const packet: any = { "pid": packet_player_change_government, "government": govt_id };
-  send_request(JSON.stringify(packet));
+  sendPlayerChangeGovernment(govt_id);
 }
 
 export function request_report(rtype: number): void {
-  const packet: any = { "pid": packet_report_req, "type": rtype };
-  send_request(JSON.stringify(packet));
+  sendReportReq(rtype);
 }
 
 function get_tileset_file_extention(): string {

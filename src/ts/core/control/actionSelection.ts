@@ -9,8 +9,7 @@ import { EXTRA_NONE } from '../../data/extra';
 import { IDENTITY_NUMBER_ZERO } from '../../core/constants';
 import { UnitSSDataType } from '../../data/unit';
 import { indexToTile as index_to_tile } from '../../data/map';
-import { send_request } from '../../net/connection';
-import { packet_unit_get_actions, packet_unit_sscs_set } from '../../net/packetConstants';
+import { sendUnitGetActions, sendUnitSscsSet } from '../../net/commands';
 import { game_find_unit_by_number } from '../../data/game';
 import { canClientIssueOrders as can_client_issue_orders } from '../../client/clientState';
 import { popup_actor_arrival } from '../../ui/options';
@@ -25,8 +24,6 @@ const FC_IDENTITY_NUMBER_ZERO = IDENTITY_NUMBER_ZERO;
 const FC_EXTRA_NONE = EXTRA_NONE;
 const USSDT_UNQUEUE = UnitSSDataType.UNQUEUE;
 const REQEST_PLAYER_INITIATED = 0;
-
-type packet_type_t = Record<string, any>;
 
 
 // ---------------------------------------------------------------------------
@@ -58,15 +55,13 @@ export function ask_server_for_actions(punit: any): boolean {
   const ptile = index_to_tile(punit['action_decision_tile']);
 
   if (ptile != null) {
-    const packet: packet_type_t = {
-      "pid": packet_unit_get_actions,
-      "actor_unit_id": punit['id'],
-      "target_unit_id": FC_IDENTITY_NUMBER_ZERO,
-      "target_tile_id": punit['action_decision_tile'],
-      "target_extra_id": FC_EXTRA_NONE,
-      "request_kind": REQEST_PLAYER_INITIATED,
-    };
-    send_request(JSON.stringify(packet));
+    sendUnitGetActions(
+      punit['id'],
+      FC_IDENTITY_NUMBER_ZERO,
+      punit['action_decision_tile'],
+      FC_EXTRA_NONE,
+      REQEST_PLAYER_INITIATED
+    );
   }
   return true;
 }
@@ -87,13 +82,7 @@ export function action_decision_clear_want(old_actor_id: number): void {
   const old = game_find_unit_by_number(old_actor_id);
 
   if (old != null && old['action_decision_want'] !== FC_ACT_DEC_NOTHING) {
-    const unqueue: packet_type_t = {
-      "pid": packet_unit_sscs_set,
-      "unit_id": old_actor_id,
-      "type": USSDT_UNQUEUE,
-      "value": FC_IDENTITY_NUMBER_ZERO
-    };
-    send_request(JSON.stringify(unqueue));
+    sendUnitSscsSet(old_actor_id, USSDT_UNQUEUE, FC_IDENTITY_NUMBER_ZERO);
   }
 }
 

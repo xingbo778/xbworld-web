@@ -2,8 +2,7 @@
  * Unit packet handlers.
  */
 import { store } from '../../data/store';
-import { packet_unit_get_actions } from '../packetConstants';
-import { send_request } from '../connection';
+import { sendUnitGetActions } from '../commands';
 import {
   ACTION_ATTACK, ACTION_SUICIDE_ATTACK,
   ACTION_NUKE_UNITS, ACTION_NUKE_CITY, ACTION_NUKE,
@@ -95,15 +94,11 @@ export function action_decision_handle(punit: any): void {
   for (let a = 0; a < auto_attack_actions.length; a++) {
     const action = auto_attack_actions[a];
     if (utype_can_do_action(unit_type(punit), action) && (window as any).auto_attack) {
-      const packet = {
-        'pid':             packet_unit_get_actions,
-        'actor_unit_id':   punit['id'],
-        'target_unit_id':  IDENTITY_NUMBER_ZERO,
-        'target_tile_id':  punit['action_decision_tile'],
-        'target_extra_id': EXTRA_NONE,
-        'request_kind':    REQEST_BACKGROUND_FAST_AUTO_ATTACK,
-      };
-      send_request(JSON.stringify(packet));
+      sendUnitGetActions(
+        punit['id'], IDENTITY_NUMBER_ZERO,
+        punit['action_decision_tile'], EXTRA_NONE,
+        REQEST_BACKGROUND_FAST_AUTO_ATTACK
+      );
       return;
     }
   }

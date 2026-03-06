@@ -13,8 +13,7 @@ import { actionByNumber as action_by_number, actionHasResult as action_has_resul
 import { utype_can_do_action } from '../../data/unittype';
 import { ACTIVITY_IDLE, ACTIVITY_LAST, ACTRES_PARADROP, ACTRES_PARADROP_CONQUER, ACTION_AIRLIFT } from '../../data/fcTypes';
 import { ACTION_COUNT, RENDERER_2DCANVAS } from '../../core/constants';
-import { send_request } from '../../net/connection';
-import { packet_unit_orders, packet_unit_sscs_set, packet_web_goto_path_req, packet_web_info_text_req } from '../../net/packetConstants';
+import { sendUnitSscsSet, sendUnitOrders, sendPlayerPhaseDone, sendGotoPathReq, sendInfoTextReq } from '../../net/commands';
 import { isTouchDevice as is_touch_device } from '../../utils/helpers';
 import { clientIsObserver as client_is_observer, clientPlaying } from '../../client/clientState';
 import { message_log } from '../../core/messages';
@@ -34,8 +33,6 @@ const ORDER_LAST = Order.LAST;
 const ORDER_MOVE = Order.MOVE;
 const ORDER_ACTION_MOVE = Order.ACTION_MOVE;
 const ORDER_FULL_MP = Order.FULL_MP;
-
-type packet_type_t = Record<string, any>;
 
 
 // ---------------------------------------------------------------------------
@@ -88,13 +85,7 @@ export function do_unit_paradrop_to(punit: any, ptile: any): void {
       if (paradrop_action == null) {
         paradrop_action = paction;
       } else {
-        const packet: packet_type_t = {
-          "pid": packet_unit_sscs_set,
-          "unit_id": punit['id'],
-          "type": USSDT_QUEUE,
-          "value": ptile['index']
-        };
-        send_request(JSON.stringify(packet));
+        sendUnitSscsSet(punit['id'], USSDT_QUEUE, ptile['index']);
         return;
       }
     }
@@ -138,7 +129,6 @@ export function do_map_click(ptile: any, qtype: any, first_time_called: boolean)
         const old_tile = index_to_tile(punit['tile']);
 
         packet = {
-          "pid": packet_unit_orders,
           "unit_id": punit['id'],
           "src_tile": old_tile['index'],
           "length": goto_path['length'],
@@ -208,7 +198,7 @@ export function do_map_click(ptile: any, qtype: any, first_time_called: boolean)
             + goto_path['unit_id']);
           return;
         }
-        send_request(JSON.stringify(packet));
+        sendUnitOrders(packet);
         if (punit['movesleft'] > 0) {
           unit_move_sound_play(punit);
         } else if (!S.has_movesleft_warning_been_shown) {
@@ -379,12 +369,10 @@ export function deactivate_goto(will_advance_unit_focus: boolean) {
 export function send_end_turn() {
   if (store.gameInfo == null) return;
 
-  const packet_player_phase_done = (window as any).packet_player_phase_done;
   const turnDoneBtn = document.getElementById("turn_done_button") as HTMLButtonElement | null;
   if (turnDoneBtn) turnDoneBtn.disabled = true;
 
-  const packet = { "pid": packet_player_phase_done, "turn": store.gameInfo['turn'] };
-  send_request(JSON.stringify(packet));
+  sendPlayerPhaseDone(store.gameInfo['turn']);
   const update_turn_change_timer = (window as any).update_turn_change_timer;
   if (update_turn_change_timer) update_turn_change_timer();
 
@@ -402,11 +390,7 @@ export function request_goto_path(unit_id: number, dst_x: number, dst_y: number)
   if (S.goto_request_map[unit_id + "," + dst_x + "," + dst_y] == null) {
     S.goto_request_map[unit_id + "," + dst_x + "," + dst_y] = true;
 
-    const packet = {
-      "pid": packet_web_goto_path_req, "unit_id": unit_id,
-      "goal": map_pos_to_tile(dst_x, dst_y)['index']
-    };
-    send_request(JSON.stringify(packet));
+    sendGotoPathReq(unit_id, map_pos_to_tile(dst_x, dst_y)['index']);
     S.setCurrentGotoTurns(null as any);
     const unitTextDetails = document.getElementById("unit_text_details");
     if (unitTextDetails) unitTextDetails.innerHTML = "Choose unit goto";
@@ -496,11 +480,7 @@ export function popit_req(ptile: any) {
     focus_unit_id = S.current_focus[0]['id'];
   }
 
-  const packet = {
-    "pid": packet_web_info_text_req, "visible_unit": punit_id,
-    "loc": ptile['index'], "focus_unit": focus_unit_id
-  };
-  send_request(JSON.stringify(packet));
+  sendInfoTextReq(punit_id, ptile['index'], focus_unit_id);
 }
 
 export function center_on_any_city() {

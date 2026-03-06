@@ -1197,7 +1197,6 @@ const ACT_DEC_ACTIVE = 2;
 const VUT_ADVANCE = 4;
 const VUT_IMPROVEMENT = 20;
 const VUT_UTYPE = 61;
-const GUI_WEB = 8;
 const O_FOOD$1 = 0;
 const O_SHIELD$1 = 1;
 const O_TRADE = 2;
@@ -2839,6 +2838,7 @@ const packet_city_change_specialist = 39;
 const packet_city_rename = 40;
 const packet_city_options_req = 41;
 const packet_city_name_suggestion_req = 43;
+const packet_player_phase_done = 52;
 const packet_player_research = 55;
 const packet_player_tech_goal = 56;
 const packet_player_rates = 53;
@@ -4103,27 +4103,14 @@ function request_unit_act_sel_vs(ptile) {
   const funits = get_units_in_focus();
   for (let i2 = 0; i2 < funits.length; i2++) {
     const punit = funits[i2];
-    const packet = {
-      "pid": packet_unit_sscs_set,
-      "unit_id": punit["id"],
-      "type": UnitSSDataType.QUEUE,
-      "value": ptile["index"]
-    };
-    send_request(JSON.stringify(packet));
+    sendUnitSscsSet(punit["id"], UnitSSDataType.QUEUE, ptile["index"]);
   }
 }
 function request_unit_act_sel_vs_own_tile() {
   const funits = get_units_in_focus();
   for (let i2 = 0; i2 < funits.length; i2++) {
     const punit = funits[i2];
-    const packet = {
-      "pid": packet_unit_sscs_set,
-      "unit_id": punit["id"],
-      "type": 0,
-      // UnitSSDataType.QUEUE
-      "value": punit["tile"]
-    };
-    send_request(JSON.stringify(packet));
+    sendUnitSscsSet(punit["id"], 0, punit["tile"]);
   }
 }
 function key_unit_auto_work() {
@@ -4139,38 +4126,25 @@ function request_unit_cancel_orders(punit) {
   if (punit != null && (punit.ssa_controller != SSA_NONE$1 || punit.has_orders)) {
     punit.ssa_controller = SSA_NONE$1;
     punit.has_orders = false;
-    const packet = {
-      pid: packet_unit_orders,
+    sendUnitOrders({
       unit_id: punit.id,
       src_tile: punit.tile,
       length: 0,
       repeat: false,
       vigilant: false,
-      dest_tile: punit.tile
-    };
-    packet.orders = [];
-    send_request(JSON.stringify(packet));
+      dest_tile: punit.tile,
+      orders: []
+    });
   }
 }
 function request_new_unit_activity(punit, activity, target) {
   request_unit_cancel_orders(punit);
   action_decision_clear_want(punit["id"]);
-  const packet = {
-    "pid": packet_unit_change_activity,
-    "unit_id": punit["id"],
-    "activity": activity,
-    "target": target
-  };
-  send_request(JSON.stringify(packet));
+  sendUnitChangeActivity(punit["id"], activity, target);
 }
 function request_unit_ssa_set(punit, agent) {
   if (punit != null) {
-    const packet = {
-      "pid": packet_unit_server_side_agent_set,
-      "unit_id": punit["id"],
-      "agent": agent
-    };
-    send_request(JSON.stringify(packet));
+    sendUnitServerSideAgentSet(punit["id"], agent);
   }
 }
 function request_unit_autoworkers(punit) {
@@ -4194,30 +4168,18 @@ function request_unit_build_city() {
       }
       const ptype = unit_type(punit);
       if (ptype != null && (ptype["name"] == "Settlers" || ptype["name"] == "Engineers")) {
-        let packet = null;
         const target_city = tileCity(indexToTile(punit["tile"]));
         if (target_city == null) {
-          packet = {
-            "pid": packet_city_name_suggestion_req,
-            "unit_id": punit["id"]
-          };
+          sendCityNameSuggestionReq(punit["id"]);
         } else {
           request_unit_do_action(ACTION_JOIN_CITY, punit.id, target_city.id);
         }
-        send_request(JSON.stringify(packet));
       }
     }
   }
 }
 function request_unit_do_action(action_id, actor_id, target_id, sub_tgt_id = 0, name = "") {
-  send_request(JSON.stringify({
-    pid: packet_unit_do_action,
-    action_type: action_id,
-    actor_id,
-    target_id,
-    sub_tgt_id: sub_tgt_id || 0,
-    name: name || ""
-  }));
+  sendUnitDoAction(action_id, actor_id, target_id, sub_tgt_id || 0, name || "");
   action_decision_clear_want(actor_id);
 }
 function key_unit_disband() {
@@ -4274,17 +4236,15 @@ function key_unit_move(dir) {
     }) && (tileCity(newtile) == null || tileCity(newtile)["owner"] == clientPlaying()?.playerno) && !tileHasExtra(newtile, EXTRA_HUT) && (newtile["extras_owner"] == clientPlaying().playerno || !tileHasTerritoryClaimingExtra(newtile))) {
       order["order"] = ORDER_MOVE$1;
     }
-    const packet = {
-      "pid": packet_unit_orders,
-      "unit_id": punit["id"],
-      "src_tile": ptile["index"],
-      "length": 1,
-      "repeat": false,
-      "vigilant": false,
-      "orders": [order],
-      "dest_tile": newtile["index"]
-    };
-    send_request(JSON.stringify(packet));
+    sendUnitOrders({
+      unit_id: punit["id"],
+      src_tile: ptile["index"],
+      length: 1,
+      repeat: false,
+      vigilant: false,
+      orders: [order],
+      dest_tile: newtile["index"]
+    });
     unit_move_sound_play(punit);
   }
   deactivate_goto(true);
@@ -4529,13 +4489,7 @@ function update_sci_rates() {
 }
 function submit_player_rates() {
   if (tax >= 0 && tax <= 100 && lux >= 0 && lux <= 100 && sci >= 0 && sci <= 100) {
-    const packet = {
-      "pid": packet_player_rates,
-      "tax": tax,
-      "luxury": lux,
-      "science": sci
-    };
-    send_request(JSON.stringify(packet));
+    sendPlayerRates(tax, lux, sci);
   } else {
     swal("Invalid tax rate values");
   }
@@ -4952,13 +4906,11 @@ function scroll_tech_tree() {
   $("#technologies").scrollLeft(maxleft);
 }
 function send_player_research(tech_id) {
-  const packet = { "pid": packet_player_research, "tech": tech_id };
-  send_request(JSON.stringify(packet));
+  sendPlayerResearch(tech_id);
   $("#tech_dialog").dialog("close");
 }
 function send_player_tech_goal(tech_id) {
-  const packet = { "pid": packet_player_tech_goal, "tech": tech_id };
-  send_request(JSON.stringify(packet));
+  sendPlayerTechGoal(tech_id);
 }
 function tech_mapview_mouse_click(e2) {
   let rightclick;
@@ -6316,13 +6268,7 @@ function handle_server_join_reply(packet) {
     if (get_client_page() === PAGE_MAIN || get_client_page() === PAGE_NETWORK) {
       set_client_page(PAGE_START);
     }
-    const client_info = {
-      "pid": packet_client_info,
-      "gui": GUI_WEB,
-      "emerg_version": 0,
-      "distribution": ""
-    };
-    send_request(JSON.stringify(client_info));
+    sendClientInfo();
     setClientState(C_S_PREPARING);
     const urlParams = new URLSearchParams(window.location.search);
     const urlAction = urlParams.get("action");
@@ -6373,8 +6319,7 @@ function handle_conn_info(packet) {
 }
 function handle_conn_ping(packet) {
   window.ping_last = (/* @__PURE__ */ new Date()).getTime();
-  const pong_packet = { "pid": packet_conn_pong };
-  send_request(JSON.stringify(pong_packet));
+  sendConnPong();
 }
 function handle_authentication_req(packet) {
   showAuthDialog(packet);
@@ -7305,15 +7250,13 @@ function handle_player_diplstate(packet) {
     let tgt_unit;
     let tgt_city;
     if (action_selection_target_unit() !== IDENTITY_NUMBER_ZERO && (tgt_unit = game_find_unit_by_number(action_selection_target_unit())) && tgt_unit["owner"] === packet["plr1"] || action_selection_target_city() !== IDENTITY_NUMBER_ZERO && (tgt_city = game_find_city_by_number(action_selection_target_city())) && tgt_city["owner"] === packet["plr1"] || (tgt_tile = indexToTile(action_selection_target_tile())) && tileOwner(tgt_tile) === packet["plr1"]) {
-      const refresh_packet = {
-        "pid": packet_unit_get_actions,
-        "actor_unit_id": action_selection_actor_unit(),
-        "target_unit_id": action_selection_target_unit(),
-        "target_tile_id": action_selection_target_tile(),
-        "target_extra_id": action_selection_target_extra(),
-        "request_kind": REQEST_BACKGROUND_REFRESH$1
-      };
-      send_request(JSON.stringify(refresh_packet));
+      sendUnitGetActions(
+        action_selection_actor_unit(),
+        action_selection_target_unit(),
+        action_selection_target_tile(),
+        action_selection_target_extra(),
+        REQEST_BACKGROUND_REFRESH$1
+      );
     }
   }
 }
@@ -7364,15 +7307,13 @@ function action_decision_handle(punit) {
   for (let a2 = 0; a2 < auto_attack_actions.length; a2++) {
     const action = auto_attack_actions[a2];
     if (utype_can_do_action$1(unit_type(punit), action) && window.auto_attack) {
-      const packet = {
-        "pid": packet_unit_get_actions,
-        "actor_unit_id": punit["id"],
-        "target_unit_id": IDENTITY_NUMBER_ZERO,
-        "target_tile_id": punit["action_decision_tile"],
-        "target_extra_id": EXTRA_NONE$1,
-        "request_kind": REQEST_BACKGROUND_FAST_AUTO_ATTACK
-      };
-      send_request(JSON.stringify(packet));
+      sendUnitGetActions(
+        punit["id"],
+        IDENTITY_NUMBER_ZERO,
+        punit["action_decision_tile"],
+        EXTRA_NONE$1,
+        REQEST_BACKGROUND_FAST_AUTO_ATTACK
+      );
       return;
     }
   }
@@ -8453,13 +8394,7 @@ function do_unit_paradrop_to(punit, ptile) {
       if (paradrop_action == null) {
         paradrop_action = paction;
       } else {
-        const packet = {
-          "pid": packet_unit_sscs_set,
-          "unit_id": punit["id"],
-          "type": USSDT_QUEUE,
-          "value": ptile["index"]
-        };
-        send_request(JSON.stringify(packet));
+        sendUnitSscsSet(punit["id"], USSDT_QUEUE, ptile["index"]);
         return;
       }
     }
@@ -8500,7 +8435,6 @@ function do_map_click(ptile, qtype, first_time_called) {
         }
         const old_tile = indexToTile(punit["tile"]);
         packet = {
-          "pid": packet_unit_orders,
           "unit_id": punit["id"],
           "src_tile": old_tile["index"],
           "length": goto_path["length"],
@@ -8561,7 +8495,7 @@ function do_map_click(ptile, qtype, first_time_called) {
           console.log("Error: Tried to order unit " + punit["id"] + " to move along a path made for unit " + goto_path["unit_id"]);
           return;
         }
-        send_request(JSON.stringify(packet));
+        sendUnitOrders(packet);
         if (punit["movesleft"] > 0) {
           unit_move_sound_play(punit);
         } else if (!has_movesleft_warning_been_shown) {
@@ -8708,11 +8642,9 @@ function deactivate_goto(will_advance_unit_focus) {
 }
 function send_end_turn() {
   if (store.gameInfo == null) return;
-  const packet_player_phase_done = window.packet_player_phase_done;
   const turnDoneBtn = document.getElementById("turn_done_button");
   if (turnDoneBtn) turnDoneBtn.disabled = true;
-  const packet = { "pid": packet_player_phase_done, "turn": store.gameInfo["turn"] };
-  send_request(JSON.stringify(packet));
+  sendPlayerPhaseDone(store.gameInfo["turn"]);
   const update_turn_change_timer = window.update_turn_change_timer;
   if (update_turn_change_timer) update_turn_change_timer();
   const is_longturn2 = window.is_longturn;
@@ -8726,12 +8658,7 @@ function send_end_turn() {
 function request_goto_path(unit_id, dst_x, dst_y) {
   if (goto_request_map[unit_id + "," + dst_x + "," + dst_y] == null) {
     goto_request_map[unit_id + "," + dst_x + "," + dst_y] = true;
-    const packet = {
-      "pid": packet_web_goto_path_req,
-      "unit_id": unit_id,
-      "goal": mapPosToTile(dst_x, dst_y)["index"]
-    };
-    send_request(JSON.stringify(packet));
+    sendGotoPathReq(unit_id, mapPosToTile(dst_x, dst_y)["index"]);
     setCurrentGotoTurns(null);
     const unitTextDetails = document.getElementById("unit_text_details");
     if (unitTextDetails) unitTextDetails.innerHTML = "Choose unit goto";
@@ -8801,13 +8728,7 @@ function popit_req(ptile) {
   if (current_focus$1.length > 0) {
     focus_unit_id = current_focus$1[0]["id"];
   }
-  const packet = {
-    "pid": packet_web_info_text_req,
-    "visible_unit": punit_id,
-    "loc": ptile["index"],
-    "focus_unit": focus_unit_id
-  };
-  send_request(JSON.stringify(packet));
+  sendInfoTextReq(punit_id, ptile["index"], focus_unit_id);
 }
 function center_on_any_city() {
   for (const city_id in store.cities) {
@@ -9120,23 +9041,14 @@ function cancelTreatyClicked() {
 }
 function withdrawVisionClicked() {
   if (getSelectedPlayer() === -1) return;
-  const packet = {
-    pid: packet_diplomacy_cancel_pact,
-    other_player_id: getSelectedPlayer(),
-    clause: CLAUSE_VISION
-  };
-  send_request(JSON.stringify(packet));
+  sendDiplomacyCancelPact(getSelectedPlayer(), CLAUSE_VISION);
   setDefaultMapviewActive();
 }
 function nationMeetClicked() {
   if (getSelectedPlayer() === -1) return;
   const pplayer = store.players[getSelectedPlayer()];
   if (pplayer == null) return;
-  const packet = {
-    pid: packet_diplomacy_init_meeting_req,
-    counterpart: pplayer["playerno"]
-  };
-  send_request(JSON.stringify(packet));
+  sendDiplomacyInitMeeting(pplayer["playerno"]);
   setDefaultMapviewActive();
 }
 function takePlayerClicked() {
@@ -9173,8 +9085,7 @@ function centerOnPlayer() {
 function sendPrivateMessage(other_player_name) {
   const inputEl = document.getElementById("private_message_text");
   const message = other_player_name + ": " + encode_message_text(inputEl ? inputEl.value : "");
-  const packet = { pid: packet_chat_msg_req, message };
-  send_request(JSON.stringify(packet));
+  sendChatMessage(message);
   setKeyboardInput(true);
   const _$22 = window.$;
   if (_$22) _$22("#dialog").dialog("close");
@@ -12695,8 +12606,8 @@ function send_message_delayed(message, delay) {
   }, delay);
 }
 function send_message(message) {
-  const packet = { pid: packet_chat_msg_req, message };
-  send_request(JSON.stringify(packet));
+  const { sendChatMessage: sendChatMessage2 } = require("./commands");
+  sendChatMessage2(message);
 }
 Object.defineProperty(win$3, "ws", {
   get: () => ws,
@@ -12732,6 +12643,90 @@ const connection = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.definePr
   send_request,
   websocket_init
 }, Symbol.toStringTag, { value: "Module" }));
+function send(packet) {
+  send_request(JSON.stringify(packet));
+}
+function sendChatMessage(message) {
+  send({ pid: packet_chat_msg_req, message });
+}
+function sendCityNameSuggestionReq(unitId) {
+  send({ pid: packet_city_name_suggestion_req, unit_id: unitId });
+}
+function sendPlayerPhaseDone(turn) {
+  send({ pid: packet_player_phase_done, turn });
+}
+function sendPlayerResearch(techId) {
+  send({ pid: packet_player_research, tech: techId });
+}
+function sendPlayerTechGoal(techId) {
+  send({ pid: packet_player_tech_goal, tech: techId });
+}
+function sendPlayerRates(tax2, luxury, science) {
+  send({ pid: packet_player_rates, tax: tax2, luxury, science });
+}
+function sendUnitSscsSet(unitId, type, value) {
+  send({ pid: packet_unit_sscs_set, unit_id: unitId, type, value });
+}
+function sendUnitOrders(packet) {
+  send({ pid: packet_unit_orders, ...packet });
+}
+function sendUnitServerSideAgentSet(unitId, agent) {
+  send({ pid: packet_unit_server_side_agent_set, unit_id: unitId, agent });
+}
+function sendUnitDoAction(actionId, actorId, targetId, subTgtId = 0, name = "") {
+  send({
+    pid: packet_unit_do_action,
+    action_type: actionId,
+    actor_id: actorId,
+    target_id: targetId,
+    sub_tgt_id: subTgtId,
+    name
+  });
+}
+function sendUnitGetActions(actorUnitId, targetUnitId, targetTileId, targetExtraId, requestKind) {
+  send({
+    pid: packet_unit_get_actions,
+    actor_unit_id: actorUnitId,
+    target_unit_id: targetUnitId,
+    target_tile_id: targetTileId,
+    target_extra_id: targetExtraId,
+    request_kind: requestKind
+  });
+}
+function sendUnitChangeActivity(unitId, activity, target) {
+  send({ pid: packet_unit_change_activity, unit_id: unitId, activity, target });
+}
+function sendDiplomacyInitMeeting(counterpart) {
+  send({ pid: packet_diplomacy_init_meeting_req, counterpart });
+}
+function sendDiplomacyCancelPact(otherPlayerId, clause) {
+  send({ pid: packet_diplomacy_cancel_pact, other_player_id: otherPlayerId, clause });
+}
+const packet_web_cma_set = 257;
+function sendCmaSet(cityId, cmParameter) {
+  send({ pid: packet_web_cma_set, id: cityId, cm_parameter: cmParameter });
+}
+function sendCmaClear(cityId) {
+  send({ pid: packet_web_cma_clear, id: cityId });
+}
+function sendGotoPathReq(unitId, goalTileIndex) {
+  send({ pid: packet_web_goto_path_req, unit_id: unitId, goal: goalTileIndex });
+}
+function sendInfoTextReq(visibleUnit, loc, focusUnit) {
+  send({ pid: packet_web_info_text_req, visible_unit: visibleUnit, loc, focus_unit: focusUnit });
+}
+function sendConnPong() {
+  send({ pid: packet_conn_pong });
+}
+function sendClientInfo() {
+  send({
+    pid: packet_client_info,
+    gui: 2,
+    // GUI_WEB
+    emerg_version: 0,
+    distribution: ""
+  });
+}
 const FC_ACT_DEC_ACTIVE = ACT_DEC_ACTIVE;
 const FC_ACT_DEC_PASSIVE = ACT_DEC_PASSIVE;
 const FC_ACT_DEC_NOTHING = ACT_DEC_NOTHING;
@@ -12759,15 +12754,13 @@ function ask_server_for_actions(punit) {
   setActionSelectionInProgressFor(punit.id);
   const ptile = indexToTile(punit["action_decision_tile"]);
   if (ptile != null) {
-    const packet = {
-      "pid": packet_unit_get_actions,
-      "actor_unit_id": punit["id"],
-      "target_unit_id": FC_IDENTITY_NUMBER_ZERO,
-      "target_tile_id": punit["action_decision_tile"],
-      "target_extra_id": FC_EXTRA_NONE,
-      "request_kind": REQEST_PLAYER_INITIATED
-    };
-    send_request(JSON.stringify(packet));
+    sendUnitGetActions(
+      punit["id"],
+      FC_IDENTITY_NUMBER_ZERO,
+      punit["action_decision_tile"],
+      FC_EXTRA_NONE,
+      REQEST_PLAYER_INITIATED
+    );
   }
   return true;
 }
@@ -12785,13 +12778,7 @@ function action_selection_no_longer_in_progress(old_actor_id) {
 function action_decision_clear_want(old_actor_id) {
   const old = game_find_unit_by_number(old_actor_id);
   if (old != null && old["action_decision_want"] !== FC_ACT_DEC_NOTHING) {
-    const unqueue = {
-      "pid": packet_unit_sscs_set,
-      "unit_id": old_actor_id,
-      "type": USSDT_UNQUEUE,
-      "value": FC_IDENTITY_NUMBER_ZERO
-    };
-    send_request(JSON.stringify(unqueue));
+    sendUnitSscsSet(old_actor_id, USSDT_UNQUEUE, FC_IDENTITY_NUMBER_ZERO);
   }
 }
 function action_selection_next_in_focus(old_actor_id) {
@@ -14985,7 +14972,6 @@ function setupOrderButtons() {
     if (el) on(el, "click", handler);
   }
 }
-const packet_web_cma_set = 257;
 let _cma_val_sliders = [1, 0, 0, 0, 0, 0];
 let _cma_min_sliders = [0, 0, 0, 0, 0, 0];
 let _cma_happy_slider = 0;
@@ -15034,18 +15020,9 @@ function request_new_cma(city_id) {
   cm_parameter["happy_factor"] = _cma_happy_slider;
   const cma_disabled = !$("#cma_food").prop("checked") && !$("#cma_shield").prop("checked") && !$("#cma_trade").prop("checked") && !$("#cma_gold").prop("checked") && !$("#cma_luxury").prop("checked") && !$("#cma_science").prop("checked");
   if (!cma_disabled) {
-    const packet = {
-      "pid": packet_web_cma_set,
-      "id": city_id,
-      "cm_parameter": cm_parameter
-    };
-    send_request(JSON.stringify(packet));
+    sendCmaSet(city_id, cm_parameter);
   } else {
-    const packet = {
-      "pid": packet_web_cma_clear,
-      "id": city_id
-    };
-    send_request(JSON.stringify(packet));
+    sendCmaClear(city_id);
   }
 }
 function button_pushed_toggle_cma() {

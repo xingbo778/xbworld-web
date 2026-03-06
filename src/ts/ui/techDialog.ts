@@ -9,8 +9,7 @@ import { tileset_tech_graphic_tag, tileset_unit_type_graphic_tag, tileset_buildi
 import { tileset_name } from '../renderer/tilesetConfig';
 import { getTilesetFileExtension as get_tileset_file_extention } from '../utils/helpers';
 import { mapview_put_tile } from '../renderer/mapview';
-import { send_request as sendRequest } from '../net/connection';
-import { packet_player_research, packet_player_tech_goal } from '../net/packetConstants';
+import { sendPlayerResearch, sendPlayerTechGoal } from '../net/commands';
 import { clientState as client_state, C_S_RUNNING } from '../client/clientState';
 import { clientIsObserver as client_is_observer, clientPlaying } from '../client/clientState';
 import { isSmallScreen as is_small_screen } from '../utils/helpers';
@@ -381,14 +380,12 @@ export function scroll_tech_tree(): void {
 }
 
 export function send_player_research(tech_id: number): void {
-  const packet = { "pid": packet_player_research, "tech": tech_id };
-  sendRequest(JSON.stringify(packet));
+  sendPlayerResearch(tech_id);
   $("#tech_dialog").dialog('close');
 }
 
 export function send_player_tech_goal(tech_id: number): void {
-  const packet = { "pid": packet_player_tech_goal, "tech": tech_id };
-  sendRequest(JSON.stringify(packet));
+  sendPlayerTechGoal(tech_id);
 }
 
 export function tech_mapview_mouse_click(e: MouseEvent): void {

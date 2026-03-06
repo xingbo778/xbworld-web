@@ -3,8 +3,7 @@
  */
 import { store } from '../../data/store';
 import { BitVector } from '../../utils/bitvector';
-import { packet_unit_get_actions } from '../packetConstants';
-import { send_request } from '../connection';
+import { sendUnitGetActions } from '../commands';
 import { IDENTITY_NUMBER_ZERO } from '../../core/constants';
 import { clientPlaying } from '../../client/clientState';
 import { valid_player_by_number, DiplState, research_data } from '../../data/player';
@@ -122,15 +121,13 @@ export function handle_player_diplstate(packet: any): void {
             && tgt_city['owner'] === packet['plr1'])
         || ((tgt_tile = indexToTile(action_selection_target_tile()))
             && tileOwner(tgt_tile) === packet['plr1'])) {
-      const refresh_packet = {
-        'pid': packet_unit_get_actions,
-        'actor_unit_id': action_selection_actor_unit(),
-        'target_unit_id': action_selection_target_unit(),
-        'target_tile_id': action_selection_target_tile(),
-        'target_extra_id': action_selection_target_extra(),
-        'request_kind': REQEST_BACKGROUND_REFRESH,
-      };
-      send_request(JSON.stringify(refresh_packet));
+      sendUnitGetActions(
+        action_selection_actor_unit(),
+        action_selection_target_unit(),
+        action_selection_target_tile(),
+        action_selection_target_extra(),
+        REQEST_BACKGROUND_REFRESH
+      );
     }
   }
 }

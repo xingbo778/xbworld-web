@@ -33,8 +33,7 @@ import { swal } from '../components/Dialogs/SwalDialog';
 
 import { store } from '../data/store';
 import { governmentMaxRate as government_max_rate } from "../data/government";
-import { packet_player_rates } from "../net/packetConstants"; // TODO: adjust import path and name
-import { send_request } from "../net/connection"; // TODO: adjust import path and name
+import { sendPlayerRates } from "../net/commands";
 import { isSmallScreen as is_small_screen } from "../utils/helpers"; // TODO: adjust import path and name
 import { clientIsObserver as client_is_observer } from '../client/clientState';
 import { getCurrentBulbsOutput as get_current_bulbs_output } from '../data/tech';
@@ -294,9 +293,7 @@ export function update_sci_rates(): void {
 
 export function submit_player_rates(): void {
   if (tax >= 0 && tax <= 100 && lux >= 0 && lux <= 100 && sci >= 0 && sci <= 100) {
-    const packet = { "pid": packet_player_rates,
-                     "tax": tax, "luxury": lux, "science": sci };
-    send_request(JSON.stringify(packet));
+    sendPlayerRates(tax, lux, sci);
   } else {
     swal("Invalid tax rate values");
   }

@@ -262,8 +262,8 @@ export function send_message_delayed(message: string, delay: number): void {
  * Sends a chat message to the server.
  */
 export function send_message(message: string): void {
-  const packet = { pid: packet_chat_msg_req, message: message };
-  send_request(JSON.stringify(packet));
+  const { sendChatMessage } = require('./commands');
+  sendChatMessage(message);
 }
 
 // ============================================================================
