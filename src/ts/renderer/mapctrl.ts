@@ -278,7 +278,7 @@ export function map_select_units(canvas_x: number, canvas_y: number): void {
     for (let y = start_y; y < end_y; y += 15) {
       const ptile = canvas_pos_to_tile(x, y);
       if (ptile != null) {
-        selected_tiles[ptile['tile']] = ptile;
+        selected_tiles[ptile['index']] = ptile;
       }
     }
   }

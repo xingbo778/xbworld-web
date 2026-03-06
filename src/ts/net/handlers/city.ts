@@ -95,7 +95,7 @@ export function handle_city_sabotage_list(packet: any): void {
   }
   popup_sabotage_dialog(
     game_find_unit_by_number(packet['actor_id']),
-    game_find_city_by_number(packet['city_id']),
+    game_find_city_by_number(packet['city_id'])!,
     new BitVector(packet['improvements']),
     packet['act_id']
   );

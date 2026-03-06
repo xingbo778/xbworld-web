@@ -17,6 +17,7 @@ import { updateNationScreen as update_nation_screen } from '../data/nation';
 import { isSmallScreen as is_small_screen, getTilesetFileExtension as get_tileset_file_extention } from '../utils/helpers';
 import { get_treaty_agree_thumb_up, get_treaty_disagree_thumb_down } from '../renderer/tilespec';
 import { DiplState } from '../data/player';
+import type { Player, Nation } from '../data/types';
 
 // jQuery partially removed — native DOM where possible
 function byId(id: string): HTMLElement | null { return document.getElementById(id); }
@@ -40,7 +41,7 @@ export let diplomacy_clause_map: any = {}; // TODO: Type diplomacy_clause_map
 /**************************************************************************
  ...
 **************************************************************************/
-export function diplomacy_init_meeting_req(counterpart: any): void {
+export function diplomacy_init_meeting_req(counterpart: number): void {
   if (clientIsObserver()) return;
   const packet = { "pid": packet_diplomacy_init_meeting_req, "counterpart": counterpart };
   sendRequest(JSON.stringify(packet));
@@ -50,7 +51,7 @@ export function diplomacy_init_meeting_req(counterpart: any): void {
 /**************************************************************************
  ...
 **************************************************************************/
-export function show_diplomacy_dialog(counterpart: any): void {
+export function show_diplomacy_dialog(counterpart: number): void {
   const pplayer = store.players[counterpart];
   create_diplomacy_dialog(pplayer, (window as any).Handlebars.templates['diplomacy_meeting']);
 }
@@ -58,7 +59,7 @@ export function show_diplomacy_dialog(counterpart: any): void {
 /**************************************************************************
  ...
 **************************************************************************/
-export function accept_treaty_req(counterpart_id: any): void {
+export function accept_treaty_req(counterpart_id: number): void {
   if (clientIsObserver()) return;
   const packet = { "pid": packet_diplomacy_accept_treaty_req, "counterpart": counterpart_id };
   sendRequest(JSON.stringify(packet));
@@ -67,7 +68,7 @@ export function accept_treaty_req(counterpart_id: any): void {
 /**************************************************************************
  ...
 **************************************************************************/
-export function accept_treaty(counterpart: any, I_accepted: boolean, other_accepted: boolean): void {
+export function accept_treaty(counterpart: number, I_accepted: boolean, other_accepted: boolean): void {
   if (I_accepted === true && other_accepted === true) {
     diplomacy_clause_map[counterpart] = [];
     cleanup_diplomacy_dialog(counterpart);
@@ -104,7 +105,7 @@ export function accept_treaty(counterpart: any, I_accepted: boolean, other_accep
 /**************************************************************************
  ...
 **************************************************************************/
-export function cancel_meeting_req(counterpart_id: any): void {
+export function cancel_meeting_req(counterpart_id: number): void {
   const packet = { "pid": packet_diplomacy_cancel_meeting_req, "counterpart": counterpart_id };
   sendRequest(JSON.stringify(packet));
 }
@@ -112,7 +113,7 @@ export function cancel_meeting_req(counterpart_id: any): void {
 /**************************************************************************
  ...
 **************************************************************************/
-export function create_clause_req(counterpart_id: any, giver: any, type: number, value: any): void {
+export function create_clause_req(counterpart_id: number, giver: number, type: number, value: number): void {
   if (type === CLAUSE_CEASEFIRE || type === CLAUSE_PEACE || type === CLAUSE_ALLIANCE) {
     // eg. creating peace treaty requires removing ceasefire first.
     const clauses = diplomacy_clause_map[counterpart_id];
@@ -138,7 +139,7 @@ export function create_clause_req(counterpart_id: any, giver: any, type: number,
 /**************************************************************************
  ...
 **************************************************************************/
-export function cancel_meeting(counterpart: any): void {
+export function cancel_meeting(counterpart: number): void {
   diplomacy_clause_map[counterpart] = [];
   cleanup_diplomacy_dialog(counterpart);
 }
@@ -146,7 +147,7 @@ export function cancel_meeting(counterpart: any): void {
 /**************************************************************************
  Remove diplomacy dialog.
 **************************************************************************/
-export function cleanup_diplomacy_dialog(counterpart_id: any): void {
+export function cleanup_diplomacy_dialog(counterpart_id: number | string): void {
   document.getElementById("diplomacy_dialog_" + counterpart_id)?.remove();
 }
 
@@ -163,7 +164,7 @@ export function discard_diplomacy_dialogs(): void {
 /**************************************************************************
  ...
 **************************************************************************/
-export function show_diplomacy_clauses(counterpart_id: any): void {
+export function show_diplomacy_clauses(counterpart_id: number): void {
   const clauses = diplomacy_clause_map[counterpart_id];
   let diplo_html = "";
   for (let i = 0; i < clauses.length; i++) {
@@ -184,7 +185,7 @@ export function show_diplomacy_clauses(counterpart_id: any): void {
 /**************************************************************************
  ...
 **************************************************************************/
-export function remove_clause_req(counterpart_id: any, clause_no: number): void {
+export function remove_clause_req(counterpart_id: number, clause_no: number): void {
   const clauses = diplomacy_clause_map[counterpart_id];
   const clause = clauses[clause_no];
 
@@ -221,7 +222,7 @@ export function remove_clause(remove_clause_obj: any): void {
 /**************************************************************************
  ...
 **************************************************************************/
-export function client_diplomacy_clause_string(counterpart: any, giver: any, type: number, value: any): string {
+export function client_diplomacy_clause_string(counterpart: number, giver: number, type: number, value: number): string {
   const pplayer = store.players[giver];
   const nation = store.nations[pplayer['nation']]['adjective'];
 
@@ -272,7 +273,7 @@ export function client_diplomacy_clause_string(counterpart: any, giver: any, typ
 /**************************************************************************
  ...
 **************************************************************************/
-export function diplomacy_cancel_treaty(player_id: any): void {
+export function diplomacy_cancel_treaty(player_id: number): void {
   const packet = {
     "pid": packet_diplomacy_cancel_pact,
     "other_player_id": player_id,
@@ -291,7 +292,7 @@ export function diplomacy_cancel_treaty(player_id: any): void {
 /**************************************************************************
  ...
 **************************************************************************/
-export function create_diplomacy_dialog(counterpart: any, template: any): void {
+export function create_diplomacy_dialog(counterpart: Player, template: any): void {
   const pplayer = clientPlaying();
   const counterpart_id = counterpart['playerno'];
 
@@ -385,7 +386,7 @@ export function create_diplomacy_dialog(counterpart: any, template: any): void {
 
 }
 
-export function meeting_paint_custom_flag(nation: any, flag_canvas: HTMLCanvasElement): void {
+export function meeting_paint_custom_flag(nation: Nation, flag_canvas: HTMLCanvasElement): void {
   const tag = "f." + nation['graphic_str'];
   const flag_canvas_ctx = flag_canvas.getContext("2d");
   if (flag_canvas_ctx) {
@@ -434,7 +435,7 @@ export function create_clauses_menu(content: HTMLElement): void {
 /**************************************************************************
  Request update of gold clause
 **************************************************************************/
-export function meeting_gold_change_req(counterpart_id: any, giver: any, gold: number): void {
+export function meeting_gold_change_req(counterpart_id: number, giver: number, gold: number): void {
   const clauses = diplomacy_clause_map[counterpart_id];
   if (clauses != null) {
     for (let i = 0; i < clauses.length; i++) {

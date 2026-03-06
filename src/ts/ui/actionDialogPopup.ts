@@ -4,6 +4,9 @@ import { unit_owner, tile_units } from '../data/unit';
 import { playerInventionState as player_invention_state } from '../data/tech';
 import { actionProbPossible as action_prob_possible } from '../data/actions';
 
+import type { Unit, City, Tile, Extra, Tech, Improvement } from '../data/types';
+import { BitVector } from '../utils/bitvector';
+
 import {
   set_is_more_user_input_needed,
   request_unit_do_action,
@@ -103,9 +106,9 @@ function removeDialog(dlgId: string): void {
 /****************************************************************************
   Ask the player to select an action.
 ****************************************************************************/
-export function popup_action_selection(actor_unit: any, action_probabilities: any,
-  target_tile: any, target_extra: any,
-  target_unit: any, target_city: any): void {
+export function popup_action_selection(actor_unit: Unit, action_probabilities: any,
+  target_tile: Tile | null, target_extra: Extra | null,
+  target_unit: Unit | null, target_city: City | null): void {
   if (clientIsObserver()) return;
 
   const dlgId = "act_sel_dialog_" + actor_unit['id'];
@@ -216,7 +219,7 @@ export function popup_action_selection(actor_unit: any, action_probabilities: an
         text: "Auto attack from now on!",
         title: "Attack without showing this attack dialog in the future",
         click: function () {
-          request_unit_do_action(ACTION_ATTACK, actor_unit['id'], target_tile['index']);
+          request_unit_do_action(ACTION_ATTACK, actor_unit['id'], target_tile!['index']);
           auto_attack = true;
           removeDialog(dlgId);
           act_sel_queue_may_be_done(actor_unit['id']);
@@ -266,7 +269,7 @@ export function popup_action_selection(actor_unit: any, action_probabilities: an
 /**************************************************************************
   Show the player the price of bribing the unit.
 **************************************************************************/
-export function popup_bribe_dialog(actor_unit: any, target_unit: any, cost: number, act_id: number): void {
+export function popup_bribe_dialog(actor_unit: Unit, target_unit: Unit, cost: number, act_id: number): void {
   const dlgId = "bribe_unit_dialog_" + actor_unit['id'];
   let dhtml = "";
 
@@ -306,7 +309,7 @@ export function popup_bribe_dialog(actor_unit: any, target_unit: any, cost: numb
 /**************************************************************************
   Show the player the price of inciting the city.
 **************************************************************************/
-export function popup_incite_dialog(actor_unit: any, target_city: any, cost: number, act_id: number): void {
+export function popup_incite_dialog(actor_unit: Unit, target_city: City, cost: number, act_id: number): void {
   const dlgId = "incite_city_dialog_" + actor_unit['id'];
   let dhtml = "";
 
@@ -347,7 +350,7 @@ export function popup_incite_dialog(actor_unit: any, target_city: any, cost: num
 /**************************************************************************
   Show the player the price of upgrading the unit.
 **************************************************************************/
-export function popup_unit_upgrade_dlg(actor_unit: any, target_city: any, cost: number, act_id: number): void {
+export function popup_unit_upgrade_dlg(actor_unit: Unit, target_city: City, cost: number, act_id: number): void {
   const dlgId = "upgrade_unit_dialog_" + actor_unit['id'];
   let dhtml = "";
 
@@ -383,8 +386,8 @@ export function popup_unit_upgrade_dlg(actor_unit: any, target_city: any, cost: 
 /**************************************************************************
   Create a button that steals a tech.
 **************************************************************************/
-export function create_steal_tech_button(parent_id: string, tech: any,
-  actor_id: number, city_id: number, action_id: number): any {
+export function create_steal_tech_button(parent_id: string, tech: Tech,
+  actor_id: number, city_id: number, action_id: number): { text: string; click: () => void } {
   return {
     text: tech['name'],
     click: function () {
@@ -398,7 +401,7 @@ export function create_steal_tech_button(parent_id: string, tech: any,
 /**************************************************************************
   Select what tech to steal when doing targeted tech theft.
 **************************************************************************/
-export function popup_steal_tech_selection_dialog(actor_unit: any, target_city: any,
+export function popup_steal_tech_selection_dialog(actor_unit: Unit, target_city: City,
   act_probs: any, action_id: number): void {
   const dlgId = "stealtech_dialog_" + actor_unit['id'];
   const buttons: { text: string; click: () => void }[] = [];
@@ -451,8 +454,8 @@ export function popup_steal_tech_selection_dialog(actor_unit: any, target_city: 
 /**************************************************************************
   Create a button that orders a spy to try to sabotage an improvement.
 **************************************************************************/
-export function create_sabotage_impr_button(improvement: any, parent_id: string,
-  actor_unit_id: number, target_city_id: number, act_id: number): any {
+export function create_sabotage_impr_button(improvement: Improvement, parent_id: string,
+  actor_unit_id: number, target_city_id: number, act_id: number): { text: string; click: () => void } {
   return {
     text: improvement['name'],
     click: function () {
@@ -467,13 +470,13 @@ export function create_sabotage_impr_button(improvement: any, parent_id: string,
 /**************************************************************************
   Select what improvement to sabotage when doing targeted sabotage city.
 **************************************************************************/
-export function popup_sabotage_dialog(actor_unit: any, target_city: any, city_imprs: any, act_id: number): void {
+export function popup_sabotage_dialog(actor_unit: Unit, target_city: City, city_imprs: BitVector, act_id: number): void {
   const dlgId = "sabotage_impr_dialog_" + actor_unit['id'];
   const buttons: { text: string; click: () => void }[] = [];
 
   for (let i = 0; i < ((store.rulesControl as any)?.['num_impr_types'] ?? 0); i++) {
-    const improvement: any = store.improvements[i];
-    if (city_imprs.isSet(i) && improvement['sabotage'] > 0) {
+    const improvement: Improvement = store.improvements[i];
+    if (city_imprs.isSet(i) && (improvement['sabotage'] as number) > 0) {
       buttons.push(create_sabotage_impr_button(improvement, dlgId,
         actor_unit['id'], target_city['id'], act_id));
     }

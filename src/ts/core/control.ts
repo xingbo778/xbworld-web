@@ -97,42 +97,42 @@ export function control_init(): void {
 
 
   const gameTextInput = document.getElementById('game_text_input');
-  gameTextInput?.addEventListener('keydown', function(event: any) {
+  gameTextInput?.addEventListener('keydown', function(event: KeyboardEvent) {
     return check_text_input(event, gameTextInput);
   });
-  gameTextInput?.addEventListener('focus', function(event: any) {
+  gameTextInput?.addEventListener('focus', function(event: FocusEvent) {
     setKeyboardInput(false);
     setResizeEnabled(false);
   });
 
-  gameTextInput?.addEventListener('blur', function(event: any) {
+  gameTextInput?.addEventListener('blur', function(event: FocusEvent) {
     setKeyboardInput(true);
     setResizeEnabled(true);
   });
 
-  document.getElementById('chat_direction')?.addEventListener('click', function(event: any) {
+  document.getElementById('chat_direction')?.addEventListener('click', function(event: MouseEvent) {
     chat_context_change();
   });
 
   const pregameTextInput = document.getElementById('pregame_text_input') as HTMLInputElement | null;
-  pregameTextInput?.addEventListener('keydown', function(event: any) {
+  pregameTextInput?.addEventListener('keydown', function(event: KeyboardEvent) {
     return check_text_input(event, pregameTextInput);
   });
 
-  pregameTextInput?.addEventListener('blur', function(event: any) {
+  pregameTextInput?.addEventListener('blur', function(event: FocusEvent) {
     setKeyboardInput(true);
     if (pregameTextInput.value == '') {
       pregameTextInput.value = '>';
     }
   });
 
-  pregameTextInput?.addEventListener('focus', function(event: any) {
+  pregameTextInput?.addEventListener('focus', function(event: FocusEvent) {
     setKeyboardInput(false);
     if (pregameTextInput.value == '>') pregameTextInput.value = '';
   });
 
 
-  document.getElementById('tech_canvas')?.addEventListener('click', function(event: any) {
+  document.getElementById('tech_canvas')?.addEventListener('click', function(event: MouseEvent) {
     tech_mapview_mouse_click(event);
   });
 
@@ -186,63 +186,63 @@ export function control_init(): void {
   });
 
   /* Click callbacks for main tabs. */
-  document.getElementById('map_tab')?.addEventListener('click', function(event: any) {
+  document.getElementById('map_tab')?.addEventListener('click', function(event: MouseEvent) {
     setTimeout(set_default_mapview_active, 5);
   });
 
 
-  document.getElementById('civ_tab')?.addEventListener('click', function(event: any) {
+  document.getElementById('civ_tab')?.addEventListener('click', function(event: MouseEvent) {
     set_default_mapview_inactive();
     init_civ_dialog();
   });
 
-  document.getElementById('tech_tab')?.addEventListener('click', function(event: any) {
+  document.getElementById('tech_tab')?.addEventListener('click', function(event: MouseEvent) {
     set_default_mapview_inactive();
     update_tech_screen();
   });
 
-  document.getElementById('players_tab')?.addEventListener('click', function(event: any) {
+  document.getElementById('players_tab')?.addEventListener('click', function(event: MouseEvent) {
     set_default_mapview_inactive();
     update_nation_screen();
   });
 
-  document.getElementById('cities_tab')?.addEventListener('click', function(event: any) {
+  document.getElementById('cities_tab')?.addEventListener('click', function(event: MouseEvent) {
     set_default_mapview_inactive();
     update_city_screen();
   });
 
-  document.getElementById('opt_tab')?.addEventListener('click', function(event: any) {
+  document.getElementById('opt_tab')?.addEventListener('click', function(event: MouseEvent) {
     const tabsHel = document.getElementById('tabs-hel');
     if (tabsHel) tabsHel.style.display = 'none';
     init_options_dialog();
     set_default_mapview_inactive();
   });
 
-  document.getElementById('chat_tab')?.addEventListener('click', function(event: any) {
+  document.getElementById('chat_tab')?.addEventListener('click', function(event: MouseEvent) {
     set_default_mapview_inactive();
     const tabsChat = document.getElementById('tabs-chat');
     if (tabsChat) tabsChat.style.display = '';
   });
 
 
-  document.getElementById('hel_tab')?.addEventListener('click', function(event: any) {
+  document.getElementById('hel_tab')?.addEventListener('click', function(event: MouseEvent) {
     set_default_mapview_inactive();
     show_help();
   });
 
   const overviewMap = document.getElementById('overview_map');
-  overviewMap?.addEventListener('click', function(e: any) {
+  overviewMap?.addEventListener('click', function(e: MouseEvent) {
     const rect = overviewMap.getBoundingClientRect();
     const x = e.pageX - (rect.left + window.scrollX);
     const y = e.pageY - (rect.top + window.scrollY);
     overview_clicked(x, y);
   });
 
-  document.getElementById('send_message_button')?.addEventListener('click', function(e: any) {
+  document.getElementById('send_message_button')?.addEventListener('click', function(e: MouseEvent) {
     show_send_private_message_dialog();
   });
 
-  document.getElementById('intelligence_report_button')?.addEventListener('click', function(e: any) {
+  document.getElementById('intelligence_report_button')?.addEventListener('click', function(e: MouseEvent) {
     show_intelligence_report_dialog();
   });
 
@@ -254,7 +254,7 @@ export function control_init(): void {
   document.getElementById('toggle_ai_button')?.addEventListener('click', toggle_ai_clicked);
 
   const nationsList = document.getElementById('nations_list');
-  nationsList?.addEventListener('click', function(e: any) {
+  nationsList?.addEventListener('click', function(e: MouseEvent) {
     const row = (e.target as HTMLElement).closest('tbody tr');
     if (row) handle_nation_table_select.call(row, e);
   });

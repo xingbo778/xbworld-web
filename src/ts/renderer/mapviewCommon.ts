@@ -1,4 +1,5 @@
 import { store } from '../data/store';
+import type { Tile, Unit, City } from '../data/types';
 import { mapPosToTile as map_pos_to_tile } from '../data/map';
 import { tileCity as tile_city } from '../data/tile';
 import { tileGetKnown as tile_get_known, TILE_UNKNOWN, TILE_KNOWN_UNSEEN } from '../data/tile';
@@ -377,7 +378,7 @@ export function update_map_canvas(canvas_x: number, canvas_y: number, width: num
     }
 
     if (gui_x_w > 0 && gui_y_h > 0) {
-      const ptilepcorner: { tile?: any[] } = {};
+      const ptilepcorner: { tile?: (Tile | null)[] } = {};
       let ptile_xi: number, ptile_yi: number, ptile_si: number, ptile_di: number;
       let gui_x: number, gui_y: number;
       const ptile_r1 = 2;
@@ -391,8 +392,8 @@ export function update_map_canvas(canvas_x: number, canvas_y: number, width: num
       const ptile_count = (ptile_x1 - ptile_x0) * (ptile_y1 - ptile_y0);
 
       for (let ptile_index = 0; ptile_index < ptile_count; ptile_index++) {
-        let ptile: any = null;
-        let pcorner: { tile?: any[] } | null = null;
+        let ptile: Tile | null = null;
+        let pcorner: { tile?: (Tile | null)[] } | null = null;
         ptile_xi = ptile_x0 + (ptile_index % (ptile_x1 - ptile_x0));
         ptile_yi = Math.floor(ptile_y0 + (ptile_index / (ptile_x1 - ptile_x0)));
         ptile_si = ptile_xi + ptile_yi;
@@ -447,10 +448,10 @@ export function update_map_canvas(canvas_x: number, canvas_y: number, width: num
 /**************************************************************************
   Draw some or all of a tile onto the canvas.
 **************************************************************************/
-export function put_one_tile(pcanvas: CanvasRenderingContext2D, layer: number, ptile: any, canvas_x: number, canvas_y: number, citymode: any): void {
+export function put_one_tile(pcanvas: CanvasRenderingContext2D, layer: number, ptile: Tile, canvas_x: number, canvas_y: number, citymode: City | null): void {
   if (tile_get_known(ptile) != TILE_UNKNOWN || layer == LAYER_GOTO) {
     put_one_element(pcanvas, layer, ptile, null, null,
-      get_drawable_unit(ptile, citymode),
+      get_drawable_unit(ptile, !!citymode),
       tile_city(ptile), canvas_x, canvas_y, citymode);
   }
 }
@@ -460,9 +461,9 @@ export function put_one_tile(pcanvas: CanvasRenderingContext2D, layer: number, p
   Draw one layer of a tile, edge, corner, unit, and/or city onto the
   canvas at the given position.
 **************************************************************************/
-export function put_one_element(pcanvas: CanvasRenderingContext2D, layer: number, ptile: any, pedge: any, pcorner: any, punit: any,
-  pcity: any, canvas_x: number, canvas_y: number, citymode: any): void {
-  const tile_sprs = fill_sprite_array(layer, ptile, pedge, pcorner, punit, pcity, citymode);
+export function put_one_element(pcanvas: CanvasRenderingContext2D, layer: number, ptile: Tile | null, pedge: unknown, pcorner: { tile?: (Tile | null)[] } | null, punit: Unit | null,
+  pcity: City | null, canvas_x: number, canvas_y: number, citymode: City | null): void {
+  const tile_sprs = fill_sprite_array(layer, ptile, pedge, pcorner, punit, pcity, !!citymode);
 
   const fog = (ptile != null && draw_fog_of_war
     && TILE_KNOWN_UNSEEN == tile_get_known(ptile));
@@ -512,7 +513,7 @@ export function base_canvas_to_map_pos(canvas_x: number, canvas_y: number): { ma
   Finds the tile corresponding to pixel coordinates.  Returns that tile,
   or NULL if the position is off the map.
 **************************************************************************/
-export function canvas_pos_to_tile(canvas_x: number, canvas_y: number): any {
+export function canvas_pos_to_tile(canvas_x: number, canvas_y: number): Tile | null {
   let map_x: number, map_y: number;
 
   const r = base_canvas_to_map_pos(canvas_x, canvas_y);
@@ -617,8 +618,8 @@ export function update_map_canvas_check(): void {
   }
   try {
     if (store.renderer == RENDERER_2DCANVAS && window.requestAnimationFrame != null) requestAnimationFrame(update_map_canvas_check);
-  } catch (e: any) {
-    if (e.name == 'NS_ERROR_NOT_AVAILABLE') {
+  } catch (e: unknown) {
+    if (e instanceof Error && e.name == 'NS_ERROR_NOT_AVAILABLE') {
       setTimeout(update_map_canvas_check, 100);
     } else {
       throw e;
