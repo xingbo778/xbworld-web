@@ -3048,12 +3048,10 @@ const cellgroup_map = {
 const audio = window.audio;
 const music_list = window.music_list || [];
 const supports_mp3 = () => window.supports_mp3?.() ?? false;
-const TRUE = true;
-let sounds_enabled = true;
-let auto_center_on_unit = TRUE;
+let auto_center_on_unit = true;
 let popup_actor_arrival = true;
-let draw_units = TRUE;
-let draw_fog_of_war = TRUE;
+let draw_fog_of_war = true;
+let draw_units = true;
 function init_options_dialog() {
   if (audio != null && !audio.source.src) {
     if (!supports_mp3()) {
@@ -3064,10 +3062,10 @@ function init_options_dialog() {
   }
   const soundsCheckbox = document.getElementById("play_sounds_setting");
   if (soundsCheckbox) {
-    soundsCheckbox.checked = sounds_enabled;
+    soundsCheckbox.checked = store.soundsEnabled;
     soundsCheckbox.addEventListener("change", function() {
-      sounds_enabled = this.checked;
-      localStorage.setItem("sndFX", JSON.stringify(sounds_enabled));
+      store.soundsEnabled = this.checked;
+      localStorage.setItem("sndFX", JSON.stringify(store.soundsEnabled));
     });
   }
 }
