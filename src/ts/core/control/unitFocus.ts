@@ -5,6 +5,7 @@
  */
 
 import { store } from '../../data/store';
+import { GameDialog } from '../../ui/GameDialog';
 import { cityOwnerPlayerId as city_owner_player_id, cityTile as city_tile, cityHasBuilding as city_has_building } from '../../data/city';
 import { unit_type, unit_list_size, unit_list_without, get_unit_homecity_name, get_unit_moves_left } from '../../data/unit';
 import { game_find_unit_by_number } from '../../data/game';
@@ -495,39 +496,31 @@ export function update_unit_order_commands(): { [key: string]: any } {
   return unit_actions;
 }
 
+let unitPanelDialog: GameDialog | null = null;
+
 export function init_game_unit_panel(): void {
   if (store.observing) return;
   S.setUnitpanelActive(true);
 
-  const jq = (window as any).$;
-  const $panel = jq('#game_unit_panel');
-  $panel.attr("title", "Units");
-  $panel.dialog({
-    bgiframe: true,
+  unitPanelDialog = new GameDialog('#game_unit_panel', {
+    title: 'Units',
     modal: false,
-    width: "370px",
-    height: "auto",
+    width: 370,
+    height: 'auto',
     resizable: false,
     closeOnEscape: false,
-    dialogClass: 'unit_dialog  no-close',
-    position: { my: 'right bottom', at: 'right bottom', of: window, within: jq("#tabs-map") },
-    appendTo: '#tabs-map',
-    close: function(event: any, ui: any) { S.setUnitpanelActive(false); }
-
-  }).dialogExtend({
-    "minimizable": true,
-    "closable": false,
-    "minimize": function(evt: Event, dlg: any) { S.setGameUnitPanelState($panel.dialogExtend("state")) },
-    "restore": function(evt: Event, dlg: any) { S.setGameUnitPanelState($panel.dialogExtend("state")) },
-    "icons": {
-      "minimize": "ui-icon-circle-minus",
-      "restore": "ui-icon-bullet"
-    }
+    closable: false,
+    minimizable: true,
+    dialogClass: 'unit_dialog no-close',
+    position: { my: 'right bottom', at: 'right bottom', within: document.getElementById('tabs-map') || undefined },
+    onClose: () => { S.setUnitpanelActive(false); },
+    onMinimize: () => { S.setGameUnitPanelState('minimized'); },
+    onRestore: () => { S.setGameUnitPanelState('normal'); },
   });
 
-  $panel.dialog('open');
-  $panel.parent().css("overflow", "hidden");
-  if (S.game_unit_panel_state == "minimized") $panel.dialogExtend("minimize");
+  unitPanelDialog.open();
+  unitPanelDialog.widget.parentElement!.style.overflow = 'hidden';
+  if (S.game_unit_panel_state === 'minimized') unitPanelDialog.minimize();
 }
 
 export function find_best_focus_candidate(accept_current: boolean): any {
@@ -784,16 +777,14 @@ export function update_active_units_dialog(): void {
       panelParent.style.top = (window.innerHeight - newheight - 30) + "px";
       panelParent.style.background = "rgba(50,50,40,0.5)";
     }
-    if (S.game_unit_panel_state == "minimized") {
-      const jq = (window as any).$;
-      if (jq) jq('#game_unit_panel').dialogExtend("minimize");
+    if (S.game_unit_panel_state === 'minimized' && unitPanelDialog) {
+      unitPanelDialog.minimize();
     }
   } else {
     if (panelParent) panelParent.style.display = 'none';
   }
   const activeUnitInfo = document.getElementById('active_unit_info');
   if (activeUnitInfo) {
-    const jq = (window as any).$;
-    if (jq) jq(activeUnitInfo).tooltip();
+    activeUnitInfo.title = activeUnitInfo.dataset.tooltip || '';
   }
 }
