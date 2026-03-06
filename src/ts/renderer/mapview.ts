@@ -18,7 +18,6 @@ import { blockUI, unblockUI } from '../utils/dom';
 import { VUT_UTYPE } from '../data/fcTypes';
 
 // jQuery removed from this module
-const _win = window as any;
 
 // DIR8 constants - must match map.ts Direction enum ordering
 const DIR8_NORTH = 1;
@@ -123,7 +122,7 @@ export function init_mapview(): void {
   }
   store.fullfog = fullfog;
 
-  if (is_small_screen()) _win.MAPVIEW_REFRESH_INTERVAL = 12;
+  if (is_small_screen()) (window as unknown as Record<string, unknown>)['MAPVIEW_REFRESH_INTERVAL'] = 12;
 
   orientation_changed();
   init_sprites();
@@ -153,7 +152,7 @@ export function init_sprites(): void {
       const tileset_image = new Image();
       tileset_image.onload = preload_check;
       tileset_image.src = '/tileset/freeciv-web-tileset-'
-        + tileset_name + '-' + i + getTilesetFileExtension() + '?ts=' + _win.ts;
+        + tileset_name + '-' + i + getTilesetFileExtension() + '?ts=' + ((window as unknown as Record<string, unknown>)['ts'] ?? '');
       tileset_images[i] = tileset_image;
     }
   } else {
@@ -181,18 +180,18 @@ export function preload_check(): void {
 export function init_cache_sprites(): void {
   try {
 
-    if (typeof _win.tileset === 'undefined') {
-      (window as any).alert?.("Tileset not generated correctly. Run sync.sh in "
+    if (typeof tileset === 'undefined') {
+      alert("Tileset not generated correctly. Run sync.sh in "
         + "freeciv-img-extract and recompile.");
       return;
     }
 
-    for (const tile_tag in _win.tileset) {
-      const x = _win.tileset[tile_tag][0];
-      const y = _win.tileset[tile_tag][1];
-      const w = _win.tileset[tile_tag][2];
-      const h = _win.tileset[tile_tag][3];
-      const i = _win.tileset[tile_tag][4];
+    for (const tile_tag in tileset) {
+      const x = tileset[tile_tag][0];
+      const y = tileset[tile_tag][1];
+      const w = tileset[tile_tag][2];
+      const h = tileset[tile_tag][3];
+      const i = tileset[tile_tag][4];
 
       const newCanvas = document.createElement('canvas');
       newCanvas.height = h;
@@ -209,7 +208,7 @@ export function init_cache_sprites(): void {
     sprites_init = true;
     store.sprites = sprites;
     // Sync tileset from window to store (loaded externally by tileset JS)
-    if ((window as any).tileset) store.tileset = (window as any).tileset;
+    if (tileset) store.tileset = tileset;
     tileset_images[0] = null as any; // Set to null to free memory
     tileset_images[1] = null as any; // Set to null to free memory
     tileset_images = null as any; // Set to null to free memory

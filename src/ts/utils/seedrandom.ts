@@ -34,4 +34,4 @@ export { seedrandom };
 
 // Legacy compatibility
 (Math as any).seedrandom = seedrandom;
-(window as any).seedrandom = seedrandom;
+(window as unknown as Record<string, unknown>)['seedrandom'] = seedrandom;

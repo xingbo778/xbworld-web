@@ -10,51 +10,80 @@ import { stringUnqualify } from '../../utils/helpers';
 import { improvements_init } from '../../data/improvement';
 import { C_S_PREPARING } from '../../client/clientState';
 import { setClientState as set_client_state } from '../../client/clientMain';
+import type {
+  BasePacket,
+  RulesetTerrainPacket,
+  RulesetResourcePacket,
+  RulesetGamePacket,
+  RulesetSpecialistPacket,
+  RulesetNationGroupsPacket,
+  RulesetNationPacket,
+  RulesetCityPacket,
+  RulesetGovernmentPacket,
+  RulesetSummaryPacket,
+  RulesetDescriptionPartPacket,
+  RulesetActionPacket,
+  RulesetGoodsPacket,
+  RulesetClausePacket,
+  RulesetEffectPacket,
+  RulesetUnitPacket,
+  WebRulesetUnitAdditionPacket,
+  RulesetTechPacket,
+  RulesetTerrainControlPacket,
+  RulesetBuildingPacket,
+  RulesetUnitClassPacket,
+  RulesetBasePacket,
+  RulesetRoadPacket,
+  RulesetActionEnablerPacket,
+  RulesetExtraPacket,
+  RulesetControlPacket,
+} from './packetTypes';
+import type { UnitType, Extra } from '../../data/types';
 
 // Module-local state
 export let terrain_control: any = {};
 let roads: any[] = [];
 let bases: any[] = [];
 
-export function handle_ruleset_terrain(packet: any): void {
+export function handle_ruleset_terrain(packet: RulesetTerrainPacket): void {
   if (packet['name'] === 'Lake') packet['graphic_str'] = packet['graphic_alt'];
   if (packet['name'] === 'Glacier') packet['graphic_str'] = 'tundra';
   store.terrains[packet['id']] = packet;
 }
 
-export function handle_ruleset_resource(packet: any): void {
+export function handle_ruleset_resource(packet: RulesetResourcePacket): void {
   store.resources[packet['id']] = packet;
 }
 
-export function handle_ruleset_game(packet: any): void {
+export function handle_ruleset_game(packet: RulesetGamePacket): void {
   store.gameRules = packet;
 }
 
-export function handle_ruleset_specialist(packet: any): void {
+export function handle_ruleset_specialist(packet: RulesetSpecialistPacket): void {
   store.specialists[packet['id']] = packet;
 }
 
-export function handle_ruleset_nation_groups(packet: any): void {
+export function handle_ruleset_nation_groups(packet: RulesetNationGroupsPacket): void {
   store.nationGroups = packet['groups'];
 }
 
-export function handle_ruleset_nation(packet: any): void {
+export function handle_ruleset_nation(packet: RulesetNationPacket): void {
   store.nations[packet['id']] = packet;
 }
 
-export function handle_ruleset_city(packet: any): void {
+export function handle_ruleset_city(packet: RulesetCityPacket): void {
   store.cityRules[packet['style_id']] = packet;
 }
 
-export function handle_ruleset_government(packet: any): void {
+export function handle_ruleset_government(packet: RulesetGovernmentPacket): void {
   store.governments[packet['id']] = packet;
 }
 
-export function handle_ruleset_summary(packet: any): void {
+export function handle_ruleset_summary(packet: RulesetSummaryPacket): void {
   store.rulesSummary = packet['text'];
 }
 
-export function handle_ruleset_description_part(packet: any): void {
+export function handle_ruleset_description_part(packet: RulesetDescriptionPartPacket): void {
   if (store.rulesDescription == null) {
     store.rulesDescription = packet['text'];
   } else {
@@ -62,44 +91,45 @@ export function handle_ruleset_description_part(packet: any): void {
   }
 }
 
-export function handle_ruleset_action(packet: any): void {
+export function handle_ruleset_action(packet: RulesetActionPacket): void {
   store.actions[packet['id']] = packet;
   packet['enablers'] = [];
 }
 
-export function handle_ruleset_goods(packet: any): void {
+export function handle_ruleset_goods(packet: RulesetGoodsPacket): void {
   store.goods[packet['id']] = packet;
 }
 
-export function handle_ruleset_clause(packet: any): void {
+export function handle_ruleset_clause(packet: RulesetClausePacket): void {
   store.clauseInfos[packet['type']] = packet;
 }
 
-export function handle_ruleset_effect(packet: any): void {
+export function handle_ruleset_effect(packet: RulesetEffectPacket): void {
   if (store.effects[packet['effect_type']] == null) {
     store.effects[packet['effect_type']] = [];
   }
   store.effects[packet['effect_type']].push(packet);
 }
 
-export function handle_ruleset_unit(packet: any): void {
+export function handle_ruleset_unit(packet: RulesetUnitPacket): void {
   if (packet['name'] != null && packet['name'].indexOf('?unit:') === 0) {
     packet['name'] = packet['name'].replace('?unit:', '');
   }
-  packet['flags'] = new BitVector(packet['flags']);
-  store.unitTypes[packet['id']] = packet;
+  // flags is converted from raw number[] to BitVector in place
+  (packet as Record<string, unknown>)['flags'] = new BitVector(packet['flags']);
+  store.unitTypes[packet['id']] = packet as unknown as UnitType;
 }
 
-export function handle_web_ruleset_unit_addition(packet: any): void {
+export function handle_web_ruleset_unit_addition(packet: WebRulesetUnitAdditionPacket): void {
   if (packet['utype_actions'] != null) {
-    packet['utype_actions'] = new BitVector(packet['utype_actions']);
+    (packet as Record<string, unknown>)['utype_actions'] = new BitVector(packet['utype_actions']);
   }
   if (store.unitTypes[packet['id']] != null) {
     Object.assign(store.unitTypes[packet['id']], packet);
   }
 }
 
-export function recreate_old_tech_req(packet: any): void {
+export function recreate_old_tech_req(packet: RulesetTechPacket): void {
   packet['req'] = [];
   if (packet['research_reqs']) {
     for (let i = 0; i < packet['research_reqs'].length; i++) {
@@ -116,7 +146,7 @@ export function recreate_old_tech_req(packet: any): void {
   }
 }
 
-export function handle_ruleset_tech(packet: any): void {
+export function handle_ruleset_tech(packet: RulesetTechPacket): void {
   if (packet['name'] != null && packet['name'].indexOf('?tech:') === 0) {
     packet['name'] = packet['name'].replace('?tech:', '');
   }
@@ -124,39 +154,40 @@ export function handle_ruleset_tech(packet: any): void {
   recreate_old_tech_req(packet);
 }
 
-export function handle_ruleset_tech_class(_packet: any): void { /* TODO */ }
-export function handle_ruleset_tech_flag(_packet: any): void { /* TODO */ }
+export function handle_ruleset_tech_class(_packet: BasePacket): void { /* TODO */ }
+export function handle_ruleset_tech_flag(_packet: BasePacket): void { /* TODO */ }
 
-export function handle_ruleset_terrain_control(packet: any): void {
+export function handle_ruleset_terrain_control(packet: RulesetTerrainControlPacket): void {
   terrain_control = packet;
   store.terrainControl = packet;
   store.singleMove = packet['move_fragments'];
 }
 
-export function handle_ruleset_building(packet: any): void {
+export function handle_ruleset_building(packet: RulesetBuildingPacket): void {
   store.improvements[packet['id']] = packet;
 }
 
-export function handle_ruleset_unit_class(packet: any): void {
-  packet['flags'] = new BitVector(packet['flags']);
+export function handle_ruleset_unit_class(packet: RulesetUnitClassPacket): void {
+  // flags is converted from raw number[] to BitVector in place
+  (packet as Record<string, unknown>)['flags'] = new BitVector(packet['flags']);
   store.unitClasses[packet['id']] = packet;
 }
 
-export function handle_ruleset_disaster(_packet: any): void { /* TODO */ }
-export function handle_ruleset_trade(_packet: any): void { /* TODO */ }
-export function handle_rulesets_ready(_packet: any): void { /* TODO */ }
-export function handle_ruleset_choices(_packet: any): void { /* TODO */ }
-export function handle_game_load(_packet: any): void { /* TODO */ }
-export function handle_ruleset_unit_flag(_packet: any): void { /* TODO */ }
-export function handle_ruleset_unit_class_flag(_packet: any): void { /* TODO */ }
-export function handle_ruleset_unit_bonus(_packet: any): void { /* TODO */ }
-export function handle_ruleset_terrain_flag(_packet: any): void { /* TODO */ }
-export function handle_ruleset_impr_flag(_packet: any): void { /* TODO */ }
-export function handle_ruleset_government_ruler_title(_packet: any): void { /* TODO */ }
+export function handle_ruleset_disaster(_packet: BasePacket): void { /* TODO */ }
+export function handle_ruleset_trade(_packet: BasePacket): void { /* TODO */ }
+export function handle_rulesets_ready(_packet: BasePacket): void { /* TODO */ }
+export function handle_ruleset_choices(_packet: BasePacket): void { /* TODO */ }
+export function handle_game_load(_packet: BasePacket): void { /* TODO */ }
+export function handle_ruleset_unit_flag(_packet: BasePacket): void { /* TODO */ }
+export function handle_ruleset_unit_class_flag(_packet: BasePacket): void { /* TODO */ }
+export function handle_ruleset_unit_bonus(_packet: BasePacket): void { /* TODO */ }
+export function handle_ruleset_terrain_flag(_packet: BasePacket): void { /* TODO */ }
+export function handle_ruleset_impr_flag(_packet: BasePacket): void { /* TODO */ }
+export function handle_ruleset_government_ruler_title(_packet: BasePacket): void { /* TODO */ }
 
-export function handle_ruleset_base(packet: any): void {
+export function handle_ruleset_base(packet: RulesetBasePacket): void {
   if (!store.rulesControl) return;
-  for (let i = 0; i < (store.rulesControl as any)['num_extra_types']; i++) {
+  for (let i = 0; i < (store.rulesControl['num_extra_types'] as number); i++) {
     if (isExtraCausedBy(store.extras[i], EC_BASE)
         && store.extras[i]['base'] == null) {
       store.extras[i]['base'] = packet;
@@ -168,9 +199,9 @@ export function handle_ruleset_base(packet: any): void {
   console.log(packet);
 }
 
-export function handle_ruleset_road(packet: any): void {
+export function handle_ruleset_road(packet: RulesetRoadPacket): void {
   if (!store.rulesControl) return;
-  for (let i = 0; i < (store.rulesControl as any)['num_extra_types']; i++) {
+  for (let i = 0; i < (store.rulesControl['num_extra_types'] as number); i++) {
     if (isExtraCausedBy(store.extras[i], EC_ROAD)
         && store.extras[i]['road'] == null) {
       store.extras[i]['road'] = packet;
@@ -182,7 +213,7 @@ export function handle_ruleset_road(packet: any): void {
   console.log(packet);
 }
 
-export function handle_ruleset_action_enabler(packet: any): void {
+export function handle_ruleset_action_enabler(packet: RulesetActionEnablerPacket): void {
   const paction = store.actions[packet.enabled_action];
   if (paction === undefined) {
     console.log("Unknown action " + packet.action + " for enabler ");
@@ -192,18 +223,21 @@ export function handle_ruleset_action_enabler(packet: any): void {
   paction.enablers.push(packet);
 }
 
-export function handle_ruleset_extra(packet: any): void {
-  packet['causes'] = new BitVector(packet['causes']);
-  packet['rmcauses'] = new BitVector(packet['rmcauses']);
+export function handle_ruleset_extra(packet: RulesetExtraPacket): void {
+  // causes/rmcauses are converted from raw number[] to BitVector in place
+  const rec = packet as Record<string, unknown>;
+  rec['causes'] = new BitVector(packet['causes']);
+  rec['rmcauses'] = new BitVector(packet['rmcauses']);
   packet['name'] = stringUnqualify(packet['name']);
-  store.extras[packet['id']] = packet;
-  (store.extras as any)[packet['rule_name']] = packet;
+  const extra = packet as unknown as Extra;
+  store.extras[packet['id']] = extra;
+  (store.extras as any)[packet['rule_name']] = extra;
 
-  if (isExtraCausedBy(packet, EC_ROAD) && packet['buildable']) {
-    roads.push(packet);
+  if (isExtraCausedBy(extra, EC_ROAD) && packet['buildable']) {
+    roads.push(extra);
   }
-  if (isExtraCausedBy(packet, EC_BASE) && packet['buildable']) {
-    bases.push(packet);
+  if (isExtraCausedBy(extra, EC_BASE) && packet['buildable']) {
+    bases.push(extra);
   }
 
   if (packet['rule_name'] === 'Railroad') store.extraIds['EXTRA_RAIL'] = packet['id'];
@@ -211,22 +245,22 @@ export function handle_ruleset_extra(packet: any): void {
   else store.extraIds['EXTRA_' + packet['rule_name'].toUpperCase()] = packet['id'];
 }
 
-export function handle_ruleset_counter(_packet: any): void { /* TODO */ }
-export function handle_ruleset_extra_flag(_packet: any): void { /* TODO */ }
-export function handle_ruleset_nation_sets(_packet: any): void { /* TODO */ }
-export function handle_ruleset_style(_packet: any): void { /* TODO */ }
-export function handle_nation_availability(_packet: any): void { /* TODO */ }
-export function handle_ruleset_music(_packet: any): void { /* TODO */ }
-export function handle_ruleset_multiplier(_packet: any): void { /* TODO */ }
-export function handle_ruleset_action_auto(_packet: any): void { /* TODO */ }
-export function handle_ruleset_achievement(_packet: any): void { /* TODO */ }
-export function handle_achievement_info(_packet: any): void { /* TODO */ }
-export function handle_team_name_info(_packet: any): void { /* TODO */ }
-export function handle_popup_image(_packet: any): void { /* TODO */ }
-export function handle_worker_task(_packet: any): void { /* TODO */ }
-export function handle_play_music(_packet: any): void { /* TODO */ }
+export function handle_ruleset_counter(_packet: BasePacket): void { /* TODO */ }
+export function handle_ruleset_extra_flag(_packet: BasePacket): void { /* TODO */ }
+export function handle_ruleset_nation_sets(_packet: BasePacket): void { /* TODO */ }
+export function handle_ruleset_style(_packet: BasePacket): void { /* TODO */ }
+export function handle_nation_availability(_packet: BasePacket): void { /* TODO */ }
+export function handle_ruleset_music(_packet: BasePacket): void { /* TODO */ }
+export function handle_ruleset_multiplier(_packet: BasePacket): void { /* TODO */ }
+export function handle_ruleset_action_auto(_packet: BasePacket): void { /* TODO */ }
+export function handle_ruleset_achievement(_packet: BasePacket): void { /* TODO */ }
+export function handle_achievement_info(_packet: BasePacket): void { /* TODO */ }
+export function handle_team_name_info(_packet: BasePacket): void { /* TODO */ }
+export function handle_popup_image(_packet: BasePacket): void { /* TODO */ }
+export function handle_worker_task(_packet: BasePacket): void { /* TODO */ }
+export function handle_play_music(_packet: BasePacket): void { /* TODO */ }
 
-export function handle_ruleset_control(packet: any): void {
+export function handle_ruleset_control(packet: RulesetControlPacket): void {
   store.rulesControl = packet;
   set_client_state(C_S_PREPARING);
 

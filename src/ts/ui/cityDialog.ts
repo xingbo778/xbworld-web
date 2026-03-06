@@ -3,20 +3,15 @@ import { swal } from '../components/Dialogs/SwalDialog';
 import { initTableSort } from '../utils/tableSort';
 import { store } from '../data/store';
 import type { City, Player, Unit, Tile, UnitType, Improvement } from '../data/types';
-import { cityTile, cityOwner, getCityProductionTypeSprite as get_city_production_type_sprite, getCityProductionTime as get_city_production_time, getProductionProgress as get_production_progress, getCityProductionType as get_city_production_type, cityPopulation as city_population, cityTurnsToGrowthText as city_turns_to_growth_text } from '../data/city';
-import { get_supported_units } from '../data/unit';
-import { get_unit_city_info } from '../data/unit';
-import { get_unit_image_sprite } from '../renderer/tilespec';
+import { cityTile } from '../data/city';
 import { game_find_unit_by_number } from '../data/game';
-import { VUT_UTYPE, VUT_IMPROVEMENT, FC_INFINITY, O_FOOD, O_SHIELD, O_TRADE, O_GOLD, O_LUXURY, O_SCIENCE, MAX_LEN_CITYNAME, MAX_LEN_NAME } from '../data/fcTypes';
-import { get_improvement_image_sprite } from '../renderer/tilespec';
+import { VUT_UTYPE, VUT_IMPROVEMENT, MAX_LEN_CITYNAME, MAX_LEN_NAME } from '../data/fcTypes';
 import type { SpriteInfo } from '../renderer/spriteGetters';
 import { RENDERER_2DCANVAS } from '../core/constants';
-import { tile_units } from '../data/unit';
 import { clientState as client_state, C_S_RUNNING, clientIsObserver, clientPlaying } from '../client/clientState';
 import { send_request as sendRequest } from '../net/connection';
 import { packet_city_options_req, packet_city_buy, packet_city_change, packet_city_make_specialist, packet_city_make_worker, packet_city_rename, packet_city_sell, packet_city_change_specialist } from '../net/packetConstants';
-import { isSmallScreen as is_small_screen, numberWithCommas, isTouchDevice as is_touch_device, blur_input_on_touchdevice } from '../utils/helpers';
+import { isSmallScreen as is_small_screen, isTouchDevice as is_touch_device, blur_input_on_touchdevice } from '../utils/helpers';
 import { setupWindowSize as setup_window_size } from '../client/clientMain';
 import { set_city_mapview_active } from '../renderer/mapview';
 import { center_tile_mapcanvas } from '../core/control';
@@ -26,6 +21,13 @@ import { request_unit_do_action } from '../core/control';
 import { ACTION_FOUND_CITY } from '../data/fcTypes';
 import { keyboard_input } from '../core/control/controlState';
 import { act_sel_queue_done } from '../ui/actionDialog';
+
+// Import pure logic/formatting functions from cityLogic
+import {
+  formatCitySize, formatProductionOverview, formatProductionTurns,
+  formatResourceStats, buildImprovementsHtml, buildPresentUnitsHtml,
+  buildSupportedUnitsHtml, buildSpecialistHtml, buildCityListHtml
+} from './cityLogic';
 
 // Import state from cityDialogState
 import {
@@ -68,6 +70,9 @@ export {
   opt_show_unreachable_items
 } from './cityDialogState';
 
+// Re-export get_city_state from cityLogic for backwards compatibility
+export { get_city_state } from './cityLogic';
+
 // Re-export everything from cityWorklist for backwards compatibility
 export {
   city_worklist_dialog, populate_worklist_production_choices,
@@ -100,10 +105,6 @@ export function show_city_dialog_by_id(pcity_id: number): void {
 }
 
 export function show_city_dialog(pcity: City): void {
-  let turns_to_complete: number;
-  let sprite: SpriteInfo | null;
-  let punit: Unit;
-
   if (active_city != pcity || active_city == null) {
     set_city_prod_clicks(0);
     set_production_selection([]);
@@ -203,160 +204,40 @@ export function show_city_dialog(pcity: City): void {
     governor_text = "<br>" + (pcity['cma_enabled'] ? "Governor Enabled" : "Governor Disabled");
   }
 
-  setHtml("city_size", "Population: " + numberWithCommas(city_population(pcity)*1000) + "<br>"
-                       + "Size: " + pcity['size'] + "<br>"
-                       + "Granary: " + pcity['food_stock'] + "/" + pcity['granary_size'] + "<br>"
-                       + "Change in: " + city_turns_to_growth_text(pcity) + governor_text);
+  setHtml("city_size", formatCitySize(pcity, governor_text));
+  setHtml("city_production_overview", formatProductionOverview(pcity));
+  setHtml("city_production_turns_overview", formatProductionTurns(pcity));
 
-  const prod_type = get_city_production_type_sprite(pcity);
-  setHtml("city_production_overview", "Producing: " + (prod_type != null ? prod_type['type']['name'] : "None"));
+  setHtml("city_improvements_list", buildImprovementsHtml(pcity));
 
-  turns_to_complete = get_city_production_time(pcity);
-
-  if (turns_to_complete != FC_INFINITY) {
-    setHtml("city_production_turns_overview", turns_to_complete + " turns &nbsp;&nbsp;(" + get_production_progress(pcity) + ")");
-  } else {
-    setHtml("city_production_turns_overview", "-");
-  }
-
-  let improvements_html: string = "";
-  for (let z = 0; z < ((store.rulesControl as any)?.num_impr_types ?? 0); z ++) {
-    if (pcity['improvements'] != null && (pcity['improvements'] as any).isSet(z)) {
-       sprite = get_improvement_image_sprite(store.improvements[z]);
-       if (sprite == null) {
-         console.log("Missing sprite for improvement " + z);
-         continue;
-       }
-
-      improvements_html = improvements_html +
-       "<div id='city_improvement_element'><div style='background: transparent url("
-           + sprite['image-src'] +
-           ");background-position:-" + sprite['tileset-x'] + "px -" + sprite['tileset-y']
-           + "px;  width: " + sprite['width'] + "px;height: " + sprite['height'] + "px;float:left; '"
-           + "title=\"" + store.improvements[z]['helptext'] + "\" "
-	   + "onclick='city_sell_improvement(" + z + ");'>"
-           +"</div>" + store.improvements[z]['name'] + "</div>";
-    }
-  }
-  setHtml("city_improvements_list", improvements_html);
-
-  const punits: Unit[] | null = tile_units(cityTile(pcity));
-  if (punits != null) {
-    let present_units_html: string = "";
-    for (let r = 0; r < punits.length; r++) {
-      punit = punits[r];
-      sprite = get_unit_image_sprite(punit);
-      if (sprite == null) {
-         console.log("Missing sprite for " + punit);
-         continue;
-       }
-
-      present_units_html = present_units_html +
-       "<div class='game_unit_list_item' title='" + get_unit_city_info(punit)
-           + "' style='cursor:pointer;cursor:hand; background: transparent url("
-           + sprite['image-src'] +
-           ");background-position:-" + sprite['tileset-x'] + "px -" + sprite['tileset-y']
-           + "px;  width: " + sprite['width'] + "px;height: " + sprite['height'] + "px;float:left; '"
-           + " onclick='city_dialog_activate_unit(units[" + punit['id'] + "]);'"
-           +"></div>";
-    }
+  const present_units_html = buildPresentUnitsHtml(pcity);
+  if (present_units_html != null) {
     setHtml("city_present_units_list", present_units_html);
   }
 
-  const sunits: Unit[] | null = get_supported_units(pcity);
-  if (sunits != null) {
-    let supported_units_html: string = "";
-    for (let t = 0; t < sunits.length; t++) {
-      punit = sunits[t];
-      sprite = get_unit_image_sprite(punit);
-      if (sprite == null) {
-         console.log("Missing sprite for " + punit);
-         continue;
-       }
-
-      supported_units_html = supported_units_html +
-       "<div class='game_unit_list_item' title='" + get_unit_city_info(punit)
-           + "' style='cursor:pointer;cursor:hand; background: transparent url("
-           + sprite['image-src'] +
-           ");background-position:-" + sprite['tileset-x'] + "px -" + sprite['tileset-y']
-           + "px;  width: " + sprite['width'] + "px;height: " + sprite['height'] + "px;float:left; '"
-           + " onclick='city_dialog_activate_unit(units[" + punit['id'] + "]);'"
-           +"></div>";
-    }
+  const supported_units_html = buildSupportedUnitsHtml(pcity);
+  if (supported_units_html != null) {
     setHtml("city_supported_units_list", supported_units_html);
   }
   // tooltip() no-op — native title attribute already set
 
-  if ('prod' in pcity && 'surplus' in pcity) {
-    let food_txt: string = pcity['prod'][O_FOOD] + " ( ";
-    if (pcity['surplus'][O_FOOD] > 0) food_txt += "+";
-    food_txt += pcity['surplus'][O_FOOD] + ")";
-
-    let shield_txt: string = pcity['prod'][O_SHIELD] + " ( ";
-    if (pcity['surplus'][O_SHIELD] > 0) shield_txt += "+";
-    shield_txt += pcity['surplus'][O_SHIELD] + ")";
-
-    let trade_txt: string = pcity['prod'][O_TRADE] + " ( ";
-    if (pcity['surplus'][O_TRADE] > 0) trade_txt += "+";
-    trade_txt += pcity['surplus'][O_TRADE] + ")";
-
-    let gold_txt: string = pcity['prod'][O_GOLD] + " ( ";
-    if (pcity['surplus'][O_GOLD] > 0) gold_txt += "+";
-    gold_txt += pcity['surplus'][O_GOLD] + ")";
-
-    const luxury_txt: number = pcity['prod'][O_LUXURY];
-    const science_txt: number = pcity['prod'][O_SCIENCE];
-
-    setHtml("city_food", food_txt);
-    setHtml("city_prod", shield_txt);
-    setHtml("city_trade", trade_txt);
-    setHtml("city_gold", gold_txt);
-    setHtml("city_luxury", String(luxury_txt));
-    setHtml("city_science", String(science_txt));
-
-    setHtml("city_corruption", String(pcity['waste'][O_TRADE]));
-    setHtml("city_waste", String(pcity['waste'][O_SHIELD]));
-    setHtml("city_pollution", String(pcity['pollution']));
-    setHtml("city_steal", String(pcity['steal']));
-    setHtml("city_culture", String(pcity['culture']));
+  const stats = formatResourceStats(pcity);
+  if (stats != null) {
+    setHtml("city_food", stats.food);
+    setHtml("city_prod", stats.prod);
+    setHtml("city_trade", stats.trade);
+    setHtml("city_gold", stats.gold);
+    setHtml("city_luxury", stats.luxury);
+    setHtml("city_science", stats.science);
+    setHtml("city_corruption", stats.corruption);
+    setHtml("city_waste", stats.waste);
+    setHtml("city_pollution", stats.pollution);
+    setHtml("city_steal", stats.steal);
+    setHtml("city_culture", stats.culture);
   }
 
   /* Handle citizens and specialists */
-  let specialist_html: string = "";
-  const citizen_types: string[] = ["angry", "unhappy", "content", "happy"];
-  for (let s = 0; s < citizen_types.length; s++) {
-    if ((pcity as any)['ppl_' + citizen_types[s]] == null) continue;
-    for (let i = 0; i < (pcity as any)['ppl_' + citizen_types[s]][FEELING_FINAL]; i ++) {
-      sprite = get_specialist_image_sprite("citizen." + citizen_types[s] + "_"
-         + (i % 2));
-      if (sprite == null) continue;
-      specialist_html = specialist_html +
-      "<div class='specialist_item' style='background: transparent url("
-           + sprite['image-src'] +
-           ");background-position:-" + sprite['tileset-x'] + "px -" + sprite['tileset-y']
-           + "px;  width: " + sprite['width'] + "px;height: " + sprite['height'] + "px;float:left; '"
-           +" title='One " + citizen_types[s] + " citizen'></div>";
-    }
-  }
-
-  for (let u = 0; u < (pcity as any)['specialists_size']; u++) {
-    const spec_type_name: string = store.specialists[u]['plural_name'];
-    const spec_gfx_key: string = "specialist." + store.specialists[u]['rule_name'] + "_0";
-    for (let j = 0; j < (pcity as any)['specialists'][u]; j++) {
-      sprite = get_specialist_image_sprite(spec_gfx_key);
-      if (sprite == null) continue;
-      specialist_html = specialist_html +
-      "<div class='specialist_item' style='cursor:pointer;cursor:hand; background: transparent url("
-           + sprite['image-src'] +
-           ");background-position:-" + sprite['tileset-x'] + "px -" + sprite['tileset-y']
-           + "px;  width: " + sprite['width'] + "px;height: " + sprite['height'] + "px;float:left; '"
-           + " onclick='city_change_specialist(" + pcity['id'] + "," + store.specialists[u]['id'] + ");'"
-           +" title='" + spec_type_name + " (click to change)'></div>";
-
-    }
-  }
-  specialist_html += "<div style='clear: both;'></div>";
-  setHtml("specialist_panel", specialist_html);
+  setHtml("specialist_panel", buildSpecialistHtml(pcity, get_specialist_image_sprite));
 
   const disbandEl = byId('disbandable_city') as HTMLInputElement | null;
   if (disbandEl) {
@@ -473,7 +354,6 @@ export function city_dialog_close_handler(): void {
     }
 
   }
-  // (window as any).keyboard_input=true; // This is a global variable, not a local one.
   set_worklist_dialog_active(false);
 }
 
@@ -650,36 +530,7 @@ export function update_city_screen(): void {
     else if (el.classList.contains('tablesorter-headerDesc')) sortList.push([(el as HTMLTableCellElement).cellIndex, 1]);
   });
 
-  let city_list_html: string = "<table class='tablesorter' id='city_table' border=0 cellspacing=0>"
-        + "<thead><tr><th>Name</th><th>Population</th><th>Size</th><th>State</th>"
-        + "<th>Granary</th><th>Grows In</th><th>Producing</th>"
-        + "<th>Surplus<br>Food/Prod/Trade</th><th>Economy<br>Gold/Luxury/Science</th></tr></thead><tbody>";
-  let count: number = 0;
-  for (const city_id in cities){
-    const pcity: City = cities[city_id as any];
-    if (clientPlaying() != null && cityOwner(pcity) != null && cityOwner(pcity).playerno == clientPlaying().playerno) {
-      count++;
-      const prod_type = get_city_production_type(pcity);
-      let turns_to_complete_str: string;
-      if (get_city_production_time(pcity) == FC_INFINITY) {
-        turns_to_complete_str = "-"; //client does not know how long production will take yet.
-      } else {
-        turns_to_complete_str = get_city_production_time(pcity) + " turns";
-      }
-
-      city_list_html += "<tr class='cities_row' id='cities_list_" + pcity['id'] + "' onclick='javascript:show_city_dialog_by_id(" + pcity['id'] + ");'><td>"
-              + pcity['name'] + "</td><td>" + numberWithCommas(city_population(pcity)*1000) +
-              "</td><td>" + pcity['size'] + "</td><td>" + get_city_state(pcity) + "</td><td>" + pcity['food_stock'] + "/" + pcity['granary_size'] +
-              "</td><td>" + city_turns_to_growth_text(pcity) + "</td>" +
-              "<td>" + prod_type!['name'] + " (" + turns_to_complete_str + ")" +
-              "</td><td>" + pcity['surplus'][O_FOOD] + "/" + pcity['surplus'][O_SHIELD] + "/" + pcity['surplus'][O_TRADE] + "</td>" +
-              "<td>" + pcity['prod'][O_GOLD] + "/" + pcity['prod'][O_LUXURY] + "/" + pcity['prod'][O_SCIENCE] + "<td>";
-
-      city_list_html += "</tr>";
-    }
-  }
-
-  city_list_html += "</tbody></table>";
+  const { html: city_list_html, count } = buildCityListHtml();
   setHtml("cities_list", city_list_html);
 
   if (count == 0) {
@@ -692,17 +543,7 @@ export function update_city_screen(): void {
   initTableSort('#city_table', { sortList: sortList });
 }
 
-export function get_city_state(pcity: City | null): string | undefined {
-  if (pcity == null) return;
-
-  if (pcity['was_happy'] && pcity['size'] >= 3) {
-    return "Celebrating";
-  } else if (pcity['unhappy']) {
-    return "Disorder";
-  } else {
-    return "Peace";
-  }
-}
+// get_city_state is now imported from cityLogic.ts
 
 export function city_keyboard_listener(ev: KeyboardEvent): void {
   // Check if focus is in chat field, where these keyboard events are ignored.

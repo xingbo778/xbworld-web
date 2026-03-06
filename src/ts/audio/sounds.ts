@@ -22,7 +22,7 @@ import { unit_type, is_unit_visible as _is_unit_visible } from '../data/unit';
 import { store } from '../data/store';
 
 const sounds_enabled_get = (): boolean => store.soundsEnabled;
-const soundset_get = (): Record<string, string> => (window as any).soundset ?? {};
+const soundset_get = (): Record<string, string> => (typeof soundset !== 'undefined' ? soundset : {}) as Record<string, string>;
 const is_unit_visible = (punit: Unit): boolean => _is_unit_visible(punit);
 
 export let sound_path: string = "/sounds/";
@@ -97,8 +97,7 @@ export function play_sound(sound_file: string): void {
 
 export function sound_error_handler(err: unknown): void {
   store.soundsEnabled = false;
-  const trackJs = (window as any).trackJs;
-  if (trackJs) {
+  if (typeof trackJs !== 'undefined' && trackJs) {
     trackJs.console.log(err);
     trackJs.track("Sound problem");
   } else {

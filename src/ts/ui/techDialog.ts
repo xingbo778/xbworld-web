@@ -34,6 +34,12 @@ const freeciv_wiki_docs = new Proxy({} as Record<string, any>, {
 });
 import { mouse_x, mouse_y } from '../core/control/controlState';
 import type { Tech, UnitType, Improvement } from '../data/types';
+import {
+  get_advances_text as _get_advances_text,
+  get_tech_infobox_html as _get_tech_infobox_html,
+  findTechAtPosition,
+  buildObserverTechHtml,
+} from './techLogic';
 
 function byId(id: string): HTMLElement | null { return document.getElementById(id); }
 function setHtml(id: string, html: string): void { const el = byId(id); if (el) el.innerHTML = html; }
@@ -358,31 +364,7 @@ export function update_tech_screen(): void {
 }
 
 export function get_advances_text(tech_id: number): string {
-  const num = (value: number | null) => value === null ? 'null' : value;
-  const tech_span = (name: string, unit_id: number | null, impr_id: number | null, title?: string) =>
-    `<span ${title ? `title='${title}'` : ''}`
-    + ` onclick='show_tech_info_dialog("${name}", ${num(unit_id)}, ${num(impr_id)})'>${name}</span>`;
-
-  const is_valid_and_required = (next_tech_id: string) =>
-    reqtree.hasOwnProperty(next_tech_id) && is_tech_req_for_tech(tech_id, parseInt(next_tech_id));
-
-  const format_list_with_intro = (intro: string, list: (string | undefined)[]) =>
-    (list = list.filter(Boolean) as string[]).length ? (intro + ' ' + list.join(', ')) : '';
-
-  const ptech = techs[tech_id];
-
-  return tech_span(ptech.name, null, null) + ' (' + Math.floor(ptech['cost'] as number) + ')'
-    + format_list_with_intro(' allows',
-      [
-        format_list_with_intro('building unit', get_units_from_tech(tech_id)
-          .map((unit: UnitType) => tech_span(unit.name, unit.id, null, unit['helptext'] as string))),
-        format_list_with_intro('building', get_improvements_from_tech(tech_id)
-          .map((impr: Improvement) => tech_span(impr.name, null, impr.id, impr['helptext'] as string))),
-        format_list_with_intro('researching', Object.keys(techs)
-          .filter(is_valid_and_required)
-          .map((tid: string) => techs[tid])
-          .map((tech: Tech) => tech_span(tech.name, null, null)))
-      ]) + '.';
+  return _get_advances_text(tech_id, techs);
 }
 
 export function scroll_tech_tree(): void {
@@ -431,27 +413,14 @@ export function tech_mapview_mouse_click(e: MouseEvent): void {
     const tech_mouse_x: number = mouse_x - rect.left + techEl.scrollLeft;
     const tech_mouse_y: number = mouse_y - rect.top + techEl.scrollTop;
 
-    for (let tech_id in techs) {
-      const ptech = techs[tech_id];
-      if (!(tech_id + '' in reqtree)) continue;
-
-      let x: number = Math.floor(reqtree[tech_id + '']['x'] * tech_xscale) + 2;  //scale in X direction.
-      let y: number = reqtree[tech_id + '']['y'] + 2;
-
-      if (is_small_screen()) {
-        x = x * 0.6;
-        y = y * 0.6;
+    const hit_tech_id = findTechAtPosition(tech_mouse_x, tech_mouse_y, is_small_screen(), techs);
+    if (hit_tech_id != null) {
+      if (player_invention_state(clientPlaying(), hit_tech_id) == TECH_PREREQS_KNOWN) {
+        send_player_research(hit_tech_id);
+      } else if (player_invention_state(clientPlaying(), hit_tech_id) == TECH_UNKNOWN) {
+        send_player_tech_goal(hit_tech_id);
       }
-
-      if (tech_mouse_x > x && tech_mouse_x < x + tech_item_width
-        && tech_mouse_y > y && tech_mouse_y < y + tech_item_height) {
-        if (player_invention_state(clientPlaying(), ptech['id']) == TECH_PREREQS_KNOWN) {
-          send_player_research(ptech['id']);
-        } else if (player_invention_state(clientPlaying(), ptech['id']) == TECH_UNKNOWN) {
-          send_player_tech_goal(ptech['id']);
-        }
-        clicked_tech_id = ptech['id'];
-      }
+      clicked_tech_id = hit_tech_id;
     }
   }
 
@@ -460,35 +429,7 @@ export function tech_mapview_mouse_click(e: MouseEvent): void {
 }
 
 export function get_tech_infobox_html(tech_id: number): string | null {
-  let infobox_html: string = "";
-  const ptech = techs[tech_id];
-  const tag = tileset_tech_graphic_tag(ptech);
-
-  if (tag == null) return null;
-  const tileset_x: number = store.tileset[tag][0];
-  const tileset_y: number = store.tileset[tag][1];
-  const width: number = store.tileset[tag][2];
-  const height: number = store.tileset[tag][3];
-  const i: number = store.tileset[tag][4];
-  const image_src: string = "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i + get_tileset_file_extention() + "?ts=" + Date.now();
-  if (is_small_screen()) {
-    infobox_html += "<div class='specific_tech' onclick='send_player_research(" + tech_id + ");' title='"
-      + get_advances_text(tech_id).replace(/(<([^>]+)>)/ig, "") + "'>"
-      + ptech['name']
-      + "</div>";
-  } else {
-    infobox_html += "<div class='specific_tech' onclick='send_player_research(" + tech_id + ");' title='"
-      + get_advances_text(tech_id).replace(/(<([^>]+)>)/ig, "") + "'>"
-      + "<div class='tech_infobox_image' style='background: transparent url("
-      + image_src
-      + ");background-position:-" + tileset_x + "px -" + tileset_y
-      + "px;  width: " + width + "px;height: " + height + "px;'"
-      + "></div>"
-      + ptech['name']
-      + "</div>";
-  }
-
-  return infobox_html;
+  return _get_tech_infobox_html(tech_id, techs, is_small_screen());
 }
 
 export function check_queued_tech_gained_dialog(): void {
@@ -653,29 +594,16 @@ export function update_tech_dialog_cursor(): void {
   const tech_mouse_x: number = mouse_x - rect.left + techEl.scrollLeft;
   const tech_mouse_y: number = mouse_y - rect.top + techEl.scrollTop;
 
-  for (let tech_id in techs) {
-    const ptech = techs[tech_id];
-    if (!(tech_id + '' in reqtree)) continue;
-
-    let x: number = Math.floor(reqtree[tech_id + '']['x'] * tech_xscale) + 2;  //scale in X direction.
-    let y: number = reqtree[tech_id + '']['y'] + 2;
-
-    if (is_small_screen()) {
-      x = x * 0.6;
-      y = y * 0.6;
+  const hit_tech_id = findTechAtPosition(tech_mouse_x, tech_mouse_y, is_small_screen(), techs);
+  if (hit_tech_id != null) {
+    if (player_invention_state(clientPlaying(), hit_tech_id) == TECH_PREREQS_KNOWN) {
+      tech_canvas.style.cursor = "pointer";
+    } else if (player_invention_state(clientPlaying(), hit_tech_id) == TECH_UNKNOWN) {
+      tech_canvas.style.cursor = "pointer";
+    } else {
+      tech_canvas.style.cursor = "not-allowed";
     }
-
-    if (tech_mouse_x > x && tech_mouse_x < x + tech_item_width
-      && tech_mouse_y > y && tech_mouse_y < y + tech_item_height) {
-      if (player_invention_state(clientPlaying(), ptech['id']) == TECH_PREREQS_KNOWN) {
-        tech_canvas.style.cursor = "pointer";
-      } else if (player_invention_state(clientPlaying(), ptech['id']) == TECH_UNKNOWN) {
-        tech_canvas.style.cursor = "pointer";
-      } else {
-        tech_canvas.style.cursor = "not-allowed";
-      }
-      setHtml('tech_result_text', "<span id='tech_advance_helptext'>" + get_advances_text(ptech['id']) + "</span>");
-    }
+    setHtml('tech_result_text', "<span id='tech_advance_helptext'>" + get_advances_text(hit_tech_id) + "</span>");
   }
 }
 
@@ -685,38 +613,7 @@ export function show_observer_tech_dialog(): void {
   const technologies = document.getElementById('technologies');
   if (techInfoBox) techInfoBox.style.display = 'none';
   if (techCanvas) techCanvas.style.display = 'none';
-  let msg: string = '<h2 style="margin:0 0 12px 0;color:#e6edf3">Research Progress</h2>';
-  msg += '<div style="display:flex;flex-direction:column;gap:8px">';
-  for (let player_id in store.players) {
-    const pplayer = store.players[player_id];
-    const pname: string = pplayer['name'];
-    const pr = research_get(pplayer);
-    if (pr == null) continue;
-
-    const researching: number = pr['researching'];
-    const techData = store.techs[researching];
-    const bulbs = pr['bulbs_researched'] ?? 0;
-    const cost = pr['researching_cost'] ?? 1;
-    const pct = Math.min(100, Math.round((bulbs / cost) * 100));
-
-    const nation = store.nations[pplayer['nation']];
-    const color = nation?.['color'] ?? '#888';
-
-    msg += '<div style="background:rgba(30,35,45,0.8);border:1px solid #30363d;border-radius:6px;padding:8px 12px">';
-    msg += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">';
-    msg += '<span style="font-weight:600;color:' + color + '">' + pname + '</span>';
-    if (techData != null) {
-      msg += '<span style="color:#8b949e;font-size:12px">' + techData['name'] + ' (' + bulbs + '/' + cost + ')</span>';
-    } else {
-      msg += '<span style="color:#8b949e;font-size:12px">None</span>';
-    }
-    msg += '</div>';
-    msg += '<div style="background:#21262d;border-radius:3px;height:8px;overflow:hidden">';
-    msg += '<div style="background:' + color + ';height:100%;width:' + pct + '%;border-radius:3px;transition:width 0.3s"></div>';
-    msg += '</div>';
-    msg += '</div>';
-  }
-  msg += '</div>';
+  const msg = buildObserverTechHtml();
   if (technologies) {
     technologies.innerHTML = msg;
     technologies.style.color = '#e6edf3';

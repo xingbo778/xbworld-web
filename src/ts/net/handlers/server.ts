@@ -14,21 +14,34 @@ import { showAuthDialog } from '../../client/civClient';
 import { discard_diplomacy_dialogs } from '../../ui/diplomacy';
 import { wait_for_text, add_chatbox_text } from '../../core/messages';
 import { update_player_info_pregame, update_game_info_pregame } from '../../core/pregame';
+import type {
+  BasePacket,
+  ServerJoinReplyPacket,
+  ConnInfoPacket,
+  ConnPingPacket,
+  AuthenticationReqPacket,
+  ConnectMsgPacket,
+  ServerInfoPacket,
+  ConnPingInfoPacket,
+  ServerSettingConstPacket,
+  ServerSettingUpdatePacket,
+} from './packetTypes';
+import type { Connection, ServerSetting } from '../../data/types';
 
 // Connection management
-export function find_conn_by_id(id: number): any {
+export function find_conn_by_id(id: number): Connection | undefined {
   return store.connections[id];
 }
 
-export function client_remove_cli_conn(connection: any): void {
+export function client_remove_cli_conn(connection: Connection): void {
   delete store.connections[connection['id']];
 }
 
-export function conn_list_append(connection: any): void {
+export function conn_list_append(connection: Connection): void {
   store.connections[connection['id']] = connection;
 }
 
-export function handle_server_join_reply(packet: any): void {
+export function handle_server_join_reply(packet: ServerJoinReplyPacket): void {
   if (packet['you_can_join']) {
     store.client.conn.established = true;
     store.client.conn.id = packet['conn_id'];
@@ -54,7 +67,7 @@ export function handle_server_join_reply(packet: any): void {
   }
 }
 
-export function handle_conn_info(packet: any): void {
+export function handle_conn_info(packet: ConnInfoPacket): void {
   let pconn = find_conn_by_id(packet['id']);
 
   if (packet['used'] === false) {
@@ -63,7 +76,7 @@ export function handle_conn_info(packet: any): void {
       return;
     }
     client_remove_cli_conn(pconn);
-    pconn = null;
+    pconn = undefined;
   } else {
     const pplayer = valid_player_by_number(packet['player_num']);
     packet['playing'] = pplayer;
@@ -73,9 +86,9 @@ export function handle_conn_info(packet: any): void {
           || store.client.conn.player_num !== packet['player_num']) {
         discard_diplomacy_dialogs();
       }
-      store.client.conn = packet;
+      store.client.conn = packet as unknown as Connection;
     }
-    conn_list_append(packet);
+    conn_list_append(packet as unknown as Connection);
   }
 
   if (packet['id'] === store.client.conn.id) {
@@ -85,22 +98,22 @@ export function handle_conn_info(packet: any): void {
   }
 }
 
-export function handle_conn_ping(packet: any): void {
+export function handle_conn_ping(_packet: ConnPingPacket): void {
   store.pingLast = new Date().getTime();
   sendConnPong();
 }
 
-export function handle_authentication_req(packet: any): void {
+export function handle_authentication_req(packet: AuthenticationReqPacket): void {
   showAuthDialog(packet);
 }
 
-export function handle_server_shutdown(_packet: any): void { /* TODO */ }
+export function handle_server_shutdown(_packet: BasePacket): void { /* TODO */ }
 
-export function handle_connect_msg(packet: any): void {
+export function handle_connect_msg(packet: ConnectMsgPacket): void {
   add_chatbox_text(packet);
 }
 
-export function handle_server_info(packet: any): void {
+export function handle_server_info(packet: ServerInfoPacket): void {
   if (packet['emerg_version'] > 0) {
     console.log('Server has version %d.%d.%d.%d%s',
       packet.major_version, packet.minor_version, packet.patch_version,
@@ -112,50 +125,51 @@ export function handle_server_info(packet: any): void {
   }
 }
 
-export function handle_set_topology(_packet: any): void { /* TODO */ }
+export function handle_set_topology(_packet: BasePacket): void { /* TODO */ }
 
-export function handle_conn_ping_info(packet: any): void {
+export function handle_conn_ping_info(packet: ConnPingInfoPacket): void {
   if (store.debugActive) {
     store.connPingInfo = packet;
     store.debugPingList.push(packet['ping_time'][0] * 1000);
   }
 }
 
-export function handle_single_want_hack_reply(_packet: any): void {
+export function handle_single_want_hack_reply(_packet: BasePacket): void {
   // Legacy hack reply handler removed — observer mode only
 }
 
-export function handle_vote_new(_packet: any): void { /* TODO */ }
-export function handle_vote_update(_packet: any): void { /* TODO */ }
-export function handle_vote_remove(_packet: any): void { /* TODO */ }
-export function handle_vote_resolve(_packet: any): void { /* TODO */ }
-export function handle_edit_startpos(_packet: any): void { /* no-op */ }
-export function handle_edit_startpos_full(_packet: any): void { /* no-op */ }
-export function handle_edit_object_created(_packet: any): void { /* no-op */ }
+export function handle_vote_new(_packet: BasePacket): void { /* TODO */ }
+export function handle_vote_update(_packet: BasePacket): void { /* TODO */ }
+export function handle_vote_remove(_packet: BasePacket): void { /* TODO */ }
+export function handle_vote_resolve(_packet: BasePacket): void { /* TODO */ }
+export function handle_edit_startpos(_packet: BasePacket): void { /* no-op */ }
+export function handle_edit_startpos_full(_packet: BasePacket): void { /* no-op */ }
+export function handle_edit_object_created(_packet: BasePacket): void { /* no-op */ }
 
-export function handle_server_setting_const(packet: any): void {
-  store.serverSettings[packet['id']] = packet;
-  store.serverSettings[packet['name']] = packet;
+export function handle_server_setting_const(packet: ServerSettingConstPacket): void {
+  const setting = packet as unknown as ServerSetting;
+  store.serverSettings[packet['id']] = setting;
+  store.serverSettings[packet['name']] = setting;
 }
 
-export function handle_server_setting_int(packet: any): void {
+export function handle_server_setting_int(packet: ServerSettingUpdatePacket): void {
   Object.assign(store.serverSettings[packet['id']], packet);
 }
 
-export function handle_server_setting_enum(packet: any): void {
+export function handle_server_setting_enum(packet: ServerSettingUpdatePacket): void {
   Object.assign(store.serverSettings[packet['id']], packet);
 }
 
-export function handle_server_setting_bitwise(packet: any): void {
+export function handle_server_setting_bitwise(packet: ServerSettingUpdatePacket): void {
   Object.assign(store.serverSettings[packet['id']], packet);
 }
 
-export function handle_server_setting_bool(packet: any): void {
+export function handle_server_setting_bool(packet: ServerSettingUpdatePacket): void {
   Object.assign(store.serverSettings[packet['id']], packet);
 }
 
-export function handle_server_setting_str(packet: any): void {
+export function handle_server_setting_str(packet: ServerSettingUpdatePacket): void {
   Object.assign(store.serverSettings[packet['id']], packet);
 }
 
-export function handle_server_setting_control(_packet: any): void { /* TODO */ }
+export function handle_server_setting_control(_packet: BasePacket): void { /* TODO */ }

@@ -282,15 +282,15 @@ export function get_unit_anim_offset(punit: Unit): { x: number; y: number } {
 
     const i = Math.floor((anim_tuple_dst.i + 2) / 3);
 
-    const r = (window as any).map_to_gui_pos(src_tile['x'], src_tile['y']);
+    const r = map_to_gui_pos(src_tile['x'], src_tile['y']);
     const src_gx = r['gui_dx'];
     const src_gy = r['gui_dy'];
 
-    const s = (window as any).map_to_gui_pos(dst_tile['x'], dst_tile['y']);
+    const s = map_to_gui_pos(dst_tile['x'], dst_tile['y']);
     const dst_gx = s['gui_dx'];
     const dst_gy = s['gui_dy'];
 
-    const t = (window as any).map_to_gui_pos(u_tile['x'], u_tile['y']);
+    const t = map_to_gui_pos(u_tile['x'], u_tile['y']);
     const punit_gx = t['gui_dx'];
     const punit_gy = t['gui_dy'];
 
@@ -340,16 +340,15 @@ export function is_unit_visible(punit: Unit | null): boolean {
   if (punit == null || punit.tile == null) return false;
 
   const u_tile = index_to_tile(punit.tile);
-  const r = (window as any).map_to_gui_pos(u_tile['x'], u_tile['y']);
+  const r = map_to_gui_pos(u_tile['x'], u_tile['y']);
   const unit_gui_x: number = r['gui_dx'];
   const unit_gui_y: number = r['gui_dy'];
 
-  const mv = (window as any).mapview;
   if (
-    unit_gui_x < mv['gui_x0'] ||
-    unit_gui_y < mv['gui_y0'] ||
-    unit_gui_x > mv['gui_x0'] + mv['width'] ||
-    unit_gui_y > mv['gui_y0'] + mv['height']
+    unit_gui_x < mapview['gui_x0'] ||
+    unit_gui_y < mapview['gui_y0'] ||
+    unit_gui_x > mapview['gui_x0'] + mapview['width'] ||
+    unit_gui_y > mapview['gui_y0'] + mapview['height']
   ) {
     return false;
   }

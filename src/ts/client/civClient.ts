@@ -30,6 +30,7 @@ import { showAuthDialog as showAuthDialogPreact } from '../components/Dialogs/Au
 import { showIntroDialog } from '../components/Dialogs/IntroDialog';
 import { store } from '../data/store';
 import { setupWindowSize } from './clientMain';
+import { music_list, audio, setAudio, supports_mp3 } from '../audio/audioState';
 
 // ---------------------------------------------------------------------------
 // Global state guards (active once civclient.js is deleted)
@@ -37,13 +38,7 @@ import { setupWindowSize } from './clientMain';
 // Initialize store defaults (renderer, etc.)
 store.renderer = RENDERER_2DCANVAS;
 
-// Legacy window globals needed by audio subsystem (audiojs is external)
-if (!(window as any).music_list) {
-  (window as any).music_list = [
-    'battle-epic', 'battle2', 'battle3', 'battle4',
-    'battle5', 'battle6', 'battle7', 'battle8'
-  ];
-}
+// music_list is now initialised in audio/audioState.ts
 
 // ---------------------------------------------------------------------------
 // civclient_init
@@ -62,7 +57,7 @@ export function civClientInit(): void {
   }
 
   // Initialise seeded random number generator
-  (window as any).fc_seedrandom = seedrandom('xbworld');
+  store.fcSeedrandom = seedrandom('xbworld');
 
   if (window.requestAnimationFrame == null) {
     swal('Please upgrade your browser.');
@@ -105,20 +100,19 @@ export function civClientInit(): void {
   }
 
   /* Initialise audio.js music player */
-  if ((window as any).audiojs) {
-    (window as any).audiojs.events.ready(function () {
-      const as = (window as any).audiojs.createAll({
+  if (typeof audiojs !== 'undefined') {
+    audiojs.events.ready(function () {
+      const as = audiojs.createAll({
         trackEnded: function () {
-          const list: string[] = (window as any).music_list;
-          const track = list[Math.floor(Math.random() * list.length)];
-          const ext = (typeof (window as any).supports_mp3 === 'function' && !(window as any).supports_mp3()) ? '.ogg' : '.mp3';
-          if ((window as any).audio) {
-            (window as any).audio.load('/music/' + track + ext);
-            (window as any).audio.play();
+          const track = music_list[Math.floor(Math.random() * music_list.length)];
+          const ext = supports_mp3() ? '.mp3' : '.ogg';
+          if (audio) {
+            audio.load('/music/' + track + ext);
+            audio.play();
           }
         }
       });
-      (window as any).audio = as[0];
+      setAudio(as[0]);
     });
   }
 

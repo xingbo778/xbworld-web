@@ -16,6 +16,7 @@ interface JQueryStatic {
   blockUI(options?: any): void;
   unblockUI(): void;
   getUrlVar(name: string): string | null;
+  contextMenu?(options: any): void;
 }
 declare const $: JQueryStatic;
 declare const jQuery: JQueryStatic;
@@ -24,3 +25,30 @@ declare const jQuery: JQueryStatic;
 // Third-party stubs
 // ---------------------------------------------------------------------------
 declare const audiojs: any;
+
+// ---------------------------------------------------------------------------
+// Legacy JS globals loaded via <script> tags
+// ---------------------------------------------------------------------------
+
+/** Tileset sprite atlas loaded by tileset_spec_*.js */
+declare const tileset: Record<string, number[]> | undefined;
+
+/** Sound-set mapping loaded by soundset JS */
+declare const soundset: Record<string, string> | undefined;
+
+/** TrackJS error-tracking library (optional) */
+declare const trackJs: { console: { log(v: unknown): void }; track(msg: string): void } | undefined;
+
+/** Coordinate → GUI pixel conversion from mapviewCommon */
+declare function map_to_gui_pos(x: number, y: number): { gui_dx: number; gui_dy: number };
+
+/** Mapview viewport state — exposed on window from mapviewCommon.ts */
+declare const mapview: {
+  width: number;
+  height: number;
+  gui_x0: number;
+  gui_y0: number;
+  store_width: number;
+  store_height: number;
+  [key: string]: unknown;
+};

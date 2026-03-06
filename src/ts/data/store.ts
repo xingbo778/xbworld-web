@@ -122,6 +122,7 @@ class GameStore {
   phaseStartTime = 0;
   debugActive = false;
   autostart = false;
+  fcSeedrandom: (() => number) | null = null;
   civclientState: number = 0;  // ClientState enum
   heightOffset: number = 52;
   widthOffset: number = 10;

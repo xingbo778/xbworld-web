@@ -18,10 +18,7 @@
 **********************************************************************/
 
 import { store } from '../data/store';
-
-const audio = (window as any).audio;
-const music_list: string[] = (window as any).music_list || [];
-const supports_mp3 = (): boolean => (window as any).supports_mp3?.() ?? false;
+import { audio, music_list, supports_mp3 } from '../audio/audioState';
 
 export let auto_center_on_unit: boolean = true;
 export let popup_actor_arrival: boolean = true;

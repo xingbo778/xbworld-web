@@ -179,7 +179,7 @@ export function control_init(): void {
     };
   }
 
-  (window as any).jQuery?.contextMenu?.(context_options);
+  jQuery?.contextMenu?.(context_options);
 
   window.addEventListener('unload', function() {
     network_stop();

@@ -53,7 +53,7 @@ if (!win['improvements']) win['improvements'] = {};
 if (!win['map']) win['map'] = {};
 if (!win['helpdata_order']) win['helpdata_order'] = [];
 if (!win['helpdata']) win['helpdata'] = {};
-if (!win['freeciv_wiki_docs']) win['freeciv_wiki_docs'] = {};
+// wiki docs lazy-loaded from /javascript/wiki-docs.json by techDialog
 
 // ---------------------------------------------------------------------------
 // Step 2: Import all TS modules (order matters for initialization).

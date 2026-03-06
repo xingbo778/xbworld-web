@@ -65,7 +65,7 @@ export function handle_trade_route_info(packet: any): void {
 
 export function handle_endgame_player(packet: any): void {
   store.endgamePlayerInfo.push(packet);
-  (window as any).endgame_player_info = store.endgamePlayerInfo;  // clientMain.ts reads _w
+  (window as unknown as Record<string, unknown>)['endgame_player_info'] = store.endgamePlayerInfo;  // legacy JS bridge
 }
 
 export function handle_unknown_research(packet: any): void {

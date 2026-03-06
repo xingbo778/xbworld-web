@@ -665,3 +665,9 @@ export function update_map_slide(): void {
     mapview['width']!, mapview['height']!,
     0, 0, mapview['width']!, mapview['height']!);
 }
+
+// ---------------------------------------------------------------------------
+// Expose to legacy JS / cross-module access (avoids circular dependency)
+// ---------------------------------------------------------------------------
+(window as unknown as Record<string, unknown>)['mapview'] = mapview;
+(window as unknown as Record<string, unknown>)['map_to_gui_pos'] = map_to_gui_pos;
