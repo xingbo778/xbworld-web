@@ -38,7 +38,7 @@ export function Table<T>({
     if (!sortCol) return data;
     const copy = [...data];
     copy.sort((a, b) => {
-      const va = (a as any)[sortCol], vb = (b as any)[sortCol];
+      const va = (a as Record<string, unknown>)[sortCol] as string | number, vb = (b as Record<string, unknown>)[sortCol] as string | number;
       const cmp = va < vb ? -1 : va > vb ? 1 : 0;
       return sortAsc ? cmp : -cmp;
     });
@@ -99,7 +99,7 @@ export function Table<T>({
             >
               {columns.map((c) => (
                 <td key={c.key} style={cellStyle}>
-                  {c.render ? c.render(row) : String((row as any)[c.key] ?? '')}
+                  {c.render ? c.render(row) : String((row as Record<string, unknown>)[c.key] ?? '')}
                 </td>
               ))}
             </tr>

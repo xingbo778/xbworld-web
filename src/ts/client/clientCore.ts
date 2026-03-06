@@ -24,7 +24,7 @@ import { send_message } from '../net/connection';
 // ---------------------------------------------------------------------------
 // Helpers — read legacy globals
 // ---------------------------------------------------------------------------
-const win = window as any;
+const win = window as unknown as Record<string, unknown>;
 
 // ---------------------------------------------------------------------------
 // Game type queries
@@ -71,11 +71,11 @@ export function requestObserveGame(): void {
  * and the WebSocket is open.
  */
 export function sendSurrenderGame(): void {
-  const isObserver = typeof win.client_is_observer === 'function' ? win.client_is_observer() : true;
+  const isObserver = typeof win.client_is_observer === 'function' ? (win.client_is_observer as () => boolean)() : true;
   const ws = win.ws as WebSocket | null;
 
   if (!isObserver && ws != null && ws.readyState === WebSocket.OPEN) {
-    win.send_message('/surrender ');
+    send_message('/surrender ');
   }
 }
 
@@ -125,7 +125,7 @@ export function getInvalidUsernameReason(name: string | null): string | null {
   // check_text_with_banlist_exact returns TRUE = valid, FALSE = banned
   if (
     typeof win.check_text_with_banlist_exact === 'function' &&
-    !win.check_text_with_banlist_exact(lower)
+    !(win.check_text_with_banlist_exact as (s: string) => boolean)(lower)
   ) {
     return 'banned';
   }
@@ -182,10 +182,11 @@ export function isUsernameValidShow(username: string | null): boolean {
  * Migrated from civclient.js show_fullscreen_window().
  */
 export function showFullscreenWindow(): void {
-  if (win.BigScreen && win.BigScreen.enabled) {
-    win.BigScreen.toggle();
+  const bigScreen = win.BigScreen as Record<string, unknown> | undefined;
+  if (bigScreen && bigScreen.enabled) {
+    (bigScreen.toggle as () => void)();
   } else if (typeof win.show_dialog_message === 'function') {
-    win.show_dialog_message('Fullscreen', 'Press F11 for fullscreen mode.');
+    (win.show_dialog_message as (title: string, msg: string) => void)('Fullscreen', 'Press F11 for fullscreen mode.');
   }
 }
 

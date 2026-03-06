@@ -75,7 +75,7 @@ export function list_potential_target_extras(act_unit: Unit, target_tile: Tile |
   const potential_targets: Extra[] = [];
   if (!target_tile) return potential_targets;
 
-  for (let i = 0; i < ((store.rulesControl as any)?.num_extra_types ?? 0); i++) {
+  for (let i = 0; i < ((store.rulesControl?.['num_extra_types'] as number) ?? 0); i++) {
     const pextra = store.extras[i];
 
     if (tile_has_extra(target_tile, pextra.id)) {
@@ -117,7 +117,7 @@ export function create_select_tgt_extra_button(parent_id: string, actor_unit_id:
   target_tile_id: number, target_extra_id: number): { text: string; click: () => void } {
   let text: string = "";
 
-  const target_tile = index_to_tile(target_tile_id);
+  const target_tile = index_to_tile(target_tile_id)!;
 
   text += store.extras[target_extra_id]['name'];
 

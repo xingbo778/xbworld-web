@@ -415,7 +415,7 @@ export function popup_steal_tech_selection_dialog(actor_unit: Unit, target_city:
 
     if ((tgt_kn == TECH_KNOWN)
       && ((act_kn == TECH_PREREQS_KNOWN)
-        || ((store.gameInfo as any)['tech_steal_allow_holes']
+        || (store.gameInfo?.['tech_steal_allow_holes']
           && (act_kn == TECH_UNKNOWN)))) {
       buttons.push(create_steal_tech_button(dlgId, tech,
         actor_unit['id'], target_city['id'], action_id));
@@ -475,7 +475,7 @@ export function popup_sabotage_dialog(actor_unit: Unit, target_city: City, city_
   const dlgId = "sabotage_impr_dialog_" + actor_unit['id'];
   const buttons: { text: string; click: () => void }[] = [];
 
-  for (let i = 0; i < ((store.rulesControl as any)?.['num_impr_types'] ?? 0); i++) {
+  for (let i = 0; i < ((store.rulesControl?.['num_impr_types'] as number) ?? 0); i++) {
     const improvement: Improvement = store.improvements[i];
     if (city_imprs.isSet(i) && (improvement['sabotage'] as number) > 0) {
       buttons.push(create_sabotage_impr_button(improvement, dlgId,

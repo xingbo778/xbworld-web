@@ -110,7 +110,7 @@ export function handle_research_info(packet: ResearchInfoPacket): void {
 
   research_data[packet['id']] = packet;
 
-  if ((store.gameInfo as any)?.['team_pooled_research']) {
+  if (store.gameInfo?.['team_pooled_research']) {
     for (const player_id in store.players) {
       const pplayer = store.players[player_id];
       if (pplayer['team'] === packet['id']) {

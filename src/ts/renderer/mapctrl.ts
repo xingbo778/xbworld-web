@@ -329,11 +329,11 @@ export function recenter_button_pressed(canvas_x: number, canvas_y: number): voi
       /* the user right-clicked on own unit, show context menu instead of recenter. */
       if (current_focus.length <= 1) set_unit_focus(sunit);
       const canvasEl = document.getElementById('canvas')!;
-      (canvasEl as any).contextMenu?.(true);
+      (canvasEl as unknown as { contextMenu?: (arg: boolean) => void }).contextMenu?.(true);
       canvasEl.dispatchEvent(new Event('contextmenu'));
     } else {
       const canvasEl = document.getElementById('canvas')!;
-      (canvasEl as any).contextMenu?.(false);
+      (canvasEl as unknown as { contextMenu?: (arg: boolean) => void }).contextMenu?.(false);
       /* FIXME: Some actions here will need to check can_client_issue_orders.
        * But all we can check is the lowest common requirement. */
       enable_mapview_slide(ptile);

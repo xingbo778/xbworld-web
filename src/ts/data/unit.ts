@@ -274,9 +274,9 @@ export function get_unit_anim_offset(punit: Unit): { x: number; y: number } {
   if (animList != null && animList.length >= 2) {
     const anim_tuple_src = animList[0];
     const anim_tuple_dst = animList[1];
-    const src_tile = index_to_tile(anim_tuple_src.tile);
-    const dst_tile = index_to_tile(anim_tuple_dst.tile);
-    const u_tile = index_to_tile(punit.tile);
+    const src_tile = index_to_tile(anim_tuple_src.tile)!;
+    const dst_tile = index_to_tile(anim_tuple_dst.tile)!;
+    const u_tile = index_to_tile(punit.tile)!;
 
     anim_tuple_dst.i = anim_tuple_dst.i - 1;
 
@@ -339,7 +339,7 @@ export function get_unit_homecity_name(punit: Unit): string | null {
 export function is_unit_visible(punit: Unit | null): boolean {
   if (punit == null || punit.tile == null) return false;
 
-  const u_tile = index_to_tile(punit.tile);
+  const u_tile = index_to_tile(punit.tile)!;
   const r = map_to_gui_pos(u_tile['x'], u_tile['y']);
   const unit_gui_x: number = r['gui_dx'];
   const unit_gui_y: number = r['gui_dy'];

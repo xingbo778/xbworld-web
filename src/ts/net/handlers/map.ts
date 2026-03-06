@@ -28,7 +28,7 @@ export function handle_map_info(packet: MapInfoPacket): void {
 }
 
 export function handle_nuke_tile_info(packet: NukeTileInfoPacket): void {
-  const ptile = indexToTile(packet['tile']);
+  const ptile = indexToTile(packet['tile'])!;
   ptile['nuke'] = 60;
   play_sound('LrgExpl.ogg');
 }

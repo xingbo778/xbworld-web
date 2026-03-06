@@ -48,7 +48,7 @@ const TYPE_ICONS: Record<string, string> = {
 };
 
 export function swal(
-  titleOrOpts: string | Record<string, any>,
+  titleOrOpts: string | Record<string, unknown>,
   textOrCb?: string | (() => void),
   type?: string,
 ): void {
@@ -57,11 +57,11 @@ export function swal(
     const cb = typeof textOrCb === 'function' ? textOrCb : null;
     state.value = {
       open: true,
-      title: opts.title || '',
-      text: opts.text || '',
-      type: opts.type || '',
+      title: (opts.title as string) || '',
+      text: (opts.text as string) || '',
+      type: (opts.type as string) || '',
       showCancelButton: !!opts.showCancelButton,
-      confirmButtonText: opts.confirmButtonText || 'OK',
+      confirmButtonText: (opts.confirmButtonText as string) || 'OK',
       onConfirm: cb,
     };
   } else {

@@ -191,7 +191,7 @@ export function handle_ruleset_base(packet: RulesetBasePacket): void {
     if (isExtraCausedBy(store.extras[i], EC_BASE)
         && store.extras[i]['base'] == null) {
       store.extras[i]['base'] = packet;
-      (store.extras as any)[store.extras[i]['rule_name']]['base'] = packet;
+      (store.extras as unknown as Record<string, Extra>)[store.extras[i]['rule_name'] as string]['base'] = packet;
       return;
     }
   }
@@ -205,7 +205,7 @@ export function handle_ruleset_road(packet: RulesetRoadPacket): void {
     if (isExtraCausedBy(store.extras[i], EC_ROAD)
         && store.extras[i]['road'] == null) {
       store.extras[i]['road'] = packet;
-      (store.extras as any)[store.extras[i]['rule_name']]['road'] = packet;
+      (store.extras as unknown as Record<string, Extra>)[store.extras[i]['rule_name'] as string]['road'] = packet;
       return;
     }
   }
@@ -231,7 +231,7 @@ export function handle_ruleset_extra(packet: RulesetExtraPacket): void {
   packet['name'] = stringUnqualify(packet['name']);
   const extra = packet as unknown as Extra;
   store.extras[packet['id']] = extra;
-  (store.extras as any)[packet['rule_name']] = extra;
+  (store.extras as unknown as Record<string, Extra>)[packet['rule_name']] = extra;
 
   if (isExtraCausedBy(extra, EC_ROAD) && packet['buildable']) {
     roads.push(extra);
@@ -287,7 +287,7 @@ export function handle_ruleset_control(packet: RulesetControlPacket): void {
   improvements_init();
 
   for (const extra in store.extras) {
-    const ename = (store.extras as any)[extra]['rule_name'];
+    const ename = (store.extras as unknown as Record<string, Extra>)[extra]['rule_name'];
     if (ename === 'Railroad') delete store.extraIds['EXTRA_RAIL'];
     else if (ename === 'Oil Well') delete store.extraIds['EXTRA_OIL_WELL'];
     else delete store.extraIds['EXTRA_' + ename.toUpperCase()];

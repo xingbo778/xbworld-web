@@ -336,7 +336,7 @@ export function generate_palette(): number[][] {
   Returns the color of the tile at the given map position.
 ****************************************************************************/
 export function overview_tile_color(map_x: number, map_y: number): number {
-  const ptile: Tile | undefined = map_pos_to_tile(map_x, map_y);
+  const ptile: Tile | null = map_pos_to_tile(map_x, map_y);
 
   const pcity: City | null = tile_city(ptile ?? null);
 
@@ -386,7 +386,7 @@ export function overview_clicked (x: number, y: number): void {
   const x1: number = Math.floor((x * store.mapInfo!.xsize) / width);
   const y1: number = Math.floor((y * store.mapInfo!.ysize) / height);
 
-  const ptile: Tile | undefined = map_pos_to_tile(x1, y1);
+  const ptile: Tile | null = map_pos_to_tile(x1, y1);
   if (ptile != null) {
     center_tile_mapcanvas(ptile);
   }

@@ -104,8 +104,8 @@ export function request_goto_path(unit_id: number, dst_x: number, dst_y: number)
   if (S.goto_request_map[unit_id + "," + dst_x + "," + dst_y] == null) {
     S.goto_request_map[unit_id + "," + dst_x + "," + dst_y] = true;
 
-    sendGotoPathReq(unit_id, map_pos_to_tile(dst_x, dst_y)['index']);
-    S.setCurrentGotoTurns(null as any);
+    sendGotoPathReq(unit_id, map_pos_to_tile(dst_x, dst_y)!['index']);
+    S.setCurrentGotoTurns(null);
     const unitTextDetails = document.getElementById("unit_text_details");
     if (unitTextDetails) unitTextDetails.textContent = "Choose unit goto";
     setTimeout(update_mouse_cursor, 700);
@@ -152,8 +152,8 @@ export function update_goto_path(goto_packet: Record<string, unknown> & { unit_i
 
   S.setCurrentGotoTurns(goto_packet['turns']);
 
-  S.goto_request_map[goto_packet['unit_id'] + "," + goaltile['x'] + "," + goaltile['y']] = goto_packet;
-  S.goto_turns_request_map[goto_packet['unit_id'] + "," + goaltile['x'] + "," + goaltile['y']]
+  S.goto_request_map[goto_packet['unit_id'] + "," + goaltile!['x'] + "," + goaltile!['y']] = goto_packet;
+  S.goto_turns_request_map[goto_packet['unit_id'] + "," + goaltile!['x'] + "," + goaltile!['y']]
     = S.current_goto_turns;
 
   if (S.current_goto_turns != undefined) {

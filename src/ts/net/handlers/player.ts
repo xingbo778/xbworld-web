@@ -104,10 +104,10 @@ export function handle_player_diplstate(packet: PlayerDiplstatePacket): void {
     store.diplstates[packet['plr1']] = packet['type'];
   }
 
-  if ((store.players[packet['plr1']] as any).diplstates === undefined) {
-    (store.players[packet['plr1']] as any).diplstates = [];
+  if (store.players[packet['plr1']]['diplstates'] === undefined) {
+    store.players[packet['plr1']]['diplstates'] = [] as unknown[];
   }
-  (store.players[packet['plr1']] as any).diplstates[packet['plr2']] = {
+  (store.players[packet['plr1']]['diplstates'] as Record<number, unknown>)[packet['plr2']] = {
     state: packet['type'],
     turns_left: packet['turns_left'],
     contact_turns_left: packet['contact_turns_left']

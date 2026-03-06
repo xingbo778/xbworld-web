@@ -40,7 +40,7 @@ export function show_tax_rates_dialog(): void {
   state.value = {
     open: true,
     tax: p.tax ?? 0,
-    lux: (p as any).luxury ?? 0,
+    lux: p.luxury ?? 0,
     sci: p.science ?? 0,
     lockTax: false,
     lockLux: false,
@@ -112,8 +112,8 @@ export function RatesDialog() {
   const p = playing();
   if (!p) return null;
 
-  const maxrate = governmentMaxRate((p as any).government ?? 0);
-  const govName = store.governments?.[(p as any).government]?.name ?? '';
+  const maxrate = governmentMaxRate(p.government ?? 0);
+  const govName = store.governments?.[p.government!]?.name ?? '';
   const netIncome = p.expected_income ?? 0;
   const cbo = getCurrentBulbsOutput();
   const netBulbs = cbo.self_bulbs - cbo.self_upkeep;

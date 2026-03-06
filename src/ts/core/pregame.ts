@@ -72,7 +72,7 @@ export function update_player_info_pregame_real(): void {
 
   let player_html = "";
   for (const id in store.players) {
-    const player = store.players[id as any];
+    const player = store.players[Number(id)];
     if (player != null) {
       const isAI = player['name'].indexOf("AI") !== -1;
       const iconId = isAI ? 'pregame_ai_icon' : 'pregame_player_icon';
@@ -85,7 +85,7 @@ export function update_player_info_pregame_real(): void {
   setHtml(pregamePlayerList, player_html);
 
   for (const id in store.players) {
-    const player = store.players[id as any];
+    const player = store.players[Number(id)];
     let nation_text = "";
     const plrEl = document.getElementById('pregame_plr_' + id);
     if (player['nation'] in store.nations) {

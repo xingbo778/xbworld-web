@@ -1,4 +1,4 @@
-import type { ComponentChildren } from 'preact';
+import type { ComponentChildren, JSX } from 'preact';
 import { useState, useRef, useEffect, useCallback } from 'preact/hooks';
 
 export interface DialogProps {
@@ -41,7 +41,7 @@ export function Dialog({
     }
   }, [open]);
 
-  const onPointerDown = useCallback((e: PointerEvent) => {
+  const onPointerDown = useCallback((e: JSX.TargetedPointerEvent<HTMLDivElement>) => {
     if (!draggable) return;
     dragging.current = true;
     dragOffset.current = {
@@ -51,7 +51,7 @@ export function Dialog({
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
   }, [draggable, pos]);
 
-  const onPointerMove = useCallback((e: PointerEvent) => {
+  const onPointerMove = useCallback((e: JSX.TargetedPointerEvent<HTMLDivElement>) => {
     if (!dragging.current) return;
     setPos({
       x: e.clientX - dragOffset.current.x,
@@ -94,9 +94,9 @@ export function Dialog({
       >
         <div
           class="xb-dialog-titlebar"
-          onPointerDown={onPointerDown as any}
-          onPointerMove={onPointerMove as any}
-          onPointerUp={onPointerUp as any}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
           style={{
             display: 'flex',
             alignItems: 'center',

@@ -31,7 +31,7 @@ async function sha512hex(text: string): Promise<string> {
   return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-const win = window as any;
+const win = window as unknown as Record<string, unknown>;
 
 // Module-local state (was var in clinet.js)
 let error_shown = false;

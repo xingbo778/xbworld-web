@@ -55,7 +55,7 @@ export function global_keyboard_listener(ev: KeyboardEvent) {
 
   if (store.renderer == RENDERER_2DCANVAS) {
     const canvasEl = document.getElementById('canvas');
-    (canvasEl as any)?.contextMenu?.('hide');
+    (canvasEl as unknown as { contextMenu?: (arg: string) => void })?.contextMenu?.('hide');
   }
 }
 
@@ -259,10 +259,10 @@ export function map_handle_key(keyboard_key: string, key_code: number, ctrl: boo
       S.setContextMenuActive(true);
       if (store.renderer == RENDERER_2DCANVAS) {
         const canvasEl = document.getElementById('canvas');
-        (canvasEl as any)?.contextMenu?.(true);
+        (canvasEl as unknown as { contextMenu?: (arg: boolean) => void })?.contextMenu?.(true);
       } else {
         const canvasDivEl = document.getElementById('canvas_div');
-        (canvasDivEl as any)?.contextMenu?.(true);
+        (canvasDivEl as unknown as { contextMenu?: (arg: boolean) => void })?.contextMenu?.(true);
       }
 
       S.setParadropActive(false);

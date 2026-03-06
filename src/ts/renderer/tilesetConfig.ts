@@ -29,7 +29,7 @@ const CELL_WHOLE = 0;
 const CELL_CORNER = 1;
 
 // Expose to window — legacy tileset JS files loaded via eval() need these as globals
-const _w = window as any;
+const _w = window as unknown as Record<string, unknown>;
 _w.MATCH_NONE = MATCH_NONE;
 _w.MATCH_SAME = MATCH_SAME;
 _w.MATCH_PAIR = MATCH_PAIR;

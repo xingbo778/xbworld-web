@@ -75,7 +75,7 @@ export function isSmallScreen(): boolean {
 export function isTouchDevice(): boolean {
   return ('ontouchstart' in window
     || 'onmsgesturechange' in window
-    || ((globalThis as any).DocumentTouch != null && document instanceof (globalThis as any).DocumentTouch))
+    || ('DocumentTouch' in globalThis && document instanceof ((globalThis as unknown as Record<string, { new(): Document }>).DocumentTouch)))
     ? true : false;
 }
 
@@ -93,7 +93,7 @@ export function getTilesetFileExtension(): string {
  * Falls back to Math.random if fc_seedrandom is not available.
  */
 export function getRandomInt(min: number, max: number): number {
-  const rng = (globalThis as any).fc_seedrandom;
+  const rng = (globalThis as unknown as Record<string, unknown>).fc_seedrandom;
   const rand = typeof rng === 'function' ? rng() : Math.random();
   return Math.floor(rand * (max - min)) + min;
 }

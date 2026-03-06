@@ -39,11 +39,12 @@ export function check_unit_sound_play(old_unit: Unit | null, new_unit: Unit | nu
     return;
   }
 
-  const ptype = unit_type(new_unit) as any;
-  if (soundset_get()[ptype['sound_move']] != null) {
-    play_sound(soundset_get()[ptype['sound_move']]);
-  } else if (soundset_get()[ptype['sound_move_alt']] != null) {
-    play_sound(soundset_get()[ptype['sound_move_alt']]);
+  const ptype = unit_type(new_unit);
+  if (!ptype) return;
+  if (soundset_get()[ptype['sound_move'] as string] != null) {
+    play_sound(soundset_get()[ptype['sound_move'] as string]);
+  } else if (soundset_get()[ptype['sound_move_alt'] as string] != null) {
+    play_sound(soundset_get()[ptype['sound_move_alt'] as string]);
   }
 }
 
@@ -56,11 +57,12 @@ export function unit_move_sound_play(unit: Unit | null): void {
     return;
   }
 
-  const ptype = unit_type(unit) as any;
-  if (soundset_get()[ptype['sound_move']] != null) {
-    play_sound(soundset_get()[ptype['sound_move']]);
-  } else if (soundset_get()[ptype['sound_move_alt']] != null) {
-    play_sound(soundset_get()[ptype['sound_move_alt']]);
+  const ptype = unit_type(unit);
+  if (!ptype) return;
+  if (soundset_get()[ptype['sound_move'] as string] != null) {
+    play_sound(soundset_get()[ptype['sound_move'] as string]);
+  } else if (soundset_get()[ptype['sound_move_alt'] as string] != null) {
+    play_sound(soundset_get()[ptype['sound_move_alt'] as string]);
   }
 }
 
@@ -74,11 +76,12 @@ export function play_combat_sound(unit: Unit | null): void {
     return;
   }
 
-  const ptype = unit_type(unit) as any;
-  if (soundset_get()[ptype['sound_fight']] != null) {
-    play_sound(soundset_get()[ptype['sound_fight']]);
-  } else if (soundset_get()[ptype['sound_fight_alt']] != null) {
-    play_sound(soundset_get()[ptype['sound_fight_alt']]);
+  const ptype = unit_type(unit);
+  if (!ptype) return;
+  if (soundset_get()[ptype['sound_fight'] as string] != null) {
+    play_sound(soundset_get()[ptype['sound_fight'] as string]);
+  } else if (soundset_get()[ptype['sound_fight_alt'] as string] != null) {
+    play_sound(soundset_get()[ptype['sound_fight_alt'] as string]);
   }
 }
 

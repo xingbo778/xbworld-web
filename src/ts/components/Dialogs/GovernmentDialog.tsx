@@ -88,7 +88,7 @@ export function GovernmentDialog() {
 
   const govEntries: { id: number; name: string; helptext: string; canGet: boolean; isCurrent: boolean }[] = [];
   for (const govId in store.governments) {
-    const govt = store.governments?.[govId as any];
+    const govt = store.governments?.[Number(govId)];
     if (!govt) continue;
     govEntries.push({
       id: govt['id'],

@@ -5,7 +5,7 @@
  *   - show_debug_info() — logs version, browser, network stats to console
  */
 
-const win = window as any;
+const win = window as unknown as Record<string, unknown>;
 
 // ---------------------------------------------------------------------------
 // show_debug_info
@@ -22,26 +22,27 @@ const win = window as any;
 export function showDebugInfo(): void {
   console.log('XBWorld version: ' + (win.freeciv_version ?? 'unknown'));
   console.log('Browser useragent: ' + navigator.userAgent);
-  console.log('jQuery version: ' + ($ as any)().jquery);
-  console.log('jQuery UI version: ' + ($ as any).ui?.version);
+  console.log('jQuery version: ' + ($('') as Record<string, unknown>).jquery);
+  console.log('jQuery UI version: ' + ($ as unknown as Record<string, Record<string, unknown>>).ui?.version);
   console.log(
     'simpleStorage version: N/A (replaced with native localStorage)',
   );
   console.log(
     'Touch device: ' +
       (typeof win.is_touch_device === 'function'
-        ? win.is_touch_device()
+        ? (win.is_touch_device as () => boolean)()
         : 'unknown'),
   );
   console.log('HTTP protocol: ' + document.location.protocol);
-  if (win.ws != null && win.ws.url != null) {
-    console.log('WebSocket URL: ' + win.ws.url);
+  const wsObj = win.ws as WebSocket | null;
+  if (wsObj != null && wsObj.url != null) {
+    console.log('WebSocket URL: ' + wsObj.url);
   }
 
   win.debug_active = true;
 
   // Server ping stats
-  const pingList: number[] = win.debug_ping_list ?? [];
+  const pingList: number[] = (win.debug_ping_list as number[]) ?? [];
   if (pingList.length > 0) {
     let sum = 0;
     let max = 0;
@@ -59,7 +60,7 @@ export function showDebugInfo(): void {
   }
 
   // Client ping stats
-  const clientSpeedList: number[] = win.debug_client_speed_list ?? [];
+  const clientSpeedList: number[] = (win.debug_client_speed_list as number[]) ?? [];
   if (clientSpeedList.length > 0) {
     let sum = 0;
     let max = 0;

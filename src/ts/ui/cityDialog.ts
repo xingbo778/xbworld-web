@@ -4,6 +4,7 @@ import { swal } from '../components/Dialogs/SwalDialog';
 import { initTableSort } from '../utils/tableSort';
 import { store } from '../data/store';
 import type { City, Player, Unit, Tile, UnitType, Improvement } from '../data/types';
+import type { BitVector } from '../utils/bitvector';
 import { cityTile } from '../data/city';
 import { game_find_unit_by_number } from '../data/game';
 import { VUT_UTYPE, VUT_IMPROVEMENT, MAX_LEN_CITYNAME, MAX_LEN_NAME } from '../data/fcTypes';
@@ -244,13 +245,13 @@ export function show_city_dialog(pcity: City): void {
   if (disbandEl) {
     const newDisband = disbandEl.cloneNode(true) as HTMLInputElement;
     disbandEl.parentNode?.replaceChild(newDisband, disbandEl);
-    newDisband.checked = pcity['city_options'] != null && (pcity['city_options'] as any).isSet(CITYO_DISBAND);
+    newDisband.checked = pcity['city_options'] != null && (pcity['city_options'] as unknown as BitVector).isSet(CITYO_DISBAND);
     newDisband.addEventListener('click', function() {
-      const options = pcity['city_options'] as any;
+      const options = pcity['city_options'] as unknown as BitVector & Record<string, unknown>;
       const packet: Record<string, unknown> = {
         "pid"     : packet_city_options_req,
         "city_id" : active_city!['id'],
-        "options" : options.raw
+        "options" : options['raw']
       };
       if (newDisband.checked) {
         options.set(CITYO_DISBAND);
@@ -296,7 +297,7 @@ export function request_city_buy(): void {
 
   const treasury_text: string = "<br>Treasury contains " + pplayer['gold'] + " gold.";
 
-  if ((pcity as any)['buy_cost'] > pplayer['gold']) {
+  if ((pcity!['buy_cost'] as number) > pplayer['gold']) {
     show_dialog_message("Buy It!",
       buy_price_string + treasury_text);
     return;

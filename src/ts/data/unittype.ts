@@ -24,7 +24,7 @@ export const UTYF_PROVIDES_RANSOM = 30;
 export const U_NOT_OBSOLETED: null = null;
 export const U_LAST: number = MAX_NUM_UNITS;
 
-export const unit_classes: Record<number, any> = {};
+export const unit_classes: Record<number, Record<string, unknown>> = {};
 
 export function utype_can_do_action(putype: UnitType | null | undefined | Record<string, unknown>, action_id: number): boolean {
   if (putype == null || putype['utype_actions'] == null) return false;

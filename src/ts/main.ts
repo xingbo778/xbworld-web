@@ -148,7 +148,7 @@ import './windowBridge';
 import { store } from './data/store';
 
 function syncStoreWithWindow(): void {
-  const storeAny = store as any;
+  const storeRec = store as unknown as Record<string, unknown>;
   const syncProps: [string, string][] = [
     ['tiles', 'tiles'],
     ['units', 'units'],
@@ -174,12 +174,12 @@ function syncStoreWithWindow(): void {
   for (const [globalName, storeProp] of syncProps) {
     const existing = win[globalName];
     if (existing !== undefined && existing !== null) {
-      storeAny[storeProp] = existing;
+      storeRec[storeProp] = existing;
     }
     try {
       Object.defineProperty(win, globalName, {
-        get: () => storeAny[storeProp],
-        set: (v: unknown) => { storeAny[storeProp] = v; },
+        get: () => storeRec[storeProp],
+        set: (v: unknown) => { storeRec[storeProp] = v; },
         configurable: true,
         enumerable: true,
       });

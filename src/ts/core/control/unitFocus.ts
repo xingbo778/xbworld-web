@@ -339,7 +339,7 @@ export function find_visible_unit(ptile: Tile | null): Unit | null {
   const vunits = tile_units_func(ptile) || [];
   for (i = 0; i < vunits.length; i++) {
     const aunit = vunits[i];
-    if (aunit['anim_list'] != null && (aunit['anim_list'] as any[]).length > 0) {
+    if (aunit['anim_list'] != null && (aunit['anim_list'] as unknown[]).length > 0) {
       return aunit;
     }
   }

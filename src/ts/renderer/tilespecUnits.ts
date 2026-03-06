@@ -4,6 +4,7 @@ import { cityTile as city_tile } from '../data/city';
 import { unit_type, tile_units, get_unit_anim_offset, unit_has_goto } from '../data/unit';
 import { unit_is_in_focus, should_ask_server_for_actions } from '../core/control';
 import type { Tile, Unit, City } from '../data/types';
+import type { BitVector } from '../utils/bitvector';
 import type { SpriteEntry } from './tilespec';
 import { tileset_unit_graphic_tag, tileset_extra_id_activity_graphic_tag, tileset_extra_id_rmactivity_graphic_tag } from './tilespec';
 import {
@@ -178,7 +179,7 @@ export function get_city_invalid_worked_sprite(): SpriteEntry {
 export function get_unit_nation_flag_sprite(punit: Unit): SpriteEntry {
   const owner_id = punit['owner'];
 
-  if ((unit_type(punit) as any)?.['flags']?.isSet?.(UTYF_FLAGLESS)
+  if ((unit_type(punit)?.['flags'] as unknown as BitVector | undefined)?.isSet?.(UTYF_FLAGLESS)
     && clientPlaying() != null
     && owner_id != clientPlaying()!.playerno) {
     return { "key": "" };

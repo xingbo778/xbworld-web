@@ -138,7 +138,7 @@ export function update_client_state(value: number): void {
 
 export function handle_unit_packet_common(packet_unit: UnitInfoPacket): void {
   const punit = player_find_unit_by_id(
-    unit_owner(packet_unit) as any, packet_unit['id']
+    unit_owner(packet_unit)!, packet_unit['id']
   );
 
   if (typeof clear_tile_unit === 'function') {

@@ -1,4 +1,5 @@
 import { signal } from '@preact/signals';
+import type { JSX } from 'preact';
 import { useRef, useEffect } from 'preact/hooks';
 import { Dialog } from '../Shared/Dialog';
 import { Button } from '../Shared/Button';
@@ -49,7 +50,7 @@ export function IntroDialog() {
     closeIntroDialog();
   };
 
-  const handleKeyDown = (e: KeyboardEvent) => {
+  const handleKeyDown = (e: JSX.TargetedKeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') submit();
   };
 
@@ -69,7 +70,7 @@ export function IntroDialog() {
             ref={inputRef}
             type="text"
             maxLength={32}
-            onKeyDown={handleKeyDown as any}
+            onKeyDown={handleKeyDown}
             style={{
               padding: '4px 8px',
               fontSize: '14px',

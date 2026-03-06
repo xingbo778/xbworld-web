@@ -6,6 +6,7 @@
 
 import { store } from './store';
 import type { Extra, Tile, Player } from './types';
+import type { BitVector } from '../utils/bitvector';
 import { player_by_number } from './player';
 
 // ---------------------------------------------------------------------------
@@ -28,7 +29,7 @@ export function extraByNumber(id: number): Extra | null {
     return null;
   }
   const rc = store.rulesControl;
-  if (id >= 0 && rc && id < (rc as any)['num_extra_types']) {
+  if (id >= 0 && rc && id < (rc['num_extra_types'] as number)) {
     return store.extras[id];
   } else {
     console.log('extra_by_number(): Invalid extra id: ' + id);
@@ -47,22 +48,22 @@ export function extraOwner(ptile: Tile): Player | null {
  * Is given cause one of the causes for the given extra?
  */
 export function isExtraCausedBy(pextra: Extra, cause: number): boolean {
-  return (pextra.causes as any).isSet(cause);
+  return (pextra.causes as unknown as BitVector).isSet(cause);
 }
 
 /**
  * Is given cause one of the removal causes for the given extra?
  */
 export function isExtraRemovedBy(pextra: Extra, rmcause: number): boolean {
-  return (pextra.rmcauses as any).isSet(rmcause);
+  return (pextra.rmcauses as unknown as BitVector).isSet(rmcause);
 }
 
 /**
  * Does this extra type claim territory?
  */
 export function territoryClaimingExtra(pextra: Extra): boolean {
-  const base = pextra['base'] as any;
-  return base && base['border_sq'] > -1;
+  const base = pextra['base'] as Record<string, unknown> | undefined;
+  return !!base && (base['border_sq'] as number) > -1;
 }
 
 // ---------------------------------------------------------------------------

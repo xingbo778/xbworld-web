@@ -164,8 +164,8 @@ export function showEndgameDialog(): void {
   const title = 'Final Report: The Greatest Civilizations in the world!';
   let message = '';
   for (let i = 0; i < store.endgamePlayerInfo.length; i++) {
-    const info = store.endgamePlayerInfo[i] as any;
-    const pplayer = store.players[info['player_id']];
+    const info = store.endgamePlayerInfo[i];
+    const pplayer = store.players[info['player_id'] as number];
     const nation_adj = store.nations[pplayer['nation']]?.['adjective'] ?? 'Unknown';
     message += (i + 1) + ': The ' + nation_adj + ' ruler ' + pplayer['name'] +
       ' scored ' + info['score'] + ' points' + '<br>';

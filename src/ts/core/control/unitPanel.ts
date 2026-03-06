@@ -71,7 +71,7 @@ export function update_unit_order_commands(): { [key: string]: { name: string } 
   let punit: Unit;
   let ptype: UnitType | undefined;
   let pcity: City | null;
-  let ptile: Tile | undefined;
+  let ptile: Tile | null;
   let unit_actions: { [key: string]: { name: string } } = {};
   const funits = get_units_in_focus();
   for (i = 0; i < funits.length; i++) {

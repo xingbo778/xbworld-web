@@ -8,10 +8,10 @@ export const tileset_width: number = 96;         // amplio2 based tileset
 export const tileset_height: number = 48;
 
 export let cities: Record<number, City> = {};
-export let city_rules: Record<number, any> = {};
-export let city_trade_routes: Record<number, Record<number, any>> = {};
+export let city_rules: Record<number, Record<string, unknown>> = {};
+export let city_trade_routes: Record<number, Record<number, Record<string, unknown>>> = {};
 
-export let goods: Record<number, any> = {};
+export let goods: Record<number, Record<string, unknown>> = {};
 
 export let active_city: City | null = null;
 export let worklist_dialog_active: boolean = false;

@@ -96,7 +96,7 @@ export function show_intelligence_report_embassy(pplayer: Player): void {
 
   if (pplayer['diplstates'] !== undefined) {
     const diplEntries: string[] = [];
-    (pplayer['diplstates'] as any[]).forEach(function (st: Record<string, unknown>, i: number) {
+    (pplayer['diplstates'] as Record<string, unknown>[]).forEach(function (st: Record<string, unknown>, i: number) {
       if (st['state'] !== DiplState.DS_NO_CONTACT && i !== pplayer['playerno'] && store.players[i]) {
         const stateText = get_diplstate_text(st['state'] as number);
         const nationAdj = store.nations[store.players[i]['nation'] as number]?.['adjective'] || 'Unknown';

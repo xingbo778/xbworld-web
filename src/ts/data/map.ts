@@ -14,6 +14,7 @@
 
 import { FC_WRAP } from '../utils/helpers';
 import { store } from './store';
+import type { Tile } from './types';
 export const enum Direction {
   NORTHWEST = 0,
   NORTH = 1,
@@ -46,8 +47,7 @@ export const DIR_DY = [-1, -1, -1, 0, 0, 1, 1, 1] as const;
 // 2. Object.defineProperty cannot intercept them
 // 3. store.mapInfo / store.tiles remain empty forever
 // ---------------------------------------------------------------------------
-/* eslint-disable @typescript-eslint/no-explicit-any */
-const win = window as any;
+const win = window as unknown as Record<string, unknown>;
 
 export function getMapInfo(): {
   xsize: number;
@@ -55,15 +55,14 @@ export function getMapInfo(): {
   topology_id: number;
   wrap_id: number;
 } | null {
-  const m = win.map;
-  if (m && typeof m.xsize === 'number') return m;
+  const m = win.map as Record<string, unknown> | undefined;
+  if (m && typeof m.xsize === 'number') return m as { xsize: number; ysize: number; topology_id: number; wrap_id: number };
   return null;
 }
 
-export function getTiles(): Record<number, any> {
-  return win.tiles || {};
+export function getTiles(): Record<number, Tile> {
+  return (win.tiles || {}) as Record<number, Tile>;
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
 export function topoHasFlag(flag: number): boolean {
   return ((getMapInfo()?.topology_id ?? 0) & flag) !== 0;
@@ -126,10 +125,10 @@ export function mapAllocate(): void {
   // Assign directly to window.tiles AND store.tiles so both legacy JS
   // and TS packet handlers see the same tile data.
   win.tiles = newTiles;
-  store.tiles = newTiles as any;
+  store.tiles = newTiles as Record<number, Tile>;
 
   // Set startpos_table (required by later server packets)
-  if (win.map) win.map['startpos_table'] = {};
+  if (win.map) (win.map as Record<string, unknown>)['startpos_table'] = {};
 
   // Dynamic import to break circular: map → overview → control → mapClick → unit → map
   import('../core/overview').then(m => m.init_overview());
@@ -142,22 +141,22 @@ export function mapAllocate(): void {
  * Exposed to legacy as window.map_init_topology.
  */
 export function mapInitTopology(_setSizes: boolean): void {
-  const m = win.map;
+  const m = win.map as Record<string, unknown> | undefined;
   if (!m) return;
 
-  m.valid_dirs = {};
-  m.cardinal_dirs = {};
+  m.valid_dirs = {} as Record<number, number>;
+  m.cardinal_dirs = {} as Record<number, number>;
   m.num_valid_dirs = 0;
   m.num_cardinal_dirs = 0;
 
   for (let dir = 0; dir < 8; dir++) {
     if (isValidDir(dir)) {
-      m.valid_dirs[m.num_valid_dirs] = dir;
-      m.num_valid_dirs++;
+      (m.valid_dirs as Record<number, number>)[m.num_valid_dirs as number] = dir;
+      (m as Record<string, number>).num_valid_dirs++;
     }
     if (isCardinalDir(dir)) {
-      m.cardinal_dirs[m.num_cardinal_dirs] = dir;
-      m.num_cardinal_dirs++;
+      (m.cardinal_dirs as Record<number, number>)[m.num_cardinal_dirs as number] = dir;
+      (m as Record<string, number>).num_cardinal_dirs++;
     }
   }
 }
@@ -198,21 +197,21 @@ export function isCardinalDir(dir: number): boolean {
   }
 }
 
-export function mapPosToTile(x: number, y: number) {
+export function mapPosToTile(x: number, y: number): Tile | null {
   const mi = getMapInfo();
-  if (!mi) return undefined;
+  if (!mi) return null;
   const t = getTiles();
   if (x >= mi.xsize) y -= 1;
   else if (x < 0) y += 1;
-  return t[x + y * mi.xsize];
+  return t[x + y * mi.xsize] ?? null;
 }
 
-export function indexToTile(index: number) {
-  return getTiles()[index];
+export function indexToTile(index: number): Tile | null {
+  return getTiles()[index] ?? null;
 }
 
-export function mapstep(ptile: { x: number; y: number }, dir: number) {
-  if (!isValidDir(dir)) return undefined;
+export function mapstep(ptile: { x: number; y: number }, dir: number): Tile | null {
+  if (!isValidDir(dir)) return null;
   return mapPosToTile(DIR_DX[dir] + ptile.x, DIR_DY[dir] + ptile.y);
 }
 

@@ -183,8 +183,8 @@ export function key_unit_fortress() {
     const ptile = index_to_tile(punit['tile']);
 
     for (let b = 0; b < S.bases.length; b++) {
-      if ((S.bases[b] as Record<string, any>)['base']?.['gui_type'] == BASE_GUI_FORTRESS
-        && !tile_has_extra(ptile, S.bases[b].id)) {
+      if ((S.bases[b]['base'] as Record<string, unknown> | undefined)?.['gui_type'] == BASE_GUI_FORTRESS
+        && !tile_has_extra(ptile!, S.bases[b].id)) {
         request_new_unit_activity(punit, ACTIVITY_BASE, S.bases[b]['id']);
       }
     }
@@ -200,8 +200,8 @@ export function key_unit_airbase() {
     const ptile = index_to_tile(punit['tile']);
 
     for (let b = 0; b < S.bases.length; b++) {
-      if ((S.bases[b] as Record<string, any>)['base']?.['gui_type'] == BASE_GUI_AIRBASE
-        && !tile_has_extra(ptile, S.bases[b].id)) {
+      if ((S.bases[b]['base'] as Record<string, unknown> | undefined)?.['gui_type'] == BASE_GUI_AIRBASE
+        && !tile_has_extra(ptile!, S.bases[b].id)) {
         request_new_unit_activity(punit, ACTIVITY_BASE, S.bases[b]['id']);
       }
     }
@@ -295,7 +295,7 @@ export function key_unit_road() {
     const ptile = index_to_tile(punit['tile']);
 
     for (let r = 0; r < S.roads.length; r++) {
-      if (!tile_has_extra(ptile, S.roads[r].id)) {
+      if (!tile_has_extra(ptile!, S.roads[r].id)) {
         request_new_unit_activity(punit, ACTIVITY_GEN_ROAD, S.roads[r]['id']);
       }
     }
@@ -491,7 +491,7 @@ export function key_unit_move(dir: number) {
 
     if (punit['transported']
       && clientPlaying() != null
-      && newtile['units'].every(function (ounit: Unit) {
+      && newtile['units']!.every(function (ounit: Unit) {
         return ounit['owner'] == clientPlaying()?.playerno;
       })
       && (tile_city(newtile) == null

@@ -140,7 +140,7 @@ export function do_map_click(ptile: Tile, qtype: number, first_time_called: bool
 
         packet = {
           "unit_id": punit['id'],
-          "src_tile": old_tile['index'],
+          "src_tile": old_tile!['index'],
           "length": goto_path['length'],
           "repeat": false,
           "vigilant": false,

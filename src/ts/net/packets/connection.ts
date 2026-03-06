@@ -2,10 +2,11 @@ import { registerHandler } from './index';
 import { PacketType } from './protocol';
 import { store } from '../../data/store';
 import { globalEvents } from '../../core/events';
+import type { Connection } from '../../data/types';
 
 export function registerConnectionHandlers(): void {
   registerHandler(PacketType.CONN_INFO, (packet) => {
-    const p = packet as any;
+    const p = packet as unknown as Connection;
     store.connections[p.id] = p;
     globalEvents.emit('connection:updated', packet);
   });

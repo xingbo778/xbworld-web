@@ -7,7 +7,7 @@
  *
  * This replaces globalRegistry.ts (2,543 lines → ~60 lines).
  */
-const w = window as any;
+const w = window as unknown as Record<string, unknown>;
 
 // --- From city dialog / CMA governor onclick handlers ---
 import { button_pushed_toggle_cma } from './ui/cma';

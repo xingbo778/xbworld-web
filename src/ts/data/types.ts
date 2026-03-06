@@ -41,6 +41,7 @@ export interface Tile {
   resource: number;
   continent: number;
   height?: number;
+  units?: Unit[];
   [key: string]: unknown;
 }
 

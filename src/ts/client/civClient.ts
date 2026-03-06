@@ -201,7 +201,7 @@ export function switchRenderer(): void {
 // ---------------------------------------------------------------------------
 // Auto-init on DOMContentLoaded (replaces jQuery $(document).ready)
 // Skip in test environment to prevent side-effects during module import.
-if (!(globalThis as any).__VITEST__) {
+if (!(globalThis as unknown as Record<string, unknown>).__VITEST__) {
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
       if (!store.civclientState) {

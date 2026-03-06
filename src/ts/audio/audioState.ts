@@ -2,7 +2,7 @@
  * Shared audio state — used by civClient.ts and options.ts.
  *
  * Centralises the module-level variables that were previously stored
- * on `window` via `(window as any)`.
+ * on `window` via a typed cast.
  */
 
 /** audiojs player instance shape */

@@ -34,23 +34,21 @@ export function tileResource(ptile: Tile | null): number | null {
  * Migrated from tile.js tile_has_territory_claiming_extra().
  */
 export function tileHasTerritoryClaimingExtra(ptile: Tile): boolean {
-  /* eslint-disable @typescript-eslint/no-explicit-any */
-  const win = window as any;
-  const rulesetControl = win.ruleset_control;
+  const win = window as unknown as Record<string, unknown>;
+  const rulesetControl = win.ruleset_control as Record<string, unknown> | undefined;
   if (!rulesetControl) return false;
 
-  const numExtras = rulesetControl['num_extra_types'] ?? 0;
+  const numExtras = (rulesetControl['num_extra_types'] as number) ?? 0;
   for (let extra = 0; extra < numExtras; extra++) {
     if (
       tileHasExtra(ptile, extra) &&
       typeof win.territory_claiming_extra === 'function' &&
       typeof win.extra_by_number === 'function' &&
-      win.territory_claiming_extra(win.extra_by_number(extra))
+      (win.territory_claiming_extra as (e: unknown) => boolean)((win.extra_by_number as (n: number) => unknown)(extra))
     ) {
       return true;
     }
   }
-  /* eslint-enable @typescript-eslint/no-explicit-any */
   return false;
 }
 

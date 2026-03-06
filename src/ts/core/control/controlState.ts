@@ -70,7 +70,7 @@ export function setGotoLastOrder(v: number) { goto_last_order = v; }
 export function setGotoLastAction(v: number) { goto_last_action = v; }
 export function setGotoRequestMap(v: { [key: string]: true | (Record<string, unknown> & { unit_id: number; dest: number; dir: number[]; length: number; turns: number }) }) { goto_request_map = v; }
 export function setGotoTurnsRequestMap(v: { [key: string]: number }) { goto_turns_request_map = v; }
-export function setCurrentGotoTurns(v: number) { current_goto_turns = v; }
+export function setCurrentGotoTurns(v: number | null) { current_goto_turns = v as number; }
 
 // ---------------------------------------------------------------------------
 // Selection constants

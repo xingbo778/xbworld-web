@@ -28,7 +28,7 @@ const improvements_name_index: Record<string, number> = {};
  */
 export function improvements_init(): void {
   const improvements = store.improvements;
-  Object.keys(improvements).forEach((k) => delete (improvements as any)[k]);
+  Object.keys(improvements).forEach((k) => delete (improvements as Record<string, unknown>)[k]);
   Object.keys(improvements_name_index).forEach(
     (k) => delete improvements_name_index[k]
   );
@@ -76,16 +76,17 @@ export function is_wonder(improvement: Improvement): boolean {
  * Returns list of tech ids which are a requirement for the given improvement.
  */
 export function get_improvement_requirements(improvementId: number): number[] {
-  const improvements: Record<number, any> = store.improvements;
+  const improvements = store.improvements;
   const result: number[] = [];
   const improvement = improvements[improvementId];
-  if (improvement != null && improvement['reqs'] != null) {
-    for (let i = 0; i < improvement['reqs'].length; i++) {
+  const reqs = improvement != null ? improvement['reqs'] as Record<string, unknown>[] | undefined : undefined;
+  if (reqs != null) {
+    for (let i = 0; i < reqs.length; i++) {
       if (
-        improvement['reqs'][i]['kind'] == 1 &&
-        improvement['reqs'][i]['present']
+        reqs[i]['kind'] == 1 &&
+        reqs[i]['present']
       ) {
-        result.push(improvement['reqs'][i]['value']);
+        result.push(reqs[i]['value'] as number);
       }
     }
   }

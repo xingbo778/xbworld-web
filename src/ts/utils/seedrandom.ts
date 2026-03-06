@@ -33,5 +33,5 @@ function seedrandom(_seed: string): () => number {
 export { seedrandom };
 
 // Legacy compatibility
-(Math as any).seedrandom = seedrandom;
+(Math as unknown as Record<string, unknown>).seedrandom = seedrandom;
 (window as unknown as Record<string, unknown>)['seedrandom'] = seedrandom;
