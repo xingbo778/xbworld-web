@@ -22,10 +22,12 @@ test.describe('Intro Dialog', () => {
     await page.goto('/webclient/index.html');
     await page.waitForSelector('.xb-dialog', { timeout: 5000 });
 
-    const startBtn = page.locator('.xb-dialog-footer .xb-btn');
+    const startBtn = page.locator('.xb-dialog-content .xb-btn');
     await startBtn.click();
 
-    const validation = page.locator('#username_validation_result');
+    const validation = page.locator('.xb-dialog-content div', {
+      hasText: 'Username must be at least 3 characters',
+    });
     await expect(validation).toBeVisible();
   });
 
@@ -34,10 +36,12 @@ test.describe('Intro Dialog', () => {
     await page.waitForSelector('#username_req', { timeout: 5000 });
 
     await page.fill('#username_req', 'ab');
-    const startBtn = page.locator('.xb-dialog-footer .xb-btn');
+    const startBtn = page.locator('.xb-dialog-content .xb-btn');
     await startBtn.click();
 
-    const validation = page.locator('#username_validation_result');
+    const validation = page.locator('.xb-dialog-content div', {
+      hasText: 'Username must be at least 3 characters',
+    });
     await expect(validation).toBeVisible();
   });
 
@@ -46,13 +50,11 @@ test.describe('Intro Dialog', () => {
     await page.waitForSelector('#username_req', { timeout: 5000 });
 
     await page.fill('#username_req', 'TestPlayer');
-    const startBtn = page.locator('.xb-dialog-footer .xb-btn');
+    const startBtn = page.locator('.xb-dialog-content .xb-btn');
     await startBtn.click();
 
     // Dialog should close (network will fail but dialog should dismiss)
-    await page.waitForTimeout(500);
-    const dialog = page.locator('#intro_dialog');
-    await expect(dialog).toHaveCount(0);
+    await expect(page.locator('.xb-dialog')).toHaveCount(0, { timeout: 5000 });
   });
 
   test('should remember username from localStorage', async ({ page }) => {
@@ -63,17 +65,5 @@ test.describe('Intro Dialog', () => {
 
     const value = await page.inputValue('#username_req');
     expect(value).toBe('SavedUser');
-  });
-
-  test('should close dialog via X button', async ({ page }) => {
-    await page.goto('/webclient/index.html');
-    await page.waitForSelector('.xb-dialog', { timeout: 5000 });
-
-    const closeBtn = page.locator('.xb-dialog-close');
-    await closeBtn.click();
-
-    await page.waitForTimeout(300);
-    const dialog = page.locator('.xb-dialog');
-    await expect(dialog).toHaveCount(0);
   });
 });

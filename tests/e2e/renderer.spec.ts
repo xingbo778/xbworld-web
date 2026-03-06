@@ -3,7 +3,9 @@ import { test, expect } from '@playwright/test';
 test.describe('PixiJS Renderer', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/webclient/index.html');
+    await page.waitForSelector('.xb-dialog, .ui-dialog', { timeout: 10000 }).catch(() => {});
     await page.evaluate(() => {
+      document.querySelectorAll('.xb-dialog, .xb-dialog-overlay, .ui-dialog, #xb-ui-dialog-overlay').forEach((d) => d.remove());
       const pregame = document.getElementById('pregame_page');
       const gamePage = document.getElementById('game_page');
       if (pregame) pregame.style.display = 'none';
