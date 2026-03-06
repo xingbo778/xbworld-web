@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('PixiJS Renderer', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/src/main/webapp/webclient/index.html');
+    await page.goto('/webclient/index.html');
     await page.evaluate(() => {
       const pregame = document.getElementById('pregame_page');
       const gamePage = document.getElementById('game_page');

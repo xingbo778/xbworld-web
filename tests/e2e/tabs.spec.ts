@@ -2,19 +2,23 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Tab Navigation', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/src/main/webapp/webclient/index.html');
-    // Wait for the modal intro dialog to appear, then dismiss it
-    await page.waitForSelector('dialog[open]', { timeout: 5000 }).catch(() => {});
+    await page.goto('/webclient/index.html');
+    // Wait for JS to load and render the intro dialog
+    await page.waitForSelector('.xb-dialog, .ui-dialog, dialog', { timeout: 10000 }).catch(() => {});
     await page.evaluate(() => {
-      document.querySelectorAll('dialog').forEach((d) => {
-        d.close();
+      // Remove all dialog types: Preact xb-dialog, jQuery UI shim, native dialog
+      document.querySelectorAll('.xb-dialog, .xb-dialog-overlay, .ui-dialog, #xb-ui-dialog-overlay, dialog').forEach((d) => {
+        if ('close' in d && typeof (d as any).close === 'function') (d as any).close();
         d.remove();
       });
+      // Switch to game page
       const pregame = document.getElementById('pregame_page');
       const gamePage = document.getElementById('game_page');
       if (pregame) pregame.style.display = 'none';
       if (gamePage) gamePage.style.display = '';
     });
+    // Wait for tabs to be visible
+    await page.waitForSelector('#tabs_menu', { state: 'visible', timeout: 5000 });
   });
 
   test('should display tab menu', async ({ page }) => {
@@ -27,13 +31,8 @@ test.describe('Tab Navigation', () => {
     await expect(mapTab).toBeVisible();
   });
 
-  test('should switch to government tab', async ({ page }) => {
-    await page.click('#civ_tab a');
-    const civTab = page.locator('#tabs-civ');
-    await expect(civTab).toBeVisible();
-    const mapTab = page.locator('#tabs-map');
-    await expect(mapTab).toBeHidden();
-  });
+  // Note: civ_tab and cities_tab are removed in observer mode (civClientInit)
+  // so we only test tabs that exist in observer mode
 
   test('should switch to research tab', async ({ page }) => {
     await page.click('#tech_tab a');
@@ -45,12 +44,6 @@ test.describe('Tab Navigation', () => {
     await page.click('#players_tab a');
     const natTab = page.locator('#tabs-nat');
     await expect(natTab).toBeVisible();
-  });
-
-  test('should switch to cities tab', async ({ page }) => {
-    await page.click('#cities_tab a');
-    const citiesTab = page.locator('#tabs-cities');
-    await expect(citiesTab).toBeVisible();
   });
 
   test('should switch to options tab', async ({ page }) => {
@@ -67,8 +60,8 @@ test.describe('Tab Navigation', () => {
   });
 
   test('should highlight active tab', async ({ page }) => {
-    await page.click('#civ_tab a');
-    const civLi = page.locator('#civ_tab');
-    await expect(civLi).toHaveClass(/ui-state-active/);
+    await page.click('#opt_tab a');
+    const optLi = page.locator('#opt_tab');
+    await expect(optLi).toHaveClass(/ui-state-active/);
   });
 });

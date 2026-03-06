@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Intro Dialog', () => {
   test('should show intro dialog on load', async ({ page }) => {
-    await page.goto('/src/main/webapp/webclient/index.html');
+    await page.goto('/webclient/index.html');
     await page.waitForSelector('.xb-dialog', { timeout: 5000 });
 
     const dialog = page.locator('.xb-dialog');
@@ -10,7 +10,7 @@ test.describe('Intro Dialog', () => {
   });
 
   test('should have a username input field', async ({ page }) => {
-    await page.goto('/src/main/webapp/webclient/index.html');
+    await page.goto('/webclient/index.html');
     await page.waitForSelector('#username_req', { timeout: 5000 });
 
     const input = page.locator('#username_req');
@@ -19,7 +19,7 @@ test.describe('Intro Dialog', () => {
   });
 
   test('should validate empty username', async ({ page }) => {
-    await page.goto('/src/main/webapp/webclient/index.html');
+    await page.goto('/webclient/index.html');
     await page.waitForSelector('.xb-dialog', { timeout: 5000 });
 
     const startBtn = page.locator('.xb-dialog-footer .xb-btn');
@@ -30,7 +30,7 @@ test.describe('Intro Dialog', () => {
   });
 
   test('should validate short username', async ({ page }) => {
-    await page.goto('/src/main/webapp/webclient/index.html');
+    await page.goto('/webclient/index.html');
     await page.waitForSelector('#username_req', { timeout: 5000 });
 
     await page.fill('#username_req', 'ab');
@@ -42,7 +42,7 @@ test.describe('Intro Dialog', () => {
   });
 
   test('should accept valid username and close dialog', async ({ page }) => {
-    await page.goto('/src/main/webapp/webclient/index.html');
+    await page.goto('/webclient/index.html');
     await page.waitForSelector('#username_req', { timeout: 5000 });
 
     await page.fill('#username_req', 'TestPlayer');
@@ -56,7 +56,7 @@ test.describe('Intro Dialog', () => {
   });
 
   test('should remember username from localStorage', async ({ page }) => {
-    await page.goto('/src/main/webapp/webclient/index.html');
+    await page.goto('/webclient/index.html');
     await page.evaluate(() => localStorage.setItem('username', 'SavedUser'));
     await page.reload();
     await page.waitForSelector('#username_req', { timeout: 5000 });
@@ -66,7 +66,7 @@ test.describe('Intro Dialog', () => {
   });
 
   test('should close dialog via X button', async ({ page }) => {
-    await page.goto('/src/main/webapp/webclient/index.html');
+    await page.goto('/webclient/index.html');
     await page.waitForSelector('.xb-dialog', { timeout: 5000 });
 
     const closeBtn = page.locator('.xb-dialog-close');

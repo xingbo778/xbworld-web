@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Keyboard Controls', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/src/main/webapp/webclient/index.html');
+    await page.goto('/webclient/index.html');
     await page.waitForSelector('dialog[open]', { timeout: 5000 }).catch(() => {});
     await page.evaluate(() => {
       document.querySelectorAll('dialog').forEach((d) => {
