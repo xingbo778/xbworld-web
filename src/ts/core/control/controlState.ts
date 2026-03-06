@@ -6,6 +6,7 @@
  */
 
 import { IDENTITY_NUMBER_ZERO } from '../../core/constants';
+import type { Unit } from '../../data/types';
 
 // ---------------------------------------------------------------------------
 // Mouse state
@@ -40,13 +41,13 @@ export function setBases(v: any[]) { bases = v; }
 // ---------------------------------------------------------------------------
 // Unit focus state
 // ---------------------------------------------------------------------------
-export let current_focus: any[] = [];
-export let urgent_focus_queue: any[] = [];
-export let waiting_units_list: any[] = [];
+export let current_focus: Unit[] = [];
+export let urgent_focus_queue: Unit[] = [];
+export let waiting_units_list: number[] = [];
 
-export function setCurrentFocus(v: any[]) { current_focus = v; }
-export function setUrgentFocusQueue(v: any[]) { urgent_focus_queue = v; }
-export function setWaitingUnitsList(v: any[]) { waiting_units_list = v; }
+export function setCurrentFocus(v: Unit[]) { current_focus = v; }
+export function setUrgentFocusQueue(v: Unit[]) { urgent_focus_queue = v; }
+export function setWaitingUnitsList(v: number[]) { waiting_units_list = v; }
 
 // ---------------------------------------------------------------------------
 // Goto state
@@ -87,7 +88,7 @@ export let resize_enabled: boolean = true;
 export let show_citybar: boolean = true;
 export let context_menu_active: boolean = true;
 export let has_movesleft_warning_been_shown: boolean = false;
-export let game_unit_panel_state: any = null;
+export let game_unit_panel_state: string | null = null;
 export let end_turn_info_message_shown: boolean = false;
 
 export function setIntroClickDescription(v: boolean) { intro_click_description = v; }
@@ -95,7 +96,7 @@ export function setResizeEnabled(v: boolean) { resize_enabled = v; }
 export function setShowCitybar(v: boolean) { show_citybar = v; }
 export function setContextMenuActive(v: boolean) { context_menu_active = v; }
 export function setHasMovesleftWarningBeenShown(v: boolean) { has_movesleft_warning_been_shown = v; }
-export function setGameUnitPanelState(v: any) { game_unit_panel_state = v; }
+export function setGameUnitPanelState(v: string | null) { game_unit_panel_state = v; }
 export function setEndTurnInfoMessageShown(v: boolean) { end_turn_info_message_shown = v; }
 
 // ---------------------------------------------------------------------------

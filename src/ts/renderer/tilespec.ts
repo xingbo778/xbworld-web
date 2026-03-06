@@ -477,7 +477,7 @@ export function fill_sprite_array(layer: number, ptile: any, pedge: any, pcorner
 
       if (active_city != null && ptile != null && ptile['worked'] != null
         && active_city['id'] == ptile['worked'] && active_city['output_food'] != null) {
-        const ctile = city_tile(active_city);
+        const ctile = city_tile(active_city)!;
         const d = map_distance_vector(ctile, ptile);
         const idx = get_city_dxy_to_index(d[0], d[1], active_city);
 

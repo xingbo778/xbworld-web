@@ -74,6 +74,14 @@ import {
   RPT_POSSIBLE,
 } from './fcTypes';
 import { playerInventionState, TECH_KNOWN } from './tech';
+import type { Player } from './types';
+
+export interface Requirement {
+  kind: number;
+  range: number;
+  value: number;
+  present: boolean;
+}
 
 // ---------------------------------------------------------------------------
 // Functions
@@ -121,13 +129,13 @@ export function isTechInRange(
  */
 export function isReqActive(
   targetPlayer: any,
-  targetCity: any,
-  targetBuilding: any,
-  targetTile: any,
-  targetUnittype: any,
-  targetOutput: any,
-  targetSpecialist: any,
-  req: any,
+  targetCity: unknown,
+  targetBuilding: unknown,
+  targetTile: unknown,
+  targetUnittype: unknown,
+  targetOutput: unknown,
+  targetSpecialist: unknown,
+  req: Requirement,
   probType: number,
 ): boolean {
   let result = TRI_NO;
@@ -217,13 +225,13 @@ export function isReqActive(
  */
 export function areReqsActive(
   targetPlayer: any,
-  targetCity: any,
-  targetBuilding: any,
-  targetTile: any,
-  targetUnittype: any,
-  targetOutput: any,
-  targetSpecialist: any,
-  reqs: any[],
+  targetCity: unknown,
+  targetBuilding: unknown,
+  targetTile: unknown,
+  targetUnittype: unknown,
+  targetOutput: unknown,
+  targetSpecialist: unknown,
+  reqs: Requirement[],
   probType: number,
 ): boolean {
   for (let i = 0; i < reqs.length; i++) {
@@ -249,7 +257,7 @@ export function areReqsActive(
 /**
  * Return the number of shields it takes to build this universal.
  */
-export function universalBuildShieldCost(_pcity: any, target: any): number {
+export function universalBuildShieldCost(_pcity: unknown, target: { build_cost: number }): number {
   return target['build_cost'];
 }
 

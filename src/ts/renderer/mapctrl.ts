@@ -315,12 +315,12 @@ export function recenter_button_pressed(canvas_x: number, canvas_y: number): voi
   const orig_tile = ptile;
 
   /* Prevent the user from scrolling outside the map. */
-  if (ptile != null && ptile['y'] > ((store.mapInfo as any)['ysize'] - map_scroll_border)
-      && (store.mapInfo as any)['xsize'] > big_map_size && (store.mapInfo as any)['ysize'] > big_map_size) {
-    ptile = map_pos_to_tile(ptile['x'], (store.mapInfo as any)['ysize'] - map_scroll_border);
+  if (ptile != null && ptile['y'] > (store.mapInfo!.ysize - map_scroll_border)
+      && store.mapInfo!.xsize > big_map_size && store.mapInfo!.ysize > big_map_size) {
+    ptile = map_pos_to_tile(ptile['x'], store.mapInfo!.ysize - map_scroll_border);
   }
   if (ptile != null && ptile['y'] < map_scroll_border
-      && (store.mapInfo as any)['xsize'] > big_map_size && (store.mapInfo as any)['ysize'] > big_map_size) {
+      && store.mapInfo!.xsize > big_map_size && store.mapInfo!.ysize > big_map_size) {
     ptile = map_pos_to_tile(ptile['x'], map_scroll_border);
   }
 

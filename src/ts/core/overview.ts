@@ -45,7 +45,7 @@ export let min_overview_width: number = 200;
 export let max_overview_width: number = 300;
 export let max_overview_height: number = 300;
 
-export let OVERVIEW_REFRESH: any;
+export let OVERVIEW_REFRESH: ReturnType<typeof setInterval> | undefined;
 
 export let palette: number[][] = [];
 export let palette_color_offset: number = 0;
@@ -64,14 +64,14 @@ export const COLOR_OVERVIEW_ENEMY_UNIT: number = 6; /* red */
 export const COLOR_OVERVIEW_VIEWRECT: number = 7; /* white */
 
 export let overview_hash: number = -1;
-export let overview_current_state: any = null;
+export let overview_current_state: Record<string, unknown> | null = null;
 
 
 /****************************************************************************
   Initialize the overview map.
 ****************************************************************************/
 export function init_overview(): void {
-  while (min_overview_width > OVERVIEW_TILE_SIZE * (store.mapInfo as any)['xsize']) {
+  while (min_overview_width > OVERVIEW_TILE_SIZE * store.mapInfo!.xsize) {
     OVERVIEW_TILE_SIZE++;
   }
 
@@ -87,9 +87,9 @@ export function init_overview(): void {
 
   redraw_overview();
 
-  let new_width = OVERVIEW_TILE_SIZE * (store.mapInfo as any)['xsize'];
+  let new_width = OVERVIEW_TILE_SIZE * store.mapInfo!.xsize;
   if (new_width > max_overview_width) new_width = max_overview_width;
-  let new_height = OVERVIEW_TILE_SIZE * (store.mapInfo as any)['ysize'];
+  let new_height = OVERVIEW_TILE_SIZE * store.mapInfo!.ysize;
   if (new_height > max_overview_height) new_height = max_overview_height;
 
   const overviewMap = document.getElementById('overview_map');
@@ -105,14 +105,14 @@ export function init_overview(): void {
 ****************************************************************************/
 export function redraw_overview(): void {
   if (!overview_active || mapview_slide['active'] || C_S_RUNNING > client_state()
-      || (store.mapInfo as any)['xsize'] == null || (store.mapInfo as any)['ysize'] == null
+      || store.mapInfo!.xsize == null || store.mapInfo!.ysize == null
       || !document.getElementById('overview_map')) return;
 
-  const hash: number = generate_overview_hash((store.mapInfo as any)['xsize'], (store.mapInfo as any)['ysize']);
+  const hash: number = generate_overview_hash(store.mapInfo!.xsize, store.mapInfo!.ysize);
 
   if (hash != overview_hash) {
     renderOverviewToCanvas(
-      generate_overview_grid((store.mapInfo as any)['xsize'], (store.mapInfo as any)['ysize']),
+      generate_overview_grid(store.mapInfo!.xsize, store.mapInfo!.ysize),
       palette
     );
     overview_hash = hash;
@@ -192,7 +192,7 @@ export function generate_overview_hash(cols: number, rows: number): number {
     }
   }
 
-  const r: any = base_canvas_to_map_pos(0, 0);
+  const r = base_canvas_to_map_pos(0, 0);
   if (r != null) {
     hash += r['map_x'];
     hash += r['map_y'];
@@ -210,7 +210,7 @@ export function render_viewrect(): void {
 
   if (mapview['gui_x0'] != 0 && mapview['gui_y0'] != 0) {
 
-    let point: any = base_canvas_to_map_pos(0, 0);
+    let point = base_canvas_to_map_pos(0, 0);
     path.push([point.map_x, point.map_y]);
     point = base_canvas_to_map_pos(mapview['width'] ?? 0, 0);
     path.push([point.map_x, point.map_y]);
@@ -235,34 +235,34 @@ export function render_viewrect(): void {
 
   viewrect_ctx.clearRect(0, 0, map_w, map_h);
   viewrect_ctx.strokeStyle = 'rgb(200,200,255)';
-  viewrect_ctx.lineWidth = (store.mapInfo as any).xsize / map_w;
-  viewrect_ctx.scale(map_w/(store.mapInfo as any).xsize, map_h/(store.mapInfo as any).ysize);
+  viewrect_ctx.lineWidth = store.mapInfo!.xsize / map_w;
+  viewrect_ctx.scale(map_w/store.mapInfo!.xsize, map_h/store.mapInfo!.ysize);
 
   viewrect_ctx.beginPath();
   add_closed_path(viewrect_ctx, path);
 
   if (wrap_has_flag(WRAP_X)) {
     viewrect_ctx.save();
-    viewrect_ctx.translate((store.mapInfo as any).xsize, 0);
+    viewrect_ctx.translate(store.mapInfo!.xsize, 0);
     add_closed_path(viewrect_ctx, path);
-    viewrect_ctx.translate(-2 * (store.mapInfo as any).xsize, 0);
+    viewrect_ctx.translate(-2 * store.mapInfo!.xsize, 0);
     add_closed_path(viewrect_ctx, path);
     viewrect_ctx.restore();
   }
 
   if (wrap_has_flag(WRAP_Y)) {
-    viewrect_ctx.translate(0, (store.mapInfo as any).ysize);
+    viewrect_ctx.translate(0, store.mapInfo!.ysize);
     add_closed_path(viewrect_ctx, path);
-    viewrect_ctx.translate(0, -2 * (store.mapInfo as any).ysize);
+    viewrect_ctx.translate(0, -2 * store.mapInfo!.ysize);
     add_closed_path(viewrect_ctx, path);
     if (wrap_has_flag(WRAP_X)) {
-      viewrect_ctx.translate(-(store.mapInfo as any).xsize, 0);
+      viewrect_ctx.translate(-store.mapInfo!.xsize, 0);
       add_closed_path(viewrect_ctx, path);
-      viewrect_ctx.translate(0, 2 * (store.mapInfo as any).ysize);
+      viewrect_ctx.translate(0, 2 * store.mapInfo!.ysize);
       add_closed_path(viewrect_ctx, path);
-      viewrect_ctx.translate(2 * (store.mapInfo as any).xsize, 0);
+      viewrect_ctx.translate(2 * store.mapInfo!.xsize, 0);
       add_closed_path(viewrect_ctx, path);
-      viewrect_ctx.translate(0, -2 * (store.mapInfo as any).ysize);
+      viewrect_ctx.translate(0, -2 * store.mapInfo!.ysize);
       add_closed_path(viewrect_ctx, path);
     }
   }
@@ -283,7 +283,7 @@ export function add_closed_path(ctx: CanvasRenderingContext2D, path: number[][])
   ...
 ****************************************************************************/
 export function render_multipixel(grid: number[][], x: number, y: number, ocolor: number): void {
-  if (x >= 0 && y >= 0 && x < (store.mapInfo as any)['ysize'] && y < (store.mapInfo as any)['xsize']) {
+  if (x >= 0 && y >= 0 && x < store.mapInfo!.ysize && y < store.mapInfo!.xsize) {
     for (let px = 0; px < OVERVIEW_TILE_SIZE; px++) {
       for (let py = 0; py < OVERVIEW_TILE_SIZE; py++) {
           grid[(OVERVIEW_TILE_SIZE*x)+px][(OVERVIEW_TILE_SIZE*y)+py] = ocolor;
@@ -382,8 +382,8 @@ export function overview_clicked (x: number, y: number): void {
   const width: number = overviewMap?.offsetWidth ?? 200;
   const height: number = overviewMap?.offsetHeight ?? 200;
 
-  const x1: number = Math.floor((x * (store.mapInfo as any)['xsize']) / width);
-  const y1: number = Math.floor((y * (store.mapInfo as any)['ysize']) / height);
+  const x1: number = Math.floor((x * store.mapInfo!.xsize) / width);
+  const y1: number = Math.floor((y * store.mapInfo!.ysize) / height);
 
   const ptile: any = map_pos_to_tile(x1, y1);
   if (ptile != null) {
