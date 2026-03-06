@@ -135,7 +135,7 @@ import './ui/helpdata';
 import './ui/intelDialog';
 import './ui/options';
 import './components/Dialogs/PillageDialog';
-import './ui/rates';
+// rates: replaced by Preact RatesDialog component
 
 // ---------------------------------------------------------------------------
 // Step 3: Register all exports to window (transitional).

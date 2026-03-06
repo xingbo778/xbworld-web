@@ -6,6 +6,7 @@ import { IntroDialog } from './Dialogs/IntroDialog';
 import { IntelDialog } from './Dialogs/IntelDialog';
 import { SwalDialog } from './Dialogs/SwalDialog';
 import { GovernmentDialog } from './Dialogs/GovernmentDialog';
+import { RatesDialog } from './Dialogs/RatesDialog';
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
       <IntelDialog />
       <SwalDialog />
       <GovernmentDialog />
+      <RatesDialog />
     </div>
   );
 }

@@ -46,7 +46,7 @@ w['remove_clause_req'] = remove_clause_req;
 import { nationTableSelectPlayer as nation_table_select_player } from './data/nation';
 w['nation_table_select_player'] = nation_table_select_player;
 
-import { show_tax_rates_dialog } from './ui/rates';
+import { show_tax_rates_dialog } from './components/Dialogs/RatesDialog';
 w['show_tax_rates_dialog'] = show_tax_rates_dialog;
 
 import { center_tile_id } from './renderer/mapviewCommon';

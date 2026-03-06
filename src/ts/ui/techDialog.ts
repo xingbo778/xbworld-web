@@ -4,7 +4,7 @@ import { store } from '../data/store';
 import { playerInventionState as player_invention_state, techIdByName as tech_id_by_name, TECH_KNOWN, TECH_UNKNOWN, TECH_PREREQS_KNOWN } from '../data/tech';
 import { getCurrentBulbsOutput as get_current_bulbs_output, getCurrentBulbsOutputText as get_current_bulbs_output_text } from '../data/tech';
 import { isTechReqForGoal as is_tech_req_for_goal, isTechReqForTech as is_tech_req_for_tech } from '../data/tech';
-import { update_net_bulbs } from '../ui/rates';
+import { update_net_bulbs } from '../components/Dialogs/RatesDialog';
 import { tileset_tech_graphic_tag, tileset_unit_type_graphic_tag, tileset_building_graphic_tag } from '../renderer/tilespec';
 import { tileset_name } from '../renderer/tilesetConfig';
 import { getTilesetFileExtension as get_tileset_file_extention } from '../utils/helpers';

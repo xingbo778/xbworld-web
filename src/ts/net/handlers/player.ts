@@ -11,7 +11,7 @@ import { tileOwner } from '../../data/tile';
 import { indexToTile } from '../../data/map';
 import { update_game_status_panel } from '../../data/game';
 import { game_find_unit_by_number, game_find_city_by_number } from '../../data/game';
-import { update_net_income } from '../../ui/rates';
+import { update_net_income } from '../../components/Dialogs/RatesDialog';
 import { update_tech_screen, is_tech_tree_init, tech_dialog_active } from '../../ui/techDialog';
 import { assign_nation_color } from '../../renderer/nationColor';
 import { update_player_info_pregame } from '../../core/pregame';
