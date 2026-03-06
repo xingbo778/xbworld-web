@@ -6,6 +6,7 @@
  * in legacy city.js until the UI layer migration phase.
  */
 
+import type { City, Tile, Player, UnitType, Improvement } from './types';
 import {
   FC_INFINITY,
   VUT_UTYPE,
@@ -49,6 +50,20 @@ export const MAX_LEN_WORKLIST = 64;
 export const INCITE_IMPOSSIBLE_COST = 1000 * 1000 * 1000;
 
 // ---------------------------------------------------------------------------
+// Production list item type
+// ---------------------------------------------------------------------------
+export interface ProductionItem {
+  kind: number;
+  value: number;
+  text: string;
+  helptext: unknown;
+  rule_name: string;
+  build_cost: number | string;
+  unit_details: string;
+  sprite: unknown;
+}
+
+// ---------------------------------------------------------------------------
 // Internal state for city tile map (replaces global city_tile_map)
 // ---------------------------------------------------------------------------
 let cityTileMap: {
@@ -63,19 +78,19 @@ let cityTileMap: {
 // ---------------------------------------------------------------------------
 
 /** Returns the tile object for a city. */
-export function cityTile(pcity: any): any {
+export function cityTile(pcity: City | null | undefined): Tile | null {
   if (pcity == null) return null;
   return indexToTile(pcity['tile']);
 }
 
 /** Returns the player id (owner) of a city. */
-export function cityOwnerPlayerId(pcity: any): number | null {
+export function cityOwnerPlayerId(pcity: City | null | undefined): number | null {
   if (pcity == null) return null;
   return pcity['owner'];
 }
 
 /** Returns the player object that owns the city. */
-export function cityOwner(pcity: any): any {
+export function cityOwner(pcity: City): Player {
   return store.players[cityOwnerPlayerId(pcity)!];
 }
 
@@ -98,17 +113,17 @@ export function removeCity(pcityId: number): void {
 }
 
 /** Returns true if the tile is the city center. */
-export function isCityCenter(city: any, tile: any): boolean {
+export function isCityCenter(city: City, tile: Tile): boolean {
   return city['tile'] === tile['index'];
 }
 
 /** Returns true if the tile is free-worked (same as city center). */
-export function isFreeWorked(city: any, tile: any): boolean {
+export function isFreeWorked(city: City, tile: Tile): boolean {
   return city['tile'] === tile['index'];
 }
 
 /** Returns true if the city is the primary capital. */
-export function isPrimaryCapital(city: any): boolean {
+export function isPrimaryCapital(city: City): boolean {
   return city['capital'] === CAPITAL_PRIMARY;
 }
 
@@ -117,7 +132,7 @@ export function isPrimaryCapital(city: any): boolean {
 // ---------------------------------------------------------------------------
 
 /** Returns the sprite and type info for the city's current production. */
-export function getCityProductionTypeSprite(pcity: any): any {
+export function getCityProductionTypeSprite(pcity: City | null): { type: UnitType | Improvement; sprite: unknown } | null {
   if (pcity == null) return null;
   if (pcity['production_kind'] === VUT_UTYPE) {
     const punitType = store.unitTypes[pcity['production_value']];
@@ -137,7 +152,7 @@ export function getCityProductionTypeSprite(pcity: any): any {
 }
 
 /** Returns the type object (unit type or improvement) being produced. */
-export function getCityProductionType(pcity: any): any {
+export function getCityProductionType(pcity: City | null): UnitType | Improvement | null {
   if (pcity == null) return null;
   if (pcity['production_kind'] === VUT_UTYPE) {
     return store.unitTypes[pcity['production_value']];
@@ -153,8 +168,8 @@ export function getCityProductionType(pcity: any): any {
  * GUI Independent.
  */
 export function cityTurnsToBuild(
-  pcity: any,
-  target: any,
+  pcity: City,
+  target: { build_cost: number },
   includeShieldStock: boolean,
 ): number {
   const citySurplus = pcity['surplus'][O_SHIELD];
@@ -171,7 +186,7 @@ export function cityTurnsToBuild(
 }
 
 /** Returns the number of turns to complete current city production. */
-export function getCityProductionTime(pcity: any): number {
+export function getCityProductionTime(pcity: City | null): number {
   if (pcity == null) return FC_INFINITY;
 
   if (pcity['production_kind'] === VUT_UTYPE) {
@@ -191,7 +206,7 @@ export function getCityProductionTime(pcity: any): number {
 }
 
 /** Returns city production progress string, e.g. "5/30". */
-export function getProductionProgress(pcity: any): string {
+export function getProductionProgress(pcity: City | null): string {
   if (pcity == null) return ' ';
 
   if (pcity['production_kind'] === VUT_UTYPE) {
@@ -219,8 +234,8 @@ export function getProductionProgress(pcity: any): string {
 }
 
 /** Generates the full production list (units + improvements). */
-export function generateProductionList(): any[] {
-  const productionList: any[] = [];
+export function generateProductionList(): ProductionItem[] {
+  const productionList: ProductionItem[] = [];
 
   for (const unitTypeId in store.unitTypes) {
     const punitType = store.unitTypes[unitTypeId];
@@ -316,7 +331,7 @@ export function canCityBuildNow(
 export function cityHasBuilding(pcity: any, improvementId: number): boolean {
   return (
     0 <= improvementId &&
-    improvementId < (store.rulesControl as any).num_impr_types &&
+    improvementId < (store.rulesControl as Record<string, number>).num_impr_types &&
     pcity['improvements'] &&
     pcity['improvements'].isSet(improvementId)
   );
@@ -329,7 +344,7 @@ export function doesCityHaveImprovement(
 ): boolean {
   if (pcity == null || pcity['improvements'] == null) return false;
 
-  for (let z = 0; z < (store.rulesControl as any).num_impr_types; z++) {
+  for (let z = 0; z < (store.rulesControl as Record<string, number>).num_impr_types; z++) {
     if (
       pcity['improvements'] != null &&
       pcity['improvements'].isSet(z) &&
@@ -371,7 +386,7 @@ export function cityTurnsToGrowthText(pcity: any): string {
 }
 
 /** Return TRUE iff the city is unhappy. */
-export function cityUnhappy(pcity: any): boolean {
+export function cityUnhappy(pcity: City): boolean {
   return (
     pcity['ppl_happy'][FEELING_FINAL] <
     pcity['ppl_unhappy'][FEELING_FINAL] +
@@ -380,7 +395,7 @@ export function cityUnhappy(pcity: any): boolean {
 }
 
 /** Returns how many thousand citizens live in this city. */
-export function cityPopulation(pcity: any): number {
+export function cityPopulation(pcity: City): number {
   return pcity['size'] * (pcity['size'] + 1) * 5;
 }
 
@@ -400,7 +415,7 @@ export function dxyToCenterIndex(dx: number, dy: number, r: number): number {
 export function getCityDxyToIndex(dx: number, dy: number, pcity: any): number {
   buildCityTileMap(pcity.city_radius_sq);
   const cityTileMapIndex = dxyToCenterIndex(dx, dy, cityTileMap!.radius);
-  const ctile = cityTile(pcity);
+  const ctile = cityTile(pcity)!;
   return getCityTileMapForPos(ctile.x, ctile.y)[cityTileMapIndex];
 }
 

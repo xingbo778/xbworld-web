@@ -5,6 +5,7 @@
  */
 
 import { store } from '../../data/store';
+import type { Unit, Tile, City, UnitType } from '../../data/types';
 import { GameDialog } from '../../ui/GameDialog';
 import { cityOwnerPlayerId as city_owner_player_id, cityTile as city_tile, cityHasBuilding as city_has_building } from '../../data/city';
 import { unit_type, unit_list_size, unit_list_without, get_unit_homecity_name, get_unit_moves_left } from '../../data/unit';
@@ -77,7 +78,7 @@ function FC_EXTRA_FARMLAND(): number { return store.extraIds['EXTRA_FARMLAND'] ?
 // Public API
 // ---------------------------------------------------------------------------
 
-export function get_focus_unit_on_tile(ptile: any): any {
+export function get_focus_unit_on_tile(ptile: Tile): Unit | null {
   const funits = get_units_in_focus();
   if (funits == null) return null;
 
@@ -90,7 +91,7 @@ export function get_focus_unit_on_tile(ptile: any): any {
   return null;
 }
 
-export function unit_is_in_focus(cunit: any): boolean {
+export function unit_is_in_focus(cunit: Unit): boolean {
   const funits = get_units_in_focus();
   for (let i = 0; i < funits.length; i++) {
     const punit = funits[i];
@@ -105,7 +106,7 @@ export function get_units_in_focus(): any[] {
   return S.current_focus;
 }
 
-export function unit_focus_urgent(punit: any): void {
+export function unit_focus_urgent(punit: Unit): void {
   if (punit == null || punit['activity'] == null) {
     console.log("unit_focus_urgent(): not a unit");
     console.log(punit);
@@ -115,7 +116,7 @@ export function unit_focus_urgent(punit: any): void {
   S.urgent_focus_queue.push(punit);
 }
 
-export function control_unit_killed(punit: any): void {
+export function control_unit_killed(punit: Unit): void {
   if (S.urgent_focus_queue != null) {
     S.setUrgentFocusQueue(unit_list_without(S.urgent_focus_queue, punit));
   }
@@ -163,7 +164,7 @@ export function update_unit_focus(): void {
 }
 
 export function advance_unit_focus(): void {
-  let candidate: any = null;
+  let candidate: Unit | null = null;
   let i: number;
 
   if (client_is_observer()) return;
@@ -234,8 +235,8 @@ export function update_unit_order_commands(): { [key: string]: any } {
   let i: number;
   let punit: any;
   let ptype: any;
-  let pcity: any;
-  let ptile: any;
+  let pcity: City | null;
+  let ptile: Tile | undefined;
   let unit_actions: { [key: string]: any } = {};
   const funits = get_units_in_focus();
   for (i = 0; i < funits.length; i++) {
@@ -581,7 +582,7 @@ export function unit_distance_compare(unit_a: any, unit_b: any): number {
   }
 }
 
-export function set_unit_focus(punit: any): void {
+export function set_unit_focus(punit: Unit | null): void {
   S.setCurrentFocus([]);
   if (punit == null) {
     S.setCurrentFocus([]);
@@ -593,7 +594,7 @@ export function set_unit_focus(punit: any): void {
   update_unit_order_commands();
 }
 
-export function set_unit_focus_and_redraw(punit: any): void {
+export function set_unit_focus_and_redraw(punit: Unit | null): void {
   S.setCurrentFocus([]);
 
   if (punit == null) {
@@ -610,12 +611,12 @@ export function set_unit_focus_and_redraw(punit: any): void {
   if (S.current_focus.length > 0 && ordersDefault) ordersDefault.style.display = '';
 }
 
-export function set_unit_focus_and_activate(punit: any): void {
+export function set_unit_focus_and_activate(punit: Unit): void {
   set_unit_focus_and_redraw(punit);
   request_new_unit_activity(punit, FC_ACTIVITY_IDLE, FC_EXTRA_NONE);
 }
 
-export function city_dialog_activate_unit(punit: any): void {
+export function city_dialog_activate_unit(punit: Unit): void {
   request_new_unit_activity(punit, FC_ACTIVITY_IDLE, FC_EXTRA_NONE);
   close_city_dialog();
   set_unit_focus_and_redraw(punit);
@@ -632,7 +633,7 @@ export function auto_center_on_focus_unit(): void {
   }
 }
 
-export function find_a_focus_unit_tile_to_center_on(): any {
+export function find_a_focus_unit_tile_to_center_on(): Tile | undefined | null {
   const funit = S.current_focus[0];
 
   if (funit == null) return null;
@@ -640,7 +641,7 @@ export function find_a_focus_unit_tile_to_center_on(): any {
   return index_to_tile(funit['tile']);
 }
 
-export function find_visible_unit(ptile: any): any {
+export function find_visible_unit(ptile: Tile | null): any {
   let i: number;
 
   if (ptile == null || unit_list_size(tile_units_func(ptile)) == 0) {
@@ -674,7 +675,7 @@ export function find_visible_unit(ptile: any): any {
   return (tile_units_func(ptile) || [])[0];
 }
 
-export function get_drawable_unit(ptile: any, citymode: any): any {
+export function get_drawable_unit(ptile: Tile | null, citymode: any): any {
   const punit = find_visible_unit(ptile);
 
   if (punit == null) return null;

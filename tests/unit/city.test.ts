@@ -46,6 +46,7 @@ import {
   CAPITAL_PRIMARY,
   FC_INFINITY,
 } from '@/data/fcTypes';
+import type { Tile } from '@/data/types';
 import { universalBuildShieldCost } from '@/data/requirements';
 import { store } from '@/data/store';
 
@@ -172,7 +173,7 @@ describe('cityTile', () => {
 
   it('should return the tile for a city', () => {
     const city = makeCity({ tile: 25 });
-    const tile = cityTile(city);
+    const tile = cityTile(city)!;
     expect(tile.index).toBe(25);
     expect(tile.x).toBe(5);
     expect(tile.y).toBe(2);
@@ -186,24 +187,24 @@ describe('cityTile', () => {
 describe('isCityCenter', () => {
   it('should return true when tile index matches city tile', () => {
     const city = makeCity({ tile: 50 });
-    expect(isCityCenter(city, { index: 50 })).toBe(true);
+    expect(isCityCenter(city, { index: 50 } as Tile)).toBe(true);
   });
 
   it('should return false when tile index does not match', () => {
     const city = makeCity({ tile: 50 });
-    expect(isCityCenter(city, { index: 51 })).toBe(false);
+    expect(isCityCenter(city, { index: 51 } as Tile)).toBe(false);
   });
 });
 
 describe('isFreeWorked', () => {
   it('should return true for city center tile', () => {
     const city = makeCity({ tile: 50 });
-    expect(isFreeWorked(city, { index: 50 })).toBe(true);
+    expect(isFreeWorked(city, { index: 50 } as Tile)).toBe(true);
   });
 
   it('should return false for non-center tile', () => {
     const city = makeCity({ tile: 50 });
-    expect(isFreeWorked(city, { index: 49 })).toBe(false);
+    expect(isFreeWorked(city, { index: 49 } as Tile)).toBe(false);
   });
 });
 
@@ -236,12 +237,12 @@ describe('getCityProductionType', () => {
 
   it('should return unit type when production_kind is VUT_UTYPE', () => {
     const city = makeCity({ production_kind: VUT_UTYPE, production_value: 1 });
-    expect(getCityProductionType(city).name).toBe('Warriors');
+    expect(getCityProductionType(city)!.name).toBe('Warriors');
   });
 
   it('should return improvement when production_kind is VUT_IMPROVEMENT', () => {
     const city = makeCity({ production_kind: VUT_IMPROVEMENT, production_value: 10 });
-    expect(getCityProductionType(city).name).toBe('Granary');
+    expect(getCityProductionType(city)!.name).toBe('Granary');
   });
 
   it('should return null for null city', () => {
