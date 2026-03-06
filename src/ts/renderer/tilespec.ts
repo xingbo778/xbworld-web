@@ -34,6 +34,15 @@ import { show_citybar } from '../core/control/controlState';
 import { active_city, city_rules } from '../ui/cityDialog';
 import { getTilesetFileExtension } from '../utils/helpers';
 
+// Re-export extracted modules for backwards compatibility
+export { assign_nation_color, color_rbg_to_list } from './nationColor';
+export {
+  get_unit_image_sprite, get_unit_type_image_sprite,
+  get_improvement_image_sprite, get_specialist_image_sprite,
+  get_technology_image_sprite, get_treaty_agree_thumb_up,
+  get_treaty_disagree_thumb_down,
+} from './spriteGetters';
+
 // SSA constants from ServerSideAgent enum
 const SSA_NONE = ServerSideAgent.NONE;
 const SSA_AUTOWORKER = ServerSideAgent.AUTOWORKER;
@@ -1272,162 +1281,6 @@ function get_tile_river_sprite(ptile: any): any | null {
 }
 
 /****************************************************************************
- ...
-****************************************************************************/
-export function get_unit_image_sprite(punit: any): any {
-  const from_type = get_unit_type_image_sprite(unit_type(punit));
-
-  /* TODO: Find out what the purpose of this is, if it is needed here and if
-   * it is needed in get_unit_type_image_sprite() too. It was the only
-   * difference from get_unit_type_image_sprite() before
-   * get_unit_image_sprite() started to use it. It was added in
-   * f4a3ef358d1462d1f0ef7529982c417ddc402583 but that commit is to huge for
-   * me to figure out what it does. */
-  from_type["height"] = from_type["height"] - 2;
-
-  return from_type;
-}
-
-
-/****************************************************************************
- ...
-****************************************************************************/
-export function get_unit_type_image_sprite(punittype: any): any | null {
-  const tag = tileset_unit_type_graphic_tag(punittype);
-
-  if (tag == null) {
-    return null;
-  }
-
-  const tileset_x = _w.tileset[tag][0];
-  const tileset_y = _w.tileset[tag][1];
-  const width = _w.tileset[tag][2];
-  const height = _w.tileset[tag][3];
-  const i = _w.tileset[tag][4];
-  return {
-    "tag": tag,
-    "image-src": "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i + getTilesetFileExtension() + "?ts=" + _w.ts,
-    "tileset-x": tileset_x,
-    "tileset-y": tileset_y,
-    "width": width,
-    "height": height
-  };
-}
-
-/****************************************************************************
- ...
-****************************************************************************/
-export function get_improvement_image_sprite(pimprovement: any): any | null {
-  const tag = tileset_building_graphic_tag(pimprovement);
-
-  if (tag == null) {
-    return null;
-  }
-
-  const tileset_x = _w.tileset[tag][0];
-  const tileset_y = _w.tileset[tag][1];
-  const width = _w.tileset[tag][2];
-  const height = _w.tileset[tag][3];
-  const i = _w.tileset[tag][4];
-  return {
-    "tag": tag,
-    "image-src": "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i + getTilesetFileExtension() + "?ts=" + _w.ts,
-    "tileset-x": tileset_x,
-    "tileset-y": tileset_y,
-    "width": width,
-    "height": height
-  };
-}
-
-/****************************************************************************
- ...
-****************************************************************************/
-export function get_specialist_image_sprite(tag: string): any | null {
-  if (_w.tileset[tag] == null) return null;
-
-  const tileset_x = _w.tileset[tag][0];
-  const tileset_y = _w.tileset[tag][1];
-  const width = _w.tileset[tag][2];
-  const height = _w.tileset[tag][3];
-  const i = _w.tileset[tag][4];
-  return {
-    "tag": tag,
-    "image-src": "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i + getTilesetFileExtension() + "?ts=" + _w.ts,
-    "tileset-x": tileset_x,
-    "tileset-y": tileset_y,
-    "width": width,
-    "height": height
-  };
-}
-
-
-/****************************************************************************
- ...
-****************************************************************************/
-export function get_technology_image_sprite(ptech: any): any | null {
-  const tag = tileset_tech_graphic_tag(ptech);
-
-  if (tag == null) return null;
-
-  const tileset_x = _w.tileset[tag][0];
-  const tileset_y = _w.tileset[tag][1];
-  const width = _w.tileset[tag][2];
-  const height = _w.tileset[tag][3];
-  const i = _w.tileset[tag][4];
-  return {
-    "tag": tag,
-    "image-src": "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i + getTilesetFileExtension() + "?ts=" + _w.ts,
-    "tileset-x": tileset_x,
-    "tileset-y": tileset_y,
-    "width": width,
-    "height": height
-  };
-}
-
-/****************************************************************************
- ...
-****************************************************************************/
-export function get_treaty_agree_thumb_up(): any {
-  const tag = "treaty.agree_thumb_up";
-
-  const tileset_x = _w.tileset[tag][0];
-  const tileset_y = _w.tileset[tag][1];
-  const width = _w.tileset[tag][2];
-  const height = _w.tileset[tag][3];
-  const i = _w.tileset[tag][4];
-  return {
-    "tag": tag,
-    "image-src": "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i + getTilesetFileExtension() + "?ts=" + _w.ts,
-    "tileset-x": tileset_x,
-    "tileset-y": tileset_y,
-    "width": width,
-    "height": height
-  };
-}
-
-/****************************************************************************
- ...
-****************************************************************************/
-export function get_treaty_disagree_thumb_down(): any {
-  const tag = "treaty.disagree_thumb_down";
-
-  const tileset_x = _w.tileset[tag][0];
-  const tileset_y = _w.tileset[tag][1];
-  const width = _w.tileset[tag][2];
-  const height = _w.tileset[tag][3];
-  const i = _w.tileset[tag][4];
-  return {
-    "tag": tag,
-    "image-src": "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i + getTilesetFileExtension() + "?ts=" + _w.ts,
-    "tileset-x": tileset_x,
-    "tileset-y": tileset_y,
-    "width": width,
-    "height": height
-  };
-}
-
-
-/****************************************************************************
   Returns a list of tiles to draw to render roads, railroads, and maglevs.
   TODO:
     - Support generic road types
@@ -1537,53 +1390,3 @@ function fill_layer3_sprite_array(ptile: any, pcity: any): any[] {
   return result_sprites;
 }
 
-/**************************************************************************
-  Assigns the nation's color based on the color of the flag.
-**************************************************************************/
-export function assign_nation_color(nation_id: number): void {
-  const nation = store.nations[nation_id];
-  if (nation == null || nation['color'] != null) return;
-
-  const flag_key = "f." + nation['graphic_str'];
-  const flag_sprite = _w.sprites[flag_key];
-  if (flag_sprite == null) return;
-  const c = flag_sprite.getContext('2d');
-  const width = _w.tileset[flag_key][2];
-  const height = _w.tileset[flag_key][3];
-  const color_counts: Record<string, number> = {};
-  if (c == null) return;
-  const img_data = c.getImageData(1, 1, width - 2, height - 2).data;
-
-  for (let i = 0; i < img_data.length; i += 4) {
-    const current_color = "rgb(" + img_data[i] + "," + img_data[i + 1] + ","
-                        + img_data[i + 2] + ")";
-    if (current_color in color_counts) {
-      color_counts[current_color] = color_counts[current_color] + 1;
-    } else {
-      color_counts[current_color] = 1;
-    }
-  }
-
-  let max = -1;
-  let max_color: string | null = null;
-
-  for (const current_color in color_counts) {
-    if (color_counts[current_color] > max) {
-      max = color_counts[current_color];
-      max_color = current_color;
-    }
-  }
-
-  nation['color'] = max_color;
-}
-
-
-/**************************************************************************
-  Convert RGB color string to number array.
-**************************************************************************/
-export function color_rbg_to_list(pcolor: string | null): number[] | null {
-  if (pcolor == null) return null;
-  const color_rgb = pcolor.match(/\d+/g);
-  if (!color_rgb) return null;
-  return [parseFloat(color_rgb[0]), parseFloat(color_rgb[1]), parseFloat(color_rgb[2])];
-}

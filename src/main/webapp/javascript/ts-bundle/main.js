@@ -1742,20 +1742,20 @@ function is_capital(pcity) {
   }
   return false;
 }
-const _w$4 = window;
-_w$4["MAX_NUM_PLAYERS"] = MAX_NUM_PLAYERS;
-_w$4["MAX_AI_LOVE"] = MAX_AI_LOVE$1;
-_w$4["DS_ARMISTICE"] = 0;
-_w$4["DS_WAR"] = 1;
-_w$4["DS_CEASEFIRE"] = 2;
-_w$4["DS_PEACE"] = 3;
-_w$4["DS_ALLIANCE"] = 4;
-_w$4["DS_NO_CONTACT"] = 5;
-_w$4["DS_TEAM"] = 6;
-_w$4["DS_LAST"] = 7;
-_w$4["PLRF_AI"] = 0;
-_w$4["PLRF_SCENARIO_RESERVED"] = 1;
-_w$4["PLRF_COUNT"] = 2;
+const _w$6 = window;
+_w$6["MAX_NUM_PLAYERS"] = MAX_NUM_PLAYERS;
+_w$6["MAX_AI_LOVE"] = MAX_AI_LOVE$1;
+_w$6["DS_ARMISTICE"] = 0;
+_w$6["DS_WAR"] = 1;
+_w$6["DS_CEASEFIRE"] = 2;
+_w$6["DS_PEACE"] = 3;
+_w$6["DS_ALLIANCE"] = 4;
+_w$6["DS_NO_CONTACT"] = 5;
+_w$6["DS_TEAM"] = 6;
+_w$6["DS_LAST"] = 7;
+_w$6["PLRF_AI"] = 0;
+_w$6["PLRF_SCENARIO_RESERVED"] = 1;
+_w$6["PLRF_COUNT"] = 2;
 var Order = /* @__PURE__ */ ((Order2) => {
   Order2[Order2["MOVE"] = 0] = "MOVE";
   Order2[Order2["ACTIVITY"] = 1] = "ACTIVITY";
@@ -1934,13 +1934,6 @@ function get_unit_anim_offset(punit) {
     anim_units_count -= 1;
   }
   return offset;
-}
-function reset_unit_anim_list() {
-  for (const unit_id in units) {
-    const punit = units[unit_id];
-    punit["anim_list"] = [];
-  }
-  anim_units_count = 0;
 }
 function get_unit_homecity_name(punit) {
   if (punit.homecity !== 0 && cities[punit.homecity] != null) {
@@ -2349,10 +2342,10 @@ function isOceanTile(ptile) {
   if (!t2) return false;
   return t2.graphic_str === "floor" || t2.graphic_str === "coast";
 }
-const _w$3 = window;
-if (!_w$3["terrains"]) _w$3["terrains"] = {};
-if (!_w$3["resources"]) _w$3["resources"] = {};
-if (!_w$3["terrain_control"]) _w$3["terrain_control"] = {};
+const _w$5 = window;
+if (!_w$5["terrains"]) _w$5["terrains"] = {};
+if (!_w$5["resources"]) _w$5["resources"] = {};
+if (!_w$5["terrain_control"]) _w$5["terrain_control"] = {};
 const UTYF_FLAGLESS = 29;
 const U_NOT_OBSOLETED = null;
 function utype_can_do_action$1(putype, action_id) {
@@ -2407,13 +2400,13 @@ const MATCH_PAIR$1 = 2;
 const MATCH_FULL$1 = 3;
 const CELL_WHOLE$1 = 0;
 const CELL_CORNER$1 = 1;
-const _w$2 = window;
-_w$2.MATCH_NONE = MATCH_NONE$1;
-_w$2.MATCH_SAME = MATCH_SAME$1;
-_w$2.MATCH_PAIR = MATCH_PAIR$1;
-_w$2.MATCH_FULL = MATCH_FULL$1;
-_w$2.CELL_WHOLE = CELL_WHOLE$1;
-_w$2.CELL_CORNER = CELL_CORNER$1;
+const _w$4 = window;
+_w$4.MATCH_NONE = MATCH_NONE$1;
+_w$4.MATCH_SAME = MATCH_SAME$1;
+_w$4.MATCH_PAIR = MATCH_PAIR$1;
+_w$4.MATCH_FULL = MATCH_FULL$1;
+_w$4.CELL_WHOLE = CELL_WHOLE$1;
+_w$4.CELL_CORNER = CELL_CORNER$1;
 const tileset_tile_width = 96;
 const tileset_tile_height = 48;
 const tileset_name = "amplio2";
@@ -2785,6 +2778,106 @@ function init_options_dialog() {
     localStorage.setItem("sndFX", JSON.stringify(sounds_enabled));
   });
 }
+function initTableSort(selector, options) {
+  const table = document.querySelector(selector);
+  if (!table) return;
+  const thead = table.tHead;
+  if (!thead) return;
+  const headers = thead.querySelectorAll("th");
+  headers.forEach((th, colIdx) => {
+    th.style.cursor = "pointer";
+    th.addEventListener("click", () => {
+      const currentDir = th.dataset.sortDir === "asc" ? "desc" : "asc";
+      headers.forEach((h2) => {
+        h2.dataset.sortDir = "";
+        h2.classList.remove("tablesorter-headerAsc", "tablesorter-headerDesc");
+      });
+      th.dataset.sortDir = currentDir;
+      th.classList.add(currentDir === "asc" ? "tablesorter-headerAsc" : "tablesorter-headerDesc");
+      sortTable(table, colIdx, currentDir === "asc" ? 0 : 1);
+    });
+  });
+  if (options?.sortList) {
+    for (const [col, dir] of options.sortList) {
+      if (col < headers.length) {
+        const dirStr = dir === 0 ? "asc" : "desc";
+        headers[col].dataset.sortDir = dirStr;
+        headers[col].classList.add(dirStr === "asc" ? "tablesorter-headerAsc" : "tablesorter-headerDesc");
+        sortTable(table, col, dir);
+      }
+    }
+  }
+}
+function sortTable(table, colIdx, direction) {
+  const tbody = table.tBodies[0];
+  if (!tbody) return;
+  const rows = Array.from(tbody.rows);
+  rows.sort((a2, b2) => {
+    const aText = a2.cells[colIdx]?.textContent?.trim() ?? "";
+    const bText = b2.cells[colIdx]?.textContent?.trim() ?? "";
+    const aNum = parseFloat(aText);
+    const bNum = parseFloat(bText);
+    let cmp;
+    if (!isNaN(aNum) && !isNaN(bNum)) {
+      cmp = aNum - bNum;
+    } else {
+      cmp = aText.localeCompare(bText);
+    }
+    return direction === 0 ? cmp : -cmp;
+  });
+  for (const row of rows) {
+    tbody.appendChild(row);
+  }
+}
+const packet_authentication_reply = 7;
+const packet_chat_msg_req = 26;
+const packet_city_sell = 33;
+const packet_city_buy = 34;
+const packet_city_change = 35;
+const packet_city_worklist = 36;
+const packet_city_change_specialist = 39;
+const packet_city_rename = 40;
+const packet_city_options_req = 41;
+const packet_city_name_suggestion_req = 43;
+const packet_player_research = 55;
+const packet_player_tech_goal = 56;
+const packet_player_rates = 53;
+const packet_unit_sscs_set = 71;
+const packet_unit_orders = 73;
+const packet_unit_server_side_agent_set = 74;
+const packet_unit_action_query = 82;
+const packet_unit_do_action = 84;
+const packet_unit_get_actions = 87;
+const packet_unit_change_activity = 222;
+const packet_diplomacy_init_meeting_req = 95;
+const packet_diplomacy_cancel_meeting_req = 97;
+const packet_diplomacy_create_clause_req = 99;
+const packet_diplomacy_remove_clause_req = 101;
+const packet_diplomacy_accept_treaty_req = 103;
+const packet_diplomacy_cancel_pact = 105;
+const packet_conn_pong = 89;
+const packet_client_info = 119;
+const packet_web_cma_clear = 258;
+const packet_web_goto_path_req = 287;
+const packet_web_info_text_req = 289;
+let banned_users = [];
+function check_text_with_banlist(text) {
+  if (text == null || text.length === 0) return false;
+  for (let i2 = 0; i2 < banned_users.length; i2++) {
+    if (text.toLowerCase().indexOf(banned_users[i2].toLowerCase()) !== -1) return false;
+  }
+  return true;
+}
+const win$4 = window;
+function isLongturn() {
+  return win$4.game_type === "longturn";
+}
+function setPhaseStart() {
+  win$4.phase_start_time = Date.now();
+}
+function requestObserveGame() {
+  send_message("/observe ");
+}
 const DP_NONE = 0;
 const DP_FIRST = 1;
 const DP_LAST = 2;
@@ -2889,106 +2982,6 @@ class EventAggregator {
   }
 }
 window.EventAggregator = EventAggregator;
-function initTableSort(selector, options) {
-  const table = document.querySelector(selector);
-  if (!table) return;
-  const thead = table.tHead;
-  if (!thead) return;
-  const headers = thead.querySelectorAll("th");
-  headers.forEach((th, colIdx) => {
-    th.style.cursor = "pointer";
-    th.addEventListener("click", () => {
-      const currentDir = th.dataset.sortDir === "asc" ? "desc" : "asc";
-      headers.forEach((h2) => {
-        h2.dataset.sortDir = "";
-        h2.classList.remove("tablesorter-headerAsc", "tablesorter-headerDesc");
-      });
-      th.dataset.sortDir = currentDir;
-      th.classList.add(currentDir === "asc" ? "tablesorter-headerAsc" : "tablesorter-headerDesc");
-      sortTable(table, colIdx, currentDir === "asc" ? 0 : 1);
-    });
-  });
-  if (options?.sortList) {
-    for (const [col, dir] of options.sortList) {
-      if (col < headers.length) {
-        const dirStr = dir === 0 ? "asc" : "desc";
-        headers[col].dataset.sortDir = dirStr;
-        headers[col].classList.add(dirStr === "asc" ? "tablesorter-headerAsc" : "tablesorter-headerDesc");
-        sortTable(table, col, dir);
-      }
-    }
-  }
-}
-function sortTable(table, colIdx, direction) {
-  const tbody = table.tBodies[0];
-  if (!tbody) return;
-  const rows = Array.from(tbody.rows);
-  rows.sort((a2, b2) => {
-    const aText = a2.cells[colIdx]?.textContent?.trim() ?? "";
-    const bText = b2.cells[colIdx]?.textContent?.trim() ?? "";
-    const aNum = parseFloat(aText);
-    const bNum = parseFloat(bText);
-    let cmp;
-    if (!isNaN(aNum) && !isNaN(bNum)) {
-      cmp = aNum - bNum;
-    } else {
-      cmp = aText.localeCompare(bText);
-    }
-    return direction === 0 ? cmp : -cmp;
-  });
-  for (const row of rows) {
-    tbody.appendChild(row);
-  }
-}
-const packet_authentication_reply = 7;
-const packet_chat_msg_req = 26;
-const packet_city_sell = 33;
-const packet_city_buy = 34;
-const packet_city_change = 35;
-const packet_city_worklist = 36;
-const packet_city_change_specialist = 39;
-const packet_city_rename = 40;
-const packet_city_options_req = 41;
-const packet_city_name_suggestion_req = 43;
-const packet_player_research = 55;
-const packet_player_tech_goal = 56;
-const packet_player_rates = 53;
-const packet_unit_sscs_set = 71;
-const packet_unit_orders = 73;
-const packet_unit_server_side_agent_set = 74;
-const packet_unit_action_query = 82;
-const packet_unit_do_action = 84;
-const packet_unit_get_actions = 87;
-const packet_unit_change_activity = 222;
-const packet_diplomacy_init_meeting_req = 95;
-const packet_diplomacy_cancel_meeting_req = 97;
-const packet_diplomacy_create_clause_req = 99;
-const packet_diplomacy_remove_clause_req = 101;
-const packet_diplomacy_accept_treaty_req = 103;
-const packet_diplomacy_cancel_pact = 105;
-const packet_conn_pong = 89;
-const packet_client_info = 119;
-const packet_web_cma_clear = 258;
-const packet_web_goto_path_req = 287;
-const packet_web_info_text_req = 289;
-let banned_users = [];
-function check_text_with_banlist(text) {
-  if (text == null || text.length === 0) return false;
-  for (let i2 = 0; i2 < banned_users.length; i2++) {
-    if (text.toLowerCase().indexOf(banned_users[i2].toLowerCase()) !== -1) return false;
-  }
-  return true;
-}
-const win$4 = window;
-function isLongturn() {
-  return win$4.game_type === "longturn";
-}
-function setPhaseStart() {
-  win$4.phase_start_time = Date.now();
-}
-function requestObserveGame() {
-  send_message("/observe ");
-}
 const is_longturn = isLongturn;
 const civclient_state = clientState();
 let chatbox_active = true;
@@ -3723,28 +3716,6 @@ function improvement_id_by_name(name) {
 }
 store.client;
 let update_player_info_pregame_queued = false;
-function update_game_info_pregame() {
-  if (C_S_PREPARING != clientState()) return;
-  let game_info_html = "";
-  if (window.scenario_info != null && window.scenario_info["is_scenario"]) {
-    game_info_html += "<p>";
-    game_info_html += window.scenario_info["description"].replace(/\n/g, "<br>");
-    game_info_html += "</p>";
-    if (window.scenario_info["authors"]) {
-      game_info_html += "<p>Scenario by ";
-      game_info_html += window.scenario_info["authors"].replace(/\n/g, "<br>");
-      game_info_html += "</p>";
-    }
-    if (window.scenario_info["prevent_new_cities"]) {
-      game_info_html += "<p>";
-      game_info_html += window.scenario_info["name"] + " forbids the founding of new cities.";
-      game_info_html += "</p>";
-    }
-  }
-  const pregameGameInfo = document.getElementById("pregame_game_info");
-  if (pregameGameInfo) pregameGameInfo.innerHTML = game_info_html;
-  setupWindowSize();
-}
 function update_player_info_pregame() {
   if (update_player_info_pregame_queued) return;
   setTimeout(update_player_info_pregame_real, 1e3);
@@ -4318,37 +4289,6 @@ function key_unit_move(dir) {
   }
   deactivate_goto(true);
 }
-let BitVector$1 = class BitVector2 {
-  data;
-  constructor(raw) {
-    this.data = raw instanceof Uint8Array ? raw : new Uint8Array(raw);
-  }
-  isSet(bit) {
-    return (this.data[bit >>> 3] & 1 << (bit & 7)) !== 0;
-  }
-  set(bit) {
-    this.data[bit >>> 3] |= 1 << (bit & 7);
-  }
-  unset(bit) {
-    this.data[bit >>> 3] &= ~(1 << (bit & 7));
-  }
-  toBitSet() {
-    const out = [];
-    const len = this.data.length << 3;
-    for (let i2 = 0; i2 < len; i2++) {
-      if (this.isSet(i2)) out.push(i2);
-    }
-    return out;
-  }
-  toString() {
-    let out = "";
-    const len = this.data.length << 3;
-    for (let i2 = 0; i2 < len; i2++) {
-      out += this.isSet(i2) ? "1" : "0";
-    }
-    return out;
-  }
-};
 function governmentMaxRate(govtId) {
   switch (govtId) {
     case 0:
@@ -5564,6 +5504,408 @@ function handle_web_info_text_message(packet) {
   message = lines.join("<br>\n");
   showDialogMessage("Tile Information", message);
 }
+function handle_processing_started(_packet) {
+  store.frozen = true;
+}
+function handle_processing_finished(_packet) {
+  store.frozen = false;
+}
+function handle_investigate_started(_packet) {
+}
+function handle_investigate_finished(_packet) {
+}
+function handle_freeze_client(_packet) {
+  store.frozen = true;
+}
+function handle_thaw_client(_packet) {
+  store.frozen = false;
+}
+let BitVector$1 = class BitVector2 {
+  data;
+  constructor(raw) {
+    this.data = raw instanceof Uint8Array ? raw : new Uint8Array(raw);
+  }
+  isSet(bit) {
+    return (this.data[bit >>> 3] & 1 << (bit & 7)) !== 0;
+  }
+  set(bit) {
+    this.data[bit >>> 3] |= 1 << (bit & 7);
+  }
+  unset(bit) {
+    this.data[bit >>> 3] &= ~(1 << (bit & 7));
+  }
+  toBitSet() {
+    const out = [];
+    const len = this.data.length << 3;
+    for (let i2 = 0; i2 < len; i2++) {
+      if (this.isSet(i2)) out.push(i2);
+    }
+    return out;
+  }
+  toString() {
+    let out = "";
+    const len = this.data.length << 3;
+    for (let i2 = 0; i2 < len; i2++) {
+      out += this.isSet(i2) ? "1" : "0";
+    }
+    return out;
+  }
+};
+let terrain_control = {};
+let roads = [];
+let bases = [];
+function handle_ruleset_terrain(packet) {
+  if (packet["name"] === "Lake") packet["graphic_str"] = packet["graphic_alt"];
+  if (packet["name"] === "Glacier") packet["graphic_str"] = "tundra";
+  store.terrains[packet["id"]] = packet;
+}
+function handle_ruleset_resource(packet) {
+  window.resources[packet["id"]] = packet;
+}
+function handle_ruleset_game(packet) {
+  window.game_rules = packet;
+}
+function handle_ruleset_specialist(packet) {
+  window.specialists[packet["id"]] = packet;
+}
+function handle_ruleset_nation_groups(packet) {
+  window.nation_groups = packet["groups"];
+}
+function handle_ruleset_nation(packet) {
+  store.nations[packet["id"]] = packet;
+}
+function handle_ruleset_city(packet) {
+  window.city_rules[packet["style_id"]] = packet;
+}
+function handle_ruleset_government(packet) {
+  store.governments[packet["id"]] = packet;
+}
+function handle_ruleset_summary(packet) {
+  store.rulesSummary = packet["text"];
+}
+function handle_ruleset_description_part(packet) {
+  if (store.rulesDescription == null) {
+    store.rulesDescription = packet["text"];
+  } else {
+    store.rulesDescription += packet["text"];
+  }
+}
+function handle_ruleset_action(packet) {
+  window.actions[packet["id"]] = packet;
+  packet["enablers"] = [];
+}
+function handle_ruleset_goods(packet) {
+  window.goods[packet["id"]] = packet;
+}
+function handle_ruleset_clause(packet) {
+  window.clause_infos[packet["type"]] = packet;
+}
+function handle_ruleset_effect(packet) {
+  if (window.effects[packet["effect_type"]] == null) {
+    window.effects[packet["effect_type"]] = [];
+  }
+  window.effects[packet["effect_type"]].push(packet);
+}
+function handle_ruleset_unit(packet) {
+  if (packet["name"] != null && packet["name"].indexOf("?unit:") === 0) {
+    packet["name"] = packet["name"].replace("?unit:", "");
+  }
+  packet["flags"] = new BitVector$1(packet["flags"]);
+  store.unitTypes[packet["id"]] = packet;
+}
+function handle_web_ruleset_unit_addition(packet) {
+  if (packet["utype_actions"] != null) {
+    packet["utype_actions"] = new BitVector$1(packet["utype_actions"]);
+  }
+  if (store.unitTypes[packet["id"]] != null) {
+    Object.assign(store.unitTypes[packet["id"]], packet);
+  }
+}
+function recreate_old_tech_req(packet) {
+  packet["req"] = [];
+  if (packet["research_reqs"]) {
+    for (let i2 = 0; i2 < packet["research_reqs"].length; i2++) {
+      const requirement = packet["research_reqs"][i2];
+      if (requirement.kind === VUT_ADVANCE && requirement.range === REQ_RANGE_PLAYER && requirement.present) {
+        packet["req"].push(requirement.value);
+      }
+    }
+  }
+  while (packet["req"].length < 2) {
+    packet["req"].push(A_NONE);
+  }
+}
+function handle_ruleset_tech(packet) {
+  if (packet["name"] != null && packet["name"].indexOf("?tech:") === 0) {
+    packet["name"] = packet["name"].replace("?tech:", "");
+  }
+  store.techs[packet["id"]] = packet;
+  recreate_old_tech_req(packet);
+}
+function handle_ruleset_tech_class(_packet) {
+}
+function handle_ruleset_tech_flag(_packet) {
+}
+function handle_ruleset_terrain_control(packet) {
+  terrain_control = packet;
+  window.terrain_control = packet;
+  window.SINGLE_MOVE = packet["move_fragments"];
+}
+function handle_ruleset_building(packet) {
+  store.improvements[packet["id"]] = packet;
+}
+function handle_ruleset_unit_class(packet) {
+  packet["flags"] = new BitVector$1(packet["flags"]);
+  window.unit_classes[packet["id"]] = packet;
+}
+function handle_ruleset_disaster(_packet) {
+}
+function handle_ruleset_trade(_packet) {
+}
+function handle_rulesets_ready(_packet) {
+}
+function handle_ruleset_choices(_packet) {
+}
+function handle_game_load(_packet) {
+}
+function handle_ruleset_unit_flag(_packet) {
+}
+function handle_ruleset_unit_class_flag(_packet) {
+}
+function handle_ruleset_unit_bonus(_packet) {
+}
+function handle_ruleset_terrain_flag(_packet) {
+}
+function handle_ruleset_impr_flag(_packet) {
+}
+function handle_ruleset_government_ruler_title(_packet) {
+}
+function handle_ruleset_base(packet) {
+  if (!store.rulesControl) return;
+  for (let i2 = 0; i2 < store.rulesControl["num_extra_types"]; i2++) {
+    if (isExtraCausedBy(store.extras[i2], EC_BASE) && store.extras[i2]["base"] == null) {
+      store.extras[i2]["base"] = packet;
+      store.extras[store.extras[i2]["rule_name"]]["base"] = packet;
+      return;
+    }
+  }
+  console.log("Didn't find Extra to put Base on");
+  console.log(packet);
+}
+function handle_ruleset_road(packet) {
+  if (!store.rulesControl) return;
+  for (let i2 = 0; i2 < store.rulesControl["num_extra_types"]; i2++) {
+    if (isExtraCausedBy(store.extras[i2], EC_ROAD) && store.extras[i2]["road"] == null) {
+      store.extras[i2]["road"] = packet;
+      store.extras[store.extras[i2]["rule_name"]]["road"] = packet;
+      return;
+    }
+  }
+  console.log("Didn't find Extra to put Road on");
+  console.log(packet);
+}
+function handle_ruleset_action_enabler(packet) {
+  const paction = window.actions[packet.enabled_action];
+  if (paction === void 0) {
+    console.log("Unknown action " + packet.action + " for enabler ");
+    console.log(packet);
+    return;
+  }
+  paction.enablers.push(packet);
+}
+function handle_ruleset_extra(packet) {
+  packet["causes"] = new BitVector$1(packet["causes"]);
+  packet["rmcauses"] = new BitVector$1(packet["rmcauses"]);
+  packet["name"] = stringUnqualify(packet["name"]);
+  store.extras[packet["id"]] = packet;
+  store.extras[packet["rule_name"]] = packet;
+  if (isExtraCausedBy(packet, EC_ROAD) && packet["buildable"]) {
+    roads.push(packet);
+  }
+  if (isExtraCausedBy(packet, EC_BASE) && packet["buildable"]) {
+    bases.push(packet);
+  }
+  if (packet["rule_name"] === "Railroad") window["EXTRA_RAIL"] = packet["id"];
+  else if (packet["rule_name"] === "Oil Well") window["EXTRA_OIL_WELL"] = packet["id"];
+  else window["EXTRA_" + packet["rule_name"].toUpperCase()] = packet["id"];
+}
+function handle_ruleset_counter(_packet) {
+}
+function handle_ruleset_extra_flag(_packet) {
+}
+function handle_ruleset_nation_sets(_packet) {
+}
+function handle_ruleset_style(_packet) {
+}
+function handle_nation_availability(_packet) {
+}
+function handle_ruleset_music(_packet) {
+}
+function handle_ruleset_multiplier(_packet) {
+}
+function handle_ruleset_action_auto(_packet) {
+}
+function handle_ruleset_achievement(_packet) {
+}
+function handle_achievement_info(_packet) {
+}
+function handle_team_name_info(_packet) {
+}
+function handle_popup_image(_packet) {
+}
+function handle_worker_task(_packet) {
+}
+function handle_play_music(_packet) {
+}
+function handle_ruleset_control(packet) {
+  store.rulesControl = packet;
+  setClientState(C_S_PREPARING);
+  window.effects = {};
+  store.rulesSummary = null;
+  store.rulesDescription = null;
+  window.game_rules = null;
+  window.nation_groups = [];
+  store.nations = {};
+  window.specialists = {};
+  store.techs = {};
+  store.governments = {};
+  terrain_control = {};
+  window.terrain_control = {};
+  window.SINGLE_MOVE = void 0;
+  store.unitTypes = {};
+  window.unit_classes = {};
+  window.city_rules = {};
+  store.terrains = {};
+  window.resources = {};
+  window.goods = {};
+  window.actions = {};
+  improvements_init();
+  for (const extra in store.extras) {
+    const ename = store.extras[extra]["rule_name"];
+    if (ename === "Railroad") delete window["EXTRA_RAIL"];
+    else if (ename === "Oil Well") delete window["EXTRA_OIL_WELL"];
+    else delete window["EXTRA_" + ename.toUpperCase()];
+  }
+  store.extras = {};
+  roads = [];
+  bases = [];
+  window.clause_infos = {};
+}
+function handle_game_info(packet) {
+  store.gameInfo = packet;
+  if (packet.turn > 0 && typeof clientState === "function" && clientState() !== C_S_RUNNING) {
+    setTimeout(() => {
+      if (clientState() !== C_S_RUNNING) {
+        store.observing = true;
+        setClientState(C_S_RUNNING);
+      }
+    }, 2e3);
+  }
+}
+function handle_calendar_info(packet) {
+  store.calendarInfo = packet;
+}
+function handle_spaceship_info(_packet) {
+}
+function handle_new_year(packet) {
+  if (!store.gameInfo) return;
+  store.gameInfo["year"] = packet["year"];
+  store.gameInfo["fragments"] = packet["fragments"];
+  store.gameInfo["turn"] = packet["turn"];
+}
+function handle_timeout_info(packet) {
+  window.last_turn_change_time = Math.ceil(packet["last_turn_change_time"]);
+  window.seconds_to_phasedone = Math.floor(packet["seconds_to_phasedone"]);
+  window.seconds_to_phasedone_sync = (/* @__PURE__ */ new Date()).getTime();
+}
+function handle_trade_route_info(packet) {
+  if (city_trade_routes[packet["city"]] == null) {
+    city_trade_routes[packet["city"]] = {};
+  }
+  city_trade_routes[packet["city"]][packet["index"]] = packet;
+}
+function handle_endgame_player(packet) {
+  window.endgame_player_info.push(packet);
+}
+function handle_unknown_research(packet) {
+  delete research_data[packet["id"]];
+}
+function handle_end_phase(_packet) {
+  chatbox_clip_messages();
+}
+function handle_start_phase(_packet) {
+  setClientState(C_S_RUNNING);
+  setPhaseStart();
+  window.saved_this_turn = false;
+}
+function handle_endgame_report(_packet) {
+  setClientState(C_S_OVER);
+}
+function handle_scenario_info(packet) {
+  window.scenario_info = packet;
+}
+function handle_scenario_description(packet) {
+  window.scenario_info["description"] = packet["description"];
+  const { update_game_info_pregame } = require("../../core/pregame");
+  update_game_info_pregame();
+}
+function handle_research_info(packet) {
+  let old_inventions = null;
+  if (research_data[packet["id"]] != null) {
+    old_inventions = research_data[packet["id"]]["inventions"];
+  }
+  research_data[packet["id"]] = packet;
+  if (store.gameInfo?.["team_pooled_research"]) {
+    for (const player_id in store.players) {
+      const pplayer = store.players[player_id];
+      if (pplayer["team"] === packet["id"]) {
+        Object.assign(pplayer, packet);
+        delete pplayer["id"];
+      }
+    }
+  } else {
+    const pplayer = store.players[packet["id"]];
+    Object.assign(pplayer, packet);
+    delete pplayer["id"];
+  }
+  if (!clientIsObserver() && old_inventions != null && clientPlaying() != null && clientPlaying()["playerno"] === packet["id"]) {
+    for (let i2 = 0; i2 < packet["inventions"].length; i2++) {
+      if (packet["inventions"][i2] !== old_inventions[i2] && packet["inventions"][i2] === TECH_KNOWN$1) {
+        queue_tech_gained_dialog(i2);
+        break;
+      }
+    }
+  }
+  if (is_tech_tree_init && tech_dialog_active) update_tech_screen();
+  bulbs_output_updater.update();
+}
+function handle_begin_turn(_packet) {
+  if (typeof mark_all_dirty === "function") mark_all_dirty();
+  if (!store.observing) {
+    const btn = document.getElementById("turn_done_button");
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "Turn Done";
+    }
+  }
+  setWaitingUnitsList([]);
+  update_unit_focus();
+  update_active_units_dialog();
+  update_game_status_panel();
+  const funits = get_units_in_focus();
+  if (funits != null && funits.length === 0) {
+    auto_center_on_focus_unit();
+  }
+  if (is_tech_tree_init && tech_dialog_active) update_tech_screen();
+}
+function handle_end_turn(_packet) {
+  const { reset_unit_anim_list } = require("../../data/unit");
+  reset_unit_anim_list();
+  if (!store.observing) {
+    const btn = document.getElementById("turn_done_button");
+    if (btn) btn.disabled = true;
+  }
+}
 const CLAUSE_ADVANCE = 0;
 const CLAUSE_GOLD = 1;
 const CLAUSE_MAP = 2;
@@ -5958,15 +6300,188 @@ function meeting_template_data(giver, taker) {
   data.clauses = all_clauses;
   return data;
 }
-function select_tgt_unit(actor_unit, target_tile, potential_tgt_units) {
+function find_conn_by_id(id) {
+  return store.connections[id];
 }
-function select_tgt_extra(actor_unit, target_unit, target_tile, potential_tgt_extras) {
+function client_remove_cli_conn(connection2) {
+  delete store.connections[connection2["id"]];
 }
-const TILE_INDEX_NONE = -1;
-const REQEST_PLAYER_INITIATED$2 = 0;
-let auto_attack = false;
+function conn_list_append(connection2) {
+  store.connections[connection2["id"]] = connection2;
+}
+function handle_server_join_reply(packet) {
+  if (packet["you_can_join"]) {
+    store.client.conn.established = true;
+    store.client.conn.id = packet["conn_id"];
+    if (get_client_page() === PAGE_MAIN || get_client_page() === PAGE_NETWORK) {
+      set_client_page(PAGE_START);
+    }
+    const client_info = {
+      "pid": packet_client_info,
+      "gui": GUI_WEB,
+      "emerg_version": 0,
+      "distribution": ""
+    };
+    send_request(JSON.stringify(client_info));
+    setClientState(C_S_PREPARING);
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlAction = urlParams.get("action");
+    const urlRuleset = urlParams.get("ruleset");
+    if ((urlAction === "new" || urlAction === "hack") && urlRuleset != null) {
+      window.change_ruleset(urlRuleset);
+    }
+    if (store.autostart) {
+      if (window.loadTimerId === -1) {
+        wait_for_text("You are logged in as", window.pregame_start_game);
+      } else {
+        wait_for_text("Load complete", window.pregame_start_game);
+      }
+    } else if (store.observing) {
+      wait_for_text("You are logged in as", requestObserveGame);
+    }
+  } else {
+    swal("You were rejected from the game.", packet["message"] || "", "error");
+    store.client.conn.id = -1;
+    set_client_page(PAGE_MAIN);
+  }
+}
+function handle_conn_info(packet) {
+  let pconn = find_conn_by_id(packet["id"]);
+  if (packet["used"] === false) {
+    if (pconn == null) {
+      freelog(window.LOG_VERBOSE, "Server removed unknown connection " + packet["id"]);
+      return;
+    }
+    client_remove_cli_conn(pconn);
+    pconn = null;
+  } else {
+    const pplayer = valid_player_by_number(packet["player_num"]);
+    packet["playing"] = pplayer;
+    if (packet["id"] === store.client.conn.id) {
+      if (store.client.conn.player_num == null || store.client.conn.player_num !== packet["player_num"]) {
+        discard_diplomacy_dialogs();
+      }
+      store.client.conn = packet;
+    }
+    conn_list_append(packet);
+  }
+  if (packet["id"] === store.client.conn.id) {
+    if (clientPlaying() !== packet["playing"]) {
+      setClientState(C_S_PREPARING);
+    }
+  }
+}
+function handle_conn_ping(packet) {
+  window.ping_last = (/* @__PURE__ */ new Date()).getTime();
+  const pong_packet = { "pid": packet_conn_pong };
+  send_request(JSON.stringify(pong_packet));
+}
+function handle_authentication_req(packet) {
+  showAuthDialog(packet);
+}
+function handle_server_shutdown(_packet) {
+}
+function handle_connect_msg(packet) {
+  const { add_chatbox_text: add_chatbox_text2 } = require("../../core/messages");
+  add_chatbox_text2(packet);
+}
+function handle_server_info(packet) {
+  if (packet["emerg_version"] > 0) {
+    console.log(
+      "Server has version %d.%d.%d.%d%s",
+      packet.major_version,
+      packet.minor_version,
+      packet.patch_version,
+      packet.emerg_version,
+      packet.version_label
+    );
+  } else {
+    console.log(
+      "Server has version %d.%d.%d%s",
+      packet.major_version,
+      packet.minor_version,
+      packet.patch_version,
+      packet.version_label
+    );
+  }
+}
+function handle_set_topology(_packet) {
+}
+function handle_conn_ping_info(packet) {
+  if (store.debugActive) {
+    window.conn_ping_info = packet;
+    window.debug_ping_list.push(packet["ping_time"][0] * 1e3);
+  }
+}
+function handle_single_want_hack_reply(packet) {
+  if (typeof window.handle_single_want_hack_reply_orig === "function") {
+    window.handle_single_want_hack_reply_orig(packet);
+  }
+}
+function handle_vote_new(_packet) {
+}
+function handle_vote_update(_packet) {
+}
+function handle_vote_remove(_packet) {
+}
+function handle_vote_resolve(_packet) {
+}
+function handle_edit_startpos(_packet) {
+}
+function handle_edit_startpos_full(_packet) {
+}
+function handle_edit_object_created(_packet) {
+}
+function handle_server_setting_const(packet) {
+  store.serverSettings[packet["id"]] = packet;
+  store.serverSettings[packet["name"]] = packet;
+}
+function handle_server_setting_int(packet) {
+  Object.assign(store.serverSettings[packet["id"]], packet);
+}
+function handle_server_setting_enum(packet) {
+  Object.assign(store.serverSettings[packet["id"]], packet);
+}
+function handle_server_setting_bitwise(packet) {
+  Object.assign(store.serverSettings[packet["id"]], packet);
+}
+function handle_server_setting_bool(packet) {
+  Object.assign(store.serverSettings[packet["id"]], packet);
+}
+function handle_server_setting_str(packet) {
+  Object.assign(store.serverSettings[packet["id"]], packet);
+}
+function handle_server_setting_control(_packet) {
+}
+function handle_tile_info(packet) {
+  if (store.tiles != null) {
+    packet["extras"] = new BitVector$1(packet["extras"]);
+    Object.assign(store.tiles[packet["tile"]], packet);
+    if (typeof mark_tile_dirty === "function") {
+      mark_tile_dirty(packet["tile"]);
+    }
+  }
+}
+function handle_map_info(packet) {
+  store.mapInfo = packet;
+  mapInitTopology();
+  mapAllocate();
+  mapdeco_init();
+}
+function handle_nuke_tile_info(packet) {
+  const ptile = indexToTile(packet["tile"]);
+  ptile["nuke"] = 60;
+  play_sound("LrgExpl.ogg");
+}
+const TILE_INDEX_NONE$1 = -1;
 let action_selection_restart = false;
 let did_not_decide = false;
+function _set_action_selection_restart(val) {
+  action_selection_restart = val;
+}
+function _set_did_not_decide(val) {
+  did_not_decide = val;
+}
 function act_sel_queue_may_be_done(actor_unit_id) {
   if (!is_more_user_input_needed) {
     if (action_selection_restart) {
@@ -5988,115 +6503,95 @@ function act_sel_queue_done(actor_unit_id) {
   action_selection_restart = false;
   did_not_decide = false;
 }
-function format_act_prob_part(prob) {
-  return prob / 2 + "%";
+function action_selection_actor_unit() {
+  return action_selection_in_progress_for;
 }
-function format_action_probability(probability) {
-  if (probability["min"] == probability["max"]) {
-    return " (" + format_act_prob_part(probability["max"]) + ")";
-  } else if (probability["min"] < probability["max"]) {
-    return " ([" + format_act_prob_part(probability["min"]) + ", " + format_act_prob_part(probability["max"]) + "])";
-  } else {
-    return "";
+function action_selection_target_city() {
+  const id = "#act_sel_dialog_" + action_selection_in_progress_for;
+  if (action_selection_in_progress_for == IDENTITY_NUMBER_ZERO) {
+    return IDENTITY_NUMBER_ZERO;
   }
+  return $(id).attr("target_city");
 }
-function format_action_label(action_id, action_probabilities) {
-  return window.actions[action_id]["ui_name"].replace("%s", "").replace(
-    "%s",
-    format_action_probability(action_probabilities[action_id])
+function action_selection_target_unit() {
+  const id = "#act_sel_dialog_" + action_selection_in_progress_for;
+  if (action_selection_in_progress_for == IDENTITY_NUMBER_ZERO) {
+    return IDENTITY_NUMBER_ZERO;
+  }
+  return $(id).attr("target_unit");
+}
+function action_selection_target_tile() {
+  const id = "#act_sel_dialog_" + action_selection_in_progress_for;
+  if (action_selection_in_progress_for == IDENTITY_NUMBER_ZERO) {
+    return TILE_INDEX_NONE$1;
+  }
+  return $(id).attr("target_tile");
+}
+function action_selection_target_extra() {
+  const id = "#act_sel_dialog_" + action_selection_in_progress_for;
+  if (action_selection_in_progress_for == IDENTITY_NUMBER_ZERO) {
+    return EXTRA_NONE$1;
+  }
+  return $(id).attr("target_extra");
+}
+function action_selection_refresh(actor_unit, target_city, target_unit, target_tile, target_extra, act_probs) {
+  let id;
+  id = "#act_sel_dialog_" + actor_unit["id"];
+  $(id).remove();
+  popup_action_selection(
+    actor_unit,
+    act_probs,
+    target_tile,
+    target_extra,
+    target_unit,
+    target_city
   );
 }
-function format_action_tooltip(act_id, act_probs) {
-  let out = "";
-  if (act_probs[act_id]["min"] == act_probs[act_id]["max"]) {
-    out = "The probability of success is ";
-    out += format_act_prob_part(act_probs[act_id]["max"]) + ".";
-  } else if (act_probs[act_id]["min"] < act_probs[act_id]["max"]) {
-    out = "The probability of success is ";
-    out += format_act_prob_part(act_probs[act_id]["min"]);
-    out += ", ";
-    out += format_act_prob_part(act_probs[act_id]["max"]);
-    out += " or somewhere in between.";
-    if (act_probs[act_id]["max"] - act_probs[act_id]["min"] > 1) {
-      out += " (This is the most precise interval I can calculate ";
-      out += "given the information our nation has access to.)";
+function action_selection_close() {
+  let id;
+  const actor_unit_id = action_selection_in_progress_for;
+  id = "#act_sel_dialog_" + actor_unit_id;
+  $(id).remove();
+  id = "#bribe_unit_dialog_" + actor_unit_id;
+  $(id).remove();
+  id = "#incite_city_dialog_" + actor_unit_id;
+  $(id).remove();
+  id = "#upgrade_unit_dialog_" + actor_unit_id;
+  $(id).remove();
+  id = "stealtech_dialog_" + actor_unit_id;
+  $(id).remove();
+  id = "sabotage_impr_dialog_" + actor_unit_id;
+  $(id).remove();
+  id = "#sel_tgt_unit_dialog_" + actor_unit_id;
+  $(id).remove();
+  id = "#sel_tgt_extra_dialog_" + actor_unit_id;
+  $(id).remove();
+  id = $("#city_name_dialog");
+  $(id).remove();
+  act_sel_queue_done(actor_unit_id);
+}
+function list_potential_target_extras(act_unit, target_tile) {
+  const potential_targets = [];
+  for (let i2 = 0; i2 < (store.rulesControl?.num_extra_types ?? 0); i2++) {
+    const pextra = store.extras[i2];
+    if (tileHasExtra(target_tile, pextra.id)) {
+      if (isExtraRemovedBy(pextra, ERM_PILLAGE$1) && unit_can_do_action(act_unit, ACTION_PILLAGE$1) || isExtraRemovedBy(pextra, ERM_CLEAN) && unit_can_do_action(act_unit, ACTION_CLEAN)) {
+        potential_targets.push(pextra);
+      }
+    } else {
+      if (pextra.buildable && (isExtraCausedBy(pextra, EC_IRRIGATION) && unit_can_do_action(act_unit, ACTION_IRRIGATE) || isExtraCausedBy(pextra, EC_MINE) && unit_can_do_action(act_unit, ACTION_MINE) || isExtraCausedBy(pextra, EC_BASE) && unit_can_do_action(act_unit, ACTION_BASE) || isExtraCausedBy(pextra, EC_ROAD) && unit_can_do_action(act_unit, ACTION_ROAD))) {
+        potential_targets.push(pextra);
+      }
     }
   }
-  return out;
+  return potential_targets;
 }
-function act_sel_click_function(parent_id, actor_unit_id, tgt_id, sub_tgt_id, action_id, action_probabilities) {
-  switch (action_id) {
-    case ACTION_SPY_TARGETED_STEAL_TECH:
-    case ACTION_SPY_TARGETED_STEAL_TECH_ESC:
-      return function() {
-        popup_steal_tech_selection_dialog(
-          store.units[actor_unit_id],
-          store.cities[tgt_id],
-          action_probabilities,
-          action_id
-        );
-        set_is_more_user_input_needed(true);
-        $(parent_id).remove();
-      };
-    case ACTION_SPY_TARGETED_SABOTAGE_CITY:
-    case ACTION_SPY_TARGETED_SABOTAGE_CITY_ESC:
-    case ACTION_SPY_INCITE_CITY:
-    case ACTION_SPY_INCITE_CITY_ESC:
-    case ACTION_SPY_BRIBE_UNIT:
-    case ACTION_UPGRADE_UNIT:
-      return function() {
-        const packet = {
-          "pid": packet_unit_action_query,
-          "actor_id": actor_unit_id,
-          "target_id": tgt_id,
-          "action_type": action_id,
-          "request_kind": REQEST_PLAYER_INITIATED$2
-        };
-        send_request(JSON.stringify(packet));
-        set_is_more_user_input_needed(true);
-        $(parent_id).remove();
-      };
-    case ACTION_FOUND_CITY:
-      return function() {
-        const packet = {
-          "pid": packet_city_name_suggestion_req,
-          "unit_id": actor_unit_id
-        };
-        send_request(JSON.stringify(packet));
-        set_is_more_user_input_needed(true);
-        $(parent_id).remove();
-      };
-    default:
-      return function() {
-        request_unit_do_action(action_id, actor_unit_id, tgt_id, sub_tgt_id);
-        $(parent_id).remove();
-        act_sel_queue_may_be_done(actor_unit_id);
-      };
-  }
+function select_tgt_unit(actor_unit, target_tile, potential_tgt_units) {
 }
-function create_act_sel_button(parent_id, actor_unit_id, tgt_id, sub_tgt_id, action_id, action_probabilities) {
-  const button = {
-    id: "act_sel_" + action_id + "_" + actor_unit_id,
-    "class": "act_sel_button",
-    text: format_action_label(
-      action_id,
-      action_probabilities
-    ),
-    title: format_action_tooltip(
-      action_id,
-      action_probabilities
-    ),
-    click: act_sel_click_function(
-      parent_id,
-      actor_unit_id,
-      tgt_id,
-      sub_tgt_id,
-      action_id,
-      action_probabilities
-    )
-  };
-  return button;
+function select_tgt_extra(actor_unit, target_unit, target_tile, potential_tgt_extras) {
 }
+const TILE_INDEX_NONE = -1;
+let auto_attack = false;
 function popup_action_selection(actor_unit, action_probabilities, target_tile, target_extra, target_unit, target_city) {
   if (clientIsObserver()) return;
   const id = "#act_sel_dialog_" + actor_unit["id"];
@@ -6197,7 +6692,7 @@ function popup_action_selection(actor_unit, action_probabilities, target_tile, t
           target_tile,
           tile_units(target_tile) ?? []
         );
-        action_selection_restart = true;
+        _set_action_selection_restart(true);
         $(id).dialog("close");
       }
     });
@@ -6217,7 +6712,7 @@ function popup_action_selection(actor_unit, action_probabilities, target_tile, t
             target_tile
           )
         );
-        action_selection_restart = true;
+        _set_action_selection_restart(true);
         $(id).dialog("close");
       }
     });
@@ -6248,7 +6743,7 @@ function popup_action_selection(actor_unit, action_probabilities, target_tile, t
     "class": "act_sel_button",
     text: "Wait",
     click: function() {
-      did_not_decide = true;
+      _set_did_not_decide(true);
       $(id).dialog("close");
     }
   });
@@ -6518,465 +7013,117 @@ function popup_sabotage_dialog(actor_unit, target_city, city_imprs, act_id) {
   });
   $("#" + id).dialog("open");
 }
-function list_potential_target_extras(act_unit, target_tile) {
-  const potential_targets = [];
-  for (let i2 = 0; i2 < (store.rulesControl?.num_extra_types ?? 0); i2++) {
-    const pextra = store.extras[i2];
-    if (tileHasExtra(target_tile, pextra.id)) {
-      if (isExtraRemovedBy(pextra, ERM_PILLAGE$1) && unit_can_do_action(act_unit, ACTION_PILLAGE$1) || isExtraRemovedBy(pextra, ERM_CLEAN) && unit_can_do_action(act_unit, ACTION_CLEAN)) {
-        potential_targets.push(pextra);
-      }
-    } else {
-      if (pextra.buildable && (isExtraCausedBy(pextra, EC_IRRIGATION) && unit_can_do_action(act_unit, ACTION_IRRIGATE) || isExtraCausedBy(pextra, EC_MINE) && unit_can_do_action(act_unit, ACTION_MINE) || isExtraCausedBy(pextra, EC_BASE) && unit_can_do_action(act_unit, ACTION_BASE) || isExtraCausedBy(pextra, EC_ROAD) && unit_can_do_action(act_unit, ACTION_ROAD))) {
-        potential_targets.push(pextra);
-      }
-    }
+const REQEST_PLAYER_INITIATED$3 = 0;
+function format_act_prob_part(prob) {
+  return prob / 2 + "%";
+}
+function format_action_probability(probability) {
+  if (probability["min"] == probability["max"]) {
+    return " (" + format_act_prob_part(probability["max"]) + ")";
+  } else if (probability["min"] < probability["max"]) {
+    return " ([" + format_act_prob_part(probability["min"]) + ", " + format_act_prob_part(probability["max"]) + "])";
+  } else {
+    return "";
   }
-  return potential_targets;
 }
-function action_selection_actor_unit() {
-  return action_selection_in_progress_for;
-}
-function action_selection_target_city() {
-  const id = "#act_sel_dialog_" + action_selection_in_progress_for;
-  if (action_selection_in_progress_for == IDENTITY_NUMBER_ZERO) {
-    return IDENTITY_NUMBER_ZERO;
-  }
-  return $(id).attr("target_city");
-}
-function action_selection_target_unit() {
-  const id = "#act_sel_dialog_" + action_selection_in_progress_for;
-  if (action_selection_in_progress_for == IDENTITY_NUMBER_ZERO) {
-    return IDENTITY_NUMBER_ZERO;
-  }
-  return $(id).attr("target_unit");
-}
-function action_selection_target_tile() {
-  const id = "#act_sel_dialog_" + action_selection_in_progress_for;
-  if (action_selection_in_progress_for == IDENTITY_NUMBER_ZERO) {
-    return TILE_INDEX_NONE;
-  }
-  return $(id).attr("target_tile");
-}
-function action_selection_target_extra() {
-  const id = "#act_sel_dialog_" + action_selection_in_progress_for;
-  if (action_selection_in_progress_for == IDENTITY_NUMBER_ZERO) {
-    return EXTRA_NONE$1;
-  }
-  return $(id).attr("target_extra");
-}
-function action_selection_refresh(actor_unit, target_city, target_unit, target_tile, target_extra, act_probs) {
-  let id;
-  id = "#act_sel_dialog_" + actor_unit["id"];
-  $(id).remove();
-  popup_action_selection(
-    actor_unit,
-    act_probs,
-    target_tile,
-    target_extra,
-    target_unit,
-    target_city
+function format_action_label(action_id, action_probabilities) {
+  return window.actions[action_id]["ui_name"].replace("%s", "").replace(
+    "%s",
+    format_action_probability(action_probabilities[action_id])
   );
 }
-function action_selection_close() {
-  let id;
-  const actor_unit_id = action_selection_in_progress_for;
-  id = "#act_sel_dialog_" + actor_unit_id;
-  $(id).remove();
-  id = "#bribe_unit_dialog_" + actor_unit_id;
-  $(id).remove();
-  id = "#incite_city_dialog_" + actor_unit_id;
-  $(id).remove();
-  id = "#upgrade_unit_dialog_" + actor_unit_id;
-  $(id).remove();
-  id = "stealtech_dialog_" + actor_unit_id;
-  $(id).remove();
-  id = "sabotage_impr_dialog_" + actor_unit_id;
-  $(id).remove();
-  id = "#sel_tgt_unit_dialog_" + actor_unit_id;
-  $(id).remove();
-  id = "#sel_tgt_extra_dialog_" + actor_unit_id;
-  $(id).remove();
-  id = $("#city_name_dialog");
-  $(id).remove();
-  act_sel_queue_done(actor_unit_id);
-}
-let terrain_control = {};
-let roads = [];
-let bases = [];
-let page_msg = {};
-const auto_attack_actions = [
-  ACTION_ATTACK,
-  ACTION_SUICIDE_ATTACK,
-  ACTION_NUKE_UNITS,
-  ACTION_NUKE_CITY,
-  ACTION_NUKE
-];
-const REQEST_PLAYER_INITIATED$1 = 0;
-const REQEST_BACKGROUND_REFRESH = 1;
-const REQEST_BACKGROUND_FAST_AUTO_ATTACK = 2;
-function handle_processing_started(_packet) {
-  store.frozen = true;
-}
-function handle_processing_finished(_packet) {
-  store.frozen = false;
-}
-function handle_investigate_started(_packet) {
-}
-function handle_investigate_finished(_packet) {
-}
-function handle_freeze_client(_packet) {
-  store.frozen = true;
-}
-function handle_thaw_client(_packet) {
-  store.frozen = false;
-}
-function handle_ruleset_terrain(packet) {
-  if (packet["name"] === "Lake") packet["graphic_str"] = packet["graphic_alt"];
-  if (packet["name"] === "Glacier") packet["graphic_str"] = "tundra";
-  store.terrains[packet["id"]] = packet;
-}
-function handle_ruleset_resource(packet) {
-  window.resources[packet["id"]] = packet;
-}
-function handle_ruleset_game(packet) {
-  window.game_rules = packet;
-}
-function handle_ruleset_specialist(packet) {
-  window.specialists[packet["id"]] = packet;
-}
-function handle_ruleset_nation_groups(packet) {
-  window.nation_groups = packet["groups"];
-}
-function handle_ruleset_nation(packet) {
-  store.nations[packet["id"]] = packet;
-}
-function handle_ruleset_city(packet) {
-  window.city_rules[packet["style_id"]] = packet;
-}
-function handle_ruleset_government(packet) {
-  store.governments[packet["id"]] = packet;
-}
-function handle_ruleset_summary(packet) {
-  store.rulesSummary = packet["text"];
-}
-function handle_ruleset_description_part(packet) {
-  if (store.rulesDescription == null) {
-    store.rulesDescription = packet["text"];
-  } else {
-    store.rulesDescription += packet["text"];
-  }
-}
-function handle_ruleset_action(packet) {
-  window.actions[packet["id"]] = packet;
-  packet["enablers"] = [];
-}
-function handle_ruleset_goods(packet) {
-  window.goods[packet["id"]] = packet;
-}
-function handle_ruleset_clause(packet) {
-  window.clause_infos[packet["type"]] = packet;
-}
-function handle_game_info(packet) {
-  store.gameInfo = packet;
-  if (packet.turn > 0 && typeof clientState === "function" && clientState() !== C_S_RUNNING) {
-    setTimeout(() => {
-      if (clientState() !== C_S_RUNNING) {
-        store.observing = true;
-        setClientState(C_S_RUNNING);
-      }
-    }, 2e3);
-  }
-}
-function handle_calendar_info(packet) {
-  store.calendarInfo = packet;
-}
-function handle_spaceship_info(_packet) {
-}
-function handle_ruleset_effect(packet) {
-  if (window.effects[packet["effect_type"]] == null) {
-    window.effects[packet["effect_type"]] = [];
-  }
-  window.effects[packet["effect_type"]].push(packet);
-}
-function handle_new_year(packet) {
-  if (!store.gameInfo) return;
-  store.gameInfo["year"] = packet["year"];
-  store.gameInfo["fragments"] = packet["fragments"];
-  store.gameInfo["turn"] = packet["turn"];
-}
-function handle_timeout_info(packet) {
-  window.last_turn_change_time = Math.ceil(packet["last_turn_change_time"]);
-  window.seconds_to_phasedone = Math.floor(packet["seconds_to_phasedone"]);
-  window.seconds_to_phasedone_sync = (/* @__PURE__ */ new Date()).getTime();
-}
-function handle_trade_route_info(packet) {
-  if (city_trade_routes[packet["city"]] == null) {
-    city_trade_routes[packet["city"]] = {};
-  }
-  city_trade_routes[packet["city"]][packet["index"]] = packet;
-}
-function handle_endgame_player(packet) {
-  window.endgame_player_info.push(packet);
-}
-function handle_unknown_research(packet) {
-  delete research_data[packet["id"]];
-}
-function handle_ruleset_unit(packet) {
-  if (packet["name"] != null && packet["name"].indexOf("?unit:") === 0) {
-    packet["name"] = packet["name"].replace("?unit:", "");
-  }
-  packet["flags"] = new BitVector$1(packet["flags"]);
-  store.unitTypes[packet["id"]] = packet;
-}
-function handle_web_ruleset_unit_addition(packet) {
-  if (packet["utype_actions"] != null) {
-    packet["utype_actions"] = new BitVector$1(packet["utype_actions"]);
-  }
-  if (store.unitTypes[packet["id"]] != null) {
-    Object.assign(store.unitTypes[packet["id"]], packet);
-  }
-}
-function recreate_old_tech_req(packet) {
-  packet["req"] = [];
-  if (packet["research_reqs"]) {
-    for (let i2 = 0; i2 < packet["research_reqs"].length; i2++) {
-      const requirement = packet["research_reqs"][i2];
-      if (requirement.kind === VUT_ADVANCE && requirement.range === REQ_RANGE_PLAYER && requirement.present) {
-        packet["req"].push(requirement.value);
-      }
+function format_action_tooltip(act_id, act_probs) {
+  let out = "";
+  if (act_probs[act_id]["min"] == act_probs[act_id]["max"]) {
+    out = "The probability of success is ";
+    out += format_act_prob_part(act_probs[act_id]["max"]) + ".";
+  } else if (act_probs[act_id]["min"] < act_probs[act_id]["max"]) {
+    out = "The probability of success is ";
+    out += format_act_prob_part(act_probs[act_id]["min"]);
+    out += ", ";
+    out += format_act_prob_part(act_probs[act_id]["max"]);
+    out += " or somewhere in between.";
+    if (act_probs[act_id]["max"] - act_probs[act_id]["min"] > 1) {
+      out += " (This is the most precise interval I can calculate ";
+      out += "given the information our nation has access to.)";
     }
   }
-  while (packet["req"].length < 2) {
-    packet["req"].push(A_NONE);
+  return out;
+}
+function act_sel_click_function(parent_id, actor_unit_id, tgt_id, sub_tgt_id, action_id, action_probabilities) {
+  switch (action_id) {
+    case ACTION_SPY_TARGETED_STEAL_TECH:
+    case ACTION_SPY_TARGETED_STEAL_TECH_ESC:
+      return function() {
+        popup_steal_tech_selection_dialog(
+          store.units[actor_unit_id],
+          store.cities[tgt_id],
+          action_probabilities,
+          action_id
+        );
+        set_is_more_user_input_needed(true);
+        $(parent_id).remove();
+      };
+    case ACTION_SPY_TARGETED_SABOTAGE_CITY:
+    case ACTION_SPY_TARGETED_SABOTAGE_CITY_ESC:
+    case ACTION_SPY_INCITE_CITY:
+    case ACTION_SPY_INCITE_CITY_ESC:
+    case ACTION_SPY_BRIBE_UNIT:
+    case ACTION_UPGRADE_UNIT:
+      return function() {
+        const packet = {
+          "pid": packet_unit_action_query,
+          "actor_id": actor_unit_id,
+          "target_id": tgt_id,
+          "action_type": action_id,
+          "request_kind": REQEST_PLAYER_INITIATED$3
+        };
+        send_request(JSON.stringify(packet));
+        set_is_more_user_input_needed(true);
+        $(parent_id).remove();
+      };
+    case ACTION_FOUND_CITY:
+      return function() {
+        const packet = {
+          "pid": packet_city_name_suggestion_req,
+          "unit_id": actor_unit_id
+        };
+        send_request(JSON.stringify(packet));
+        set_is_more_user_input_needed(true);
+        $(parent_id).remove();
+      };
+    default:
+      return function() {
+        request_unit_do_action(action_id, actor_unit_id, tgt_id, sub_tgt_id);
+        $(parent_id).remove();
+        act_sel_queue_may_be_done(actor_unit_id);
+      };
   }
 }
-function handle_ruleset_tech(packet) {
-  if (packet["name"] != null && packet["name"].indexOf("?tech:") === 0) {
-    packet["name"] = packet["name"].replace("?tech:", "");
-  }
-  store.techs[packet["id"]] = packet;
-  recreate_old_tech_req(packet);
+function create_act_sel_button(parent_id, actor_unit_id, tgt_id, sub_tgt_id, action_id, action_probabilities) {
+  const button = {
+    id: "act_sel_" + action_id + "_" + actor_unit_id,
+    "class": "act_sel_button",
+    text: format_action_label(
+      action_id,
+      action_probabilities
+    ),
+    title: format_action_tooltip(
+      action_id,
+      action_probabilities
+    ),
+    click: act_sel_click_function(
+      parent_id,
+      actor_unit_id,
+      tgt_id,
+      sub_tgt_id,
+      action_id,
+      action_probabilities
+    )
+  };
+  return button;
 }
-function handle_ruleset_tech_class(_packet) {
-}
-function handle_ruleset_tech_flag(_packet) {
-}
-function handle_ruleset_terrain_control(packet) {
-  terrain_control = packet;
-  window.terrain_control = packet;
-  window.SINGLE_MOVE = packet["move_fragments"];
-}
-function handle_ruleset_building(packet) {
-  store.improvements[packet["id"]] = packet;
-}
-function handle_ruleset_unit_class(packet) {
-  packet["flags"] = new BitVector$1(packet["flags"]);
-  window.unit_classes[packet["id"]] = packet;
-}
-function handle_ruleset_disaster(_packet) {
-}
-function handle_ruleset_trade(_packet) {
-}
-function handle_rulesets_ready(_packet) {
-}
-function handle_ruleset_choices(_packet) {
-}
-function handle_game_load(_packet) {
-}
-function handle_ruleset_unit_flag(_packet) {
-}
-function handle_ruleset_unit_class_flag(_packet) {
-}
-function handle_ruleset_unit_bonus(_packet) {
-}
-function handle_ruleset_terrain_flag(_packet) {
-}
-function handle_ruleset_impr_flag(_packet) {
-}
-function handle_ruleset_government_ruler_title(_packet) {
-}
-function handle_ruleset_base(packet) {
-  if (!store.rulesControl) return;
-  for (let i2 = 0; i2 < store.rulesControl["num_extra_types"]; i2++) {
-    if (isExtraCausedBy(store.extras[i2], EC_BASE) && store.extras[i2]["base"] == null) {
-      store.extras[i2]["base"] = packet;
-      store.extras[store.extras[i2]["rule_name"]]["base"] = packet;
-      return;
-    }
-  }
-  console.log("Didn't find Extra to put Base on");
-  console.log(packet);
-}
-function handle_ruleset_road(packet) {
-  if (!store.rulesControl) return;
-  for (let i2 = 0; i2 < store.rulesControl["num_extra_types"]; i2++) {
-    if (isExtraCausedBy(store.extras[i2], EC_ROAD) && store.extras[i2]["road"] == null) {
-      store.extras[i2]["road"] = packet;
-      store.extras[store.extras[i2]["rule_name"]]["road"] = packet;
-      return;
-    }
-  }
-  console.log("Didn't find Extra to put Road on");
-  console.log(packet);
-}
-function handle_ruleset_action_enabler(packet) {
-  const paction = window.actions[packet.enabled_action];
-  if (paction === void 0) {
-    console.log("Unknown action " + packet.action + " for enabler ");
-    console.log(packet);
-    return;
-  }
-  paction.enablers.push(packet);
-}
-function handle_ruleset_extra(packet) {
-  packet["causes"] = new BitVector$1(packet["causes"]);
-  packet["rmcauses"] = new BitVector$1(packet["rmcauses"]);
-  packet["name"] = stringUnqualify(packet["name"]);
-  store.extras[packet["id"]] = packet;
-  store.extras[packet["rule_name"]] = packet;
-  if (isExtraCausedBy(packet, EC_ROAD) && packet["buildable"]) {
-    roads.push(packet);
-  }
-  if (isExtraCausedBy(packet, EC_BASE) && packet["buildable"]) {
-    bases.push(packet);
-  }
-  if (packet["rule_name"] === "Railroad") window["EXTRA_RAIL"] = packet["id"];
-  else if (packet["rule_name"] === "Oil Well") window["EXTRA_OIL_WELL"] = packet["id"];
-  else window["EXTRA_" + packet["rule_name"].toUpperCase()] = packet["id"];
-}
-function handle_ruleset_counter(_packet) {
-}
-function handle_ruleset_extra_flag(_packet) {
-}
-function handle_ruleset_nation_sets(_packet) {
-}
-function handle_ruleset_style(_packet) {
-}
-function handle_nation_availability(_packet) {
-}
-function handle_ruleset_music(_packet) {
-}
-function handle_ruleset_multiplier(_packet) {
-}
-function handle_ruleset_action_auto(_packet) {
-}
-function handle_ruleset_achievement(_packet) {
-}
-function handle_achievement_info(_packet) {
-}
-function handle_team_name_info(_packet) {
-}
-function handle_popup_image(_packet) {
-}
-function handle_worker_task(_packet) {
-}
-function handle_play_music(_packet) {
-}
-function handle_server_join_reply(packet) {
-  if (packet["you_can_join"]) {
-    store.client.conn.established = true;
-    store.client.conn.id = packet["conn_id"];
-    if (get_client_page() === PAGE_MAIN || get_client_page() === PAGE_NETWORK) {
-      set_client_page(PAGE_START);
-    }
-    const client_info = {
-      "pid": packet_client_info,
-      "gui": GUI_WEB,
-      "emerg_version": 0,
-      "distribution": ""
-    };
-    send_request(JSON.stringify(client_info));
-    setClientState(C_S_PREPARING);
-    const urlParams = new URLSearchParams(window.location.search);
-    const urlAction = urlParams.get("action");
-    const urlRuleset = urlParams.get("ruleset");
-    if ((urlAction === "new" || urlAction === "hack") && urlRuleset != null) {
-      window.change_ruleset(urlRuleset);
-    }
-    if (store.autostart) {
-      if (window.loadTimerId === -1) {
-        wait_for_text("You are logged in as", window.pregame_start_game);
-      } else {
-        wait_for_text("Load complete", window.pregame_start_game);
-      }
-    } else if (store.observing) {
-      wait_for_text("You are logged in as", requestObserveGame);
-    }
-  } else {
-    swal("You were rejected from the game.", packet["message"] || "", "error");
-    store.client.conn.id = -1;
-    set_client_page(PAGE_MAIN);
-  }
-}
-function handle_conn_info(packet) {
-  let pconn = find_conn_by_id(packet["id"]);
-  if (packet["used"] === false) {
-    if (pconn == null) {
-      freelog(window.LOG_VERBOSE, "Server removed unknown connection " + packet["id"]);
-      return;
-    }
-    client_remove_cli_conn(pconn);
-    pconn = null;
-  } else {
-    const pplayer = valid_player_by_number(packet["player_num"]);
-    packet["playing"] = pplayer;
-    if (packet["id"] === store.client.conn.id) {
-      if (store.client.conn.player_num == null || store.client.conn.player_num !== packet["player_num"]) {
-        discard_diplomacy_dialogs();
-      }
-      store.client.conn = packet;
-    }
-    conn_list_append(packet);
-  }
-  if (packet["id"] === store.client.conn.id) {
-    if (clientPlaying() !== packet["playing"]) {
-      setClientState(C_S_PREPARING);
-    }
-  }
-}
-function handle_tile_info(packet) {
-  if (store.tiles != null) {
-    packet["extras"] = new BitVector$1(packet["extras"]);
-    Object.assign(store.tiles[packet["tile"]], packet);
-    if (typeof mark_tile_dirty === "function") {
-      mark_tile_dirty(packet["tile"]);
-    }
-  }
-}
-function handle_chat_msg(packet) {
-  let message = packet["message"];
-  const conn_id = packet["conn_id"];
-  const event = packet["event"];
-  const ptile = packet["tile"];
-  if (message == null) return;
-  if (event == null || event < 0 || event >= E_UNDEFINED) {
-    console.log("Undefined message event type");
-    console.log(packet);
-    packet["event"] = E_UNDEFINED;
-  }
-  if (store.connections[conn_id] != null) {
-    if (!isLongturn()) {
-      message = "<b>" + store.connections[conn_id]["username"] + ":</b>" + message;
-    }
-  } else if (packet["event"] === E_SCRIPT) {
-    const regxp = /\n/gi;
-    message = message.replace(regxp, "<br>\n");
-    showDialogMessage("Message for you:", message);
-    return;
-  } else {
-    if (message.indexOf("/metamessage") !== -1) return;
-    if (message.indexOf("Metaserver message string") !== -1) return;
-    if (ptile != null && ptile > 0) {
-      message = "<span class='chatbox_text_tileinfo' onclick='center_tile_id(" + ptile + ");'>" + message + "</span>";
-    }
-  }
-  packet["message"] = message;
-  add_chatbox_text(packet);
-}
-function handle_early_chat_msg(packet) {
-  handle_chat_msg(packet);
-}
+const REQEST_PLAYER_INITIATED$2 = 0;
 function handle_city_info(packet) {
   if (typeof mark_tile_dirty === "function" && packet["tile"] != null) {
     mark_tile_dirty(packet["tile"]);
@@ -7032,6 +7179,62 @@ function handle_city_update_counters(packet) {
     store.cities[packet["id"]]["counters"] = packet["counters"];
   }
 }
+function handle_city_remove(packet) {
+  removeCity(packet["city_id"]);
+}
+function handle_city_name_suggestion_info(packet) {
+  packet["name"] = decodeURIComponent(packet["name"]);
+  city_name_dialog(packet["name"], packet["unit_id"]);
+}
+function handle_city_sabotage_list(packet) {
+  if (packet["request_kind"] !== REQEST_PLAYER_INITIATED$2) {
+    console.log("handle_city_sabotage_list(): was asked to not disturb the player. Unimplemented.");
+  }
+  popup_sabotage_dialog(
+    game_find_unit_by_number(packet["actor_id"]),
+    game_find_city_by_number(packet["city_id"]),
+    new BitVector$1(packet["improvements"]),
+    packet["act_id"]
+  );
+}
+const _w$3 = window;
+function assign_nation_color(nation_id) {
+  const nation = store.nations[nation_id];
+  if (nation == null || nation["color"] != null) return;
+  const flag_key = "f." + nation["graphic_str"];
+  const flag_sprite = _w$3.sprites[flag_key];
+  if (flag_sprite == null) return;
+  const c2 = flag_sprite.getContext("2d");
+  const width = _w$3.tileset[flag_key][2];
+  const height = _w$3.tileset[flag_key][3];
+  const color_counts = {};
+  if (c2 == null) return;
+  const img_data = c2.getImageData(1, 1, width - 2, height - 2).data;
+  for (let i2 = 0; i2 < img_data.length; i2 += 4) {
+    const current_color = "rgb(" + img_data[i2] + "," + img_data[i2 + 1] + "," + img_data[i2 + 2] + ")";
+    if (current_color in color_counts) {
+      color_counts[current_color] = color_counts[current_color] + 1;
+    } else {
+      color_counts[current_color] = 1;
+    }
+  }
+  let max = -1;
+  let max_color = null;
+  for (const current_color in color_counts) {
+    if (color_counts[current_color] > max) {
+      max = color_counts[current_color];
+      max_color = current_color;
+    }
+  }
+  nation["color"] = max_color;
+}
+function color_rbg_to_list(pcolor) {
+  if (pcolor == null) return null;
+  const color_rgb = pcolor.match(/\d+/g);
+  if (!color_rgb) return null;
+  return [parseFloat(color_rgb[0]), parseFloat(color_rgb[1]), parseFloat(color_rgb[2])];
+}
+const REQEST_BACKGROUND_REFRESH$1 = 1;
 function handle_player_info(packet) {
   if (packet["name"] != null) {
     packet["name"] = decodeURIComponent(packet["name"]);
@@ -7068,72 +7271,62 @@ function handle_player_remove(packet) {
   delete store.players[packet["playerno"]];
   update_player_info_pregame();
 }
-function handle_conn_ping(packet) {
-  window.ping_last = (/* @__PURE__ */ new Date()).getTime();
-  const pong_packet = { "pid": packet_conn_pong };
-  send_request(JSON.stringify(pong_packet));
-}
-function handle_set_topology(_packet) {
-}
-function handle_map_info(packet) {
-  store.mapInfo = packet;
-  mapInitTopology();
-  mapAllocate();
-  mapdeco_init();
-}
-function handle_authentication_req(packet) {
-  showAuthDialog(packet);
-}
-function handle_server_shutdown(_packet) {
-}
-function handle_nuke_tile_info(packet) {
-  const ptile = indexToTile(packet["tile"]);
-  ptile["nuke"] = 60;
-  play_sound("LrgExpl.ogg");
-}
-function handle_city_remove(packet) {
-  removeCity(packet["city_id"]);
-}
-function handle_connect_msg(packet) {
-  add_chatbox_text(packet);
-}
-function handle_server_info(packet) {
-  if (packet["emerg_version"] > 0) {
-    console.log(
-      "Server has version %d.%d.%d.%d%s",
-      packet.major_version,
-      packet.minor_version,
-      packet.patch_version,
-      packet.emerg_version,
-      packet.version_label
-    );
-  } else {
-    console.log(
-      "Server has version %d.%d.%d%s",
-      packet.major_version,
-      packet.minor_version,
-      packet.patch_version,
-      packet.version_label
-    );
-  }
-}
-function handle_city_name_suggestion_info(packet) {
-  packet["name"] = decodeURIComponent(packet["name"]);
-  city_name_dialog(packet["name"], packet["unit_id"]);
-}
-function handle_city_sabotage_list(packet) {
-  if (packet["request_kind"] !== REQEST_PLAYER_INITIATED$1) {
-    console.log("handle_city_sabotage_list(): was asked to not disturb the player. Unimplemented.");
-  }
-  popup_sabotage_dialog(
-    game_find_unit_by_number(packet["actor_id"]),
-    game_find_city_by_number(packet["city_id"]),
-    new BitVector$1(packet["improvements"]),
-    packet["act_id"]
-  );
-}
 function handle_player_attribute_chunk(_packet) {
 }
+function handle_player_diplstate(packet) {
+  let need_players_dialog_update = false;
+  if (store.client == null || clientPlaying() == null) return;
+  if (packet["plr2"] === clientPlaying()["playerno"]) {
+    const ds = store.players[packet["plr1"]].diplstates;
+    if (ds != void 0 && ds[packet["plr2"]] != void 0 && ds[packet["plr2"]]["state"] !== packet["type"]) {
+      need_players_dialog_update = true;
+    }
+  }
+  if (packet["type"] === DiplState.DS_WAR && packet["plr2"] === clientPlaying()["playerno"] && window.diplstates[packet["plr1"]] !== DiplState.DS_WAR && window.diplstates[packet["plr1"]] !== DiplState.DS_NO_CONTACT) {
+    window.alert_war(packet["plr1"]);
+  } else if (packet["type"] === DiplState.DS_WAR && packet["plr1"] === clientPlaying()["playerno"] && window.diplstates[packet["plr2"]] !== DiplState.DS_WAR && window.diplstates[packet["plr2"]] !== DiplState.DS_NO_CONTACT) {
+    window.alert_war(packet["plr2"]);
+  }
+  if (packet["plr1"] === clientPlaying()["playerno"]) {
+    window.diplstates[packet["plr2"]] = packet["type"];
+  } else if (packet["plr2"] === clientPlaying()["playerno"]) {
+    window.diplstates[packet["plr1"]] = packet["type"];
+  }
+  if (store.players[packet["plr1"]].diplstates === void 0) {
+    store.players[packet["plr1"]].diplstates = [];
+  }
+  store.players[packet["plr1"]].diplstates[packet["plr2"]] = {
+    state: packet["type"],
+    turns_left: packet["turns_left"],
+    contact_turns_left: packet["contact_turns_left"]
+  };
+  if (need_players_dialog_update && action_selection_actor_unit() !== IDENTITY_NUMBER_ZERO) {
+    let tgt_tile;
+    let tgt_unit;
+    let tgt_city;
+    if (action_selection_target_unit() !== IDENTITY_NUMBER_ZERO && (tgt_unit = game_find_unit_by_number(action_selection_target_unit())) && tgt_unit["owner"] === packet["plr1"] || action_selection_target_city() !== IDENTITY_NUMBER_ZERO && (tgt_city = game_find_city_by_number(action_selection_target_city())) && tgt_city["owner"] === packet["plr1"] || (tgt_tile = indexToTile(action_selection_target_tile())) && tileOwner(tgt_tile) === packet["plr1"]) {
+      const refresh_packet = {
+        "pid": packet_unit_get_actions,
+        "actor_unit_id": action_selection_actor_unit(),
+        "target_unit_id": action_selection_target_unit(),
+        "target_tile_id": action_selection_target_tile(),
+        "target_extra_id": action_selection_target_extra(),
+        "request_kind": REQEST_BACKGROUND_REFRESH$1
+      };
+      send_request(JSON.stringify(refresh_packet));
+    }
+  }
+}
+const auto_attack_actions = [
+  ACTION_ATTACK,
+  ACTION_SUICIDE_ATTACK,
+  ACTION_NUKE_UNITS,
+  ACTION_NUKE_CITY,
+  ACTION_NUKE
+];
+const REQEST_PLAYER_INITIATED$1 = 0;
+const REQEST_BACKGROUND_REFRESH = 1;
+const REQEST_BACKGROUND_FAST_AUTO_ATTACK = 2;
 function handle_unit_remove(packet) {
   const punit = game_find_unit_by_number(packet["unit_id"]);
   if (punit == null) return;
@@ -7392,6 +7585,40 @@ function handle_diplomacy_accept_treaty(packet) {
     packet["other_accepted"]
   );
 }
+let page_msg = {};
+function handle_chat_msg(packet) {
+  let message = packet["message"];
+  const conn_id = packet["conn_id"];
+  const event = packet["event"];
+  const ptile = packet["tile"];
+  if (message == null) return;
+  if (event == null || event < 0 || event >= E_UNDEFINED) {
+    console.log("Undefined message event type");
+    console.log(packet);
+    packet["event"] = E_UNDEFINED;
+  }
+  if (store.connections[conn_id] != null) {
+    if (!isLongturn()) {
+      message = "<b>" + store.connections[conn_id]["username"] + ":</b>" + message;
+    }
+  } else if (packet["event"] === E_SCRIPT) {
+    const regxp = /\n/gi;
+    message = message.replace(regxp, "<br>\n");
+    showDialogMessage("Message for you:", message);
+    return;
+  } else {
+    if (message.indexOf("/metamessage") !== -1) return;
+    if (message.indexOf("Metaserver message string") !== -1) return;
+    if (ptile != null && ptile > 0) {
+      message = "<span class='chatbox_text_tileinfo' onclick='center_tile_id(" + ptile + ");'>" + message + "</span>";
+    }
+  }
+  packet["message"] = message;
+  add_chatbox_text(packet);
+}
+function handle_early_chat_msg(packet) {
+  handle_chat_msg(packet);
+}
 function handle_page_msg(packet) {
   page_msg["headline"] = packet["headline"];
   page_msg["caption"] = packet["caption"];
@@ -7409,207 +7636,9 @@ function handle_page_msg_part(packet) {
     page_msg = {};
   }
 }
-function handle_conn_ping_info(packet) {
-  if (store.debugActive) {
-    window.conn_ping_info = packet;
-    window.debug_ping_list.push(packet["ping_time"][0] * 1e3);
-  }
-}
-function handle_end_phase(_packet) {
-  chatbox_clip_messages();
-}
-function handle_start_phase(_packet) {
-  setClientState(C_S_RUNNING);
-  setPhaseStart();
-  window.saved_this_turn = false;
-}
-function handle_ruleset_control(packet) {
-  store.rulesControl = packet;
-  setClientState(C_S_PREPARING);
-  window.effects = {};
-  store.rulesSummary = null;
-  store.rulesDescription = null;
-  window.game_rules = null;
-  window.nation_groups = [];
-  store.nations = {};
-  window.specialists = {};
-  store.techs = {};
-  store.governments = {};
-  terrain_control = {};
-  window.terrain_control = {};
-  window.SINGLE_MOVE = void 0;
-  store.unitTypes = {};
-  window.unit_classes = {};
-  window.city_rules = {};
-  store.terrains = {};
-  window.resources = {};
-  window.goods = {};
-  window.actions = {};
-  improvements_init();
-  for (const extra in store.extras) {
-    const ename = store.extras[extra]["rule_name"];
-    if (ename === "Railroad") delete window["EXTRA_RAIL"];
-    else if (ename === "Oil Well") delete window["EXTRA_OIL_WELL"];
-    else delete window["EXTRA_" + ename.toUpperCase()];
-  }
-  store.extras = {};
-  roads = [];
-  bases = [];
-  window.clause_infos = {};
-}
-function handle_endgame_report(_packet) {
-  setClientState(C_S_OVER);
-}
-function handle_scenario_info(packet) {
-  window.scenario_info = packet;
-}
-function handle_scenario_description(packet) {
-  window.scenario_info["description"] = packet["description"];
-  update_game_info_pregame();
-}
-function handle_single_want_hack_reply(packet) {
-  if (typeof window.handle_single_want_hack_reply_orig === "function") {
-    window.handle_single_want_hack_reply_orig(packet);
-  }
-}
-function handle_vote_new(_packet) {
-}
-function handle_vote_update(_packet) {
-}
-function handle_vote_remove(_packet) {
-}
-function handle_vote_resolve(_packet) {
-}
-function handle_edit_startpos(_packet) {
-}
-function handle_edit_startpos_full(_packet) {
-}
-function handle_edit_object_created(_packet) {
-}
-function handle_server_setting_const(packet) {
-  store.serverSettings[packet["id"]] = packet;
-  store.serverSettings[packet["name"]] = packet;
-}
-function handle_server_setting_int(packet) {
-  Object.assign(store.serverSettings[packet["id"]], packet);
-}
-function handle_server_setting_enum(packet) {
-  Object.assign(store.serverSettings[packet["id"]], packet);
-}
-function handle_server_setting_bitwise(packet) {
-  Object.assign(store.serverSettings[packet["id"]], packet);
-}
-function handle_server_setting_bool(packet) {
-  Object.assign(store.serverSettings[packet["id"]], packet);
-}
-function handle_server_setting_str(packet) {
-  Object.assign(store.serverSettings[packet["id"]], packet);
-}
-function handle_server_setting_control(_packet) {
-}
-function handle_player_diplstate(packet) {
-  let need_players_dialog_update = false;
-  if (store.client == null || clientPlaying() == null) return;
-  if (packet["plr2"] === clientPlaying()["playerno"]) {
-    const ds = store.players[packet["plr1"]].diplstates;
-    if (ds != void 0 && ds[packet["plr2"]] != void 0 && ds[packet["plr2"]]["state"] !== packet["type"]) {
-      need_players_dialog_update = true;
-    }
-  }
-  if (packet["type"] === DiplState.DS_WAR && packet["plr2"] === clientPlaying()["playerno"] && window.diplstates[packet["plr1"]] !== DiplState.DS_WAR && window.diplstates[packet["plr1"]] !== DiplState.DS_NO_CONTACT) {
-    window.alert_war(packet["plr1"]);
-  } else if (packet["type"] === DiplState.DS_WAR && packet["plr1"] === clientPlaying()["playerno"] && window.diplstates[packet["plr2"]] !== DiplState.DS_WAR && window.diplstates[packet["plr2"]] !== DiplState.DS_NO_CONTACT) {
-    window.alert_war(packet["plr2"]);
-  }
-  if (packet["plr1"] === clientPlaying()["playerno"]) {
-    window.diplstates[packet["plr2"]] = packet["type"];
-  } else if (packet["plr2"] === clientPlaying()["playerno"]) {
-    window.diplstates[packet["plr1"]] = packet["type"];
-  }
-  if (store.players[packet["plr1"]].diplstates === void 0) {
-    store.players[packet["plr1"]].diplstates = [];
-  }
-  store.players[packet["plr1"]].diplstates[packet["plr2"]] = {
-    state: packet["type"],
-    turns_left: packet["turns_left"],
-    contact_turns_left: packet["contact_turns_left"]
-  };
-  if (need_players_dialog_update && action_selection_actor_unit() !== IDENTITY_NUMBER_ZERO) {
-    let tgt_tile;
-    let tgt_unit;
-    let tgt_city;
-    if (action_selection_target_unit() !== IDENTITY_NUMBER_ZERO && (tgt_unit = game_find_unit_by_number(action_selection_target_unit())) && tgt_unit["owner"] === packet["plr1"] || action_selection_target_city() !== IDENTITY_NUMBER_ZERO && (tgt_city = game_find_city_by_number(action_selection_target_city())) && tgt_city["owner"] === packet["plr1"] || (tgt_tile = indexToTile(action_selection_target_tile())) && tileOwner(tgt_tile) === packet["plr1"]) {
-      const refresh_packet = {
-        "pid": packet_unit_get_actions,
-        "actor_unit_id": action_selection_actor_unit(),
-        "target_unit_id": action_selection_target_unit(),
-        "target_tile_id": action_selection_target_tile(),
-        "target_extra_id": action_selection_target_extra(),
-        "request_kind": REQEST_BACKGROUND_REFRESH
-      };
-      send_request(JSON.stringify(refresh_packet));
-    }
-  }
-}
 function handle_web_goto_path(packet) {
   if (goto_active) {
     update_goto_path(packet);
-  }
-}
-function handle_research_info(packet) {
-  let old_inventions = null;
-  if (research_data[packet["id"]] != null) {
-    old_inventions = research_data[packet["id"]]["inventions"];
-  }
-  research_data[packet["id"]] = packet;
-  if (store.gameInfo?.["team_pooled_research"]) {
-    for (const player_id in store.players) {
-      const pplayer = store.players[player_id];
-      if (pplayer["team"] === packet["id"]) {
-        Object.assign(pplayer, packet);
-        delete pplayer["id"];
-      }
-    }
-  } else {
-    const pplayer = store.players[packet["id"]];
-    Object.assign(pplayer, packet);
-    delete pplayer["id"];
-  }
-  if (!clientIsObserver() && old_inventions != null && clientPlaying() != null && clientPlaying()["playerno"] === packet["id"]) {
-    for (let i2 = 0; i2 < packet["inventions"].length; i2++) {
-      if (packet["inventions"][i2] !== old_inventions[i2] && packet["inventions"][i2] === TECH_KNOWN$1) {
-        queue_tech_gained_dialog(i2);
-        break;
-      }
-    }
-  }
-  if (is_tech_tree_init && tech_dialog_active) update_tech_screen();
-  bulbs_output_updater.update();
-}
-function handle_begin_turn(_packet) {
-  if (typeof mark_all_dirty === "function") mark_all_dirty();
-  if (!store.observing) {
-    const btn = document.getElementById("turn_done_button");
-    if (btn) {
-      btn.disabled = false;
-      btn.textContent = "Turn Done";
-    }
-  }
-  setWaitingUnitsList([]);
-  update_unit_focus();
-  update_active_units_dialog();
-  update_game_status_panel();
-  const funits = get_units_in_focus();
-  if (funits != null && funits.length === 0) {
-    auto_center_on_focus_unit();
-  }
-  if (is_tech_tree_init && tech_dialog_active) update_tech_screen();
-}
-function handle_end_turn(_packet) {
-  reset_unit_anim_list();
-  if (!store.observing) {
-    const btn = document.getElementById("turn_done_button");
-    if (btn) btn.disabled = true;
   }
 }
 const packet_hand_table = {
@@ -7744,7 +7773,6 @@ const packet_hand_table = {
   259: handle_web_player_info_addition,
   260: handle_web_ruleset_unit_addition,
   288: handle_web_goto_path
-  // 290: handle_web_info_text_message — defined in 2dcanvas/mapctrl.js
 };
 packet_hand_table[290] = handle_web_info_text_message;
 function client_handle_packet(packets) {
@@ -7767,15 +7795,6 @@ function client_handle_packet(packets) {
   } catch (e2) {
     console.error(e2);
   }
-}
-function find_conn_by_id(id) {
-  return store.connections[id];
-}
-function client_remove_cli_conn(connection2) {
-  delete store.connections[connection2["id"]];
-}
-function conn_list_append(connection2) {
-  store.connections[connection2["id"]] = connection2;
 }
 const FC_ACTIVITY_IDLE = ACTIVITY_IDLE;
 const FC_SSA_NONE = ServerSideAgent.NONE;
@@ -9517,18 +9536,18 @@ function MessageDialog() {
     }
   );
 }
-const _w$1 = window;
-if (_w$1.C_S_INITIAL === void 0) _w$1.C_S_INITIAL = 0;
-if (_w$1.C_S_PREPARING === void 0) _w$1.C_S_PREPARING = 1;
-if (_w$1.C_S_RUNNING === void 0) _w$1.C_S_RUNNING = 2;
-if (_w$1.C_S_OVER === void 0) _w$1.C_S_OVER = 3;
-if (_w$1.civclient_state === void 0) _w$1.civclient_state = C_S_INITIAL;
-if (_w$1.endgame_player_info === void 0) _w$1.endgame_player_info = [];
-if (_w$1.height_offset === void 0) _w$1.height_offset = 52;
-if (_w$1.width_offset === void 0) _w$1.width_offset = 10;
+const _w$2 = window;
+if (_w$2.C_S_INITIAL === void 0) _w$2.C_S_INITIAL = 0;
+if (_w$2.C_S_PREPARING === void 0) _w$2.C_S_PREPARING = 1;
+if (_w$2.C_S_RUNNING === void 0) _w$2.C_S_RUNNING = 2;
+if (_w$2.C_S_OVER === void 0) _w$2.C_S_OVER = 3;
+if (_w$2.civclient_state === void 0) _w$2.civclient_state = C_S_INITIAL;
+if (_w$2.endgame_player_info === void 0) _w$2.endgame_player_info = [];
+if (_w$2.height_offset === void 0) _w$2.height_offset = 52;
+if (_w$2.width_offset === void 0) _w$2.width_offset = 10;
 function setClientState(newstate) {
-  if (_w$1.civclient_state === newstate) return;
-  _w$1.civclient_state = newstate;
+  if (_w$2.civclient_state === newstate) return;
+  _w$2.civclient_state = newstate;
   switch (newstate) {
     case C_S_RUNNING:
       try {
@@ -9540,7 +9559,7 @@ function setClientState(newstate) {
       }
       set_client_page(PAGE_GAME);
       setupWindowSize();
-      if (typeof _w$1.update_metamessage_on_gamestart === "function") _w$1.update_metamessage_on_gamestart();
+      if (typeof _w$2.update_metamessage_on_gamestart === "function") _w$2.update_metamessage_on_gamestart();
       document.querySelectorAll(".context-menu-root").forEach((el) => el.remove());
       center_on_any_city();
       advance_unit_focus();
@@ -9555,21 +9574,21 @@ function setClientState(newstate) {
 function setupWindowSize() {
   const winWidth = window.innerWidth;
   const winHeight = window.innerHeight;
-  const new_mapview_width = winWidth - _w$1.width_offset;
-  const new_mapview_height = winHeight - _w$1.height_offset;
-  if (_w$1.renderer === RENDERER_2DCANVAS$1 && _w$1.mapview_canvas) {
-    _w$1.mapview_canvas.width = new_mapview_width;
-    _w$1.mapview_canvas.height = new_mapview_height;
-    if (_w$1.buffer_canvas) {
-      _w$1.buffer_canvas.width = Math.floor(new_mapview_width * 1.5);
-      _w$1.buffer_canvas.height = Math.floor(new_mapview_height * 1.5);
+  const new_mapview_width = winWidth - _w$2.width_offset;
+  const new_mapview_height = winHeight - _w$2.height_offset;
+  if (_w$2.renderer === RENDERER_2DCANVAS$1 && _w$2.mapview_canvas) {
+    _w$2.mapview_canvas.width = new_mapview_width;
+    _w$2.mapview_canvas.height = new_mapview_height;
+    if (_w$2.buffer_canvas) {
+      _w$2.buffer_canvas.width = Math.floor(new_mapview_width * 1.5);
+      _w$2.buffer_canvas.height = Math.floor(new_mapview_height * 1.5);
     }
     mapview$1["width"] = new_mapview_width;
     mapview$1["height"] = new_mapview_height;
     mapview$1["store_width"] = new_mapview_width;
     mapview$1["store_height"] = new_mapview_height;
-    if (_w$1.mapview_canvas_ctx) _w$1.mapview_canvas_ctx.font = _w$1.canvas_text_font;
-    if (_w$1.buffer_canvas_ctx) _w$1.buffer_canvas_ctx.font = _w$1.canvas_text_font;
+    if (_w$2.mapview_canvas_ctx) _w$2.mapview_canvas_ctx.font = _w$2.canvas_text_font;
+    if (_w$2.buffer_canvas_ctx) _w$2.buffer_canvas_ctx.font = _w$2.canvas_text_font;
   }
   const _el = (id) => document.getElementById(id);
   const _setH = (id, h2) => {
@@ -9616,7 +9635,7 @@ function setupWindowSize() {
     document.querySelectorAll(".ui-dialog-titlebar").forEach((el) => el.style.display = "none");
     _hide("freeciv_logo");
     setOverviewActive(false);
-    _w$1.overview_active = false;
+    _w$2.overview_active = false;
     _el("game_unit_orders_default")?.remove();
     _el("game_unit_orders_settlers")?.remove();
     const statusBottom = _el("game_status_panel_bottom");
@@ -9631,17 +9650,17 @@ function showNewGameMessage() {
 function showEndgameDialog() {
   const title = "Final Report: The Greatest Civilizations in the world!";
   let message = "";
-  for (let i2 = 0; i2 < _w$1.endgame_player_info.length; i2++) {
-    const pplayer = store.players[_w$1.endgame_player_info[i2]["player_id"]];
+  for (let i2 = 0; i2 < _w$2.endgame_player_info.length; i2++) {
+    const pplayer = store.players[_w$2.endgame_player_info[i2]["player_id"]];
     const nation_adj = store.nations[pplayer["nation"]]?.["adjective"] ?? "Unknown";
-    message += i2 + 1 + ": The " + nation_adj + " ruler " + pplayer["name"] + " scored " + _w$1.endgame_player_info[i2]["score"] + " points<br>";
+    message += i2 + 1 + ": The " + nation_adj + " ruler " + pplayer["name"] + " scored " + _w$2.endgame_player_info[i2]["score"] + " points<br>";
   }
   showMessageDialog(title, message);
 }
 function setDefaultMapviewActive() {
-  if (_w$1.renderer === RENDERER_2DCANVAS$1 && _w$1.mapview_canvas) {
-    _w$1.mapview_canvas_ctx = _w$1.mapview_canvas.getContext("2d");
-    if (_w$1.mapview_canvas_ctx) _w$1.mapview_canvas_ctx.font = _w$1.canvas_text_font;
+  if (_w$2.renderer === RENDERER_2DCANVAS$1 && _w$2.mapview_canvas) {
+    _w$2.mapview_canvas_ctx = _w$2.mapview_canvas.getContext("2d");
+    if (_w$2.mapview_canvas_ctx) _w$2.mapview_canvas_ctx.font = _w$2.canvas_text_font;
   }
   const active_tab = getActiveTab("#tabs");
   if (active_tab === 4) return;
@@ -9656,7 +9675,7 @@ function setDefaultMapviewActive() {
   const tabsMap = document.getElementById("tabs-map");
   if (tabsMap) tabsMap.style.height = "auto";
   setTechDialogActive(false);
-  _w$1.tech_dialog_active = false;
+  _w$2.tech_dialog_active = false;
   setAllowRightClick(false);
   setKeyboardInput(true);
   const scrollDiv = document.getElementById("freeciv_custom_scrollbar_div");
@@ -9682,8 +9701,15 @@ const FEELING_FINAL$1 = 5;
 const MAX_LEN_WORKLIST = 64;
 let city_tab_index = 0;
 let city_prod_clicks = 0;
+let _update_city_screen_fn = null;
+function set_city_screen_updater_fn(fn) {
+  _update_city_screen_fn = fn;
+}
+function _update_city_screen_proxy() {
+  if (_update_city_screen_fn) _update_city_screen_fn();
+}
 const city_screen_updater = new EventAggregator(
-  update_city_screen,
+  _update_city_screen_proxy,
   250,
   EventAggregator.DP_NONE,
   250,
@@ -9691,455 +9717,28 @@ const city_screen_updater = new EventAggregator(
   250
 );
 let opt_show_unreachable_items = false;
-function show_city_dialog_by_id(pcity_id) {
-  show_city_dialog(cities$1[pcity_id]);
+function set_citydlg_map_width(v2) {
+  citydlg_map_width = v2;
 }
-function show_city_dialog(pcity) {
-  let turns_to_complete;
-  let sprite;
-  let punit;
-  if (active_city != pcity || active_city == null) {
-    city_prod_clicks = 0;
-    production_selection = [];
-    worklist_selection = [];
-  }
-  if (active_city != null) close_city_dialog();
-  active_city = pcity;
-  if (pcity == null) return;
-  $("#city_dialog").remove();
-  $("<div id='city_dialog'></div>").appendTo("div#game_page");
-  const city_data = {};
-  $("#city_dialog").html(window.Handlebars.templates["city"](city_data));
-  $("#city_canvas").click(city_mapview_mouse_click);
-  let dialog_buttons = {};
-  if (!isSmallScreen()) {
-    dialog_buttons = $.extend(
-      dialog_buttons,
-      {
-        "Previous city": function() {
-          previous_city();
-        },
-        "Next city (N)": function() {
-          next_city();
-        },
-        "Buy (B)": function() {
-          request_city_buy();
-        },
-        "Rename": function() {
-          rename_city();
-        }
-      }
-    );
-  } else {
-    dialog_buttons = $.extend(
-      dialog_buttons,
-      {
-        "Next": function() {
-          next_city();
-        },
-        "Buy": function() {
-          request_city_buy();
-        }
-      }
-    );
-  }
-  dialog_buttons = $.extend(dialog_buttons, { "Close": close_city_dialog });
-  $("#city_dialog").attr("title", decodeURIComponent(pcity["name"]) + " (" + pcity["size"] + ")");
-  $("#city_dialog").dialog({
-    bgiframe: true,
-    modal: false,
-    width: isSmallScreen() ? "98%" : "80%",
-    height: isSmallScreen() ? $(window).height() + 10 : $(window).height() - 80,
-    close: city_dialog_close_handler,
-    buttons: dialog_buttons
-  }).dialogExtend({
-    "minimizable": true,
-    "closable": true,
-    "minimize": function(evt, dlg) {
-      setDefaultMapviewActive();
-    },
-    "icons": {
-      "minimize": "ui-icon-circle-minus",
-      "restore": "ui-icon-bullet"
-    }
-  });
-  $("#city_dialog").dialog("widget").keydown(city_keyboard_listener);
-  $("#city_dialog").dialog("open");
-  $("#game_text_input").blur();
-  if (!isSmallScreen()) {
-    $("#city_tabs-6").remove();
-    $(".extra_tabs_small").remove();
-    $("#mobile_cma_checkbox").remove();
-  } else {
-    $("#city_tabs-5").remove();
-    $(".extra_tabs_big").remove();
-    $("#city_stats").hide();
-    const units_element = $("#city_improvements_panel").detach();
-    $("#city_units_tab").append(units_element);
-  }
-  initTabs("#city_tabs", { active: city_tab_index });
-  $(".citydlg_tabs").height(isSmallScreen() ? $(window).height() - 110 : $(window).height() - 225);
-  city_worklist_dialog(pcity);
-  set_citydlg_dimensions(pcity);
-  set_city_mapview_active();
-  center_tile_mapcanvas(city_tile(pcity));
-  update_map_canvas(0, 0, mapview$1["store_width"] ?? 0, mapview$1["store_height"] ?? 0);
-  let governor_text = "";
-  if (typeof pcity["cma_enabled"] !== "undefined") {
-    governor_text = "<br>" + (pcity["cma_enabled"] ? "Governor Enabled" : "Governor Disabled");
-  }
-  $("#city_size").html("Population: " + numberWithCommas(cityPopulation(pcity) * 1e3) + "<br>Size: " + pcity["size"] + "<br>Granary: " + pcity["food_stock"] + "/" + pcity["granary_size"] + "<br>Change in: " + cityTurnsToGrowthText(pcity) + governor_text);
-  const prod_type = getCityProductionTypeSprite(pcity);
-  $("#city_production_overview").html("Producing: " + (prod_type != null ? prod_type["type"]["name"] : "None"));
-  turns_to_complete = getCityProductionTime(pcity);
-  if (turns_to_complete != FC_INFINITY) {
-    $("#city_production_turns_overview").html(turns_to_complete + " turns &nbsp;&nbsp;(" + getProductionProgress(pcity) + ")");
-  } else {
-    $("#city_production_turns_overview").html("-");
-  }
-  let improvements_html = "";
-  for (let z2 = 0; z2 < (store.rulesControl?.num_impr_types ?? 0); z2++) {
-    if (pcity["improvements"] != null && pcity["improvements"].isSet(z2)) {
-      sprite = get_improvement_image_sprite(store.improvements[z2]);
-      if (sprite == null) {
-        console.log("Missing sprite for improvement " + z2);
-        continue;
-      }
-      improvements_html = improvements_html + "<div id='city_improvement_element'><div style='background: transparent url(" + sprite["image-src"] + ");background-position:-" + sprite["tileset-x"] + "px -" + sprite["tileset-y"] + "px;  width: " + sprite["width"] + "px;height: " + sprite["height"] + `px;float:left; 'title="` + store.improvements[z2]["helptext"] + `" onclick='city_sell_improvement(` + z2 + ");'></div>" + store.improvements[z2]["name"] + "</div>";
-    }
-  }
-  $("#city_improvements_list").html(improvements_html);
-  const punits = tile_units(city_tile(pcity));
-  if (punits != null) {
-    let present_units_html = "";
-    for (let r2 = 0; r2 < punits.length; r2++) {
-      punit = punits[r2];
-      sprite = get_unit_image_sprite(punit);
-      if (sprite == null) {
-        console.log("Missing sprite for " + punit);
-        continue;
-      }
-      present_units_html = present_units_html + "<div class='game_unit_list_item' title='" + get_unit_city_info(punit) + "' style='cursor:pointer;cursor:hand; background: transparent url(" + sprite["image-src"] + ");background-position:-" + sprite["tileset-x"] + "px -" + sprite["tileset-y"] + "px;  width: " + sprite["width"] + "px;height: " + sprite["height"] + "px;float:left; ' onclick='city_dialog_activate_unit(units[" + punit["id"] + "]);'></div>";
-    }
-    $("#city_present_units_list").html(present_units_html);
-  }
-  const sunits = get_supported_units(pcity);
-  if (sunits != null) {
-    let supported_units_html = "";
-    for (let t2 = 0; t2 < sunits.length; t2++) {
-      punit = sunits[t2];
-      sprite = get_unit_image_sprite(punit);
-      if (sprite == null) {
-        console.log("Missing sprite for " + punit);
-        continue;
-      }
-      supported_units_html = supported_units_html + "<div class='game_unit_list_item' title='" + get_unit_city_info(punit) + "' style='cursor:pointer;cursor:hand; background: transparent url(" + sprite["image-src"] + ");background-position:-" + sprite["tileset-x"] + "px -" + sprite["tileset-y"] + "px;  width: " + sprite["width"] + "px;height: " + sprite["height"] + "px;float:left; ' onclick='city_dialog_activate_unit(units[" + punit["id"] + "]);'></div>";
-    }
-    $("#city_supported_units_list").html(supported_units_html);
-  }
-  $(".game_unit_list_item").tooltip();
-  if ("prod" in pcity && "surplus" in pcity) {
-    let food_txt = pcity["prod"][O_FOOD$1] + " ( ";
-    if (pcity["surplus"][O_FOOD$1] > 0) food_txt += "+";
-    food_txt += pcity["surplus"][O_FOOD$1] + ")";
-    let shield_txt = pcity["prod"][O_SHIELD$1] + " ( ";
-    if (pcity["surplus"][O_SHIELD$1] > 0) shield_txt += "+";
-    shield_txt += pcity["surplus"][O_SHIELD$1] + ")";
-    let trade_txt = pcity["prod"][O_TRADE] + " ( ";
-    if (pcity["surplus"][O_TRADE] > 0) trade_txt += "+";
-    trade_txt += pcity["surplus"][O_TRADE] + ")";
-    let gold_txt = pcity["prod"][O_GOLD$1] + " ( ";
-    if (pcity["surplus"][O_GOLD$1] > 0) gold_txt += "+";
-    gold_txt += pcity["surplus"][O_GOLD$1] + ")";
-    const luxury_txt = pcity["prod"][O_LUXURY];
-    const science_txt = pcity["prod"][O_SCIENCE];
-    $("#city_food").html(food_txt);
-    $("#city_prod").html(shield_txt);
-    $("#city_trade").html(trade_txt);
-    $("#city_gold").html(gold_txt);
-    $("#city_luxury").html(luxury_txt);
-    $("#city_science").html(science_txt);
-    $("#city_corruption").html(pcity["waste"][O_TRADE]);
-    $("#city_waste").html(pcity["waste"][O_SHIELD$1]);
-    $("#city_pollution").html(pcity["pollution"]);
-    $("#city_steal").html(pcity["steal"]);
-    $("#city_culture").html(pcity["culture"]);
-  }
-  let specialist_html = "";
-  const citizen_types = ["angry", "unhappy", "content", "happy"];
-  for (let s2 = 0; s2 < citizen_types.length; s2++) {
-    if (pcity["ppl_" + citizen_types[s2]] == null) continue;
-    for (let i2 = 0; i2 < pcity["ppl_" + citizen_types[s2]][FEELING_FINAL$1]; i2++) {
-      sprite = get_specialist_image_sprite();
-      specialist_html = specialist_html + "<div class='specialist_item' style='background: transparent url(" + sprite["image-src"] + ");background-position:-" + sprite["tileset-x"] + "px -" + sprite["tileset-y"] + "px;  width: " + sprite["width"] + "px;height: " + sprite["height"] + "px;float:left; ' title='One " + citizen_types[s2] + " citizen'></div>";
-    }
-  }
-  for (let u2 = 0; u2 < pcity["specialists_size"]; u2++) {
-    const spec_type_name = window.specialists[u2]["plural_name"];
-    "specialist." + window.specialists[u2]["rule_name"] + "_0";
-    for (let j2 = 0; j2 < pcity["specialists"][u2]; j2++) {
-      sprite = get_specialist_image_sprite();
-      specialist_html = specialist_html + "<div class='specialist_item' style='cursor:pointer;cursor:hand; background: transparent url(" + sprite["image-src"] + ");background-position:-" + sprite["tileset-x"] + "px -" + sprite["tileset-y"] + "px;  width: " + sprite["width"] + "px;height: " + sprite["height"] + "px;float:left; ' onclick='city_change_specialist(" + pcity["id"] + "," + window.specialists[u2]["id"] + ");' title='" + spec_type_name + " (click to change)'></div>";
-    }
-  }
-  specialist_html += "<div style='clear: both;'></div>";
-  $("#specialist_panel").html(specialist_html);
-  $("#disbandable_city").off();
-  $("#disbandable_city").prop(
-    "checked",
-    pcity["city_options"] != null && pcity["city_options"].isSet(CITYO_DISBAND)
-  );
-  $("#disbandable_city").click(function() {
-    const options = pcity["city_options"];
-    const packet = {
-      "pid": packet_city_options_req,
-      "city_id": active_city["id"],
-      "options": options.raw
-    };
-    if ($("#disbandable_city").prop("checked")) {
-      options.set(CITYO_DISBAND);
-    } else {
-      options.unset(CITYO_DISBAND);
-    }
-    send_request(JSON.stringify(packet));
-  });
-  if (isSmallScreen()) {
-    $(".ui-tabs-anchor").css("padding", "2px");
-  }
+function set_citydlg_map_height(v2) {
+  citydlg_map_height = v2;
 }
-function request_city_buy() {
-  if (clientIsObserver()) return;
-  const pcity = active_city;
-  const pplayer = clientPlaying();
-  $("#dialog").remove();
-  $("<div id='dialog'></div>").appendTo("div#game_page");
-  let buy_question_string = "";
-  if (pcity["production_kind"] == VUT_UTYPE) {
-    const punit_type = store.unitTypes[pcity["production_value"]];
-    if (punit_type != null) {
-      punit_type["name"] + " costs " + pcity["buy_cost"] + " gold.";
-      buy_question_string = "Buy " + punit_type["name"] + " for " + pcity["buy_cost"] + " gold?";
-    }
-  } else {
-    const improvement = store.improvements[pcity["production_value"]];
-    if (improvement != null) {
-      improvement["name"] + " costs " + pcity["buy_cost"] + " gold.";
-      buy_question_string = "Buy " + improvement["name"] + " for " + pcity["buy_cost"] + " gold?";
-    }
-  }
-  const treasury_text = "<br>Treasury contains " + pplayer["gold"] + " gold.";
-  if (pcity["buy_cost"] > pplayer["gold"]) {
-    return;
-  }
-  const dhtml = buy_question_string + treasury_text;
-  $("#dialog").html(dhtml);
-  $("#dialog").attr("title", "Buy It!");
-  $("#dialog").dialog({
-    bgiframe: true,
-    modal: true,
-    width: isSmallScreen() ? "95%" : "50%",
-    buttons: {
-      "Yes": function() {
-        send_city_buy();
-        $("#dialog").dialog("close");
-      },
-      "No": function() {
-        $("#dialog").dialog("close");
-      }
-    }
-  });
-  $("#dialog").dialog("open");
+function set_active_city(v2) {
+  active_city = v2;
 }
-function send_city_buy() {
-  if (clientIsObserver()) return;
-  if (active_city != null) {
-    const packet = { "pid": packet_city_buy, "city_id": active_city["id"] };
-    send_request(JSON.stringify(packet));
-  }
+function set_production_selection(v2) {
+  production_selection = v2;
 }
-function send_city_change(city_id, kind, value) {
-  const packet = {
-    "pid": packet_city_change,
-    "city_id": city_id,
-    "production_kind": kind,
-    "production_value": value
-  };
-  send_request(JSON.stringify(packet));
+function set_worklist_selection(v2) {
+  worklist_selection = v2;
 }
-function close_city_dialog() {
-  $("#city_dialog").dialog("close");
+function set_city_prod_clicks(v2) {
+  city_prod_clicks = v2;
 }
-function city_dialog_close_handler() {
-  setDefaultMapviewActive();
-  if (active_city != null) {
-    setupWindowSize();
-    center_tile_mapcanvas(city_tile(active_city));
-    active_city = null;
-    if (window.renderer == RENDERER_2DCANVAS$1) {
-      update_map_canvas_full();
-    }
-  }
+function set_opt_show_unreachable_items(v2) {
+  opt_show_unreachable_items = v2;
 }
-function city_name_dialog(suggested_name, unit_id) {
-  $("#city_name_dialog").remove();
-  $("<div id='city_name_dialog'></div>").appendTo("div#game_page");
-  $("#city_name_dialog").html($("<div>What should we call our new city?</div><input id='city_name_req' type='text'>"));
-  $("#city_name_req").attr("value", suggested_name);
-  $("#city_name_dialog").attr("title", "Build New City");
-  $("#city_name_dialog").dialog({
-    bgiframe: true,
-    modal: true,
-    width: "300",
-    close: function() {
-      act_sel_queue_done(unit_id);
-    },
-    buttons: [
-      {
-        text: "Cancel",
-        click: function() {
-          $("#city_name_dialog").remove();
-          act_sel_queue_done(unit_id);
-        }
-      },
-      {
-        text: "Ok",
-        click: function() {
-          const name = $("#city_name_req").val();
-          if (name.length == 0 || name.length >= MAX_LEN_CITYNAME - 6 || encodeURIComponent(name).length >= MAX_LEN_CITYNAME - 6) {
-            swal("City name is invalid. Please try a different shorter name.");
-            return;
-          }
-          const actor_unit = game_find_unit_by_number(unit_id);
-          request_unit_do_action(
-            ACTION_FOUND_CITY,
-            unit_id,
-            actor_unit["tile"],
-            0,
-            encodeURIComponent(name)
-          );
-          $("#city_name_dialog").remove();
-          act_sel_queue_done(unit_id);
-        }
-      }
-    ]
-  });
-  $("#city_name_req").attr("maxlength", MAX_LEN_NAME);
-  $("#city_name_dialog").dialog("open");
-  $("#city_name_dialog").keyup(function(e2) {
-    if (e2.keyCode == 13) {
-      const name = $("#city_name_req").val();
-      const actor_unit = game_find_unit_by_number(unit_id);
-      request_unit_do_action(
-        ACTION_FOUND_CITY,
-        unit_id,
-        actor_unit["tile"],
-        0,
-        encodeURIComponent(name)
-      );
-      $("#city_name_dialog").remove();
-      act_sel_queue_done(unit_id);
-    }
-  });
-  blur_input_on_touchdevice();
-}
-function next_city() {
-  if (!clientPlaying()) return;
-  city_screen_updater.fireNow();
-  let next_row = $("#cities_list_" + active_city["id"]).next();
-  if (next_row.length === 0) {
-    next_row = $("#city_table tbody tr").first();
-  }
-  if (next_row.length > 0) {
-    show_city_dialog(cities$1[next_row.attr("id").substr(12)]);
-  }
-}
-function previous_city() {
-  if (!clientPlaying()) return;
-  city_screen_updater.fireNow();
-  let prev_row = $("#cities_list_" + active_city["id"]).prev();
-  if (prev_row.length === 0) {
-    prev_row = $("#city_table tbody tr").last();
-  }
-  if (prev_row.length > 0) {
-    show_city_dialog(cities$1[prev_row.attr("id").substr(12)]);
-  }
-}
-function city_sell_improvement(improvement_id) {
-  if (clientIsObserver()) return;
-  if ("confirm" in window) {
-    const agree = confirm("Are you sure you want to sell this building?");
-    if (agree) {
-      const packet = {
-        "pid": packet_city_sell,
-        "city_id": active_city["id"],
-        "build_id": improvement_id
-      };
-      send_request(JSON.stringify(packet));
-    }
-  } else {
-    const packet = {
-      "pid": packet_city_sell,
-      "city_id": active_city["id"],
-      "build_id": improvement_id
-    };
-    send_request(JSON.stringify(packet));
-  }
-}
-function city_change_specialist(city_id, from_specialist_id) {
-  if (clientIsObserver()) return;
-  const city_message = {
-    "pid": packet_city_change_specialist,
-    "city_id": city_id,
-    "from": from_specialist_id,
-    "to": (from_specialist_id + 1) % 3
-  };
-  send_request(JSON.stringify(city_message));
-}
-function rename_city() {
-  if (clientIsObserver() || active_city == null) return;
-  $("#city_name_dialog").remove();
-  $("<div id='city_name_dialog'></div>").appendTo("div#game_page");
-  $("#city_name_dialog").html($("<div>What should we call this city?</div><input id='city_name_req' type='text'>"));
-  $("#city_name_req").attr("value", active_city["name"]);
-  $("#city_name_dialog").attr("title", "Rename City");
-  $("#city_name_dialog").dialog({
-    bgiframe: true,
-    modal: true,
-    width: "300",
-    close: function() {
-    },
-    buttons: [
-      {
-        text: "Cancel",
-        click: function() {
-          $("#city_name_dialog").remove();
-        }
-      },
-      {
-        text: "Ok",
-        click: function() {
-          const name = $("#city_name_req").val();
-          if (name.length == 0 || name.length >= MAX_LEN_NAME - 4 || encodeURIComponent(name).length >= MAX_LEN_NAME - 4) {
-            swal("City name is invalid");
-            return;
-          }
-          const packet = { "pid": packet_city_rename, "name": encodeURIComponent(name), "city_id": active_city["id"] };
-          send_request(JSON.stringify(packet));
-          $("#city_name_dialog").remove();
-        }
-      }
-    ]
-  });
-  $("#city_name_req").attr("maxlength", MAX_LEN_NAME);
-  $("#city_name_dialog").dialog("open");
-  $("#city_name_dialog").keyup(function(e2) {
-    if (e2.keyCode == 13) {
-      const name = $("#city_name_req").val();
-      const packet = { "pid": packet_city_rename, "name": encodeURIComponent(name), "city_id": active_city["id"] };
-      send_request(JSON.stringify(packet));
-      $("#city_name_dialog").remove();
-    }
-  });
+function get_unit_type_image_sprite$1(unit_type2) {
 }
 function city_worklist_dialog(pcity) {
   if (pcity == null) return;
@@ -10195,10 +9794,10 @@ function city_worklist_dialog(pcity) {
   populate_worklist_production_choices(pcity);
   $("#show_unreachable_items").off("click");
   $("#show_unreachable_items").click(function() {
-    opt_show_unreachable_items = !opt_show_unreachable_items;
+    set_opt_show_unreachable_items(!opt_show_unreachable_items);
     $("#show_unreachable_items").prop("checked", opt_show_unreachable_items);
     if (production_selection.length !== 0) {
-      production_selection = [];
+      set_production_selection([]);
       update_worklist_actions();
     }
     populate_worklist_production_choices(pcity);
@@ -10297,7 +9896,7 @@ function populate_worklist_production_choices(pcity) {
       } else {
         send_city_worklist_add(pcity["id"], kind, value);
       }
-      city_prod_clicks += 1;
+      set_city_prod_clicks(city_prod_clicks + 1);
     });
   }
 }
@@ -10357,11 +9956,11 @@ function handle_current_worklist_click(event) {
   const item = parseInt(element.data("wlitem"), 10);
   if (worklist_selection.length === 1 && worklist_selection[0] === item) {
     element.removeClass("ui-selected");
-    worklist_selection = [];
+    set_worklist_selection([]);
   } else {
     element.siblings().removeClass("ui-selected");
     element.addClass("ui-selected");
-    worklist_selection = [item];
+    set_worklist_selection([item]);
   }
   update_worklist_actions();
 }
@@ -10541,8 +10140,459 @@ function city_worklist_task_remove() {
   while (--count >= 0) {
     wl.splice(worklist_selection[count], 1);
   }
-  worklist_selection = [];
+  set_worklist_selection([]);
   send_city_worklist(active_city["id"]);
+}
+set_city_screen_updater_fn(update_city_screen);
+function show_city_dialog_by_id(pcity_id) {
+  show_city_dialog(cities$1[pcity_id]);
+}
+function show_city_dialog(pcity) {
+  let turns_to_complete;
+  let sprite;
+  let punit;
+  if (active_city != pcity || active_city == null) {
+    set_city_prod_clicks(0);
+    set_production_selection([]);
+    set_worklist_selection([]);
+  }
+  if (active_city != null) close_city_dialog();
+  set_active_city(pcity);
+  if (pcity == null) return;
+  $("#city_dialog").remove();
+  $("<div id='city_dialog'></div>").appendTo("div#game_page");
+  const city_data = {};
+  $("#city_dialog").html(window.Handlebars.templates["city"](city_data));
+  $("#city_canvas").click(city_mapview_mouse_click);
+  let dialog_buttons = {};
+  if (!isSmallScreen()) {
+    dialog_buttons = $.extend(
+      dialog_buttons,
+      {
+        "Previous city": function() {
+          previous_city();
+        },
+        "Next city (N)": function() {
+          next_city();
+        },
+        "Buy (B)": function() {
+          request_city_buy();
+        },
+        "Rename": function() {
+          rename_city();
+        }
+      }
+    );
+  } else {
+    dialog_buttons = $.extend(
+      dialog_buttons,
+      {
+        "Next": function() {
+          next_city();
+        },
+        "Buy": function() {
+          request_city_buy();
+        }
+      }
+    );
+  }
+  dialog_buttons = $.extend(dialog_buttons, { "Close": close_city_dialog });
+  $("#city_dialog").attr("title", decodeURIComponent(pcity["name"]) + " (" + pcity["size"] + ")");
+  $("#city_dialog").dialog({
+    bgiframe: true,
+    modal: false,
+    width: isSmallScreen() ? "98%" : "80%",
+    height: isSmallScreen() ? $(window).height() + 10 : $(window).height() - 80,
+    close: city_dialog_close_handler,
+    buttons: dialog_buttons
+  }).dialogExtend({
+    "minimizable": true,
+    "closable": true,
+    "minimize": function(evt, dlg) {
+      setDefaultMapviewActive();
+    },
+    "icons": {
+      "minimize": "ui-icon-circle-minus",
+      "restore": "ui-icon-bullet"
+    }
+  });
+  $("#city_dialog").dialog("widget").keydown(city_keyboard_listener);
+  $("#city_dialog").dialog("open");
+  $("#game_text_input").blur();
+  if (!isSmallScreen()) {
+    $("#city_tabs-6").remove();
+    $(".extra_tabs_small").remove();
+    $("#mobile_cma_checkbox").remove();
+  } else {
+    $("#city_tabs-5").remove();
+    $(".extra_tabs_big").remove();
+    $("#city_stats").hide();
+    const units_element = $("#city_improvements_panel").detach();
+    $("#city_units_tab").append(units_element);
+  }
+  initTabs("#city_tabs", { active: city_tab_index });
+  $(".citydlg_tabs").height(isSmallScreen() ? $(window).height() - 110 : $(window).height() - 225);
+  city_worklist_dialog(pcity);
+  set_citydlg_dimensions(pcity);
+  set_city_mapview_active();
+  center_tile_mapcanvas(cityTile(pcity));
+  update_map_canvas(0, 0, mapview$1["store_width"] ?? 0, mapview$1["store_height"] ?? 0);
+  let governor_text = "";
+  if (typeof pcity["cma_enabled"] !== "undefined") {
+    governor_text = "<br>" + (pcity["cma_enabled"] ? "Governor Enabled" : "Governor Disabled");
+  }
+  $("#city_size").html("Population: " + numberWithCommas(cityPopulation(pcity) * 1e3) + "<br>Size: " + pcity["size"] + "<br>Granary: " + pcity["food_stock"] + "/" + pcity["granary_size"] + "<br>Change in: " + cityTurnsToGrowthText(pcity) + governor_text);
+  const prod_type = getCityProductionTypeSprite(pcity);
+  $("#city_production_overview").html("Producing: " + (prod_type != null ? prod_type["type"]["name"] : "None"));
+  turns_to_complete = getCityProductionTime(pcity);
+  if (turns_to_complete != FC_INFINITY) {
+    $("#city_production_turns_overview").html(turns_to_complete + " turns &nbsp;&nbsp;(" + getProductionProgress(pcity) + ")");
+  } else {
+    $("#city_production_turns_overview").html("-");
+  }
+  let improvements_html = "";
+  for (let z2 = 0; z2 < (store.rulesControl?.num_impr_types ?? 0); z2++) {
+    if (pcity["improvements"] != null && pcity["improvements"].isSet(z2)) {
+      sprite = get_improvement_image_sprite(store.improvements[z2]);
+      if (sprite == null) {
+        console.log("Missing sprite for improvement " + z2);
+        continue;
+      }
+      improvements_html = improvements_html + "<div id='city_improvement_element'><div style='background: transparent url(" + sprite["image-src"] + ");background-position:-" + sprite["tileset-x"] + "px -" + sprite["tileset-y"] + "px;  width: " + sprite["width"] + "px;height: " + sprite["height"] + `px;float:left; 'title="` + store.improvements[z2]["helptext"] + `" onclick='city_sell_improvement(` + z2 + ");'></div>" + store.improvements[z2]["name"] + "</div>";
+    }
+  }
+  $("#city_improvements_list").html(improvements_html);
+  const punits = tile_units(cityTile(pcity));
+  if (punits != null) {
+    let present_units_html = "";
+    for (let r2 = 0; r2 < punits.length; r2++) {
+      punit = punits[r2];
+      sprite = get_unit_image_sprite(punit);
+      if (sprite == null) {
+        console.log("Missing sprite for " + punit);
+        continue;
+      }
+      present_units_html = present_units_html + "<div class='game_unit_list_item' title='" + get_unit_city_info(punit) + "' style='cursor:pointer;cursor:hand; background: transparent url(" + sprite["image-src"] + ");background-position:-" + sprite["tileset-x"] + "px -" + sprite["tileset-y"] + "px;  width: " + sprite["width"] + "px;height: " + sprite["height"] + "px;float:left; ' onclick='city_dialog_activate_unit(units[" + punit["id"] + "]);'></div>";
+    }
+    $("#city_present_units_list").html(present_units_html);
+  }
+  const sunits = get_supported_units(pcity);
+  if (sunits != null) {
+    let supported_units_html = "";
+    for (let t2 = 0; t2 < sunits.length; t2++) {
+      punit = sunits[t2];
+      sprite = get_unit_image_sprite(punit);
+      if (sprite == null) {
+        console.log("Missing sprite for " + punit);
+        continue;
+      }
+      supported_units_html = supported_units_html + "<div class='game_unit_list_item' title='" + get_unit_city_info(punit) + "' style='cursor:pointer;cursor:hand; background: transparent url(" + sprite["image-src"] + ");background-position:-" + sprite["tileset-x"] + "px -" + sprite["tileset-y"] + "px;  width: " + sprite["width"] + "px;height: " + sprite["height"] + "px;float:left; ' onclick='city_dialog_activate_unit(units[" + punit["id"] + "]);'></div>";
+    }
+    $("#city_supported_units_list").html(supported_units_html);
+  }
+  $(".game_unit_list_item").tooltip();
+  if ("prod" in pcity && "surplus" in pcity) {
+    let food_txt = pcity["prod"][O_FOOD$1] + " ( ";
+    if (pcity["surplus"][O_FOOD$1] > 0) food_txt += "+";
+    food_txt += pcity["surplus"][O_FOOD$1] + ")";
+    let shield_txt = pcity["prod"][O_SHIELD$1] + " ( ";
+    if (pcity["surplus"][O_SHIELD$1] > 0) shield_txt += "+";
+    shield_txt += pcity["surplus"][O_SHIELD$1] + ")";
+    let trade_txt = pcity["prod"][O_TRADE] + " ( ";
+    if (pcity["surplus"][O_TRADE] > 0) trade_txt += "+";
+    trade_txt += pcity["surplus"][O_TRADE] + ")";
+    let gold_txt = pcity["prod"][O_GOLD$1] + " ( ";
+    if (pcity["surplus"][O_GOLD$1] > 0) gold_txt += "+";
+    gold_txt += pcity["surplus"][O_GOLD$1] + ")";
+    const luxury_txt = pcity["prod"][O_LUXURY];
+    const science_txt = pcity["prod"][O_SCIENCE];
+    $("#city_food").html(food_txt);
+    $("#city_prod").html(shield_txt);
+    $("#city_trade").html(trade_txt);
+    $("#city_gold").html(gold_txt);
+    $("#city_luxury").html(luxury_txt);
+    $("#city_science").html(science_txt);
+    $("#city_corruption").html(pcity["waste"][O_TRADE]);
+    $("#city_waste").html(pcity["waste"][O_SHIELD$1]);
+    $("#city_pollution").html(pcity["pollution"]);
+    $("#city_steal").html(pcity["steal"]);
+    $("#city_culture").html(pcity["culture"]);
+  }
+  let specialist_html = "";
+  const citizen_types = ["angry", "unhappy", "content", "happy"];
+  for (let s2 = 0; s2 < citizen_types.length; s2++) {
+    if (pcity["ppl_" + citizen_types[s2]] == null) continue;
+    for (let i2 = 0; i2 < pcity["ppl_" + citizen_types[s2]][FEELING_FINAL$1]; i2++) {
+      sprite = get_specialist_image_sprite();
+      specialist_html = specialist_html + "<div class='specialist_item' style='background: transparent url(" + sprite["image-src"] + ");background-position:-" + sprite["tileset-x"] + "px -" + sprite["tileset-y"] + "px;  width: " + sprite["width"] + "px;height: " + sprite["height"] + "px;float:left; ' title='One " + citizen_types[s2] + " citizen'></div>";
+    }
+  }
+  for (let u2 = 0; u2 < pcity["specialists_size"]; u2++) {
+    const spec_type_name = window.specialists[u2]["plural_name"];
+    "specialist." + window.specialists[u2]["rule_name"] + "_0";
+    for (let j2 = 0; j2 < pcity["specialists"][u2]; j2++) {
+      sprite = get_specialist_image_sprite();
+      specialist_html = specialist_html + "<div class='specialist_item' style='cursor:pointer;cursor:hand; background: transparent url(" + sprite["image-src"] + ");background-position:-" + sprite["tileset-x"] + "px -" + sprite["tileset-y"] + "px;  width: " + sprite["width"] + "px;height: " + sprite["height"] + "px;float:left; ' onclick='city_change_specialist(" + pcity["id"] + "," + window.specialists[u2]["id"] + ");' title='" + spec_type_name + " (click to change)'></div>";
+    }
+  }
+  specialist_html += "<div style='clear: both;'></div>";
+  $("#specialist_panel").html(specialist_html);
+  $("#disbandable_city").off();
+  $("#disbandable_city").prop(
+    "checked",
+    pcity["city_options"] != null && pcity["city_options"].isSet(CITYO_DISBAND)
+  );
+  $("#disbandable_city").click(function() {
+    const options = pcity["city_options"];
+    const packet = {
+      "pid": packet_city_options_req,
+      "city_id": active_city["id"],
+      "options": options.raw
+    };
+    if ($("#disbandable_city").prop("checked")) {
+      options.set(CITYO_DISBAND);
+    } else {
+      options.unset(CITYO_DISBAND);
+    }
+    send_request(JSON.stringify(packet));
+  });
+  if (isSmallScreen()) {
+    $(".ui-tabs-anchor").css("padding", "2px");
+  }
+}
+function request_city_buy() {
+  if (clientIsObserver()) return;
+  const pcity = active_city;
+  const pplayer = clientPlaying();
+  $("#dialog").remove();
+  $("<div id='dialog'></div>").appendTo("div#game_page");
+  let buy_question_string = "";
+  if (pcity["production_kind"] == VUT_UTYPE) {
+    const punit_type = store.unitTypes[pcity["production_value"]];
+    if (punit_type != null) {
+      punit_type["name"] + " costs " + pcity["buy_cost"] + " gold.";
+      buy_question_string = "Buy " + punit_type["name"] + " for " + pcity["buy_cost"] + " gold?";
+    }
+  } else {
+    const improvement = store.improvements[pcity["production_value"]];
+    if (improvement != null) {
+      improvement["name"] + " costs " + pcity["buy_cost"] + " gold.";
+      buy_question_string = "Buy " + improvement["name"] + " for " + pcity["buy_cost"] + " gold?";
+    }
+  }
+  const treasury_text = "<br>Treasury contains " + pplayer["gold"] + " gold.";
+  if (pcity["buy_cost"] > pplayer["gold"]) {
+    return;
+  }
+  const dhtml = buy_question_string + treasury_text;
+  $("#dialog").html(dhtml);
+  $("#dialog").attr("title", "Buy It!");
+  $("#dialog").dialog({
+    bgiframe: true,
+    modal: true,
+    width: isSmallScreen() ? "95%" : "50%",
+    buttons: {
+      "Yes": function() {
+        send_city_buy();
+        $("#dialog").dialog("close");
+      },
+      "No": function() {
+        $("#dialog").dialog("close");
+      }
+    }
+  });
+  $("#dialog").dialog("open");
+}
+function send_city_buy() {
+  if (clientIsObserver()) return;
+  if (active_city != null) {
+    const packet = { "pid": packet_city_buy, "city_id": active_city["id"] };
+    send_request(JSON.stringify(packet));
+  }
+}
+function send_city_change(city_id, kind, value) {
+  const packet = {
+    "pid": packet_city_change,
+    "city_id": city_id,
+    "production_kind": kind,
+    "production_value": value
+  };
+  send_request(JSON.stringify(packet));
+}
+function close_city_dialog() {
+  $("#city_dialog").dialog("close");
+}
+function city_dialog_close_handler() {
+  setDefaultMapviewActive();
+  if (active_city != null) {
+    setupWindowSize();
+    center_tile_mapcanvas(cityTile(active_city));
+    set_active_city(null);
+    if (window.renderer == RENDERER_2DCANVAS$1) {
+      update_map_canvas_full();
+    }
+  }
+}
+function city_name_dialog(suggested_name, unit_id) {
+  $("#city_name_dialog").remove();
+  $("<div id='city_name_dialog'></div>").appendTo("div#game_page");
+  $("#city_name_dialog").html($("<div>What should we call our new city?</div><input id='city_name_req' type='text'>"));
+  $("#city_name_req").attr("value", suggested_name);
+  $("#city_name_dialog").attr("title", "Build New City");
+  $("#city_name_dialog").dialog({
+    bgiframe: true,
+    modal: true,
+    width: "300",
+    close: function() {
+      act_sel_queue_done(unit_id);
+    },
+    buttons: [
+      {
+        text: "Cancel",
+        click: function() {
+          $("#city_name_dialog").remove();
+          act_sel_queue_done(unit_id);
+        }
+      },
+      {
+        text: "Ok",
+        click: function() {
+          const name = $("#city_name_req").val();
+          if (name.length == 0 || name.length >= MAX_LEN_CITYNAME - 6 || encodeURIComponent(name).length >= MAX_LEN_CITYNAME - 6) {
+            swal("City name is invalid. Please try a different shorter name.");
+            return;
+          }
+          const actor_unit = game_find_unit_by_number(unit_id);
+          request_unit_do_action(
+            ACTION_FOUND_CITY,
+            unit_id,
+            actor_unit["tile"],
+            0,
+            encodeURIComponent(name)
+          );
+          $("#city_name_dialog").remove();
+          act_sel_queue_done(unit_id);
+        }
+      }
+    ]
+  });
+  $("#city_name_req").attr("maxlength", MAX_LEN_NAME);
+  $("#city_name_dialog").dialog("open");
+  $("#city_name_dialog").keyup(function(e2) {
+    if (e2.keyCode == 13) {
+      const name = $("#city_name_req").val();
+      const actor_unit = game_find_unit_by_number(unit_id);
+      request_unit_do_action(
+        ACTION_FOUND_CITY,
+        unit_id,
+        actor_unit["tile"],
+        0,
+        encodeURIComponent(name)
+      );
+      $("#city_name_dialog").remove();
+      act_sel_queue_done(unit_id);
+    }
+  });
+  blur_input_on_touchdevice();
+}
+function next_city() {
+  if (!clientPlaying()) return;
+  city_screen_updater.fireNow();
+  let next_row = $("#cities_list_" + active_city["id"]).next();
+  if (next_row.length === 0) {
+    next_row = $("#city_table tbody tr").first();
+  }
+  if (next_row.length > 0) {
+    show_city_dialog(cities$1[next_row.attr("id").substr(12)]);
+  }
+}
+function previous_city() {
+  if (!clientPlaying()) return;
+  city_screen_updater.fireNow();
+  let prev_row = $("#cities_list_" + active_city["id"]).prev();
+  if (prev_row.length === 0) {
+    prev_row = $("#city_table tbody tr").last();
+  }
+  if (prev_row.length > 0) {
+    show_city_dialog(cities$1[prev_row.attr("id").substr(12)]);
+  }
+}
+function city_sell_improvement(improvement_id) {
+  if (clientIsObserver()) return;
+  if ("confirm" in window) {
+    const agree = confirm("Are you sure you want to sell this building?");
+    if (agree) {
+      const packet = {
+        "pid": packet_city_sell,
+        "city_id": active_city["id"],
+        "build_id": improvement_id
+      };
+      send_request(JSON.stringify(packet));
+    }
+  } else {
+    const packet = {
+      "pid": packet_city_sell,
+      "city_id": active_city["id"],
+      "build_id": improvement_id
+    };
+    send_request(JSON.stringify(packet));
+  }
+}
+function city_change_specialist(city_id, from_specialist_id) {
+  if (clientIsObserver()) return;
+  const city_message = {
+    "pid": packet_city_change_specialist,
+    "city_id": city_id,
+    "from": from_specialist_id,
+    "to": (from_specialist_id + 1) % 3
+  };
+  send_request(JSON.stringify(city_message));
+}
+function rename_city() {
+  if (clientIsObserver() || active_city == null) return;
+  $("#city_name_dialog").remove();
+  $("<div id='city_name_dialog'></div>").appendTo("div#game_page");
+  $("#city_name_dialog").html($("<div>What should we call this city?</div><input id='city_name_req' type='text'>"));
+  $("#city_name_req").attr("value", active_city["name"]);
+  $("#city_name_dialog").attr("title", "Rename City");
+  $("#city_name_dialog").dialog({
+    bgiframe: true,
+    modal: true,
+    width: "300",
+    close: function() {
+    },
+    buttons: [
+      {
+        text: "Cancel",
+        click: function() {
+          $("#city_name_dialog").remove();
+        }
+      },
+      {
+        text: "Ok",
+        click: function() {
+          const name = $("#city_name_req").val();
+          if (name.length == 0 || name.length >= MAX_LEN_NAME - 4 || encodeURIComponent(name).length >= MAX_LEN_NAME - 4) {
+            swal("City name is invalid");
+            return;
+          }
+          const packet = { "pid": packet_city_rename, "name": encodeURIComponent(name), "city_id": active_city["id"] };
+          send_request(JSON.stringify(packet));
+          $("#city_name_dialog").remove();
+        }
+      }
+    ]
+  });
+  $("#city_name_req").attr("maxlength", MAX_LEN_NAME);
+  $("#city_name_dialog").dialog("open");
+  $("#city_name_dialog").keyup(function(e2) {
+    if (e2.keyCode == 13) {
+      const name = $("#city_name_req").val();
+      const packet = { "pid": packet_city_rename, "name": encodeURIComponent(name), "city_id": active_city["id"] };
+      send_request(JSON.stringify(packet));
+      $("#city_name_dialog").remove();
+    }
+  });
 }
 function update_city_screen() {
   if (store.observing) return;
@@ -10556,7 +10606,7 @@ function update_city_screen() {
   let count = 0;
   for (const city_id in cities$1) {
     const pcity = cities$1[city_id];
-    if (clientPlaying() != null && city_owner(pcity) != null && city_owner(pcity).playerno == clientPlaying().playerno) {
+    if (clientPlaying() != null && cityOwner(pcity) != null && cityOwner(pcity).playerno == clientPlaying().playerno) {
       count++;
       const prod_type = getCityProductionType(pcity);
       let turns_to_complete_str;
@@ -10608,8 +10658,8 @@ function city_keyboard_listener(ev) {
 function set_citydlg_dimensions(pcity) {
   const city_radius = pcity.city_radius_sq;
   const radius_tiles = Math.ceil(Math.sqrt(city_radius));
-  citydlg_map_width = tileset_width + radius_tiles * tileset_width;
-  citydlg_map_height = tileset_height + radius_tiles * tileset_height;
+  set_citydlg_map_width(tileset_width + radius_tiles * tileset_width);
+  set_citydlg_map_height(tileset_height + radius_tiles * tileset_height);
   $("#city_canvas_div").css({ "width": citydlg_map_width, "height": citydlg_map_height });
   $("#city_canvas").attr("width", citydlg_map_width);
   $("#city_canvas").attr("height", citydlg_map_height);
@@ -10618,7 +10668,94 @@ function get_specialist_image_sprite(key) {
 }
 function city_mapview_mouse_click() {
 }
-function get_unit_type_image_sprite$1(unit_type2) {
+const _w$1 = window;
+function get_unit_image_sprite(punit) {
+  const from_type = get_unit_type_image_sprite(unit_type(punit));
+  from_type["height"] = from_type["height"] - 2;
+  return from_type;
+}
+function get_unit_type_image_sprite(punittype) {
+  const tag = tileset_unit_type_graphic_tag(punittype);
+  if (tag == null) return null;
+  const tileset_x = _w$1.tileset[tag][0];
+  const tileset_y = _w$1.tileset[tag][1];
+  const width = _w$1.tileset[tag][2];
+  const height = _w$1.tileset[tag][3];
+  const i2 = _w$1.tileset[tag][4];
+  return {
+    "tag": tag,
+    "image-src": "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i2 + getTilesetFileExtension() + "?ts=" + _w$1.ts,
+    "tileset-x": tileset_x,
+    "tileset-y": tileset_y,
+    "width": width,
+    "height": height
+  };
+}
+function get_improvement_image_sprite(pimprovement) {
+  const tag = tileset_building_graphic_tag(pimprovement);
+  if (tag == null) return null;
+  const tileset_x = _w$1.tileset[tag][0];
+  const tileset_y = _w$1.tileset[tag][1];
+  const width = _w$1.tileset[tag][2];
+  const height = _w$1.tileset[tag][3];
+  const i2 = _w$1.tileset[tag][4];
+  return {
+    "tag": tag,
+    "image-src": "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i2 + getTilesetFileExtension() + "?ts=" + _w$1.ts,
+    "tileset-x": tileset_x,
+    "tileset-y": tileset_y,
+    "width": width,
+    "height": height
+  };
+}
+function get_technology_image_sprite(ptech) {
+  const tag = tileset_tech_graphic_tag(ptech);
+  if (tag == null) return null;
+  const tileset_x = _w$1.tileset[tag][0];
+  const tileset_y = _w$1.tileset[tag][1];
+  const width = _w$1.tileset[tag][2];
+  const height = _w$1.tileset[tag][3];
+  const i2 = _w$1.tileset[tag][4];
+  return {
+    "tag": tag,
+    "image-src": "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i2 + getTilesetFileExtension() + "?ts=" + _w$1.ts,
+    "tileset-x": tileset_x,
+    "tileset-y": tileset_y,
+    "width": width,
+    "height": height
+  };
+}
+function get_treaty_agree_thumb_up() {
+  const tag = "treaty.agree_thumb_up";
+  const tileset_x = _w$1.tileset[tag][0];
+  const tileset_y = _w$1.tileset[tag][1];
+  const width = _w$1.tileset[tag][2];
+  const height = _w$1.tileset[tag][3];
+  const i2 = _w$1.tileset[tag][4];
+  return {
+    "tag": tag,
+    "image-src": "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i2 + getTilesetFileExtension() + "?ts=" + _w$1.ts,
+    "tileset-x": tileset_x,
+    "tileset-y": tileset_y,
+    "width": width,
+    "height": height
+  };
+}
+function get_treaty_disagree_thumb_down() {
+  const tag = "treaty.disagree_thumb_down";
+  const tileset_x = _w$1.tileset[tag][0];
+  const tileset_y = _w$1.tileset[tag][1];
+  const width = _w$1.tileset[tag][2];
+  const height = _w$1.tileset[tag][3];
+  const i2 = _w$1.tileset[tag][4];
+  return {
+    "tag": tag,
+    "image-src": "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i2 + getTilesetFileExtension() + "?ts=" + _w$1.ts,
+    "tileset-x": tileset_x,
+    "tileset-y": tileset_y,
+    "width": width,
+    "height": height
+  };
 }
 const SSA_NONE = ServerSideAgent.NONE;
 const SSA_AUTOWORKER = ServerSideAgent.AUTOWORKER;
@@ -11431,98 +11568,6 @@ function get_tile_river_sprite(ptile) {
   }
   return null;
 }
-function get_unit_image_sprite(punit) {
-  const from_type = get_unit_type_image_sprite(unit_type(punit));
-  from_type["height"] = from_type["height"] - 2;
-  return from_type;
-}
-function get_unit_type_image_sprite(punittype) {
-  const tag = tileset_unit_type_graphic_tag(punittype);
-  if (tag == null) {
-    return null;
-  }
-  const tileset_x = _w.tileset[tag][0];
-  const tileset_y = _w.tileset[tag][1];
-  const width = _w.tileset[tag][2];
-  const height = _w.tileset[tag][3];
-  const i2 = _w.tileset[tag][4];
-  return {
-    "tag": tag,
-    "image-src": "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i2 + getTilesetFileExtension() + "?ts=" + _w.ts,
-    "tileset-x": tileset_x,
-    "tileset-y": tileset_y,
-    "width": width,
-    "height": height
-  };
-}
-function get_improvement_image_sprite(pimprovement) {
-  const tag = tileset_building_graphic_tag(pimprovement);
-  if (tag == null) {
-    return null;
-  }
-  const tileset_x = _w.tileset[tag][0];
-  const tileset_y = _w.tileset[tag][1];
-  const width = _w.tileset[tag][2];
-  const height = _w.tileset[tag][3];
-  const i2 = _w.tileset[tag][4];
-  return {
-    "tag": tag,
-    "image-src": "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i2 + getTilesetFileExtension() + "?ts=" + _w.ts,
-    "tileset-x": tileset_x,
-    "tileset-y": tileset_y,
-    "width": width,
-    "height": height
-  };
-}
-function get_technology_image_sprite(ptech) {
-  const tag = tileset_tech_graphic_tag(ptech);
-  if (tag == null) return null;
-  const tileset_x = _w.tileset[tag][0];
-  const tileset_y = _w.tileset[tag][1];
-  const width = _w.tileset[tag][2];
-  const height = _w.tileset[tag][3];
-  const i2 = _w.tileset[tag][4];
-  return {
-    "tag": tag,
-    "image-src": "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i2 + getTilesetFileExtension() + "?ts=" + _w.ts,
-    "tileset-x": tileset_x,
-    "tileset-y": tileset_y,
-    "width": width,
-    "height": height
-  };
-}
-function get_treaty_agree_thumb_up() {
-  const tag = "treaty.agree_thumb_up";
-  const tileset_x = _w.tileset[tag][0];
-  const tileset_y = _w.tileset[tag][1];
-  const width = _w.tileset[tag][2];
-  const height = _w.tileset[tag][3];
-  const i2 = _w.tileset[tag][4];
-  return {
-    "tag": tag,
-    "image-src": "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i2 + getTilesetFileExtension() + "?ts=" + _w.ts,
-    "tileset-x": tileset_x,
-    "tileset-y": tileset_y,
-    "width": width,
-    "height": height
-  };
-}
-function get_treaty_disagree_thumb_down() {
-  const tag = "treaty.disagree_thumb_down";
-  const tileset_x = _w.tileset[tag][0];
-  const tileset_y = _w.tileset[tag][1];
-  const width = _w.tileset[tag][2];
-  const height = _w.tileset[tag][3];
-  const i2 = _w.tileset[tag][4];
-  return {
-    "tag": tag,
-    "image-src": "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i2 + getTilesetFileExtension() + "?ts=" + _w.ts,
-    "tileset-x": tileset_x,
-    "tileset-y": tileset_y,
-    "width": width,
-    "height": height
-  };
-}
 function fill_path_sprite_array(ptile, pcity) {
   const rs_maglev = typeof _w.EXTRA_MAGLEV !== "undefined";
   tileHasExtra(ptile, _w.EXTRA_ROAD);
@@ -11587,42 +11632,6 @@ function fill_layer3_sprite_array(ptile, pcity) {
     }
   }
   return result_sprites;
-}
-function assign_nation_color(nation_id) {
-  const nation = store.nations[nation_id];
-  if (nation == null || nation["color"] != null) return;
-  const flag_key = "f." + nation["graphic_str"];
-  const flag_sprite = _w.sprites[flag_key];
-  if (flag_sprite == null) return;
-  const c2 = flag_sprite.getContext("2d");
-  const width = _w.tileset[flag_key][2];
-  const height = _w.tileset[flag_key][3];
-  const color_counts = {};
-  if (c2 == null) return;
-  const img_data = c2.getImageData(1, 1, width - 2, height - 2).data;
-  for (let i2 = 0; i2 < img_data.length; i2 += 4) {
-    const current_color = "rgb(" + img_data[i2] + "," + img_data[i2 + 1] + "," + img_data[i2 + 2] + ")";
-    if (current_color in color_counts) {
-      color_counts[current_color] = color_counts[current_color] + 1;
-    } else {
-      color_counts[current_color] = 1;
-    }
-  }
-  let max = -1;
-  let max_color = null;
-  for (const current_color in color_counts) {
-    if (color_counts[current_color] > max) {
-      max = color_counts[current_color];
-      max_color = current_color;
-    }
-  }
-  nation["color"] = max_color;
-}
-function color_rbg_to_list(pcolor) {
-  if (pcolor == null) return null;
-  const color_rgb = pcolor.match(/\d+/g);
-  if (!color_rgb) return null;
-  return [parseFloat(color_rgb[0]), parseFloat(color_rgb[1]), parseFloat(color_rgb[2])];
 }
 const MAP_TO_NATIVE_POS = mapToNativePos;
 const NATIVE_TO_MAP_POS = nativeToMapPos;

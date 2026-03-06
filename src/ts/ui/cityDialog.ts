@@ -1,9 +1,8 @@
-import { EventAggregator } from '../utils/EventAggregator';
 import { initTabs } from './tabs';
 import { swal } from '../components/Dialogs/SwalDialog';
 import { initTableSort } from '../utils/tableSort';
 import { store } from '../data/store';
-import { cityTile, cityOwner, canCityBuildNow, generateProductionList, cityPopulation as city_population, cityTurnsToGrowthText as city_turns_to_growth_text, getCityProductionTypeSprite as get_city_production_type_sprite, getCityProductionTime as get_city_production_time, getProductionProgress as get_production_progress, getCityProductionType as get_city_production_type } from '../data/city';
+import { cityTile, cityOwner, getCityProductionTypeSprite as get_city_production_type_sprite, getCityProductionTime as get_city_production_time, getProductionProgress as get_production_progress, getCityProductionType as get_city_production_type, cityPopulation as city_population, cityTurnsToGrowthText as city_turns_to_growth_text } from '../data/city';
 import { get_supported_units } from '../data/unit';
 import { get_unit_city_info } from '../data/unit';
 import { get_unit_image_sprite } from '../renderer/tilespec';
@@ -14,7 +13,7 @@ import { RENDERER_2DCANVAS } from '../core/constants';
 import { tile_units } from '../data/unit';
 import { clientState as client_state, C_S_RUNNING, clientIsObserver, clientPlaying } from '../client/clientState';
 import { send_request as sendRequest } from '../net/connection';
-import { packet_city_options_req, packet_city_buy, packet_city_change, packet_city_make_specialist, packet_city_make_worker, packet_city_rename, packet_city_sell, packet_city_change_specialist, packet_city_worklist } from '../net/packetConstants';
+import { packet_city_options_req, packet_city_buy, packet_city_change, packet_city_make_specialist, packet_city_make_worker, packet_city_rename, packet_city_sell, packet_city_change_specialist } from '../net/packetConstants';
 import { isSmallScreen as is_small_screen, numberWithCommas, isTouchDevice as is_touch_device, blur_input_on_touchdevice } from '../utils/helpers';
 import { setupWindowSize as setup_window_size } from '../client/clientMain';
 import { set_city_mapview_active } from '../renderer/mapview';
@@ -26,53 +25,64 @@ import { ACTION_FOUND_CITY } from '../data/fcTypes';
 import { keyboard_input } from '../core/control/controlState';
 import { act_sel_queue_done } from '../ui/actionDialog';
 
+// Import state from cityDialogState
+import {
+  citydlg_map_width, citydlg_map_height, tileset_width, tileset_height,
+  cities, city_rules, city_trade_routes, goods,
+  active_city, worklist_dialog_active, production_selection, worklist_selection,
+  CITYO_DISBAND, CITYO_NEW_EINSTEIN, CITYO_NEW_TAXMAN, CITYO_LAST,
+  FEELING_BASE, FEELING_LUXURY, FEELING_EFFECT, FEELING_NATIONALITY, FEELING_MARTIAL, FEELING_FINAL,
+  MAX_LEN_WORKLIST, INCITE_IMPOSSIBLE_COST,
+  city_tab_index, city_prod_clicks, city_screen_updater, city_tile_map,
+  opt_show_unreachable_items,
+  set_citydlg_map_width, set_citydlg_map_height,
+  set_active_city, set_worklist_dialog_active, set_production_selection, set_worklist_selection,
+  set_city_prod_clicks,
+  set_city_screen_updater_fn
+} from './cityDialogState';
+
+// Import worklist functions from cityWorklist
+import {
+  city_worklist_dialog, populate_worklist_production_choices,
+  extract_universal, find_universal_in_worklist,
+  handle_worklist_select, handle_worklist_unselect,
+  handle_current_worklist_select, handle_current_worklist_unselect,
+  handle_current_worklist_click, handle_current_worklist_direct_remove,
+  update_worklist_actions, send_city_worklist, send_city_worklist_add,
+  city_change_production, city_add_to_worklist, city_insert_in_worklist,
+  city_worklist_task_up, city_worklist_task_down, city_exchange_worklist_task,
+  city_worklist_task_remove
+} from './cityWorklist';
+
+// Re-export everything from cityDialogState for backwards compatibility
+export {
+  citydlg_map_width, citydlg_map_height,
+  cities, city_rules, city_trade_routes, goods,
+  active_city, worklist_dialog_active, production_selection, worklist_selection,
+  CITYO_DISBAND, CITYO_NEW_EINSTEIN, CITYO_NEW_TAXMAN, CITYO_LAST,
+  FEELING_BASE, FEELING_LUXURY, FEELING_EFFECT, FEELING_NATIONALITY, FEELING_MARTIAL, FEELING_FINAL,
+  MAX_LEN_WORKLIST, INCITE_IMPOSSIBLE_COST,
+  city_tab_index, city_prod_clicks, city_screen_updater, city_tile_map,
+  opt_show_unreachable_items
+} from './cityDialogState';
+
+// Re-export everything from cityWorklist for backwards compatibility
+export {
+  city_worklist_dialog, populate_worklist_production_choices,
+  extract_universal, find_universal_in_worklist,
+  handle_worklist_select, handle_worklist_unselect,
+  handle_current_worklist_select, handle_current_worklist_unselect,
+  handle_current_worklist_click, handle_current_worklist_direct_remove,
+  update_worklist_actions, send_city_worklist, send_city_worklist_add,
+  city_change_production, city_add_to_worklist, city_insert_in_worklist,
+  city_worklist_task_up, city_worklist_task_down, city_exchange_worklist_task,
+  city_worklist_task_remove
+} from './cityWorklist';
+
 declare const $: any;
 
-export let citydlg_map_width: number = 384;      // default values for most rulesets
-export let citydlg_map_height: number = 192;     // default value for most rulesets
-
-const tileset_width: number = 96;         // amplio2 based tileset
-const tileset_height: number = 48;
-
-export let cities: any = {};
-export let city_rules: any = {};
-export let city_trade_routes: any = {};
-
-export let goods: any = {};
-
-export let active_city: any = null;
-export let worklist_dialog_active: boolean = false;
-export let production_selection: any[] = [];
-export let worklist_selection: any[] = [];
-
-/* The city_options enum. */
-export const CITYO_DISBAND: number = 0;
-export const CITYO_NEW_EINSTEIN: number = 1;
-export const CITYO_NEW_TAXMAN: number = 2;
-export const CITYO_LAST: number = 3;
-
-export const FEELING_BASE: number = 0;		/* before any of the modifiers below */
-export const FEELING_LUXURY: number = 1;		/* after luxury */
-export const FEELING_EFFECT: number = 2;		/* after building effects */
-export const FEELING_NATIONALITY: number = 3;  	/* after citizen nationality effects */
-export const FEELING_MARTIAL: number = 4;	/* after units enforce martial order */
-export const FEELING_FINAL: number = 5;		/* after wonders (final result) */
-
-export const MAX_LEN_WORKLIST: number = 64;
-
-export const INCITE_IMPOSSIBLE_COST: number = (1000 * 1000 * 1000);
-
-export let city_tab_index: number = 0;
-export let city_prod_clicks: number = 0;
-
-export const city_screen_updater: any = new EventAggregator(update_city_screen, 250,
-                                              EventAggregator.DP_NONE,
-                                              250, 3, 250);
-
-/* Information for mapping workable tiles of a city to local index */
-export let city_tile_map: any = null;
-
-export let opt_show_unreachable_items: boolean = false;
+// Register update_city_screen with the lazy proxy in cityDialogState
+set_city_screen_updater_fn(update_city_screen);
 
 /**************************************************************************
  ...
@@ -88,13 +98,13 @@ export function show_city_dialog(pcity: any): void {
   let punit: any;
 
   if (active_city != pcity || active_city == null) {
-    city_prod_clicks = 0;
-    production_selection = [];
-    worklist_selection = [];
+    set_city_prod_clicks(0);
+    set_production_selection([]);
+    set_worklist_selection([]);
   }
 
   if (active_city != null) close_city_dialog();
-  active_city = pcity;
+  set_active_city(pcity);
   if (pcity == null) return;
 
   // reset dialog page.
@@ -185,7 +195,7 @@ export function show_city_dialog(pcity: any): void {
   // (window as any).renderer = RENDERER_2DCANVAS; // This line is commented out in the original JS, so it's commented here too.
   set_citydlg_dimensions(pcity);
   set_city_mapview_active();
-  center_tile_mapcanvas(city_tile(pcity));
+  center_tile_mapcanvas(cityTile(pcity));
   update_map_canvas(0, 0, mapview['store_width'] ?? 0, mapview['store_height'] ?? 0);
   // (window as any).renderer = orig_renderer; // This line is commented out in the original JS, so it's commented here too.
 
@@ -231,7 +241,7 @@ export function show_city_dialog(pcity: any): void {
   }
   $("#city_improvements_list").html(improvements_html);
 
-  const punits: any = tile_units(city_tile(pcity));
+  const punits: any = tile_units(cityTile(pcity));
   if (punits != null) {
     let present_units_html: string = "";
     for (let r = 0; r < punits.length; r++) {
@@ -457,8 +467,8 @@ export function city_dialog_close_handler(): void {
   set_default_mapview_active();
   if (active_city != null) {
     setup_window_size ();
-    center_tile_mapcanvas(city_tile(active_city));
-    active_city = null;
+    center_tile_mapcanvas(cityTile(active_city));
+    set_active_city(null);
      /*
       * TODO: this is just a hack to recover the background map.
       *       setup_window_size will resize (and thus clean) the map canvas,
@@ -475,7 +485,7 @@ export function city_dialog_close_handler(): void {
 
   }
   // (window as any).keyboard_input=true; // This is a global variable, not a local one.
-  worklist_dialog_active = false;
+  set_worklist_dialog_active(false);
 }
 
 export function do_city_map_click(ptile: any): void {
@@ -688,522 +698,6 @@ export function rename_city(): void {
   });
 }
 
-export function city_worklist_dialog(pcity: any): void {
-  if (pcity == null) return;
-  const universals_list: any[] = [];
-  let kind: any;
-  let value: any;
-
-  if (pcity['worklist'] != null && pcity['worklist'].length != 0) {
-    const work_list: any[] = pcity['worklist'];
-    for (let i = 0; i < work_list.length; i++) {
-      const work_item: any = work_list[i];
-      kind = work_item['kind'];
-      value = work_item['value'];
-      if (kind == null || value == null || work_item.length == 0) continue;
-      if (kind == VUT_IMPROVEMENT) {
-        const pimpr: any = store.improvements[value];
-	let build_cost: any = pimpr['build_cost'];
-	if (pimpr['name'] == "Coinage") build_cost = "-";
-	universals_list.push({"name" : pimpr['name'],
-		"kind" : kind,
-		"value" : value,
-		"helptext" : pimpr['helptext'],
-		"build_cost" : build_cost,
-		"sprite" : get_improvement_image_sprite(pimpr)});
-      } else if (kind == VUT_UTYPE) {
-        const putype: any = store.unitTypes[value];
-        universals_list.push({"name" : putype['name'],
-		"kind" : kind,
-		"value" : value,
-		"helptext" : putype['helptext'],
-		"build_cost" : putype['build_cost'],
-		"sprite" : get_unit_type_image_sprite(putype)});
-      } else {
-        console.log("unknown kind: " + kind);
-      }
-    }
-  }
-
-  let worklist_html: string = "<table class='worklist_table'><tr><td>Type</td><td>Name</td><td>Cost</td></tr>";
-  for (let j = 0; j < universals_list.length; j++) {
-    const universal: any = universals_list[j];
-    const sprite: any = universal['sprite'];
-    if (sprite == null) {
-      console.log("Missing sprite for " + universal['name']);
-      continue;
-    }
-
-    worklist_html += "<tr class='prod_choice_list_item"
-     + (canCityBuildNow(pcity, universal['kind'], universal['value']) ?
-        "" : " cannot_build_item")
-     + "' data-wlitem='" + j + "' "
-     + " title=\"" + universal['helptext'] + "\">"
-     + "<td><div class='production_list_item_sub' style=' background: transparent url("
-           + sprite['image-src'] +
-           ");background-position:-" + sprite['tileset-x'] + "px -" + sprite['tileset-y']
-           + "px;  width: " + sprite['width'] + "px;height: " + sprite['height'] + "px;'"
-           +"></div></td>"
-     + "<td class='prod_choice_name'>" + universal['name'] + "</td>"
-     + "<td class='prod_choice_cost'>" + universal['build_cost'] + "</td></tr>";
-  }
-  worklist_html += "</table>";
-  $("#city_current_worklist").html(worklist_html);
-
-  populate_worklist_production_choices(pcity);
-
-  $('#show_unreachable_items').off('click');
-  $('#show_unreachable_items').click(function() {
-    opt_show_unreachable_items = !opt_show_unreachable_items;
-    $('#show_unreachable_items').prop('checked', opt_show_unreachable_items);
-    // TODO: properly update the selection only when needed,
-    //       instead of always emptying it.
-    if (production_selection.length !== 0) {
-      production_selection = [];
-      update_worklist_actions();
-    }
-    populate_worklist_production_choices(pcity);
-  });
-  $('#show_unreachable_items').prop('checked', opt_show_unreachable_items);
-
-  worklist_dialog_active = true;
-  const turns_to_complete: any = get_city_production_time(pcity);
-  const prod_type: any = get_city_production_type_sprite(pcity);
-  let prod_img_html: string = "";
-  if (prod_type != null) { 
-    const sprite: any = prod_type['sprite'];
-    prod_img_html = "<div style='background: transparent url("
-           + sprite['image-src']
-           + ");background-position:-" + sprite['tileset-x'] + "px -" + sprite['tileset-y']
-           + "px;  width: " + sprite['width'] + "px;height: " + sprite['height'] + "px;float: left; '>"
-           +"</div>";
-  }
-
-  let headline: string = prod_img_html + "<div id='prod_descr'>" 
-    + (is_small_screen() ? " " : " Production: ") 
-    + (prod_type != null ? prod_type['type']['name'] : "None");
-
-  if (turns_to_complete != FC_INFINITY) {
-    headline += ", turns: " + turns_to_complete;
-  }
-
-  $("#worklist_dialog_headline").html(headline + "</div>");
-
-  $(".production_list_item_sub").tooltip();
-
-  if (is_touch_device()) {
-    $("#prod_buttons").html("<x-small>Click to change production, next clicks will add to worklist on mobile.</x-small>");
-  }
-
-  $(".button").button();
-
-  const tab_h: number = $("#city_production_tab").height();
-  $("#city_current_worklist").height(tab_h - 150);
-  $("#worklist_production_choices").height(tab_h - 121);
-  /* TODO: remove all hacky sizing and positioning */
-  /* It would have been nice to use $("#city_current_worklist").position().top
-     for worklist_control padding-top, but that's 0 on first run.
-     73 is also wrong, as it depends on text size. */
-  if (tab_h > 250) {
-    $("#worklist_control").height(tab_h - 148).css("padding-top", 73);
-  } else {
-    $("#worklist_control").height(tab_h - 77);
-  }
-
-  const worklist_items: any = $("#city_current_worklist .prod_choice_list_item");
-  const max_selection: number = Math.min(MAX_LEN_WORKLIST, worklist_items.length);
-  for (let k = 0; k < worklist_selection.length; k++) {
-    if (worklist_selection[k] >= max_selection) {
-      worklist_selection.splice(k, worklist_selection.length - k);
-      break;
-    }
-    worklist_items.eq(worklist_selection[k]).addClass("ui-selected");
-  }
-
-  if (!is_touch_device()) {
-    $("#city_current_worklist .worklist_table").selectable({
-       filter: "tr",
-       selected: handle_current_worklist_select,
-       unselected: handle_current_worklist_unselect
-    });
-  } else {
-    worklist_items.click(handle_current_worklist_click);
-  }
-
-  worklist_items.dblclick(handle_current_worklist_direct_remove);
-
-  update_worklist_actions();
-}
-
-export function populate_worklist_production_choices(pcity: any): void {
-  const production_list: any[] = generateProductionList();
-  let production_html: string = "<table class='worklist_table'><tr><td>Type</td><td>Name</td><td title='Attack/Defense/Firepower'>Info</td><td>Cost</td></tr>";
-  for (let a = 0; a < production_list.length; a++) {
-    const sprite: any = production_list[a]['sprite'];
-    if (sprite == null) {
-      console.log("Missing sprite for " + production_list[a]['value']);
-      continue;
-    }
-    const kind: any = production_list[a]['kind'];
-    const value: any = production_list[a]['value'];
-    const can_build: boolean = canCityBuildNow(pcity, kind, value);
-
-    if (can_build || opt_show_unreachable_items) {
-      production_html += "<tr class='prod_choice_list_item kindvalue_item"
-       + (can_build ? "" : " cannot_build_item")
-       + "' data-value='" + value + "' data-kind='" + kind + "'>"
-       + "<td><div class='production_list_item_sub' title=\"" + production_list[a]['helptext'] + "\" style=' background: transparent url("
-           + sprite['image-src'] +
-           ");background-position:-" + sprite['tileset-x'] + "px -" + sprite['tileset-y']
-           + "px;  width: " + sprite['width'] + "px;height: " + sprite['height'] + "px;'"
-           +"></div></td>"
-       + "<td class='prod_choice_name'>" + production_list[a]['text'] + "</td>"
-       + "<td class='prod_choice_name'>" + production_list[a]['unit_details'] + "</td>"
-       + "<td class='prod_choice_cost'>" + production_list[a]['build_cost'] + "</td></tr>";
-     }
-  }
-  production_html += "</table>";
-
-  $("#worklist_production_choices").html(production_html);
-  $("#worklist_production_choices .production_list_item_sub").tooltip();
-
-  if (!is_touch_device()) {
-    $("#worklist_production_choices .worklist_table").selectable({
-       filter: "tr",
-       selected: handle_worklist_select,
-       unselected: handle_worklist_unselect
-    });
-
-    if (production_selection.length > 0) {
-      const prod_items: any = $("#worklist_production_choices .kindvalue_item");
-      const sel: string[] = [];
-      production_selection.forEach(function (v: any) {
-        sel.push("[data-value='" + v.value + "']" +
-                 "[data-kind='"  + v.kind  + "']");
-      });
-      prod_items.filter(sel.join(",")).addClass("ui-selected");
-    }
-
-    $(".kindvalue_item").dblclick(function(this: any) {
-      const value: number = parseFloat($(this).data('value'));
-      const kind: number = parseFloat($(this).data('kind'));
-      send_city_worklist_add(pcity['id'], kind, value);
-    });
-  } else {
-    $(".kindvalue_item").click(function(this: any) {
-      const value: number = parseFloat($(this).data('value'));
-      const kind: number = parseFloat($(this).data('kind'));
-      if (city_prod_clicks == 0) {
-        send_city_change(pcity['id'], kind, value);
-      } else {
-        send_city_worklist_add(pcity['id'], kind, value);
-      }
-      city_prod_clicks += 1;
-
-    });
-  }
-}
-
-export function extract_universal(element: any): any {
-  return {
-    value: parseFloat($(element).data("value")),
-    kind:  parseFloat($(element).data("kind"))
-  };
-}
-
-export function find_universal_in_worklist(universal: any, worklist: any[]): number {
-  for (let i = 0; i < worklist.length; i++) {
-    if (worklist[i].kind === universal.kind &&
-        worklist[i].value === universal.value) {
-      return i;
-    }
-  }
-  return -1;
-}
-
-export function handle_worklist_select(event: any, ui: any): void {
-  const selected: any = extract_universal(ui.selected);
-  const idx: number = find_universal_in_worklist(selected, production_selection);
-  if (idx < 0) {
-    production_selection.push(selected);
-    update_worklist_actions();
-  }
-}
-
-export function handle_worklist_unselect(event: any, ui: any): void {
-  const selected: any = extract_universal(ui.unselected);
-  const idx: number = find_universal_in_worklist(selected, production_selection);
-  if (idx >= 0) {
-    production_selection.splice(idx, 1);
-    update_worklist_actions();
-  }
-}
-
-export function handle_current_worklist_select(event: any, ui: any): void {
-  const idx: number = parseInt($(ui.selected).data('wlitem'), 10);
-  let i: number = worklist_selection.length - 1;
-  while (i >= 0 && worklist_selection[i] > idx)
-    i--;
-  if (i < 0 || worklist_selection[i] < idx) {
-    worklist_selection.splice(i + 1, 0, idx);
-    update_worklist_actions();
-  }
-}
-
-export function handle_current_worklist_unselect(event: any, ui: any): void {
-  const idx: number = parseInt($(ui.unselected).data('wlitem'), 10);
-  let i: number = worklist_selection.length - 1;
-  while (i >= 0 && worklist_selection[i] > idx)
-    i--;
-  if (i >= 0 && worklist_selection[i] === idx) {
-    worklist_selection.splice(i, 1);
-    update_worklist_actions();
-  }
-}
-
-export function handle_current_worklist_click(this: any, event: any): void {
-  event.stopPropagation();
-
-  const element: any = $(this);
-  const item: number = parseInt(element.data('wlitem'), 10);
-
-  if (worklist_selection.length === 1 && worklist_selection[0] === item) {
-     element.removeClass('ui-selected');
-     worklist_selection = [];
-  } else {
-     element.siblings().removeClass('ui-selected');
-     element.addClass('ui-selected');
-     worklist_selection = [item];
-  }
-
-  update_worklist_actions();
-}
-
-export function update_worklist_actions(): void {
-  if (worklist_selection.length > 0) {
-    $("#city_worklist_up_btn").button("enable");
-    $("#city_worklist_remove_btn").button("enable");
-
-    if (worklist_selection[worklist_selection.length - 1] ===
-        active_city['worklist'].length - 1) {
-      $("#city_worklist_down_btn").button("disable");
-    } else {
-      $("#city_worklist_down_btn").button("enable");
-    }
-
-  } else {
-    $("#city_worklist_up_btn").button("disable");
-    $("#city_worklist_down_btn").button("disable");
-    $("#city_worklist_exchange_btn").button("disable");
-    $("#city_worklist_remove_btn").button("disable");
-  }
-
-  if (production_selection.length > 0) {
-    $("#city_add_to_worklist_btn").button("enable");
-    $("#city_worklist_insert_btn").button("enable");
-
-    if (production_selection.length == worklist_selection.length ||
-        worklist_selection.length == 1) {
-      $("#city_worklist_exchange_btn").button("enable");
-    } else {
-      $("#city_worklist_exchange_btn").button("disable");
-    }
-
-  } else {
-    $("#city_add_to_worklist_btn").button("disable");
-    $("#city_worklist_insert_btn").button("disable");
-    $("#city_worklist_exchange_btn").button("disable");
-  }
-
-  if (production_selection.length === 1) {
-    $("#city_change_production_btn").button("enable");
-  } else {
-    $("#city_change_production_btn").button("disable");
-  }
-}
-
-export function send_city_worklist(city_id: number): void {
-  const worklist: any[] = cities[city_id]['worklist'];
-  const overflow: number = worklist.length - MAX_LEN_WORKLIST;
-  if (overflow > 0) {
-    worklist.splice(MAX_LEN_WORKLIST, overflow);
-  }
-
-  sendRequest(JSON.stringify({pid     : packet_city_worklist,
-                               city_id : city_id,
-                               worklist: worklist}));
-}
-
-export function send_city_worklist_add(city_id: number, kind: any, value: any): void {
-  const pcity: any = cities[city_id];
-  if (pcity['worklist'].length >= MAX_LEN_WORKLIST) {
-    return;
-  }
-
-  pcity['worklist'].push({"kind" : kind, "value" : value});
-
-  send_city_worklist(city_id);
-}
-
-export function city_change_production(): void {
-  if (clientIsObserver()) return;
-  if (production_selection.length === 1) {
-    send_city_change(active_city['id'], production_selection[0].kind,
-                     production_selection[0].value);
-  }
-}
-
-export function city_add_to_worklist(): void {
-  if (production_selection.length > 0) {
-    active_city['worklist'] = active_city['worklist'].concat(production_selection);
-    send_city_worklist(active_city['id']);
-  }
-}
-
-export function handle_current_worklist_direct_remove(this: any): void {
-  const idx: number = parseInt($(this).data('wlitem'), 10);
-  active_city['worklist'].splice(idx, 1);
-
-  // User may dblclick a task while having other selected
-  let i: number = worklist_selection.length - 1;
-  while (i >= 0 && worklist_selection[i] > idx) {
-    worklist_selection[i]--;
-    i--;
-  }
-  if (i >= 0 && worklist_selection[i] === idx) {
-    worklist_selection.splice(i, 1);
-  }
-
-  send_city_worklist(active_city['id']);
-}
-
-export function city_insert_in_worklist(): void {
-  const count: number = Math.min(production_selection.length, MAX_LEN_WORKLIST);
-  if (count === 0) return;
-
-  let i: number;
-  const wl: any[] = active_city['worklist'];
-
-  if (worklist_selection.length === 0) {
-
-    wl.splice(...[0, 0].concat(production_selection) as [number, number, ...any[]]);
-
-    // Initialize the selection with the inserted items
-    for (i = 0; i < count; i++) {
-      worklist_selection.push(i);
-    }
-
-  } else {
-
-    wl.splice(...[worklist_selection[0], 0].concat(production_selection) as [number, number, ...any[]]);
-
-    for (i = 0; i < worklist_selection.length; i++) {
-      worklist_selection[i] += count;
-    }
-  }
-
-  send_city_worklist(active_city['id']);
-}
-
-export function city_worklist_task_up(): void {
-  let count: number = worklist_selection.length;
-  if (count === 0) return;
-
-  let swap: any;
-  const wl: any[] = active_city['worklist'];
-
-  if (worklist_selection[0] === 0) {
-    worklist_selection.shift();
-    if (wl[0].kind !== active_city['production_kind'] ||
-        wl[0].value !== active_city['production_value']) {
-      swap = wl[0];
-      wl[0] = {
-        kind : active_city['production_kind'],
-        value: active_city['production_value']
-      };
-
-      send_city_change(active_city['id'], swap.kind, swap.value);
-    }
-    count--;
-  }
-
-  for (let i = 0; i < count; i++) {
-    const task_idx: number = worklist_selection[i];
-    swap = wl[task_idx - 1];
-    wl[task_idx - 1] = wl[task_idx];
-    wl[task_idx] = swap;
-    worklist_selection[i]--;
-  }
-
-  send_city_worklist(active_city['id']);
-}
-
-export function city_worklist_task_down(): void {
-  let count: number = worklist_selection.length;
-  if (count === 0) return;
-
-  let swap: any;
-  const wl: any[] = active_city['worklist'];
-
-  if (worklist_selection[--count] === wl.length - 1) return;
-
-  while (count >= 0) {
-    const task_idx: number = worklist_selection[count];
-    swap = wl[task_idx + 1];
-    wl[task_idx + 1] = wl[task_idx];
-    wl[task_idx] = swap;
-    worklist_selection[count]++;
-    count--;
-  }
-
-  send_city_worklist(active_city['id']);
-}
-
-export function city_exchange_worklist_task(): void {
-  let prod_l: number = production_selection.length;
-  if (prod_l === 0) return;
-
-  let i: number;
-  let same: boolean = true;
-  const wl: any[] = active_city['worklist'];
-  const task_l: number = worklist_selection.length;
-  if (prod_l === task_l) {
-    for (i = 0; i < prod_l; i++) {
-      if (same &&
-          (wl[worklist_selection[i]].kind !== production_selection[i].kind ||
-           wl[worklist_selection[i]].value !== production_selection[i].value)) {
-        same = false;
-      }
-      wl[worklist_selection[i]] = production_selection[i];
-    }
-  } else if (task_l === 1) {
-    i = worklist_selection[0];
-    wl.splice(...[i, 1].concat(production_selection) as [number, number, ...any[]]);
-    same = false;
-    while (--prod_l) {
-      worklist_selection.push(++i);
-    }
-  }
-
-  if (!same) {
-    send_city_worklist(active_city['id']);
-  }
-}
-
-export function city_worklist_task_remove(): void {
-  let count: number = worklist_selection.length;
-  if (count === 0) return;
-
-  const wl: any[] = active_city['worklist'];
-
-  while (--count >= 0) {
-    wl.splice(worklist_selection[count], 1);
-  }
-  worklist_selection = [];
-
-  send_city_worklist(active_city['id']);
-}
-
 export function update_city_screen(): void {
   if (store.observing) return;
 
@@ -1221,8 +715,8 @@ export function update_city_screen(): void {
   let count: number = 0;
   for (const city_id in cities){
     const pcity: any = cities[city_id];
-    if (clientPlaying() != null && city_owner(pcity) != null && city_owner(pcity).playerno == clientPlaying().playerno) {
-      count++; 
+    if (clientPlaying() != null && cityOwner(pcity) != null && cityOwner(pcity).playerno == clientPlaying().playerno) {
+      count++;
       const prod_type: any = get_city_production_type(pcity);
       let turns_to_complete_str: string;
       if (get_city_production_time(pcity) == FC_INFINITY) {
@@ -1234,10 +728,10 @@ export function update_city_screen(): void {
       city_list_html += "<tr class='cities_row' id='cities_list_" + pcity['id'] + "' onclick='javascript:show_city_dialog_by_id(" + pcity['id'] + ");'><td>"
               + pcity['name'] + "</td><td>" + numberWithCommas(city_population(pcity)*1000) +
               "</td><td>" + pcity['size'] + "</td><td>" + get_city_state(pcity) + "</td><td>" + pcity['food_stock'] + "/" + pcity['granary_size'] +
-              "</td><td>" + city_turns_to_growth_text(pcity) + "</td>" + 
+              "</td><td>" + city_turns_to_growth_text(pcity) + "</td>" +
               "<td>" + prod_type['name'] + " (" + turns_to_complete_str + ")" +
               "</td><td>" + pcity['surplus'][O_FOOD] + "/" + pcity['surplus'][O_SHIELD] + "/" + pcity['surplus'][O_TRADE] + "</td>" +
-              "<td>" + pcity['prod'][O_GOLD] + "/" + pcity['prod'][O_LUXURY] + "/" + pcity['prod'][O_SCIENCE] + "<td>"; 
+              "<td>" + pcity['prod'][O_GOLD] + "/" + pcity['prod'][O_LUXURY] + "/" + pcity['prod'][O_SCIENCE] + "<td>";
 
       city_list_html += "</tr>";
     }
@@ -1255,7 +749,7 @@ export function update_city_screen(): void {
   initTableSort('#city_table', { sortList: sortList });
 }
 
-export function get_city_state(pcity: any): string | undefined { 
+export function get_city_state(pcity: any): string | undefined {
   if (pcity == null) return;
 
   if (pcity['was_happy'] && pcity['size'] >= 3) {
@@ -1296,8 +790,8 @@ export function set_citydlg_dimensions(pcity: any): void {
 
   const radius_tiles: number = Math.ceil(Math.sqrt(city_radius));
 
-  citydlg_map_width = tileset_width + radius_tiles * tileset_width;
-  citydlg_map_height = tileset_height + radius_tiles * tileset_height;
+  set_citydlg_map_width(tileset_width + radius_tiles * tileset_width);
+  set_citydlg_map_height(tileset_height + radius_tiles * tileset_height);
 
   $("#city_canvas_div").css({"width":citydlg_map_width, "height":citydlg_map_height});
   $("#city_canvas").attr('width', citydlg_map_width);
@@ -1310,5 +804,4 @@ function get_specialist_image_sprite(key: string): any {}
 function city_mapview_mouse_click(): void {}
 function show_city_governor_tab(): void {}
 function show_dialog_message(title: string, message: string): void {}
-function get_unit_type_image_sprite(unit_type: any): any {}
 function city_dialog_activate_unit(unit: any): void {}
