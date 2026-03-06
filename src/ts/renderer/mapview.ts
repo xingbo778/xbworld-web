@@ -1,4 +1,5 @@
 import { store } from '../data/store';
+import type { City, Tile, UnitType } from '../data/types';
 import { cityOwner as city_owner, getCityProductionType as get_city_production_type } from '../data/city';
 import { game_find_city_by_number as find_city_by_number } from '../data/game';
 import { tileset_unit_type_graphic_tag } from '../renderer/tilespec';
@@ -213,8 +214,8 @@ export function init_cache_sprites(): void {
     tileset_images[1] = null as any; // Set to null to free memory
     tileset_images = null as any; // Set to null to free memory
 
-  } catch (e: any) {
-    console.log("Problem caching sprite: " + (e.message || e));
+  } catch (e: unknown) {
+    console.log("Problem caching sprite: " + (e instanceof Error ? e.message : e));
   }
 
 }
@@ -278,11 +279,11 @@ export function canvas_put_select_rectangle(canvas_context: CanvasRenderingConte
 /**************************************************************************
   Draw city text onto the canvas.
 **************************************************************************/
-export function mapview_put_city_bar(pcanvas: CanvasRenderingContext2D, city: any, canvas_x: number, canvas_y: number): void {
+export function mapview_put_city_bar(pcanvas: CanvasRenderingContext2D, city: City, canvas_x: number, canvas_y: number): void {
   const text: string = decodeURIComponent(city['name']).toUpperCase();
   const size: number = city['size'];
   const color: string = (store.nations[city_owner(city)['nation']] as any)['color'];
-  const prod_type: any = get_city_production_type(city);
+  const prod_type = get_city_production_type(city);
 
   const txt_measure = pcanvas.measureText(text);
   const size_measure = pcanvas.measureText(size.toString());
@@ -321,9 +322,9 @@ export function mapview_put_city_bar(pcanvas: CanvasRenderingContext2D, city: an
   if (prod_type != null) {
     let tag: string | null;
     if (city['production_kind'] == VUT_UTYPE) {
-      tag = tileset_unit_type_graphic_tag(prod_type);
+      tag = tileset_unit_type_graphic_tag(prod_type as UnitType);
     } else {
-      tag = tileset_ruleset_entity_tag_str_or_alt(prod_type, "building");
+      tag = tileset_ruleset_entity_tag_str_or_alt(prod_type as any, "building");
     }
 
     if (tag == null) {
@@ -346,8 +347,8 @@ export function mapview_put_city_bar(pcanvas: CanvasRenderingContext2D, city: an
 /**************************************************************************
   Draw tile label onto the canvas.
 **************************************************************************/
-export function mapview_put_tile_label(pcanvas: CanvasRenderingContext2D, tile: any, canvas_x: number, canvas_y: number): void {
-  const text: string = tile['label'];
+export function mapview_put_tile_label(pcanvas: CanvasRenderingContext2D, tile: Tile, canvas_x: number, canvas_y: number): void {
+  const text = tile['label'] as string;
   if (text != null && text.length > 0) {
     const txt_measure = pcanvas.measureText(text);
 
@@ -446,7 +447,7 @@ export function set_default_mapview_inactive(): void {
  across to a new canvas (buffer_canvas), and clip a region of this
  buffer_canvas to the mapview canvas so it looks like scrolling.
 **************************************************************************/
-export function enable_mapview_slide(ptile: any): void {
+export function enable_mapview_slide(ptile: Tile): void {
   const r = map_to_gui_pos(ptile['x'], ptile['y']);
   let gui_x: number = r['gui_dx'];
   let gui_y: number = r['gui_dy'];

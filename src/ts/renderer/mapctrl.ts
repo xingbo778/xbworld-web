@@ -18,6 +18,7 @@
 ***********************************************************************/
 
 import { store } from '../data/store';
+import type { Tile, Unit, Player } from '../data/types';
 
 import { canvas_pos_to_tile, mapview, mark_all_dirty } from './mapviewCommon';
 import { mapPosToTile } from '../data/map';
@@ -265,8 +266,8 @@ export function city_action_button_pressed(canvas_x: number, canvas_y: number): 
   [canvas_x, canvas_y, map_select_x, map_select_y].
 **************************************************************************/
 export function map_select_units(canvas_x: number, canvas_y: number): void {
-  const selected_tiles: { [key: string]: any } = {};
-  const selected_units: any[] = [];
+  const selected_tiles: { [key: string]: Tile } = {};
+  const selected_units: Unit[] = [];
   if (client_is_observer()) return;
 
   const start_x = (map_select_x < canvas_x) ? map_select_x : canvas_x;
@@ -364,7 +365,7 @@ export function handle_web_info_text_message(packet: any): void {
   for (let i = 0; i < lines.length; i++) {
     const re = matcher[lines[i].substr(0, 5)];
     if (re !== undefined) {
-      let pplayer: any = null;
+      let pplayer: Player | null = null;
       const split_txt = lines[i].match(re);
       if (split_txt != null && split_txt.length > 4) {
         pplayer = player_by_full_username(split_txt[2]);
