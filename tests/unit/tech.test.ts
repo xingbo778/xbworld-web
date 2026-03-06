@@ -25,6 +25,7 @@ import {
   getCurrentBulbsOutputText,
   techIdByName,
 } from '@/data/tech';
+import { store } from '@/data/store';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const win = window as any;
@@ -99,7 +100,7 @@ describe('isTechReqForGoal', () => {
     // Tech tree:
     //   1 (Alphabet) → 2 (Writing) → 3 (Literacy)
     //   4 (Masonry) → 3 (Literacy)
-    win.techs = {
+    (store as any).techs = {
       1: { id: 1, name: 'Alphabet', research_reqs: [] },
       2: { id: 2, name: 'Writing', research_reqs: [{ value: 1 }] },
       3: { id: 3, name: 'Literacy', research_reqs: [{ value: 2 }, { value: 4 }] },
@@ -108,7 +109,7 @@ describe('isTechReqForGoal', () => {
   });
 
   afterEach(() => {
-    delete win.techs;
+    delete (store as any).techs;
   });
 
   it('should return true when check == goal', () => {
@@ -147,7 +148,7 @@ describe('isTechReqForGoal', () => {
 
 describe('isTechReqForTech', () => {
   beforeEach(() => {
-    win.techs = {
+    (store as any).techs = {
       1: { id: 1, name: 'Alphabet', research_reqs: [] },
       2: { id: 2, name: 'Writing', research_reqs: [{ value: 1 }] },
       3: { id: 3, name: 'Literacy', research_reqs: [{ value: 2 }, { value: 4 }] },
@@ -156,7 +157,7 @@ describe('isTechReqForTech', () => {
   });
 
   afterEach(() => {
-    delete win.techs;
+    delete (store as any).techs;
   });
 
   it('should return true for direct requirement', () => {
@@ -219,7 +220,7 @@ describe('getCurrentBulbsOutputText', () => {
 
 describe('techIdByName', () => {
   beforeEach(() => {
-    win.techs = {
+    (store as any).techs = {
       1: { id: 1, name: 'Alphabet' },
       2: { id: 2, name: 'Writing' },
       3: { id: 3, name: 'Literacy' },
@@ -227,7 +228,7 @@ describe('techIdByName', () => {
   });
 
   afterEach(() => {
-    delete win.techs;
+    delete (store as any).techs;
   });
 
   it('should return tech id as string when found', () => {
