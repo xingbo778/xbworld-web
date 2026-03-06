@@ -1035,6 +1035,7 @@ class GameStore {
   // Canvas/map rendering state
   mapviewCanvasCtx = null;
   bufferCanvas = null;
+  bufferCanvasCtx = null;
   mapviewCanvas = null;
   dashedSupport = false;
   fullfog = [];
@@ -1070,6 +1071,8 @@ class GameStore {
   autostart = false;
   civclientState = 0;
   // ClientState enum
+  heightOffset = 52;
+  widthOffset = 10;
   // Timer IDs
   timeoutTimerId = null;
   statusTimerId = null;
@@ -1109,7 +1112,7 @@ var ClientState = /* @__PURE__ */ ((ClientState2) => {
   ClientState2[ClientState2["OVER"] = 3] = "OVER";
   return ClientState2;
 })(ClientState || {});
-const RENDERER_2DCANVAS$1 = 1;
+const RENDERER_2DCANVAS = 1;
 const DIR8_NORTHWEST$1 = 0;
 const DIR8_NORTH$2 = 1;
 const DIR8_NORTHEAST$1 = 2;
@@ -1143,7 +1146,7 @@ function clientIsObserver() {
 function clientPlaying() {
   return store.client?.conn?.playing ?? null;
 }
-const C_S_INITIAL = ClientState.INITIAL;
+ClientState.INITIAL;
 const C_S_PREPARING = ClientState.PREPARING;
 const C_S_RUNNING = ClientState.RUNNING;
 const C_S_OVER = ClientState.OVER;
@@ -1196,7 +1199,7 @@ const ACTIVITY_MINE = 2;
 const ACTIVITY_IRRIGATE = 3;
 const ACTIVITY_FORTIFIED = 4;
 const ACTIVITY_SENTRY = 5;
-const ACTIVITY_PILLAGE$1 = 6;
+const ACTIVITY_PILLAGE = 6;
 const ACTIVITY_GOTO = 7;
 const ACTIVITY_TRANSFORM = 9;
 const ACTIVITY_FORTIFYING = 10;
@@ -1240,7 +1243,7 @@ const ACTION_ROAD = 61;
 const ACTION_IRRIGATE = 63;
 const ACTION_MINE = 65;
 const ACTION_BASE = 67;
-const ACTION_PILLAGE$1 = 69;
+const ACTION_PILLAGE = 69;
 const ACTION_TRANSPORT_BOARD = 71;
 const ACTION_TRANSPORT_DEBOARD = 74;
 const ACTION_TRANSPORT_UNLOAD = 86;
@@ -1251,24 +1254,1321 @@ const ACT_DEC_NOTHING = 0;
 const ACT_DEC_PASSIVE = 1;
 const ACT_DEC_ACTIVE = 2;
 const VUT_ADVANCE = 4;
+const VUT_EXTRA = 15;
 const VUT_IMPROVEMENT = 20;
 const VUT_UTYPE = 61;
-const O_FOOD$1 = 0;
-const O_SHIELD$1 = 1;
+const O_FOOD = 0;
+const O_SHIELD = 1;
 const O_TRADE = 2;
-const O_GOLD$1 = 3;
+const O_GOLD = 3;
 const O_LUXURY = 4;
 const O_SCIENCE = 5;
 const EC_IRRIGATION = 0;
 const EC_MINE = 1;
 const EC_ROAD = 2;
 const EC_BASE = 3;
-const ERM_PILLAGE$1 = 0;
+const ERM_PILLAGE = 0;
 const ERM_CLEAN = 1;
 const REQ_RANGE_PLAYER = 7;
 const TECH_UNKNOWN$1 = 0;
 const TECH_PREREQS_KNOWN$1 = 1;
-const TECH_KNOWN$2 = 2;
+const TECH_KNOWN$1 = 2;
+function DIVIDE(n2, d2) {
+  return Math.floor(n2 / d2);
+}
+function FC_WRAP(value, range) {
+  if (value < 0) {
+    const mod = value % range;
+    return mod !== 0 ? mod + range : 0;
+  }
+  return value >= range ? value % range : value;
+}
+function numberWithCommas(x2) {
+  return x2.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+function toTitleCase(str) {
+  return str.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.slice(1).toLowerCase());
+}
+function stringUnqualify(str) {
+  if (str.charAt(0) === "?" && str.includes(":")) {
+    return str.slice(str.indexOf(":") + 1);
+  }
+  return str;
+}
+function getUrlVar(name) {
+  const params = new URLSearchParams(window.location.search);
+  return params.get(name) ?? void 0;
+}
+function isSmallScreen() {
+  return window.innerWidth <= 600 || window.innerHeight <= 600;
+}
+function isTouchDevice() {
+  return "ontouchstart" in window || "onmsgesturechange" in window || globalThis.DocumentTouch != null && document instanceof globalThis.DocumentTouch ? true : false;
+}
+function getTilesetFileExtension() {
+  return ".png";
+}
+function isRightMouseSelectionSupported() {
+  if (isTouchDevice()) return false;
+  const ua = navigator.userAgent;
+  if (ua.includes("Mac OS X") || ua.includes("CrOS")) {
+    return false;
+  }
+  return true;
+}
+let benchmark_start = 0;
+async function civclient_benchmark(frame) {
+  if (frame === 0) benchmark_start = Date.now();
+  const { mapPosToTile: mapPosToTile2 } = await Promise.resolve().then(() => map);
+  const { center_tile_mapcanvas: center_tile_mapcanvas2 } = await Promise.resolve().then(() => control);
+  const ptile = mapPosToTile2(frame + 5, frame + 5);
+  center_tile_mapcanvas2(ptile);
+  if (frame < 30) {
+    setTimeout(() => civclient_benchmark(frame + 1), 10);
+  } else {
+    const { swal: swal2 } = await Promise.resolve().then(() => SwalDialog$1);
+    const time = (Date.now() - benchmark_start) / 25;
+    swal2("Redraw time: " + time);
+  }
+}
+Object.defineProperty(window, "benchmark_start", {
+  get: () => benchmark_start,
+  set: (v2) => {
+    benchmark_start = v2;
+  },
+  configurable: true,
+  enumerable: true
+});
+function blur_input_on_touchdevice() {
+  if (document.activeElement?.blur) {
+    document.activeElement.blur();
+  }
+}
+const WRAP_X = 1;
+const WRAP_Y = 2;
+const TF_ISO = 1;
+const TF_HEX = 2;
+const T_UNKNOWN = 0;
+const DIR_DX = [-1, 0, 1, -1, 1, -1, 0, 1];
+const DIR_DY = [-1, -1, -1, 0, 0, 1, 1, 1];
+const win$4 = window;
+function getMapInfo() {
+  const m2 = win$4.map;
+  if (m2 && typeof m2.xsize === "number") return m2;
+  return null;
+}
+function getTiles() {
+  return win$4.tiles || {};
+}
+function topoHasFlag(flag) {
+  return ((getMapInfo()?.topology_id ?? 0) & flag) !== 0;
+}
+function wrapHasFlag(flag) {
+  return ((getMapInfo()?.wrap_id ?? 0) & flag) !== 0;
+}
+function tileInit(tile) {
+  tile["known"] = null;
+  tile["seen"] = {};
+  tile["specials"] = [];
+  tile["terrain"] = T_UNKNOWN;
+  tile["units"] = [];
+  tile["owner"] = null;
+  tile["claimer"] = null;
+  tile["worked"] = null;
+  tile["spec_sprite"] = null;
+  tile["goto_dir"] = null;
+  tile["nuke"] = 0;
+  return tile;
+}
+function mapAllocate() {
+  const mi = getMapInfo();
+  if (!mi) return;
+  const newTiles = {};
+  for (let x2 = 0; x2 < mi.xsize; x2++) {
+    for (let y2 = 0; y2 < mi.ysize; y2++) {
+      const index = x2 + y2 * mi.xsize;
+      let tile = {
+        index,
+        x: x2,
+        y: y2,
+        height: 0
+      };
+      tile = tileInit(tile);
+      newTiles[index] = tile;
+    }
+  }
+  win$4.tiles = newTiles;
+  store.tiles = newTiles;
+  if (win$4.map) win$4.map["startpos_table"] = {};
+  Promise.resolve().then(() => overview).then((m2) => m2.init_overview());
+}
+function mapInitTopology(_setSizes) {
+  const m2 = win$4.map;
+  if (!m2) return;
+  m2.valid_dirs = {};
+  m2.cardinal_dirs = {};
+  m2.num_valid_dirs = 0;
+  m2.num_cardinal_dirs = 0;
+  for (let dir = 0; dir < 8; dir++) {
+    if (isValidDir(dir)) {
+      m2.valid_dirs[m2.num_valid_dirs] = dir;
+      m2.num_valid_dirs++;
+    }
+    if (isCardinalDir(dir)) {
+      m2.cardinal_dirs[m2.num_cardinal_dirs] = dir;
+      m2.num_cardinal_dirs++;
+    }
+  }
+}
+function isValidDir(dir) {
+  switch (dir) {
+    case 7:
+    case 0:
+      return !(topoHasFlag(TF_HEX) && !topoHasFlag(TF_ISO));
+    case 2:
+    case 5:
+      return !(topoHasFlag(TF_HEX) && topoHasFlag(TF_ISO));
+    case 1:
+    case 4:
+    case 6:
+    case 3:
+      return true;
+    default:
+      return false;
+  }
+}
+function isCardinalDir(dir) {
+  switch (dir) {
+    case 1:
+    case 6:
+    case 4:
+    case 3:
+      return true;
+    case 7:
+    case 0:
+      return topoHasFlag(TF_HEX) && topoHasFlag(TF_ISO);
+    case 2:
+    case 5:
+      return topoHasFlag(TF_HEX) && !topoHasFlag(TF_ISO);
+    default:
+      return false;
+  }
+}
+function mapPosToTile(x2, y2) {
+  const mi = getMapInfo();
+  if (!mi) return void 0;
+  const t2 = getTiles();
+  if (x2 >= mi.xsize) y2 -= 1;
+  else if (x2 < 0) y2 += 1;
+  return t2[x2 + y2 * mi.xsize];
+}
+function indexToTile(index) {
+  return getTiles()[index];
+}
+function mapstep(ptile, dir) {
+  if (!isValidDir(dir)) return void 0;
+  return mapPosToTile(DIR_DX[dir] + ptile.x, DIR_DY[dir] + ptile.y);
+}
+function nativeToMapPos(natX, natY) {
+  const mi = getMapInfo();
+  if (!mi) return { map_x: 0, map_y: 0 };
+  const pmap_x = Math.floor((natY + (natY & 1)) / 2 + natX);
+  const pmap_y = Math.floor(natY - pmap_x + mi.xsize);
+  return { map_x: pmap_x, map_y: pmap_y };
+}
+function mapToNativePos(mapX, mapY) {
+  const mi = getMapInfo();
+  if (!mi) return { nat_x: 0, nat_y: 0 };
+  const pnat_y = Math.floor(mapX + mapY - mi.xsize);
+  const pnat_x = Math.floor((2 * mapX - pnat_y - (pnat_y & 1)) / 2);
+  return { nat_x: pnat_x, nat_y: pnat_y };
+}
+function mapDistanceVector(tile0, tile1) {
+  const mi = getMapInfo();
+  if (!mi) return [0, 0];
+  let dx = tile1.x - tile0.x;
+  let dy = tile1.y - tile0.y;
+  if (wrapHasFlag(WRAP_X)) {
+    const half = Math.floor(mi.xsize / 2);
+    dx = FC_WRAP(dx + half, mi.xsize) - half;
+  }
+  if (wrapHasFlag(WRAP_Y)) {
+    const half = Math.floor(mi.ysize / 2);
+    dy = FC_WRAP(dy + half, mi.ysize) - half;
+  }
+  return [dx, dy];
+}
+function mapVectorToSqDistance(dx, dy) {
+  if (topoHasFlag(TF_HEX)) {
+    const d2 = mapVectorToDistance(dx, dy);
+    return d2 * d2;
+  }
+  return dx * dx + dy * dy;
+}
+function mapVectorToDistance(dx, dy) {
+  if (topoHasFlag(TF_HEX)) {
+    if (topoHasFlag(TF_ISO)) {
+      if (dx < 0 && dy > 0 || dx > 0 && dy < 0) {
+        return Math.abs(dx) + Math.abs(dy);
+      }
+      return Math.max(Math.abs(dx), Math.abs(dy));
+    }
+    if (dx > 0 && dy > 0 || dx < 0 && dy < 0) {
+      return Math.abs(dx) + Math.abs(dy);
+    }
+    return Math.max(Math.abs(dx), Math.abs(dy));
+  }
+  return Math.max(Math.abs(dx), Math.abs(dy));
+}
+function dirCW(dir) {
+  return (dir + 1) % 8;
+}
+function dirCCW(dir) {
+  return (dir + 7) % 8;
+}
+function clearGotoTiles() {
+  const mi = getMapInfo();
+  if (!mi) return;
+  const t2 = getTiles();
+  for (let x2 = 0; x2 < mi.xsize; x2++) {
+    for (let y2 = 0; y2 < mi.ysize; y2++) {
+      const tile = t2[x2 + y2 * mi.xsize];
+      if (tile) tile.goto_dir = null;
+    }
+  }
+}
+win$4["map_init_topology"] = mapInitTopology;
+win$4["map_allocate"] = mapAllocate;
+const map = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+  __proto__: null,
+  DIR_DX,
+  DIR_DY,
+  TF_HEX,
+  TF_ISO,
+  T_UNKNOWN,
+  WRAP_X,
+  WRAP_Y,
+  clearGotoTiles,
+  dirCCW,
+  dirCW,
+  getMapInfo,
+  getTiles,
+  indexToTile,
+  isCardinalDir,
+  isValidDir,
+  mapAllocate,
+  mapDistanceVector,
+  mapInitTopology,
+  mapPosToTile,
+  mapToNativePos,
+  mapVectorToDistance,
+  mapVectorToSqDistance,
+  mapstep,
+  nativeToMapPos,
+  tileInit,
+  topoHasFlag,
+  wrapHasFlag
+}, Symbol.toStringTag, { value: "Module" }));
+var DiplState = /* @__PURE__ */ ((DiplState2) => {
+  DiplState2[DiplState2["DS_ARMISTICE"] = 0] = "DS_ARMISTICE";
+  DiplState2[DiplState2["DS_WAR"] = 1] = "DS_WAR";
+  DiplState2[DiplState2["DS_CEASEFIRE"] = 2] = "DS_CEASEFIRE";
+  DiplState2[DiplState2["DS_PEACE"] = 3] = "DS_PEACE";
+  DiplState2[DiplState2["DS_ALLIANCE"] = 4] = "DS_ALLIANCE";
+  DiplState2[DiplState2["DS_NO_CONTACT"] = 5] = "DS_NO_CONTACT";
+  DiplState2[DiplState2["DS_TEAM"] = 6] = "DS_TEAM";
+  DiplState2[DiplState2["DS_LAST"] = 7] = "DS_LAST";
+  return DiplState2;
+})(DiplState || {});
+var PlayerFlag = /* @__PURE__ */ ((PlayerFlag2) => {
+  PlayerFlag2[PlayerFlag2["PLRF_AI"] = 0] = "PLRF_AI";
+  PlayerFlag2[PlayerFlag2["PLRF_SCENARIO_RESERVED"] = 1] = "PLRF_SCENARIO_RESERVED";
+  PlayerFlag2[PlayerFlag2["PLRF_COUNT"] = 2] = "PLRF_COUNT";
+  return PlayerFlag2;
+})(PlayerFlag || {});
+const research_data = {};
+function valid_player_by_number(playerno) {
+  if (store.players[playerno] == null) return null;
+  return store.players[playerno];
+}
+function player_by_number(playerno) {
+  if (store.players[playerno] == null) return null;
+  return store.players[playerno];
+}
+function player_by_full_username(pname) {
+  for (const player_id in store.players) {
+    const pplayer = store.players[player_id];
+    if (pplayer.username === pname) return pplayer;
+    if ("AI " + pplayer.name === pname) return pplayer;
+  }
+  return null;
+}
+function player_find_unit_by_id(pplayer, unit_id) {
+  for (const id in store.units) {
+    const punit = store.units[id];
+    if (punit.owner === pplayer.playerno && punit.id === unit_id) {
+      return punit;
+    }
+  }
+  return null;
+}
+function get_diplstate_text(state_id) {
+  switch (state_id) {
+    case 0:
+      return "Armistice";
+    case 1:
+      return "War";
+    case 2:
+      return "Ceasefire";
+    case 3:
+      return "Peace";
+    case 4:
+      return "Alliance";
+    case 5:
+      return "No contact";
+    case 6:
+      return "Team";
+    default:
+      return "Unknown";
+  }
+}
+function get_embassy_text(player_id) {
+  const pplayer = store.players[player_id];
+  if (pplayer == null) return "";
+  if (pplayer.embassy_txt != null) return pplayer.embassy_txt;
+  return "";
+}
+function get_ai_level_text(player) {
+  if (player.ai_skill_level === 0) return "Away";
+  if (player.ai_skill_level === 1) return "Handicapped";
+  if (player.ai_skill_level === 2) return "Novice";
+  if (player.ai_skill_level === 3) return "Easy";
+  if (player.ai_skill_level === 4) return "Normal";
+  if (player.ai_skill_level === 5) return "Hard";
+  if (player.ai_skill_level === 6) return "Cheating";
+  if (player.ai_skill_level === 7) return "Experimental";
+  return "";
+}
+function get_player_connection_status(pplayer) {
+  if (pplayer == null) return "";
+  for (const cid in store.connections) {
+    const pconn = store.connections[cid];
+    if (pconn.playing != null && pconn.playing.playerno === pplayer.playerno) {
+      return "connected";
+    }
+  }
+  if (pplayer.ai_skill_level > 0) return "AI";
+  return "disconnected";
+}
+function research_get(pplayer) {
+  if (pplayer == null) return null;
+  return research_data[pplayer.playerno] ?? null;
+}
+function player_capital(player) {
+  if (player == null) return null;
+  for (const city_id in store.cities) {
+    const pcity = store.cities[city_id];
+    if (pcity.owner === player.playerno && is_capital(pcity)) {
+      return pcity;
+    }
+  }
+  return null;
+}
+function is_capital(pcity) {
+  if (pcity.improvements == null) return false;
+  for (const imp_id in store.improvements) {
+    const imp = store.improvements[imp_id];
+    if (imp != null && imp.genus === 0 && pcity.improvements[imp.id] === true) {
+      return true;
+    }
+  }
+  return false;
+}
+const TECH_UNKNOWN = 0;
+const TECH_PREREQS_KNOWN = 1;
+const TECH_KNOWN = 2;
+const A_NONE = 0;
+function playerInventionState(pplayer, techId) {
+  if (pplayer == null) {
+    return TECH_UNKNOWN;
+  } else {
+    const inventions = pplayer["inventions"];
+    if (inventions != null && inventions[techId] != null) {
+      return inventions[techId];
+    } else {
+      return TECH_UNKNOWN;
+    }
+  }
+}
+function isTechReqForGoal(checkTechId, goalTechId) {
+  if (checkTechId === goalTechId) return true;
+  if (goalTechId === 0 || checkTechId === 0) return false;
+  const goalTech = store.techs[goalTechId];
+  if (goalTech == null) return false;
+  const reqs = goalTech["research_reqs"];
+  for (let i2 = 0; i2 < reqs.length; i2++) {
+    const rid = reqs[i2]["value"];
+    if (checkTechId === rid) {
+      return true;
+    } else if (isTechReqForGoal(checkTechId, rid)) {
+      return true;
+    }
+  }
+  return false;
+}
+function isTechReqForTech(checkTechId, nextTechId) {
+  if (checkTechId === nextTechId) return false;
+  if (nextTechId === 0 || checkTechId === 0) return false;
+  const nextTech = store.techs[nextTechId];
+  if (nextTech == null) return false;
+  const reqs = nextTech["research_reqs"];
+  for (let i2 = 0; i2 < reqs.length; i2++) {
+    const rid = reqs[i2]["value"];
+    if (checkTechId === rid) {
+      return true;
+    }
+  }
+  return false;
+}
+function getCurrentBulbsOutput() {
+  let selfBulbs = 0;
+  let selfUpkeep = 0;
+  let pooled = false;
+  let teamBulbs = 0;
+  let teamUpkeep = 0;
+  if (!clientIsObserver() && clientPlaying() != null) {
+    const cplayer = clientPlaying().playerno;
+    for (const cityId in store.cities) {
+      const city = store.cities[cityId];
+      if (city.owner === cplayer) {
+        selfBulbs += city.prod[O_SCIENCE];
+      }
+    }
+    selfUpkeep = clientPlaying()?.tech_upkeep ?? 0;
+    if (store.gameInfo?.["team_pooled_research"]) {
+      const team = clientPlaying()?.team;
+      for (const playerId in store.players) {
+        const player = store.players[playerId];
+        if (player.team === team && player.is_alive) {
+          teamUpkeep += player.tech_upkeep ?? 0;
+          if (player.playerno !== cplayer) {
+            pooled = true;
+          }
+        }
+      }
+      if (pooled) {
+        teamBulbs = research_data?.[team]?.total_bulbs_prod ?? 0;
+      }
+    }
+    if (!pooled) {
+      teamBulbs = selfBulbs;
+      teamUpkeep = selfUpkeep;
+    }
+  }
+  return {
+    self_bulbs: selfBulbs,
+    self_upkeep: selfUpkeep,
+    pooled,
+    team_bulbs: teamBulbs,
+    team_upkeep: teamUpkeep
+  };
+}
+function getCurrentBulbsOutputText(cbo) {
+  if (cbo === void 0) {
+    cbo = getCurrentBulbsOutput();
+  }
+  let text;
+  if (cbo.self_bulbs === 0 && cbo.self_upkeep === 0) {
+    text = "No bulbs researched";
+  } else {
+    text = String(cbo.self_bulbs);
+    const net = cbo.self_bulbs - cbo.self_upkeep;
+    if (cbo.self_upkeep !== 0) {
+      text = text + " - " + cbo.self_upkeep + " = " + net;
+    }
+    if (1 === Math.abs(net)) {
+      text = text + " bulb/turn";
+    } else {
+      text = text + " bulbs/turn";
+    }
+  }
+  if (cbo.pooled) {
+    text = text + " (" + (cbo.team_bulbs - cbo.team_upkeep) + " team total)";
+  }
+  return text;
+}
+function techIdByName(tname) {
+  for (const techId in store.techs) {
+    if (tname === store.techs[techId]["name"]) return techId;
+  }
+  return null;
+}
+function universalBuildShieldCost(_pcity, target) {
+  return target["build_cost"];
+}
+function actionByNumber(actId) {
+  const actions = store.actions;
+  if (actions[actId] == void 0) {
+    console.log("Asked for non existing action numbered %d", actId);
+    return null;
+  }
+  return actions[actId];
+}
+function actionHasResult(paction, result) {
+  if (paction == null || paction["result"] == null) {
+    console.log("action_has_result(): bad action");
+    console.log(paction);
+    return null;
+  }
+  return paction["result"] == result;
+}
+function action_prob_not_impl(probability) {
+  return probability.min === 254 && probability.max === 0;
+}
+function actionProbPossible(aprob) {
+  return 0 < aprob["max"] || action_prob_not_impl(aprob);
+}
+const UTYF_FLAGLESS = 29;
+const U_NOT_OBSOLETED = null;
+function utype_can_do_action(putype, action_id) {
+  if (putype == null || putype["utype_actions"] == null) return false;
+  return putype["utype_actions"].isSet(action_id);
+}
+function utype_can_do_action_result(putype, result) {
+  for (let action_id = 0; action_id < ACTION_COUNT$1; action_id++) {
+    if (utype_can_do_action(putype, action_id)) {
+      const paction = actionByNumber(action_id);
+      if (paction != null && actionHasResult(paction, result)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+function can_player_build_unit_direct(p2, punittype) {
+  if (punittype == null || p2 == null) return false;
+  const techReq = punittype["tech_requirement"];
+  if (techReq != null && techReq >= 0) {
+    if (playerInventionState(p2, techReq) !== TECH_KNOWN) {
+      return false;
+    }
+  }
+  const obsoletedBy = punittype["obsoleted_by"];
+  if (obsoletedBy != null && obsoletedBy >= 0) {
+    const obs_type = store.unitTypes[obsoletedBy];
+    if (obs_type != null) {
+      const obsTechReq = obs_type["tech_requirement"];
+      if (obsTechReq == null || obsTechReq < 0) {
+        return false;
+      }
+      if (playerInventionState(p2, obsTechReq) === TECH_KNOWN) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+function get_units_from_tech(tech_id) {
+  const result = [];
+  for (const unit_type_id in store.unitTypes) {
+    const punit_type = store.unitTypes[unit_type_id];
+    if (punit_type == null) continue;
+    if (punit_type.tech_requirement === tech_id) {
+      result.push(punit_type);
+    }
+  }
+  return result;
+}
+const TILE_UNKNOWN = 0;
+const TILE_KNOWN_UNSEEN = 1;
+const TILE_KNOWN_SEEN = 2;
+function tileGetKnown(ptile) {
+  if (ptile.known == null || ptile.known === TILE_UNKNOWN) return TILE_UNKNOWN;
+  if (ptile.known === TILE_KNOWN_UNSEEN) return TILE_KNOWN_UNSEEN;
+  return TILE_KNOWN_SEEN;
+}
+function tileHasExtra(ptile, extra) {
+  const extras = ptile.extras;
+  if (!extras) return false;
+  if (typeof extras.isSet === "function") {
+    return extras.isSet(extra);
+  }
+  return false;
+}
+function tileResource(ptile) {
+  return ptile?.resource ?? null;
+}
+function tileHasTerritoryClaimingExtra(ptile) {
+  const win2 = window;
+  const rulesetControl = win2.ruleset_control;
+  if (!rulesetControl) return false;
+  const numExtras = rulesetControl["num_extra_types"] ?? 0;
+  for (let extra = 0; extra < numExtras; extra++) {
+    if (tileHasExtra(ptile, extra) && typeof win2.territory_claiming_extra === "function" && typeof win2.extra_by_number === "function" && win2.territory_claiming_extra(win2.extra_by_number(extra))) {
+      return true;
+    }
+  }
+  return false;
+}
+function tileOwner(tile) {
+  return tile.owner;
+}
+function tileCity(ptile) {
+  if (!ptile) return null;
+  const cityId = ptile.worked;
+  const pcity = store.cities[cityId];
+  if (pcity && pcity.tile === ptile.index) {
+    return pcity;
+  }
+  return null;
+}
+const EXTRA_NONE = -1;
+const BASE_GUI_FORTRESS = 0;
+const BASE_GUI_AIRBASE = 1;
+function extraByNumber(id) {
+  if (id === EXTRA_NONE) {
+    return null;
+  }
+  const rc = store.rulesControl;
+  if (id >= 0 && rc && id < rc["num_extra_types"]) {
+    return store.extras[id];
+  } else {
+    console.log("extra_by_number(): Invalid extra id: " + id);
+    return null;
+  }
+}
+function isExtraCausedBy(pextra, cause) {
+  return pextra.causes.isSet(cause);
+}
+function isExtraRemovedBy(pextra, rmcause) {
+  return pextra.rmcauses.isSet(rmcause);
+}
+class BitVector {
+  data;
+  constructor(raw) {
+    this.data = raw instanceof Uint8Array ? raw : new Uint8Array(raw);
+  }
+  isSet(bit) {
+    return (this.data[bit >>> 3] & 1 << (bit & 7)) !== 0;
+  }
+  set(bit) {
+    this.data[bit >>> 3] |= 1 << (bit & 7);
+  }
+  unset(bit) {
+    this.data[bit >>> 3] &= ~(1 << (bit & 7));
+  }
+  toBitSet() {
+    const out = [];
+    const len = this.data.length << 3;
+    for (let i2 = 0; i2 < len; i2++) {
+      if (this.isSet(i2)) out.push(i2);
+    }
+    return out;
+  }
+  toString() {
+    let out = "";
+    const len = this.data.length << 3;
+    for (let i2 = 0; i2 < len; i2++) {
+      out += this.isSet(i2) ? "1" : "0";
+    }
+    return out;
+  }
+}
+var Order = /* @__PURE__ */ ((Order2) => {
+  Order2[Order2["MOVE"] = 0] = "MOVE";
+  Order2[Order2["ACTIVITY"] = 1] = "ACTIVITY";
+  Order2[Order2["FULL_MP"] = 2] = "FULL_MP";
+  Order2[Order2["ACTION_MOVE"] = 3] = "ACTION_MOVE";
+  Order2[Order2["PERFORM_ACTION"] = 4] = "PERFORM_ACTION";
+  Order2[Order2["LAST"] = 5] = "LAST";
+  return Order2;
+})(Order || {});
+var UnitSSDataType = /* @__PURE__ */ ((UnitSSDataType2) => {
+  UnitSSDataType2[UnitSSDataType2["QUEUE"] = 0] = "QUEUE";
+  UnitSSDataType2[UnitSSDataType2["UNQUEUE"] = 1] = "UNQUEUE";
+  UnitSSDataType2[UnitSSDataType2["BATTLE_GROUP"] = 2] = "BATTLE_GROUP";
+  UnitSSDataType2[UnitSSDataType2["SENTRY"] = 3] = "SENTRY";
+  return UnitSSDataType2;
+})(UnitSSDataType || {});
+var ServerSideAgent = /* @__PURE__ */ ((ServerSideAgent2) => {
+  ServerSideAgent2[ServerSideAgent2["NONE"] = 0] = "NONE";
+  ServerSideAgent2[ServerSideAgent2["AUTOWORKER"] = 1] = "AUTOWORKER";
+  ServerSideAgent2[ServerSideAgent2["AUTOEXPLORE"] = 2] = "AUTOEXPLORE";
+  ServerSideAgent2[ServerSideAgent2["COUNT"] = 3] = "COUNT";
+  return ServerSideAgent2;
+})(ServerSideAgent || {});
+const ANIM_STEPS = 8;
+const anim_units_max = 30;
+let anim_units_count = 0;
+function unit_owner(punit) {
+  return player_by_number(punit.owner);
+}
+function client_remove_unit(punit) {
+  Promise.resolve().then(() => unitFocus).then((m2) => {
+    m2.control_unit_killed(punit);
+  });
+  const focused = store.currentFocus || [];
+  if (focused.some((u2) => u2.id === punit.id)) {
+    store.currentFocus = [];
+  }
+  delete store.units[punit.id];
+}
+function tile_units(ptile) {
+  if (ptile == null) return null;
+  return ptile["units"];
+}
+function get_supported_units(pcity) {
+  if (pcity == null) return null;
+  const result = [];
+  for (const unit_id in store.units) {
+    const punit = store.units[unit_id];
+    if (punit.homecity === pcity.id) {
+      result.push(punit);
+    }
+  }
+  return result;
+}
+function update_tile_unit(punit) {
+  if (punit == null) return;
+  const ptile = indexToTile(punit.tile);
+  if (ptile == null || ptile["units"] == null) return;
+  let found = false;
+  for (let i2 = 0; i2 < ptile["units"].length; i2++) {
+    if (ptile["units"][i2].id === punit.id) {
+      found = true;
+    }
+  }
+  if (!found) {
+    ptile["units"].push(punit);
+  }
+}
+function clear_tile_unit(punit) {
+  if (punit == null) return;
+  const ptile = indexToTile(punit.tile);
+  if (ptile == null || ptile["units"] == null) return;
+  const idx = ptile["units"].indexOf(punit);
+  if (idx >= 0) {
+    ptile["units"].splice(idx, 1);
+  }
+}
+function unit_list_size(unit_list) {
+  if (unit_list == null) return 0;
+  return unit_list.length;
+}
+function unit_list_without(unit_list, punit) {
+  return unit_list.filter((funit) => funit.id !== punit.id);
+}
+function unit_type(punit) {
+  return store.unitTypes[punit.type];
+}
+function unit_can_do_action(punit, act_id) {
+  return utype_can_do_action(unit_type(punit), act_id);
+}
+function get_unit_moves_left(punit) {
+  if (punit == null) {
+    return 0;
+  }
+  return "Moves:" + move_points_text(punit.movesleft);
+}
+function move_points_text(moves) {
+  const sm = store.singleMove ?? 1;
+  let result;
+  if (moves % sm !== 0) {
+    if (Math.floor(moves / sm) > 0) {
+      result = Math.floor(moves / sm) + " " + Math.floor(moves % sm) + "/" + sm;
+    } else {
+      result = Math.floor(moves % sm) + "/" + sm;
+    }
+  } else {
+    result = String(Math.floor(moves / sm));
+  }
+  return result;
+}
+function unit_has_goto(punit) {
+  if (store.client?.conn?.playing == null || punit.owner !== store.client.conn.playing.playerno) {
+    return false;
+  }
+  return punit.goto_tile !== -1;
+}
+function update_unit_anim_list(old_unit, new_unit) {
+  if (old_unit == null || new_unit == null) return;
+  if (new_unit.tile === old_unit.tile) return;
+  if (anim_units_count > anim_units_max) return;
+  if (store.renderer === RENDERER_2DCANVAS && !is_unit_visible(new_unit)) return;
+  if (old_unit["anim_list"] == null) old_unit["anim_list"] = [];
+  if (new_unit["transported"] === true) {
+    old_unit["anim_list"] = [];
+    return;
+  }
+  anim_units_count += 1;
+  const animList = old_unit["anim_list"];
+  let has_old_pos = false;
+  let has_new_pos = false;
+  for (let i2 = 0; i2 < animList.length; i2++) {
+    const anim_tuple = animList[i2];
+    if (anim_tuple.tile === old_unit.tile) {
+      has_old_pos = true;
+    }
+    if (anim_tuple.tile === new_unit.tile) {
+      has_new_pos = true;
+    }
+  }
+  if (!has_old_pos) {
+    animList.push({ tile: old_unit.tile, i: ANIM_STEPS });
+  }
+  if (!has_new_pos) {
+    animList.push({ tile: new_unit.tile, i: ANIM_STEPS });
+  }
+}
+function get_unit_anim_offset(punit) {
+  const offset = { x: 0, y: 0 };
+  const animList = punit["anim_list"];
+  if (animList != null && animList.length >= 2) {
+    const anim_tuple_src = animList[0];
+    const anim_tuple_dst = animList[1];
+    const src_tile = indexToTile(anim_tuple_src.tile);
+    const dst_tile = indexToTile(anim_tuple_dst.tile);
+    const u_tile = indexToTile(punit.tile);
+    anim_tuple_dst.i = anim_tuple_dst.i - 1;
+    const i2 = Math.floor((anim_tuple_dst.i + 2) / 3);
+    const r2 = window.map_to_gui_pos(src_tile["x"], src_tile["y"]);
+    const src_gx = r2["gui_dx"];
+    const src_gy = r2["gui_dy"];
+    const s2 = window.map_to_gui_pos(dst_tile["x"], dst_tile["y"]);
+    const dst_gx = s2["gui_dx"];
+    const dst_gy = s2["gui_dy"];
+    const t2 = window.map_to_gui_pos(u_tile["x"], u_tile["y"]);
+    const punit_gx = t2["gui_dx"];
+    const punit_gy = t2["gui_dy"];
+    const gui_dx = Math.floor((dst_gx - src_gx) * (i2 / ANIM_STEPS)) + (punit_gx - dst_gx);
+    const gui_dy = Math.floor((dst_gy - src_gy) * (i2 / ANIM_STEPS)) + (punit_gy - dst_gy);
+    if (i2 === 0) {
+      animList.splice(0, 1);
+      if (animList.length === 1) {
+        animList.splice(0, 1);
+      }
+    }
+    offset.x = -gui_dx;
+    offset.y = -gui_dy;
+  } else {
+    anim_units_count -= 1;
+  }
+  return offset;
+}
+function reset_unit_anim_list() {
+  for (const unit_id in store.units) {
+    const punit = store.units[unit_id];
+    punit["anim_list"] = [];
+  }
+  anim_units_count = 0;
+}
+function get_unit_homecity_name(punit) {
+  if (punit.homecity !== 0 && store.cities[punit.homecity] != null) {
+    return decodeURIComponent(store.cities[punit.homecity]["name"]);
+  }
+  return null;
+}
+function is_unit_visible(punit) {
+  if (punit == null || punit.tile == null) return false;
+  const u_tile = indexToTile(punit.tile);
+  const r2 = window.map_to_gui_pos(u_tile["x"], u_tile["y"]);
+  const unit_gui_x = r2["gui_dx"];
+  const unit_gui_y = r2["gui_dy"];
+  const mv = window.mapview;
+  if (unit_gui_x < mv["gui_x0"] || unit_gui_y < mv["gui_y0"] || unit_gui_x > mv["gui_x0"] + mv["width"] || unit_gui_y > mv["gui_y0"] + mv["height"]) {
+    return false;
+  }
+  return true;
+}
+function unittype_ids_alphabetic() {
+  const unittype_names = [];
+  for (const unit_id in store.unitTypes) {
+    const punit_type = store.unitTypes[unit_id];
+    unittype_names.push(punit_type["name"]);
+  }
+  unittype_names.sort();
+  const unittype_id_list = [];
+  for (const unit_name of unittype_names) {
+    for (const unit_id in store.unitTypes) {
+      const punit_type = store.unitTypes[unit_id];
+      if (unit_name === punit_type["name"]) {
+        unittype_id_list.push(unit_id);
+      }
+    }
+  }
+  return unittype_id_list;
+}
+function get_unit_city_info(punit) {
+  let result = "";
+  const ptype = unit_type(punit);
+  result += ptype["name"] + "\nFood/Shield/Gold: ";
+  if (punit["upkeep"] != null) {
+    result += punit["upkeep"][O_FOOD] + "/" + punit["upkeep"][O_SHIELD] + "/" + punit["upkeep"][O_GOLD];
+  }
+  result += "\n" + get_unit_moves_left(punit) + "\n";
+  const homecity = get_unit_homecity_name(punit);
+  if (homecity != null) {
+    result += homecity;
+  }
+  return result;
+}
+function get_what_can_unit_pillage_from(punit, ptile) {
+  const targets = [];
+  if (punit == null) return targets;
+  if (ptile == null) {
+    ptile = indexToTile(punit.tile) ?? null;
+  }
+  if (ptile == null) return targets;
+  if (store.terrains[ptile.terrain].pillage_time === 0) return targets;
+  if (!utype_can_do_action(unit_type(punit), ACTION_PILLAGE)) return targets;
+  const cannot_pillage = new BitVector([]);
+  const ptile_units = tile_units(ptile) || [];
+  for (let ui = 0; ui < ptile_units.length; ui++) {
+    const u2 = ptile_units[ui];
+    if (u2.activity === ACTIVITY_PILLAGE) {
+      cannot_pillage.set(u2["activity_tgt"]);
+    }
+  }
+  for (let i2 = 0; i2 < store.rulesControl["num_extra_types"]; i2++) {
+    if (tileHasExtra(ptile, i2)) {
+      const extra = store.extras[i2];
+      for (let j2 = 0; j2 < extra.reqs.length; j2++) {
+        const req = extra.reqs[j2];
+        if (req.kind === VUT_EXTRA && req.present === true) {
+          cannot_pillage.set(req.value);
+        }
+      }
+    } else {
+      cannot_pillage.set(i2);
+    }
+  }
+  for (let i2 = 0; i2 < store.rulesControl["num_extra_types"]; i2++) {
+    if (isExtraRemovedBy(store.extras[i2], ERM_PILLAGE) && !cannot_pillage.isSet(i2)) {
+      if (store.gameInfo.pillage_select) {
+        targets.push(i2);
+      } else {
+        targets.push(EXTRA_NONE);
+        break;
+      }
+    }
+  }
+  return targets;
+}
+function tileTerrain(ptile) {
+  if (!store.terrains) return void 0;
+  return store.terrains[ptile.terrain];
+}
+function tileTerrainNear(ptile) {
+  const near = [];
+  for (let dir = 0; dir < 8; dir++) {
+    const tile1 = mapstep(ptile, dir);
+    if (tile1 && tileGetKnown(tile1) !== TILE_UNKNOWN) {
+      const terrain1 = tileTerrain(tile1);
+      if (terrain1) {
+        near[dir] = terrain1;
+        continue;
+      }
+      logError(`build_tile_data() tile (${ptile.x},${ptile.y}) has no terrain!`);
+    }
+    near[dir] = tileTerrain(ptile);
+  }
+  return near;
+}
+function isOceanTile(ptile) {
+  const t2 = tileTerrain(ptile);
+  if (!t2) return false;
+  return t2.graphic_str === "floor" || t2.graphic_str === "coast";
+}
+const _w$1 = window;
+if (!_w$1["terrains"]) _w$1["terrains"] = {};
+if (!_w$1["resources"]) _w$1["resources"] = {};
+if (!_w$1["terrain_control"]) _w$1["terrain_control"] = {};
+let mouse_x = 0;
+let mouse_y = 0;
+let prev_mouse_x = 0;
+let prev_mouse_y = 0;
+let keyboard_input = true;
+let unitpanel_active = false;
+let allow_right_click = false;
+let mapview_mouse_movement = false;
+function setMouseX(v2) {
+  mouse_x = v2;
+}
+function setMouseY(v2) {
+  mouse_y = v2;
+}
+function setPrevMouseX(v2) {
+  prev_mouse_x = v2;
+}
+function setPrevMouseY(v2) {
+  prev_mouse_y = v2;
+}
+function setKeyboardInput(v2) {
+  keyboard_input = v2;
+}
+function setUnitpanelActive(v2) {
+  unitpanel_active = v2;
+}
+function setAllowRightClick(v2) {
+  allow_right_click = v2;
+}
+function setMapviewMouseMovement(v2) {
+  mapview_mouse_movement = v2;
+}
+let roads$1 = [];
+let bases$1 = [];
+let current_focus = [];
+let urgent_focus_queue = [];
+let waiting_units_list = [];
+function setCurrentFocus(v2) {
+  current_focus = v2;
+}
+function setUrgentFocusQueue(v2) {
+  urgent_focus_queue = v2;
+}
+function setWaitingUnitsList(v2) {
+  waiting_units_list = v2;
+}
+let goto_active = false;
+let paradrop_active = false;
+let airlift_active = false;
+let action_tgt_sel_active = false;
+let goto_last_order = -1;
+let goto_last_action = -1;
+let goto_request_map = {};
+let goto_turns_request_map = {};
+let current_goto_turns = 0;
+function setGotoActive(v2) {
+  goto_active = v2;
+}
+function setParadropActive(v2) {
+  paradrop_active = v2;
+}
+function setAirliftActive(v2) {
+  airlift_active = v2;
+}
+function setActionTgtSelActive(v2) {
+  action_tgt_sel_active = v2;
+}
+function setGotoLastOrder(v2) {
+  goto_last_order = v2;
+}
+function setGotoLastAction(v2) {
+  goto_last_action = v2;
+}
+function setGotoRequestMap(v2) {
+  goto_request_map = v2;
+}
+function setGotoTurnsRequestMap(v2) {
+  goto_turns_request_map = v2;
+}
+function setCurrentGotoTurns(v2) {
+  current_goto_turns = v2;
+}
+const SELECT_POPUP = 0;
+let intro_click_description = true;
+let resize_enabled = true;
+let show_citybar = true;
+let context_menu_active = true;
+let has_movesleft_warning_been_shown = false;
+let game_unit_panel_state = null;
+let end_turn_info_message_shown = false;
+function setIntroClickDescription(v2) {
+  intro_click_description = v2;
+}
+function setResizeEnabled(v2) {
+  resize_enabled = v2;
+}
+function setShowCitybar(v2) {
+  show_citybar = v2;
+}
+function setContextMenuActive(v2) {
+  context_menu_active = v2;
+}
+function setHasMovesleftWarningBeenShown(v2) {
+  has_movesleft_warning_been_shown = v2;
+}
+function setGameUnitPanelState(v2) {
+  game_unit_panel_state = v2;
+}
+function setEndTurnInfoMessageShown(v2) {
+  end_turn_info_message_shown = v2;
+}
+let chat_send_to = -1;
+const CHAT_ICON_EVERYBODY = String.fromCharCode(62075);
+const CHAT_ICON_ALLIES = String.fromCharCode(61746);
+function setChatSendTo(v2) {
+  chat_send_to = v2;
+}
+let action_selection_in_progress_for = IDENTITY_NUMBER_ZERO;
+let is_more_user_input_needed = false;
+function setActionSelectionInProgressFor(v2) {
+  action_selection_in_progress_for = v2;
+}
+function setIsMoreUserInputNeeded(v2) {
+  is_more_user_input_needed = v2;
+}
+function set_is_more_user_input_needed(val) {
+  is_more_user_input_needed = val;
+}
+let mouse_touch_started_on_unit = false;
+function setMouseTouchStartedOnUnit(v2) {
+  mouse_touch_started_on_unit = v2;
+}
+const E_SCRIPT = 45;
+const E_BAD_COMMAND = 93;
+const E_CHAT_MSG = 95;
+const E_LOG_ERROR = 100;
+const E_BEGINNER_HELP = 127;
+const E_CHAT_PRIVATE = 139;
+const E_CHAT_ALLIES = 140;
+const E_CHAT_OBSERVER = 141;
+const E_UNDEFINED = 142;
+const fc_e_events = [
+  "e_city_cantbuild",
+  "e_city_lost",
+  "e_city_love",
+  "e_city_disorder",
+  "e_city_famine",
+  "e_city_famine_feared",
+  "e_city_growth",
+  "e_city_may_soon_grow",
+  "e_city_aqueduct",
+  "e_city_aq_building",
+  "e_city_normal",
+  "e_city_nuked",
+  "e_city_cma_release",
+  "e_city_gran_throttle",
+  "e_city_transfer",
+  "e_city_build",
+  "e_city_production_changed",
+  "e_worklist",
+  "e_uprising",
+  "e_civil_war",
+  "e_anarchy",
+  "e_first_contact",
+  "e_new_government",
+  "e_low_on_funds",
+  "e_pollution",
+  "e_revolt_done",
+  "e_revolt_start",
+  "e_spaceship",
+  "e_my_diplomat_bribe",
+  "e_diplomatic_incident",
+  "e_my_diplomat_escape",
+  "e_my_diplomat_embassy",
+  "e_my_diplomat_failed",
+  "e_my_diplomat_incite",
+  "e_my_diplomat_poison",
+  "e_my_diplomat_sabotage",
+  "e_my_diplomat_theft",
+  "e_enemy_diplomat_bribe",
+  "e_enemy_diplomat_embassy",
+  "e_enemy_diplomat_failed",
+  "e_enemy_diplomat_incite",
+  "e_enemy_diplomat_poison",
+  "e_enemy_diplomat_sabotage",
+  "e_enemy_diplomat_theft",
+  "e_caravan_action",
+  "e_script",
+  "e_broadcast_report",
+  "e_game_end",
+  "e_game_start",
+  "e_nation_selected",
+  "e_destroyed",
+  "e_report",
+  "e_turn_bell",
+  "e_next_year",
+  "e_global_eco",
+  "e_nuke",
+  "e_hut_barb",
+  "e_hut_city",
+  "e_hut_gold",
+  "e_hut_barb_killed",
+  "e_hut_merc",
+  "e_hut_settler",
+  "e_hut_tech",
+  "e_hut_barb_city_near",
+  "e_imp_buy",
+  "e_imp_build",
+  "e_imp_auctioned",
+  "e_imp_auto",
+  "e_imp_sold",
+  "e_tech_gain",
+  "e_tech_learned",
+  "e_treaty_alliance",
+  "e_treaty_broken",
+  "e_treaty_ceasefire",
+  "e_treaty_peace",
+  "e_treaty_shared_vision",
+  "e_unit_lost_att",
+  "e_unit_win_att",
+  "e_unit_buy",
+  "e_unit_built",
+  "e_unit_lost_def",
+  "e_unit_win_def",
+  "e_unit_became_vet",
+  "e_unit_upgraded",
+  "e_unit_relocated",
+  "e_unit_orders",
+  "e_wonder_build",
+  "e_wonder_obsolete",
+  "e_wonder_started",
+  "e_wonder_stopped",
+  "e_wonder_will_be_built",
+  "e_diplomacy",
+  "e_treaty_embassy",
+  "e_bad_command",
+  "e_setting",
+  "e_chat_msg",
+  "e_message_wall",
+  "e_chat_error",
+  "e_connection",
+  "e_ai_debug",
+  "e_log_error",
+  "e_log_fatal",
+  "e_tech_goal",
+  "e_unit_lost_misc",
+  "e_city_plague",
+  "e_vote_new",
+  "e_vote_resolved",
+  "e_vote_aborted",
+  "e_city_radius_sq",
+  "e_unit_built_pop_cost",
+  "e_disaster",
+  "e_achievement",
+  "e_tech_lost",
+  "e_tech_embassy",
+  "e_my_spy_steal_gold",
+  "e_enemy_spy_steal_gold",
+  "e_spontaneous_extra",
+  "e_unit_illegal_action",
+  "e_my_spy_steal_map",
+  "e_enemy_spy_steal_map",
+  "e_my_spy_nuke",
+  "e_enemy_spy_nuke",
+  "e_unit_was_expelled",
+  "e_unit_did_expel",
+  "e_unit_action_failed",
+  "e_unit_escaped",
+  "e_deprecation_warning",
+  "e_beginner_help",
+  "e_my_unit_did_heal",
+  "e_my_unit_was_healed",
+  "e_multiplier",
+  "e_unit_action_actor_success",
+  "e_unit_action_actor_failure",
+  "e_unit_action_target_other",
+  "e_unit_action_target_hostile",
+  "e_infrapoints",
+  "e_hut_map",
+  "e_treaty_shared_tiles",
+  "e_city_conquered",
+  "e_chat_private",
+  "e_chat_allies",
+  "e_chat_observer",
+  "e_undefined"
+];
 var f = 0;
 function u(e2, t2, n2, o2, i2, u2) {
   t2 || (t2 = {});
@@ -1457,7 +2757,7 @@ function Button({
     }
   );
 }
-const state$5 = c({
+const state$7 = c({
   open: false,
   title: "",
   text: "",
@@ -1467,10 +2767,10 @@ const state$5 = c({
   onConfirm: null
 });
 function closeSwal() {
-  state$5.value = { ...state$5.value, open: false };
+  state$7.value = { ...state$7.value, open: false };
 }
 function confirm$1() {
-  const cb = state$5.value.onConfirm;
+  const cb = state$7.value.onConfirm;
   closeSwal();
   if (cb) cb();
 }
@@ -1484,7 +2784,7 @@ function swal(titleOrOpts, textOrCb, type) {
   if (typeof titleOrOpts === "object") {
     const opts = titleOrOpts;
     const cb = typeof textOrCb === "function" ? textOrCb : null;
-    state$5.value = {
+    state$7.value = {
       open: true,
       title: opts.title || "",
       text: opts.text || "",
@@ -1494,7 +2794,7 @@ function swal(titleOrOpts, textOrCb, type) {
       onConfirm: cb
     };
   } else {
-    state$5.value = {
+    state$7.value = {
       open: true,
       title: titleOrOpts,
       text: typeof textOrCb === "string" ? textOrCb : "",
@@ -1506,7 +2806,7 @@ function swal(titleOrOpts, textOrCb, type) {
   }
 }
 function SwalDialog() {
-  const { open, title, text, type, showCancelButton, confirmButtonText } = state$5.value;
+  const { open, title, text, type, showCancelButton, confirmButtonText } = state$7.value;
   const icon = TYPE_ICONS[type] || "";
   return /* @__PURE__ */ u(
     Dialog,
@@ -1526,718 +2826,11 @@ function SwalDialog() {
     }
   );
 }
-let mouse_x = 0;
-let mouse_y = 0;
-let prev_mouse_x = 0;
-let prev_mouse_y = 0;
-let keyboard_input = true;
-let unitpanel_active = false;
-let allow_right_click = false;
-let mapview_mouse_movement = false;
-function setMouseX(v2) {
-  mouse_x = v2;
-}
-function setMouseY(v2) {
-  mouse_y = v2;
-}
-function setPrevMouseX(v2) {
-  prev_mouse_x = v2;
-}
-function setPrevMouseY(v2) {
-  prev_mouse_y = v2;
-}
-function setKeyboardInput(v2) {
-  keyboard_input = v2;
-}
-function setUnitpanelActive(v2) {
-  unitpanel_active = v2;
-}
-function setAllowRightClick(v2) {
-  allow_right_click = v2;
-}
-function setMapviewMouseMovement(v2) {
-  mapview_mouse_movement = v2;
-}
-let roads$1 = [];
-let bases$1 = [];
-let current_focus$1 = [];
-let urgent_focus_queue = [];
-let waiting_units_list = [];
-function setCurrentFocus(v2) {
-  current_focus$1 = v2;
-}
-function setUrgentFocusQueue(v2) {
-  urgent_focus_queue = v2;
-}
-function setWaitingUnitsList(v2) {
-  waiting_units_list = v2;
-}
-let goto_active = false;
-let paradrop_active = false;
-let airlift_active = false;
-let action_tgt_sel_active = false;
-let goto_last_order = -1;
-let goto_last_action = -1;
-let goto_request_map = {};
-let goto_turns_request_map = {};
-let current_goto_turns = 0;
-function setGotoActive(v2) {
-  goto_active = v2;
-}
-function setParadropActive(v2) {
-  paradrop_active = v2;
-}
-function setAirliftActive(v2) {
-  airlift_active = v2;
-}
-function setActionTgtSelActive(v2) {
-  action_tgt_sel_active = v2;
-}
-function setGotoLastOrder(v2) {
-  goto_last_order = v2;
-}
-function setGotoLastAction(v2) {
-  goto_last_action = v2;
-}
-function setGotoRequestMap(v2) {
-  goto_request_map = v2;
-}
-function setGotoTurnsRequestMap(v2) {
-  goto_turns_request_map = v2;
-}
-function setCurrentGotoTurns(v2) {
-  current_goto_turns = v2;
-}
-const SELECT_POPUP = 0;
-let intro_click_description = true;
-let resize_enabled = true;
-let show_citybar = true;
-let context_menu_active = true;
-let has_movesleft_warning_been_shown = false;
-let game_unit_panel_state = null;
-let end_turn_info_message_shown = false;
-function setIntroClickDescription(v2) {
-  intro_click_description = v2;
-}
-function setResizeEnabled(v2) {
-  resize_enabled = v2;
-}
-function setShowCitybar(v2) {
-  show_citybar = v2;
-}
-function setContextMenuActive(v2) {
-  context_menu_active = v2;
-}
-function setHasMovesleftWarningBeenShown(v2) {
-  has_movesleft_warning_been_shown = v2;
-}
-function setGameUnitPanelState(v2) {
-  game_unit_panel_state = v2;
-}
-function setEndTurnInfoMessageShown(v2) {
-  end_turn_info_message_shown = v2;
-}
-let chat_send_to = -1;
-const CHAT_ICON_EVERYBODY = String.fromCharCode(62075);
-const CHAT_ICON_ALLIES = String.fromCharCode(61746);
-function setChatSendTo(v2) {
-  chat_send_to = v2;
-}
-let action_selection_in_progress_for = IDENTITY_NUMBER_ZERO;
-let is_more_user_input_needed = false;
-function setActionSelectionInProgressFor(v2) {
-  action_selection_in_progress_for = v2;
-}
-function setIsMoreUserInputNeeded(v2) {
-  is_more_user_input_needed = v2;
-}
-function set_is_more_user_input_needed(val) {
-  is_more_user_input_needed = val;
-}
-let mouse_touch_started_on_unit = false;
-function setMouseTouchStartedOnUnit(v2) {
-  mouse_touch_started_on_unit = v2;
-}
-const MAX_NUM_PLAYERS = 30;
-const MAX_AI_LOVE$1 = 1e3;
-var DiplState = /* @__PURE__ */ ((DiplState2) => {
-  DiplState2[DiplState2["DS_ARMISTICE"] = 0] = "DS_ARMISTICE";
-  DiplState2[DiplState2["DS_WAR"] = 1] = "DS_WAR";
-  DiplState2[DiplState2["DS_CEASEFIRE"] = 2] = "DS_CEASEFIRE";
-  DiplState2[DiplState2["DS_PEACE"] = 3] = "DS_PEACE";
-  DiplState2[DiplState2["DS_ALLIANCE"] = 4] = "DS_ALLIANCE";
-  DiplState2[DiplState2["DS_NO_CONTACT"] = 5] = "DS_NO_CONTACT";
-  DiplState2[DiplState2["DS_TEAM"] = 6] = "DS_TEAM";
-  DiplState2[DiplState2["DS_LAST"] = 7] = "DS_LAST";
-  return DiplState2;
-})(DiplState || {});
-var PlayerFlag = /* @__PURE__ */ ((PlayerFlag2) => {
-  PlayerFlag2[PlayerFlag2["PLRF_AI"] = 0] = "PLRF_AI";
-  PlayerFlag2[PlayerFlag2["PLRF_SCENARIO_RESERVED"] = 1] = "PLRF_SCENARIO_RESERVED";
-  PlayerFlag2[PlayerFlag2["PLRF_COUNT"] = 2] = "PLRF_COUNT";
-  return PlayerFlag2;
-})(PlayerFlag || {});
-const research_data = {};
-function valid_player_by_number(playerno) {
-  if (players[playerno] == null) return null;
-  return players[playerno];
-}
-function player_by_number(playerno) {
-  if (players[playerno] == null) return null;
-  return players[playerno];
-}
-function player_by_full_username(pname) {
-  for (const player_id in players) {
-    const pplayer = players[player_id];
-    if (pplayer.username === pname) return pplayer;
-    if ("AI " + pplayer.name === pname) return pplayer;
-  }
-  return null;
-}
-function player_find_unit_by_id(pplayer, unit_id) {
-  for (const id in units) {
-    const punit = units[id];
-    if (punit.owner === pplayer.playerno && punit.id === unit_id) {
-      return punit;
-    }
-  }
-  return null;
-}
-function get_diplstate_text(state_id) {
-  switch (state_id) {
-    case 0:
-      return "Armistice";
-    case 1:
-      return "War";
-    case 2:
-      return "Ceasefire";
-    case 3:
-      return "Peace";
-    case 4:
-      return "Alliance";
-    case 5:
-      return "No contact";
-    case 6:
-      return "Team";
-    default:
-      return "Unknown";
-  }
-}
-function get_embassy_text(player_id) {
-  const pplayer = players[player_id];
-  if (pplayer == null) return "";
-  if (pplayer.embassy_txt != null) return pplayer.embassy_txt;
-  return "";
-}
-function get_ai_level_text(player) {
-  if (player.ai_skill_level === 0) return "Away";
-  if (player.ai_skill_level === 1) return "Handicapped";
-  if (player.ai_skill_level === 2) return "Novice";
-  if (player.ai_skill_level === 3) return "Easy";
-  if (player.ai_skill_level === 4) return "Normal";
-  if (player.ai_skill_level === 5) return "Hard";
-  if (player.ai_skill_level === 6) return "Cheating";
-  if (player.ai_skill_level === 7) return "Experimental";
-  return "";
-}
-function get_player_connection_status(pplayer) {
-  if (pplayer == null) return "";
-  for (const cid in connections) {
-    const pconn = connections[cid];
-    if (pconn.playing != null && pconn.playing.playerno === pplayer.playerno) {
-      return "connected";
-    }
-  }
-  if (pplayer.ai_skill_level > 0) return "AI";
-  return "disconnected";
-}
-function research_get(pplayer) {
-  if (pplayer == null) return null;
-  return research_data[pplayer.playerno] ?? null;
-}
-function player_capital(player) {
-  if (player == null) return null;
-  for (const city_id in cities) {
-    const pcity = cities[city_id];
-    if (pcity.owner === player.playerno && is_capital(pcity)) {
-      return pcity;
-    }
-  }
-  return null;
-}
-function is_capital(pcity) {
-  if (pcity.improvements == null) return false;
-  for (const imp_id in improvements) {
-    const imp = improvements[imp_id];
-    if (imp != null && imp.genus === 0 && pcity.improvements[imp.id] === true) {
-      return true;
-    }
-  }
-  return false;
-}
-const _w$6 = window;
-_w$6["MAX_NUM_PLAYERS"] = MAX_NUM_PLAYERS;
-_w$6["MAX_AI_LOVE"] = MAX_AI_LOVE$1;
-_w$6["DS_ARMISTICE"] = 0;
-_w$6["DS_WAR"] = 1;
-_w$6["DS_CEASEFIRE"] = 2;
-_w$6["DS_PEACE"] = 3;
-_w$6["DS_ALLIANCE"] = 4;
-_w$6["DS_NO_CONTACT"] = 5;
-_w$6["DS_TEAM"] = 6;
-_w$6["DS_LAST"] = 7;
-_w$6["PLRF_AI"] = 0;
-_w$6["PLRF_SCENARIO_RESERVED"] = 1;
-_w$6["PLRF_COUNT"] = 2;
-const EXTRA_NONE$1 = -1;
-const BASE_GUI_FORTRESS = 0;
-const BASE_GUI_AIRBASE = 1;
-function extraByNumber(id) {
-  if (id === EXTRA_NONE$1) {
-    return null;
-  }
-  const rc = store.rulesControl;
-  if (id >= 0 && rc && id < rc["num_extra_types"]) {
-    return store.extras[id];
-  } else {
-    console.log("extra_by_number(): Invalid extra id: " + id);
-    return null;
-  }
-}
-function isExtraCausedBy(pextra, cause) {
-  return pextra.causes.isSet(cause);
-}
-function isExtraRemovedBy(pextra, rmcause) {
-  return pextra.rmcauses.isSet(rmcause);
-}
-var Order = /* @__PURE__ */ ((Order2) => {
-  Order2[Order2["MOVE"] = 0] = "MOVE";
-  Order2[Order2["ACTIVITY"] = 1] = "ACTIVITY";
-  Order2[Order2["FULL_MP"] = 2] = "FULL_MP";
-  Order2[Order2["ACTION_MOVE"] = 3] = "ACTION_MOVE";
-  Order2[Order2["PERFORM_ACTION"] = 4] = "PERFORM_ACTION";
-  Order2[Order2["LAST"] = 5] = "LAST";
-  return Order2;
-})(Order || {});
-var UnitSSDataType = /* @__PURE__ */ ((UnitSSDataType2) => {
-  UnitSSDataType2[UnitSSDataType2["QUEUE"] = 0] = "QUEUE";
-  UnitSSDataType2[UnitSSDataType2["UNQUEUE"] = 1] = "UNQUEUE";
-  UnitSSDataType2[UnitSSDataType2["BATTLE_GROUP"] = 2] = "BATTLE_GROUP";
-  UnitSSDataType2[UnitSSDataType2["SENTRY"] = 3] = "SENTRY";
-  return UnitSSDataType2;
-})(UnitSSDataType || {});
-var ServerSideAgent = /* @__PURE__ */ ((ServerSideAgent2) => {
-  ServerSideAgent2[ServerSideAgent2["NONE"] = 0] = "NONE";
-  ServerSideAgent2[ServerSideAgent2["AUTOWORKER"] = 1] = "AUTOWORKER";
-  ServerSideAgent2[ServerSideAgent2["AUTOEXPLORE"] = 2] = "AUTOEXPLORE";
-  ServerSideAgent2[ServerSideAgent2["COUNT"] = 3] = "COUNT";
-  return ServerSideAgent2;
-})(ServerSideAgent || {});
-const ANIM_STEPS = 8;
-const anim_units_max = 30;
-let anim_units_count = 0;
-function unit_owner(punit) {
-  return player_by_number(punit.owner);
-}
-function client_remove_unit(punit) {
-  control_unit_killed(punit);
-  if (unit_is_in_focus(punit)) {
-    current_focus = [];
-  }
-  delete units[punit.id];
-}
-function tile_units(ptile) {
-  if (ptile == null) return null;
-  return ptile["units"];
-}
-function get_supported_units(pcity) {
-  if (pcity == null) return null;
-  const result = [];
-  for (const unit_id in units) {
-    const punit = units[unit_id];
-    if (punit.homecity === pcity.id) {
-      result.push(punit);
-    }
-  }
-  return result;
-}
-function update_tile_unit(punit) {
-  if (punit == null) return;
-  const ptile = indexToTile(punit.tile);
-  if (ptile == null || ptile["units"] == null) return;
-  let found = false;
-  for (let i2 = 0; i2 < ptile["units"].length; i2++) {
-    if (ptile["units"][i2].id === punit.id) {
-      found = true;
-    }
-  }
-  if (!found) {
-    ptile["units"].push(punit);
-  }
-}
-function clear_tile_unit(punit) {
-  if (punit == null) return;
-  const ptile = indexToTile(punit.tile);
-  if (ptile == null || ptile["units"] == null) return;
-  const idx = ptile["units"].indexOf(punit);
-  if (idx >= 0) {
-    ptile["units"].splice(idx, 1);
-  }
-}
-function unit_list_size(unit_list) {
-  if (unit_list == null) return 0;
-  return unit_list.length;
-}
-function unit_list_without(unit_list, punit) {
-  return unit_list.filter((funit) => funit.id !== punit.id);
-}
-function unit_type(punit) {
-  return unit_types[punit.type];
-}
-function unit_can_do_action(punit, act_id) {
-  return utype_can_do_action(unit_type(punit), act_id);
-}
-function get_unit_moves_left(punit) {
-  if (punit == null) {
-    return 0;
-  }
-  return "Moves:" + move_points_text(punit.movesleft);
-}
-function move_points_text(moves) {
-  const sm = store.singleMove ?? 1;
-  let result;
-  if (moves % sm !== 0) {
-    if (Math.floor(moves / sm) > 0) {
-      result = Math.floor(moves / sm) + " " + Math.floor(moves % sm) + "/" + sm;
-    } else {
-      result = Math.floor(moves % sm) + "/" + sm;
-    }
-  } else {
-    result = String(Math.floor(moves / sm));
-  }
-  return result;
-}
-function unit_has_goto(punit) {
-  if (store.client?.conn?.playing == null || punit.owner !== store.client.conn.playing.playerno) {
-    return false;
-  }
-  return punit.goto_tile !== -1;
-}
-function update_unit_anim_list(old_unit, new_unit) {
-  if (old_unit == null || new_unit == null) return;
-  if (new_unit.tile === old_unit.tile) return;
-  if (anim_units_count > anim_units_max) return;
-  if (renderer === RENDERER_2DCANVAS && !is_unit_visible(new_unit)) return;
-  if (old_unit["anim_list"] == null) old_unit["anim_list"] = [];
-  if (new_unit["transported"] === true) {
-    old_unit["anim_list"] = [];
-    return;
-  }
-  anim_units_count += 1;
-  const animList = old_unit["anim_list"];
-  let has_old_pos = false;
-  let has_new_pos = false;
-  for (let i2 = 0; i2 < animList.length; i2++) {
-    const anim_tuple = animList[i2];
-    if (anim_tuple.tile === old_unit.tile) {
-      has_old_pos = true;
-    }
-    if (anim_tuple.tile === new_unit.tile) {
-      has_new_pos = true;
-    }
-  }
-  if (!has_old_pos) {
-    animList.push({ tile: old_unit.tile, i: ANIM_STEPS });
-  }
-  if (!has_new_pos) {
-    animList.push({ tile: new_unit.tile, i: ANIM_STEPS });
-  }
-}
-function get_unit_anim_offset(punit) {
-  const offset = { x: 0, y: 0 };
-  const animList = punit["anim_list"];
-  if (animList != null && animList.length >= 2) {
-    const anim_tuple_src = animList[0];
-    const anim_tuple_dst = animList[1];
-    const src_tile = indexToTile(anim_tuple_src.tile);
-    const dst_tile = indexToTile(anim_tuple_dst.tile);
-    const u_tile = indexToTile(punit.tile);
-    anim_tuple_dst.i = anim_tuple_dst.i - 1;
-    const i2 = Math.floor((anim_tuple_dst.i + 2) / 3);
-    const r2 = map_to_gui_pos(src_tile["x"], src_tile["y"]);
-    const src_gx = r2["gui_dx"];
-    const src_gy = r2["gui_dy"];
-    const s2 = map_to_gui_pos(dst_tile["x"], dst_tile["y"]);
-    const dst_gx = s2["gui_dx"];
-    const dst_gy = s2["gui_dy"];
-    const t2 = map_to_gui_pos(u_tile["x"], u_tile["y"]);
-    const punit_gx = t2["gui_dx"];
-    const punit_gy = t2["gui_dy"];
-    const gui_dx = Math.floor((dst_gx - src_gx) * (i2 / ANIM_STEPS)) + (punit_gx - dst_gx);
-    const gui_dy = Math.floor((dst_gy - src_gy) * (i2 / ANIM_STEPS)) + (punit_gy - dst_gy);
-    if (i2 === 0) {
-      animList.splice(0, 1);
-      if (animList.length === 1) {
-        animList.splice(0, 1);
-      }
-    }
-    offset.x = -gui_dx;
-    offset.y = -gui_dy;
-  } else {
-    anim_units_count -= 1;
-  }
-  return offset;
-}
-function reset_unit_anim_list() {
-  for (const unit_id in units) {
-    const punit = units[unit_id];
-    punit["anim_list"] = [];
-  }
-  anim_units_count = 0;
-}
-function get_unit_homecity_name(punit) {
-  if (punit.homecity !== 0 && cities[punit.homecity] != null) {
-    return decodeURIComponent(cities[punit.homecity]["name"]);
-  }
-  return null;
-}
-function is_unit_visible(punit) {
-  if (punit == null || punit.tile == null) return false;
-  const u_tile = indexToTile(punit.tile);
-  const r2 = map_to_gui_pos(u_tile["x"], u_tile["y"]);
-  const unit_gui_x = r2["gui_dx"];
-  const unit_gui_y = r2["gui_dy"];
-  if (unit_gui_x < mapview["gui_x0"] || unit_gui_y < mapview["gui_y0"] || unit_gui_x > mapview["gui_x0"] + mapview["width"] || unit_gui_y > mapview["gui_y0"] + mapview["height"]) {
-    return false;
-  }
-  return true;
-}
-function unittype_ids_alphabetic() {
-  const unittype_names = [];
-  for (const unit_id in unit_types) {
-    const punit_type = unit_types[unit_id];
-    unittype_names.push(punit_type["name"]);
-  }
-  unittype_names.sort();
-  const unittype_id_list = [];
-  for (const unit_name of unittype_names) {
-    for (const unit_id in unit_types) {
-      const punit_type = unit_types[unit_id];
-      if (unit_name === punit_type["name"]) {
-        unittype_id_list.push(unit_id);
-      }
-    }
-  }
-  return unittype_id_list;
-}
-function get_unit_city_info(punit) {
-  let result = "";
-  const ptype = unit_type(punit);
-  result += ptype["name"] + "\nFood/Shield/Gold: ";
-  if (punit["upkeep"] != null) {
-    result += punit["upkeep"][O_FOOD] + "/" + punit["upkeep"][O_SHIELD] + "/" + punit["upkeep"][O_GOLD];
-  }
-  result += "\n" + get_unit_moves_left(punit) + "\n";
-  const homecity = get_unit_homecity_name(punit);
-  if (homecity != null) {
-    result += homecity;
-  }
-  return result;
-}
-function get_what_can_unit_pillage_from(punit, ptile) {
-  const targets = [];
-  if (punit == null) return targets;
-  if (ptile == null) {
-    ptile = indexToTile(punit.tile);
-  }
-  if (terrains[ptile.terrain].pillage_time === 0) return targets;
-  if (!utype_can_do_action(unit_type(punit), ACTION_PILLAGE)) return targets;
-  const cannot_pillage = new BitVector([]);
-  for (const unit_idx in Object.keys(ptile.units)) {
-    const u2 = ptile.units[unit_idx];
-    if (u2.activity === ACTIVITY_PILLAGE) {
-      cannot_pillage.set(u2.activity_tgt);
-    }
-  }
-  for (let i2 = 0; i2 < ruleset_control["num_extra_types"]; i2++) {
-    if (tile_has_extra(ptile, i2)) {
-      const extra = extras[i2];
-      for (let j2 = 0; j2 < extra.reqs.length; j2++) {
-        const req = extra.reqs[j2];
-        if (req.kind === VUT_EXTRA && req.present === true) {
-          cannot_pillage.set(req.value);
-        }
-      }
-    } else {
-      cannot_pillage.set(i2);
-    }
-  }
-  for (let i2 = 0; i2 < ruleset_control["num_extra_types"]; i2++) {
-    if (is_extra_removed_by(extras[i2], ERM_PILLAGE) && !cannot_pillage.isSet(i2)) {
-      if (game_info.pillage_select) {
-        targets.push(i2);
-      } else {
-        targets.push(EXTRA_NONE);
-        break;
-      }
-    }
-  }
-  return targets;
-}
-const E_SCRIPT = 45;
-const E_BAD_COMMAND = 93;
-const E_CHAT_MSG = 95;
-const E_LOG_ERROR = 100;
-const E_BEGINNER_HELP = 127;
-const E_CHAT_PRIVATE = 139;
-const E_CHAT_ALLIES = 140;
-const E_CHAT_OBSERVER = 141;
-const E_UNDEFINED = 142;
-const fc_e_events = [
-  "e_city_cantbuild",
-  "e_city_lost",
-  "e_city_love",
-  "e_city_disorder",
-  "e_city_famine",
-  "e_city_famine_feared",
-  "e_city_growth",
-  "e_city_may_soon_grow",
-  "e_city_aqueduct",
-  "e_city_aq_building",
-  "e_city_normal",
-  "e_city_nuked",
-  "e_city_cma_release",
-  "e_city_gran_throttle",
-  "e_city_transfer",
-  "e_city_build",
-  "e_city_production_changed",
-  "e_worklist",
-  "e_uprising",
-  "e_civil_war",
-  "e_anarchy",
-  "e_first_contact",
-  "e_new_government",
-  "e_low_on_funds",
-  "e_pollution",
-  "e_revolt_done",
-  "e_revolt_start",
-  "e_spaceship",
-  "e_my_diplomat_bribe",
-  "e_diplomatic_incident",
-  "e_my_diplomat_escape",
-  "e_my_diplomat_embassy",
-  "e_my_diplomat_failed",
-  "e_my_diplomat_incite",
-  "e_my_diplomat_poison",
-  "e_my_diplomat_sabotage",
-  "e_my_diplomat_theft",
-  "e_enemy_diplomat_bribe",
-  "e_enemy_diplomat_embassy",
-  "e_enemy_diplomat_failed",
-  "e_enemy_diplomat_incite",
-  "e_enemy_diplomat_poison",
-  "e_enemy_diplomat_sabotage",
-  "e_enemy_diplomat_theft",
-  "e_caravan_action",
-  "e_script",
-  "e_broadcast_report",
-  "e_game_end",
-  "e_game_start",
-  "e_nation_selected",
-  "e_destroyed",
-  "e_report",
-  "e_turn_bell",
-  "e_next_year",
-  "e_global_eco",
-  "e_nuke",
-  "e_hut_barb",
-  "e_hut_city",
-  "e_hut_gold",
-  "e_hut_barb_killed",
-  "e_hut_merc",
-  "e_hut_settler",
-  "e_hut_tech",
-  "e_hut_barb_city_near",
-  "e_imp_buy",
-  "e_imp_build",
-  "e_imp_auctioned",
-  "e_imp_auto",
-  "e_imp_sold",
-  "e_tech_gain",
-  "e_tech_learned",
-  "e_treaty_alliance",
-  "e_treaty_broken",
-  "e_treaty_ceasefire",
-  "e_treaty_peace",
-  "e_treaty_shared_vision",
-  "e_unit_lost_att",
-  "e_unit_win_att",
-  "e_unit_buy",
-  "e_unit_built",
-  "e_unit_lost_def",
-  "e_unit_win_def",
-  "e_unit_became_vet",
-  "e_unit_upgraded",
-  "e_unit_relocated",
-  "e_unit_orders",
-  "e_wonder_build",
-  "e_wonder_obsolete",
-  "e_wonder_started",
-  "e_wonder_stopped",
-  "e_wonder_will_be_built",
-  "e_diplomacy",
-  "e_treaty_embassy",
-  "e_bad_command",
-  "e_setting",
-  "e_chat_msg",
-  "e_message_wall",
-  "e_chat_error",
-  "e_connection",
-  "e_ai_debug",
-  "e_log_error",
-  "e_log_fatal",
-  "e_tech_goal",
-  "e_unit_lost_misc",
-  "e_city_plague",
-  "e_vote_new",
-  "e_vote_resolved",
-  "e_vote_aborted",
-  "e_city_radius_sq",
-  "e_unit_built_pop_cost",
-  "e_disaster",
-  "e_achievement",
-  "e_tech_lost",
-  "e_tech_embassy",
-  "e_my_spy_steal_gold",
-  "e_enemy_spy_steal_gold",
-  "e_spontaneous_extra",
-  "e_unit_illegal_action",
-  "e_my_spy_steal_map",
-  "e_enemy_spy_steal_map",
-  "e_my_spy_nuke",
-  "e_enemy_spy_nuke",
-  "e_unit_was_expelled",
-  "e_unit_did_expel",
-  "e_unit_action_failed",
-  "e_unit_escaped",
-  "e_deprecation_warning",
-  "e_beginner_help",
-  "e_my_unit_did_heal",
-  "e_my_unit_was_healed",
-  "e_multiplier",
-  "e_unit_action_actor_success",
-  "e_unit_action_actor_failure",
-  "e_unit_action_target_other",
-  "e_unit_action_target_hostile",
-  "e_infrapoints",
-  "e_hut_map",
-  "e_treaty_shared_tiles",
-  "e_city_conquered",
-  "e_chat_private",
-  "e_chat_allies",
-  "e_chat_observer",
-  "e_undefined"
-];
+const SwalDialog$1 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+  __proto__: null,
+  SwalDialog,
+  swal
+}, Symbol.toStringTag, { value: "Module" }));
 let banned_users = [];
 function check_text_with_banlist(text) {
   if (text == null || text.length === 0) return false;
@@ -2246,12 +2839,12 @@ function check_text_with_banlist(text) {
   }
   return true;
 }
-const win$4 = window;
+const win$3 = window;
 function isLongturn() {
-  return win$4.game_type === "longturn";
+  return win$3.game_type === "longturn";
 }
 function setPhaseStart() {
-  win$4.phase_start_time = Date.now();
+  win$3.phase_start_time = Date.now();
 }
 function requestObserveGame() {
   send_message("/observe ");
@@ -2433,8 +3026,8 @@ function update_chatbox(messages) {
   if (scrollDiv != null) {
     for (let i2 = 0; i2 < messages.length; i2++) {
       const item = document.createElement("li");
-      item.className = fc_e_events[messages[i2].event] || "";
-      item.innerHTML = messages[i2].message;
+      item.className = fc_e_events[messages[i2]["event"]] || "";
+      item.innerHTML = messages[i2]["message"];
       scrollDiv.appendChild(item);
     }
   } else {
@@ -2565,125 +3158,958 @@ function setActiveTab(selector, index) {
 function getActiveTab(selector) {
   return instances.get(selector)?.active ?? 0;
 }
-const TILE_UNKNOWN = 0;
-const TILE_KNOWN_UNSEEN = 1;
-const TILE_KNOWN_SEEN = 2;
-function tileGetKnown(ptile) {
-  if (ptile.known == null || ptile.known === TILE_UNKNOWN) return TILE_UNKNOWN;
-  if (ptile.known === TILE_KNOWN_UNSEEN) return TILE_KNOWN_UNSEEN;
-  return TILE_KNOWN_SEEN;
-}
-function tileHasExtra(ptile, extra) {
-  const extras2 = ptile.extras;
-  if (!extras2) return false;
-  if (typeof extras2.isSet === "function") {
-    return extras2.isSet(extra);
+const DEFAULT_OPTIONS = {
+  title: "",
+  width: 300,
+  height: "auto",
+  modal: true,
+  draggable: true,
+  resizable: true,
+  closable: true,
+  closeOnEscape: true,
+  minimizable: false,
+  maximizable: false
+};
+const activeDialogs = /* @__PURE__ */ new Set();
+let topZIndex = 1e3;
+class GameDialog {
+  el;
+  wrapper;
+  titleBar;
+  titleText;
+  buttonBar = null;
+  contentEl;
+  options;
+  _state = "normal";
+  savedRect = null;
+  isDragging = false;
+  dragOffset = { x: 0, y: 0 };
+  constructor(selector, options = {}) {
+    this.options = { ...DEFAULT_OPTIONS, ...options };
+    if (typeof selector === "string") {
+      const found = document.querySelector(selector);
+      if (!found) throw new Error(`GameDialog: element not found: ${selector}`);
+      this.el = found;
+    } else {
+      this.el = selector;
+    }
+    this.wrapper = document.createElement("dialog");
+    this.wrapper.className = "game-dialog" + (this.options.dialogClass ? " " + this.options.dialogClass : "");
+    this.wrapper.setAttribute("role", "dialog");
+    this.titleBar = document.createElement("div");
+    this.titleBar.className = "game-dialog-titlebar";
+    this.titleText = document.createElement("span");
+    this.titleText.className = "game-dialog-title";
+    this.titleText.textContent = this.options.title || "";
+    this.titleBar.appendChild(this.titleText);
+    const titleButtons = document.createElement("div");
+    titleButtons.className = "game-dialog-titlebar-buttons";
+    if (this.options.minimizable) {
+      const minBtn = this._createTitleButton("_", "game-dialog-btn-minimize", () => this.minimize());
+      titleButtons.appendChild(minBtn);
+    }
+    if (this.options.maximizable) {
+      const maxBtn = this._createTitleButton("□", "game-dialog-btn-maximize", () => this.toggleMaximize());
+      titleButtons.appendChild(maxBtn);
+    }
+    if (this.options.closable !== false) {
+      const closeBtn = this._createTitleButton("×", "game-dialog-btn-close", () => this.close());
+      titleButtons.appendChild(closeBtn);
+    }
+    this.titleBar.appendChild(titleButtons);
+    this.wrapper.appendChild(this.titleBar);
+    this.contentEl = document.createElement("div");
+    this.contentEl.className = "game-dialog-content";
+    this.contentEl.appendChild(this.el);
+    this.el.style.display = "";
+    this.wrapper.appendChild(this.contentEl);
+    if (this.options.buttons) {
+      this.buttonBar = document.createElement("div");
+      this.buttonBar.className = "game-dialog-buttonpane";
+      this._renderButtons();
+      this.wrapper.appendChild(this.buttonBar);
+    }
+    if (this.options.width) {
+      this.wrapper.style.width = typeof this.options.width === "number" ? `${this.options.width}px` : this.options.width;
+    }
+    if (this.options.height && this.options.height !== "auto") {
+      this.wrapper.style.height = typeof this.options.height === "number" ? `${this.options.height}px` : String(this.options.height);
+    }
+    if (this.options.resizable) {
+      this.wrapper.style.resize = "both";
+      this.wrapper.style.overflow = "auto";
+    }
+    if (this.options.draggable) {
+      this._setupDrag();
+    }
+    if (this.options.closeOnEscape) {
+      this.wrapper.addEventListener("keydown", (e2) => {
+        if (e2.key === "Escape") {
+          e2.preventDefault();
+          this.close();
+        }
+      });
+      this.wrapper.addEventListener("cancel", (e2) => {
+        e2.preventDefault();
+        this.close();
+      });
+    }
+    this.wrapper.addEventListener("mousedown", () => this._bringToFront());
+    document.body.appendChild(this.wrapper);
   }
-  return false;
-}
-function tileResource(ptile) {
-  return ptile?.resource ?? null;
-}
-function tileHasTerritoryClaimingExtra(ptile) {
-  const win2 = window;
-  const rulesetControl = win2.ruleset_control;
-  if (!rulesetControl) return false;
-  const numExtras = rulesetControl["num_extra_types"] ?? 0;
-  for (let extra = 0; extra < numExtras; extra++) {
-    if (tileHasExtra(ptile, extra) && typeof win2.territory_claiming_extra === "function" && typeof win2.extra_by_number === "function" && win2.territory_claiming_extra(win2.extra_by_number(extra))) {
-      return true;
+  /** Current dialog state */
+  get state() {
+    return this._state;
+  }
+  /** The underlying <dialog> element */
+  get widget() {
+    return this.wrapper;
+  }
+  /** Open the dialog */
+  open() {
+    if (this.options.modal) {
+      this.wrapper.showModal();
+    } else {
+      this.wrapper.show();
+    }
+    this._bringToFront();
+    this._applyPosition();
+    activeDialogs.add(this);
+    this.options.onOpen?.();
+  }
+  /** Close the dialog */
+  close() {
+    if (this.options.onBeforeClose && this.options.onBeforeClose() === false) {
+      return;
+    }
+    this.wrapper.close();
+    activeDialogs.delete(this);
+    this.options.onClose?.();
+  }
+  /** Minimize to title bar only */
+  minimize() {
+    if (this._state === "minimized") return;
+    this.savedRect = {
+      width: this.wrapper.style.width,
+      height: this.wrapper.style.height,
+      top: this.wrapper.style.top,
+      left: this.wrapper.style.left
+    };
+    this.contentEl.style.display = "none";
+    if (this.buttonBar) this.buttonBar.style.display = "none";
+    this.wrapper.style.height = "auto";
+    this.wrapper.style.resize = "none";
+    this._state = "minimized";
+    this.wrapper.classList.add("game-dialog-minimized");
+    this.wrapper.classList.remove("game-dialog-maximized");
+    this.options.onMinimize?.();
+  }
+  /** Restore from minimized or maximized state */
+  restore() {
+    if (this._state === "normal") return;
+    this.contentEl.style.display = "";
+    if (this.buttonBar) this.buttonBar.style.display = "";
+    if (this.savedRect) {
+      this.wrapper.style.width = this.savedRect.width;
+      this.wrapper.style.height = this.savedRect.height;
+      this.wrapper.style.top = this.savedRect.top;
+      this.wrapper.style.left = this.savedRect.left;
+    }
+    if (this.options.resizable) {
+      this.wrapper.style.resize = "both";
+    }
+    this._state = "normal";
+    this.wrapper.classList.remove("game-dialog-minimized", "game-dialog-maximized");
+    this.options.onRestore?.();
+  }
+  /** Maximize to fill the viewport */
+  maximize() {
+    if (this._state === "maximized") return;
+    if (this._state !== "minimized") {
+      this.savedRect = {
+        width: this.wrapper.style.width,
+        height: this.wrapper.style.height,
+        top: this.wrapper.style.top,
+        left: this.wrapper.style.left
+      };
+    }
+    this.contentEl.style.display = "";
+    if (this.buttonBar) this.buttonBar.style.display = "";
+    this.wrapper.style.width = "100vw";
+    this.wrapper.style.height = "100vh";
+    this.wrapper.style.top = "0";
+    this.wrapper.style.left = "0";
+    this.wrapper.style.resize = "none";
+    this._state = "maximized";
+    this.wrapper.classList.add("game-dialog-maximized");
+    this.wrapper.classList.remove("game-dialog-minimized");
+    this.options.onMaximize?.();
+  }
+  /** Toggle between maximized and normal */
+  toggleMaximize() {
+    if (this._state === "maximized") {
+      this.restore();
+    } else {
+      this.maximize();
     }
   }
-  return false;
-}
-function tileOwner(tile) {
-  return tile.owner;
-}
-function tileCity(ptile) {
-  if (!ptile) return null;
-  const cityId = ptile.worked;
-  const pcity = store.cities[cityId];
-  if (pcity && pcity.tile === ptile.index) {
-    return pcity;
+  /** Update the title text */
+  setTitle(title) {
+    this.titleText.textContent = title;
   }
-  return null;
-}
-function tileTerrain(ptile) {
-  if (!store.terrains) return void 0;
-  return store.terrains[ptile.terrain];
-}
-function tileTerrainNear(ptile) {
-  const near = [];
-  for (let dir = 0; dir < 8; dir++) {
-    const tile1 = mapstep(ptile, dir);
-    if (tile1 && tileGetKnown(tile1) !== TILE_UNKNOWN) {
-      const terrain1 = tileTerrain(tile1);
-      if (terrain1) {
-        near[dir] = terrain1;
-        continue;
+  /** Set a dialog option dynamically */
+  setOption(key, value) {
+    this.options[key] = value;
+    if (key === "title") this.setTitle(value);
+    if (key === "draggable") {
+      if (value) this._setupDrag();
+    }
+    if (key === "width") {
+      this.wrapper.style.width = typeof value === "number" ? `${value}px` : String(value);
+    }
+    if (key === "height") {
+      this.wrapper.style.height = typeof value === "number" ? `${value}px` : String(value);
+    }
+  }
+  /** Destroy the dialog and restore the original element */
+  destroy() {
+    activeDialogs.delete(this);
+    if (this.wrapper.open) this.wrapper.close();
+    this.wrapper.parentNode?.insertBefore(this.el, this.wrapper);
+    this.wrapper.remove();
+  }
+  /** Check if dialog is open */
+  isOpen() {
+    return this.wrapper.open;
+  }
+  // --- Private helpers ---
+  _createTitleButton(text, className, onClick) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = `game-dialog-titlebar-btn ${className}`;
+    btn.textContent = text;
+    btn.addEventListener("click", (e2) => {
+      e2.stopPropagation();
+      onClick();
+    });
+    return btn;
+  }
+  _renderButtons() {
+    if (!this.buttonBar || !this.options.buttons) return;
+    this.buttonBar.innerHTML = "";
+    if (Array.isArray(this.options.buttons)) {
+      for (const btn of this.options.buttons) {
+        const el = document.createElement("button");
+        el.type = "button";
+        el.className = "game-dialog-btn";
+        el.textContent = btn.text;
+        el.addEventListener("click", btn.click);
+        this.buttonBar.appendChild(el);
       }
-      logError(`build_tile_data() tile (${ptile.x},${ptile.y}) has no terrain!`);
-    }
-    near[dir] = tileTerrain(ptile);
-  }
-  return near;
-}
-function isOceanTile(ptile) {
-  const t2 = tileTerrain(ptile);
-  if (!t2) return false;
-  return t2.graphic_str === "floor" || t2.graphic_str === "coast";
-}
-const _w$5 = window;
-if (!_w$5["terrains"]) _w$5["terrains"] = {};
-if (!_w$5["resources"]) _w$5["resources"] = {};
-if (!_w$5["terrain_control"]) _w$5["terrain_control"] = {};
-const UTYF_FLAGLESS = 29;
-const U_NOT_OBSOLETED = null;
-function utype_can_do_action$1(putype, action_id) {
-  if (putype == null || putype["utype_actions"] == null) return false;
-  return putype["utype_actions"].isSet(action_id);
-}
-function utype_can_do_action_result(putype, result) {
-  for (let action_id = 0; action_id < ACTION_COUNT$1; action_id++) {
-    if (utype_can_do_action$1(putype, action_id)) {
-      const paction = action_by_number(action_id);
-      if (paction != null && action_has_result(paction, result)) {
-        return true;
+    } else {
+      for (const [text, click] of Object.entries(this.options.buttons)) {
+        const el = document.createElement("button");
+        el.type = "button";
+        el.className = "game-dialog-btn";
+        el.textContent = text;
+        el.addEventListener("click", click);
+        this.buttonBar.appendChild(el);
       }
     }
   }
-  return false;
-}
-function can_player_build_unit_direct(p2, punittype) {
-  if (punittype == null || p2 == null) return false;
-  if (punittype["tech_requirement"] != null && punittype["tech_requirement"] >= 0) {
-    if (player_invention_state(p2, punittype["tech_requirement"]) !== TECH_KNOWN) {
-      return false;
-    }
+  _setupDrag() {
+    this.titleBar.style.cursor = "move";
+    this.titleBar.addEventListener("mousedown", (e2) => {
+      if (e2.target.tagName === "BUTTON") return;
+      this.isDragging = true;
+      const rect = this.wrapper.getBoundingClientRect();
+      this.dragOffset.x = e2.clientX - rect.left;
+      this.dragOffset.y = e2.clientY - rect.top;
+      e2.preventDefault();
+    });
+    document.addEventListener("mousemove", (e2) => {
+      if (!this.isDragging) return;
+      const x2 = e2.clientX - this.dragOffset.x;
+      const y2 = e2.clientY - this.dragOffset.y;
+      this.wrapper.style.left = `${x2}px`;
+      this.wrapper.style.top = `${y2}px`;
+      this.wrapper.style.margin = "0";
+    });
+    document.addEventListener("mouseup", () => {
+      this.isDragging = false;
+    });
   }
-  if (punittype["obsoleted_by"] != null && punittype["obsoleted_by"] >= 0) {
-    const obs_type = unit_types[punittype["obsoleted_by"]];
-    if (obs_type != null) {
-      if (obs_type["tech_requirement"] == null || obs_type["tech_requirement"] < 0) {
-        return false;
-      }
-      if (player_invention_state(p2, obs_type["tech_requirement"]) === TECH_KNOWN) {
-        return false;
-      }
-    }
+  _bringToFront() {
+    topZIndex++;
+    this.wrapper.style.zIndex = String(topZIndex);
   }
-  return true;
+  _applyPosition() {
+    const pos = this.options.position;
+    if (!pos) return;
+    const target = pos.of || window;
+    pos.within || document.documentElement;
+    let targetRect;
+    if (target === window) {
+      targetRect = new DOMRect(0, 0, window.innerWidth, window.innerHeight);
+    } else {
+      targetRect = target.getBoundingClientRect();
+    }
+    const dialogRect = this.wrapper.getBoundingClientRect();
+    const myParts = (pos.my || "center").split(" ");
+    const atParts = (pos.at || "center").split(" ");
+    let atX = targetRect.left + targetRect.width / 2;
+    let atY = targetRect.top + targetRect.height / 2;
+    if (atParts[0] === "left") atX = targetRect.left;
+    else if (atParts[0] === "right") atX = targetRect.right;
+    if (atParts.length > 1) {
+      if (atParts[1] === "top") atY = targetRect.top;
+      else if (atParts[1] === "bottom") atY = targetRect.bottom;
+    }
+    let offsetX = -dialogRect.width / 2;
+    let offsetY = -dialogRect.height / 2;
+    if (myParts[0] === "left") offsetX = 0;
+    else if (myParts[0] === "right") offsetX = -dialogRect.width;
+    if (myParts.length > 1) {
+      if (myParts[1] === "top") offsetY = 0;
+      else if (myParts[1] === "bottom") offsetY = -dialogRect.height;
+    }
+    this.wrapper.style.left = `${atX + offsetX}px`;
+    this.wrapper.style.top = `${atY + offsetY}px`;
+    this.wrapper.style.margin = "0";
+  }
 }
-function get_units_from_tech(tech_id) {
+const B_AIRPORT_NAME = "Airport";
+const improvements_name_index = {};
+function improvements_init() {
+  const improvements = store.improvements;
+  Object.keys(improvements).forEach((k2) => delete improvements[k2]);
+  Object.keys(improvements_name_index).forEach(
+    (k2) => delete improvements_name_index[k2]
+  );
+}
+function get_improvements_from_tech(techId) {
+  const improvements = store.improvements;
   const result = [];
-  for (const unit_type_id in unit_types) {
-    const punit_type = unit_types[unit_type_id];
-    if (punit_type == null) continue;
-    if (punit_type.tech_requirement === tech_id) {
-      result.push(punit_type);
+  for (const improvementId in improvements) {
+    const pimprovement = improvements[improvementId];
+    const reqs = get_improvement_requirements(parseInt(improvementId, 10));
+    for (let i2 = 0; i2 < reqs.length; i2++) {
+      if (reqs[i2] == techId) {
+        result.push(pimprovement);
+      }
     }
   }
   return result;
+}
+function is_wonder(improvement) {
+  return improvement["soundtag"][0] === "w";
+}
+function get_improvement_requirements(improvementId) {
+  const improvements = store.improvements;
+  const result = [];
+  const improvement = improvements[improvementId];
+  if (improvement != null && improvement["reqs"] != null) {
+    for (let i2 = 0; i2 < improvement["reqs"].length; i2++) {
+      if (improvement["reqs"][i2]["kind"] == 1 && improvement["reqs"][i2]["present"]) {
+        result.push(improvement["reqs"][i2]["value"]);
+      }
+    }
+  }
+  return result;
+}
+function improvement_id_by_name(name) {
+  return improvements_name_index.hasOwnProperty(name) ? improvements_name_index[name] : -1;
+}
+function initTableSort(selector, options) {
+  const table = document.querySelector(selector);
+  if (!table) return;
+  const thead = table.tHead;
+  if (!thead) return;
+  const headers = thead.querySelectorAll("th");
+  headers.forEach((th, colIdx) => {
+    th.style.cursor = "pointer";
+    th.addEventListener("click", () => {
+      const currentDir = th.dataset.sortDir === "asc" ? "desc" : "asc";
+      headers.forEach((h2) => {
+        h2.dataset.sortDir = "";
+        h2.classList.remove("tablesorter-headerAsc", "tablesorter-headerDesc");
+      });
+      th.dataset.sortDir = currentDir;
+      th.classList.add(currentDir === "asc" ? "tablesorter-headerAsc" : "tablesorter-headerDesc");
+      sortTable(table, colIdx, currentDir === "asc" ? 0 : 1);
+    });
+  });
+  if (options?.sortList) {
+    for (const [col, dir] of options.sortList) {
+      if (col < headers.length) {
+        const dirStr = dir === 0 ? "asc" : "desc";
+        headers[col].dataset.sortDir = dirStr;
+        headers[col].classList.add(dirStr === "asc" ? "tablesorter-headerAsc" : "tablesorter-headerDesc");
+        sortTable(table, col, dir);
+      }
+    }
+  }
+}
+function sortTable(table, colIdx, direction) {
+  const tbody = table.tBodies[0];
+  if (!tbody) return;
+  const rows = Array.from(tbody.rows);
+  rows.sort((a2, b2) => {
+    const aText = a2.cells[colIdx]?.textContent?.trim() ?? "";
+    const bText = b2.cells[colIdx]?.textContent?.trim() ?? "";
+    const aNum = parseFloat(aText);
+    const bNum = parseFloat(bText);
+    let cmp;
+    if (!isNaN(aNum) && !isNaN(bNum)) {
+      cmp = aNum - bNum;
+    } else {
+      cmp = aText.localeCompare(bText);
+    }
+    return direction === 0 ? cmp : -cmp;
+  });
+  for (const row of rows) {
+    tbody.appendChild(row);
+  }
+}
+const packet_authentication_reply = 7;
+const packet_chat_msg_req = 26;
+const packet_city_sell = 33;
+const packet_city_buy = 34;
+const packet_city_change = 35;
+const packet_city_worklist = 36;
+const packet_city_change_specialist = 39;
+const packet_city_rename = 40;
+const packet_city_options_req = 41;
+const packet_city_name_suggestion_req = 43;
+const packet_player_phase_done = 52;
+const packet_player_change_government = 54;
+const packet_player_research = 55;
+const packet_player_tech_goal = 56;
+const packet_player_rates = 53;
+const packet_unit_sscs_set = 71;
+const packet_unit_orders = 73;
+const packet_unit_server_side_agent_set = 74;
+const packet_unit_action_query = 82;
+const packet_unit_do_action = 84;
+const packet_unit_get_actions = 87;
+const packet_unit_change_activity = 222;
+const packet_diplomacy_init_meeting_req = 95;
+const packet_diplomacy_cancel_meeting_req = 97;
+const packet_diplomacy_create_clause_req = 99;
+const packet_diplomacy_remove_clause_req = 101;
+const packet_diplomacy_accept_treaty_req = 103;
+const packet_diplomacy_cancel_pact = 105;
+const packet_conn_pong = 89;
+const packet_client_info = 119;
+const packet_web_cma_clear = 258;
+const packet_web_goto_path_req = 287;
+const packet_web_info_text_req = 289;
+const sounds_enabled_get = () => store.soundsEnabled;
+const soundset_get = () => window.soundset ?? {};
+let sound_path = "/sounds/";
+function unit_move_sound_play(unit) {
+  if (!sounds_enabled_get()) return;
+  if (unit == null) return;
+  if (soundset_get() == null) {
+    console.error("soundset not found.");
+    return;
+  }
+  const ptype = unit_type(unit);
+  if (soundset_get()[ptype["sound_move"]] != null) {
+    play_sound(soundset_get()[ptype["sound_move"]]);
+  } else if (soundset_get()[ptype["sound_move_alt"]] != null) {
+    play_sound(soundset_get()[ptype["sound_move_alt"]]);
+  }
+}
+function play_sound(sound_file) {
+  try {
+    if (!sounds_enabled_get() || !document.createElement("audio").canPlayType || Audio == null) return;
+    const audio2 = new Audio(sound_path + sound_file);
+    const promise = audio2.play();
+    if (promise != null) {
+      promise.catch(sound_error_handler);
+    }
+  } catch (err) {
+    sound_error_handler(err);
+  }
+}
+function sound_error_handler(err) {
+  store.soundsEnabled = false;
+  const trackJs = window.trackJs;
+  if (trackJs) {
+    trackJs.console.log(err);
+    trackJs.track("Sound problem");
+  } else {
+    console.error(err);
+  }
+}
+const state$6 = c({
+  open: false,
+  unitId: -1,
+  unitTypeName: "",
+  targets: []
+});
+function openPillageDialog(punit, tgt) {
+  if (!punit) return;
+  if (clientIsObserver()) return;
+  if (!tgt || tgt.length === 0) return;
+  const unitType = store.unitTypes?.[punit.type];
+  const targets = tgt.filter((id) => id !== EXTRA_NONE).map((id) => ({
+    id,
+    name: store.extras?.[id]?.name ?? `Extra #${id}`
+  }));
+  state$6.value = {
+    open: true,
+    unitId: punit.id,
+    unitTypeName: unitType?.name ?? "Unit",
+    targets
+  };
+}
+function closePillageDialog() {
+  state$6.value = { ...state$6.value, open: false };
+}
+function selectTarget(extraId) {
+  const { unitId } = state$6.value;
+  const punit = store.units?.[unitId];
+  request_unit_do_action(ACTION_PILLAGE, unitId, punit?.tile, extraId);
+  closePillageDialog();
+}
+function PillageDialog() {
+  const { open, unitTypeName, targets } = state$6.value;
+  return /* @__PURE__ */ u(
+    Dialog,
+    {
+      title: "Choose Your Target",
+      open,
+      onClose: closePillageDialog,
+      width: 390,
+      modal: false,
+      children: [
+        /* @__PURE__ */ u("p", { style: { marginBottom: "12px" }, children: [
+          "Your ",
+          unitTypeName,
+          " is waiting for you to select what to pillage."
+        ] }),
+        /* @__PURE__ */ u("div", { style: { display: "flex", flexDirection: "column", gap: "6px" }, children: [
+          targets.map((t2) => /* @__PURE__ */ u(Button, { onClick: () => selectTarget(t2.id), children: t2.name }, t2.id)),
+          /* @__PURE__ */ u(Button, { variant: "secondary", onClick: closePillageDialog, children: "Cancel" })
+        ] })
+      ]
+    }
+  );
+}
+const SSA_AUTOEXPLORE$1 = ServerSideAgent.AUTOEXPLORE;
+const SSA_AUTOWORKER$1 = ServerSideAgent.AUTOWORKER;
+const SSA_NONE$1 = ServerSideAgent.NONE;
+const ORDER_MOVE$1 = Order.MOVE;
+const ORDER_ACTION_MOVE$1 = Order.ACTION_MOVE;
+const ORDER_PERFORM_ACTION = Order.PERFORM_ACTION;
+function EXTRA_HUT() {
+  return store.extraIds["EXTRA_HUT"] ?? -1;
+}
+function observerGuard() {
+  return clientIsObserver();
+}
+function key_unit_auto_explore() {
+  if (observerGuard()) return;
+  const funits = get_units_in_focus();
+  for (let i2 = 0; i2 < funits.length; i2++) {
+    request_unit_ssa_set(funits[i2], SSA_AUTOEXPLORE$1);
+  }
+  setTimeout(update_unit_focus, 700);
+}
+function key_unit_load() {
+  if (observerGuard()) return;
+  const funits = get_units_in_focus();
+  for (let i2 = 0; i2 < funits.length; i2++) {
+    const punit = funits[i2];
+    const ptile = indexToTile(punit["tile"]);
+    let transporter_unit_id = 0;
+    let has_transport_unit = false;
+    const units_on_tile = tile_units(ptile) || [];
+    for (let r2 = 0; r2 < units_on_tile.length; r2++) {
+      const tunit = units_on_tile[r2];
+      if (tunit["id"] == punit["id"]) continue;
+      const ntype = unit_type(tunit);
+      if (ntype != null && ntype["transport_capacity"] > 0) {
+        has_transport_unit = true;
+        transporter_unit_id = tunit["id"];
+      }
+    }
+    if (has_transport_unit && transporter_unit_id > 0 && punit["tile"] > 0) {
+      request_unit_do_action(
+        ACTION_TRANSPORT_BOARD,
+        punit["id"],
+        transporter_unit_id
+      );
+    }
+  }
+  setTimeout(advance_unit_focus, 700);
+}
+function key_unit_unload() {
+  if (observerGuard()) return;
+  const funits = get_units_in_focus();
+  if (funits.length === 0) return;
+  const last_unit = funits[funits.length - 1];
+  const units_on_tile = tile_units(indexToTile(last_unit["tile"])) || [];
+  for (let i2 = 0; i2 < units_on_tile.length; i2++) {
+    const punit = units_on_tile[i2];
+    if (punit["transported"] && punit["transported_by"] > 0 && clientPlaying() != null && punit["owner"] == clientPlaying().playerno) {
+      request_new_unit_activity(punit, ACTIVITY_IDLE, EXTRA_NONE);
+      request_unit_do_action(
+        ACTION_TRANSPORT_DEBOARD,
+        punit["id"],
+        punit["transported_by"]
+      );
+    } else {
+      request_new_unit_activity(punit, ACTIVITY_IDLE, EXTRA_NONE);
+      request_unit_do_action(
+        ACTION_TRANSPORT_UNLOAD,
+        punit["transported_by"],
+        punit["id"]
+      );
+    }
+  }
+  setTimeout(advance_unit_focus, 700);
+}
+function key_unit_show_cargo() {
+  if (observerGuard()) return;
+  const funits = get_units_in_focus();
+  if (funits.length === 0) return;
+  const last_unit = funits[funits.length - 1];
+  const units_on_tile = tile_units(indexToTile(last_unit["tile"])) || [];
+  setCurrentFocus([]);
+  for (let i2 = 0; i2 < units_on_tile.length; i2++) {
+    const punit = units_on_tile[i2];
+    if (punit["transported"] && punit["transported_by"] > 0) {
+      current_focus.push(punit);
+    }
+  }
+  update_active_units_dialog();
+  update_unit_order_commands();
+}
+function key_unit_wait() {
+  if (observerGuard()) return;
+  const funits = get_units_in_focus();
+  for (let i2 = 0; i2 < funits.length; i2++) {
+    const punit = funits[i2];
+    waiting_units_list.push(punit["id"]);
+  }
+  advance_unit_focus();
+}
+function key_unit_noorders() {
+  if (observerGuard()) return;
+  const funits = get_units_in_focus();
+  for (let i2 = 0; i2 < funits.length; i2++) {
+    const punit = funits[i2];
+    punit["done_moving"] = true;
+  }
+  advance_unit_focus();
+}
+function set_focus_units_activity(activity, target = EXTRA_NONE) {
+  if (observerGuard()) return;
+  for (const punit of get_units_in_focus()) {
+    request_new_unit_activity(punit, activity, target);
+  }
+  setTimeout(update_unit_focus, 700);
+}
+function key_unit_idle() {
+  set_focus_units_activity(ACTIVITY_IDLE);
+}
+function key_unit_sentry() {
+  set_focus_units_activity(ACTIVITY_SENTRY);
+}
+function key_unit_fortify() {
+  set_focus_units_activity(ACTIVITY_FORTIFYING);
+}
+function key_unit_fortress() {
+  const funits = get_units_in_focus();
+  for (let i2 = 0; i2 < funits.length; i2++) {
+    const punit = funits[i2];
+    const ptile = indexToTile(punit["tile"]);
+    for (let b2 = 0; b2 < bases$1.length; b2++) {
+      if (bases$1[b2]["base"]?.["gui_type"] == BASE_GUI_FORTRESS && !tileHasExtra(ptile, bases$1[b2].id)) {
+        request_new_unit_activity(punit, ACTIVITY_BASE, bases$1[b2]["id"]);
+      }
+    }
+  }
+  setTimeout(update_unit_focus, 700);
+}
+function key_unit_airbase() {
+  const funits = get_units_in_focus();
+  for (let i2 = 0; i2 < funits.length; i2++) {
+    const punit = funits[i2];
+    const ptile = indexToTile(punit["tile"]);
+    for (let b2 = 0; b2 < bases$1.length; b2++) {
+      if (bases$1[b2]["base"]?.["gui_type"] == BASE_GUI_AIRBASE && !tileHasExtra(ptile, bases$1[b2].id)) {
+        request_new_unit_activity(punit, ACTIVITY_BASE, bases$1[b2]["id"]);
+      }
+    }
+  }
+  setTimeout(update_unit_focus, 700);
+}
+function key_unit_irrigate() {
+  set_focus_units_activity(ACTIVITY_IRRIGATE);
+}
+function key_unit_cultivate() {
+  set_focus_units_activity(ACTIVITY_CULTIVATE);
+}
+function key_unit_clean() {
+  set_focus_units_activity(ACTIVITY_CLEAN);
+}
+function key_unit_nuke() {
+  if (observerGuard()) return;
+  activate_goto_last(ORDER_PERFORM_ACTION, ACTION_NUKE);
+}
+function key_unit_upgrade() {
+  if (observerGuard()) return;
+  const funits = get_units_in_focus();
+  for (let i2 = 0; i2 < funits.length; i2++) {
+    const punit = funits[i2];
+    const pcity = tileCity(indexToTile(punit["tile"]));
+    const target_id = pcity != null ? pcity["id"] : 0;
+    request_unit_do_action(ACTION_UPGRADE_UNIT, punit["id"], target_id);
+  }
+  update_unit_focus();
+}
+function key_unit_paradrop() {
+  if (observerGuard()) return;
+  setParadropActive(true);
+  message_log.update({
+    event: E_BEGINNER_HELP,
+    message: "Click on the tile to send this paratrooper to."
+  });
+}
+function key_unit_airlift() {
+  if (observerGuard()) return;
+  setAirliftActive(true);
+  message_log.update({
+    event: E_BEGINNER_HELP,
+    message: "Click on the city to airlift this unit to."
+  });
+}
+function key_unit_transform() {
+  set_focus_units_activity(ACTIVITY_TRANSFORM);
+}
+function key_unit_pillage() {
+  if (observerGuard()) return;
+  const funits = get_units_in_focus();
+  for (let i2 = 0; i2 < funits.length; i2++) {
+    const punit = funits[i2];
+    const tgt = get_what_can_unit_pillage_from(punit, null);
+    if (tgt.length > 0) {
+      if (tgt.length == 1) {
+        request_unit_do_action(
+          ACTION_PILLAGE,
+          punit["id"],
+          punit.tile,
+          tgt[0]
+        );
+      } else {
+        openPillageDialog(punit, tgt);
+      }
+    }
+  }
+  setTimeout(update_unit_focus, 700);
+}
+function key_unit_mine() {
+  set_focus_units_activity(ACTIVITY_MINE);
+}
+function key_unit_plant() {
+  set_focus_units_activity(ACTIVITY_PLANT);
+}
+function key_unit_road() {
+  if (observerGuard()) return;
+  const funits = get_units_in_focus();
+  for (let i2 = 0; i2 < funits.length; i2++) {
+    const punit = funits[i2];
+    const ptile = indexToTile(punit["tile"]);
+    for (let r2 = 0; r2 < roads$1.length; r2++) {
+      if (!tileHasExtra(ptile, roads$1[r2].id)) {
+        request_new_unit_activity(punit, ACTIVITY_GEN_ROAD, roads$1[r2]["id"]);
+      }
+    }
+  }
+  setTimeout(update_unit_focus, 700);
+}
+function key_unit_homecity() {
+  if (observerGuard()) return;
+  const funits = get_units_in_focus();
+  for (let i2 = 0; i2 < funits.length; i2++) {
+    const punit = funits[i2];
+    const ptile = indexToTile(punit["tile"]);
+    const pcity = tileCity(ptile);
+    if (pcity != null) {
+      request_unit_do_action(ACTION_HOME_CITY, punit["id"], pcity["id"]);
+      const el = document.getElementById("order_change_homecity");
+      if (el) el.style.display = "none";
+    }
+  }
+}
+function key_unit_action_select() {
+  if (observerGuard()) return;
+  if (action_tgt_sel_active) {
+    setActionTgtSelActive(false);
+    request_unit_act_sel_vs_own_tile();
+  } else {
+    setActionTgtSelActive(true);
+    message_log.update({
+      event: E_BEGINNER_HELP,
+      message: "Click on a tile to act against it. Press 'd' again to act against own tile."
+    });
+  }
+}
+function request_unit_act_sel_vs(ptile) {
+  const funits = get_units_in_focus();
+  for (let i2 = 0; i2 < funits.length; i2++) {
+    const punit = funits[i2];
+    sendUnitSscsSet(punit["id"], UnitSSDataType.QUEUE, ptile["index"]);
+  }
+}
+function request_unit_act_sel_vs_own_tile() {
+  const funits = get_units_in_focus();
+  for (let i2 = 0; i2 < funits.length; i2++) {
+    const punit = funits[i2];
+    sendUnitSscsSet(punit["id"], 0, punit["tile"]);
+  }
+}
+function key_unit_auto_work() {
+  if (observerGuard()) return;
+  const funits = get_units_in_focus();
+  for (let i2 = 0; i2 < funits.length; i2++) {
+    const punit = funits[i2];
+    request_unit_autoworkers(punit);
+  }
+  setTimeout(update_unit_focus, 700);
+}
+function request_unit_cancel_orders(punit) {
+  if (punit != null && (punit.ssa_controller != SSA_NONE$1 || punit.has_orders)) {
+    punit.ssa_controller = SSA_NONE$1;
+    punit.has_orders = false;
+    sendUnitOrders({
+      unit_id: punit.id,
+      src_tile: punit.tile,
+      length: 0,
+      repeat: false,
+      vigilant: false,
+      dest_tile: punit.tile,
+      orders: []
+    });
+  }
+}
+function request_new_unit_activity(punit, activity, target) {
+  request_unit_cancel_orders(punit);
+  action_decision_clear_want(punit["id"]);
+  sendUnitChangeActivity(punit["id"], activity, target);
+}
+function request_unit_ssa_set(punit, agent) {
+  if (punit != null) {
+    sendUnitServerSideAgentSet(punit["id"], agent);
+  }
+}
+function request_unit_autoworkers(punit) {
+  if (punit != null) {
+    request_unit_cancel_orders(punit);
+    action_decision_clear_want(punit["id"]);
+    request_unit_ssa_set(punit, SSA_AUTOWORKER$1);
+  }
+}
+function request_unit_build_city() {
+  if (observerGuard()) return;
+  if (current_focus.length > 0) {
+    const punit = current_focus[0];
+    if (punit != null) {
+      if (punit["movesleft"] == 0) {
+        message_log.update({
+          event: E_BAD_COMMAND,
+          message: "Unit has no moves left to build city"
+        });
+        return;
+      }
+      const ptype = unit_type(punit);
+      if (ptype != null && (ptype["name"] == "Settlers" || ptype["name"] == "Engineers")) {
+        const target_city = tileCity(indexToTile(punit["tile"]));
+        if (target_city == null) {
+          sendCityNameSuggestionReq(punit["id"]);
+        } else {
+          request_unit_do_action(ACTION_JOIN_CITY, punit.id, target_city.id);
+        }
+      }
+    }
+  }
+}
+function request_unit_do_action(action_id, actor_id, target_id, sub_tgt_id = 0, name = "") {
+  sendUnitDoAction(action_id, actor_id, target_id, sub_tgt_id || 0, name || "");
+  action_decision_clear_want(actor_id);
+}
+function key_unit_disband() {
+  if (observerGuard()) return;
+  swal(
+    {
+      title: "Disband unit?",
+      text: "Do you want to destroy this unit?",
+      type: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#DD6B55",
+      confirmButtonText: "Yes, disband unit.",
+      closeOnConfirm: true
+    },
+    function() {
+      const funits = get_units_in_focus();
+      for (let i2 = 0; i2 < funits.length; i2++) {
+        const punit = funits[i2];
+        const target_city = tileCity(indexToTile(punit["tile"]));
+        const action_id = target_city ? ACTION_DISBAND_UNIT_RECOVER : ACTION_DISBAND_UNIT;
+        const target_id = target_city ? target_city["id"] : punit["id"];
+        request_unit_do_action(action_id, punit["id"], target_id);
+      }
+      setTimeout(update_unit_focus, 700);
+      setTimeout(update_active_units_dialog, 800);
+    }
+  );
+}
+function key_unit_move(dir) {
+  if (observerGuard()) return;
+  if (current_focus.length > 0) {
+    const punit = current_focus[0];
+    if (punit == null) {
+      return;
+    }
+    const ptile = indexToTile(punit["tile"]);
+    if (ptile == null) {
+      return;
+    }
+    const newtile = mapstep(ptile, dir);
+    if (newtile == null) {
+      return;
+    }
+    const order = {
+      "order": ORDER_ACTION_MOVE$1,
+      "dir": dir,
+      "activity": ACTIVITY_LAST,
+      "target": 0,
+      "sub_target": 0,
+      "action": ACTION_COUNT$1
+    };
+    if (punit["transported"] && clientPlaying() != null && newtile["units"].every(function(ounit) {
+      return ounit["owner"] == clientPlaying()?.playerno;
+    }) && (tileCity(newtile) == null || tileCity(newtile)["owner"] == clientPlaying()?.playerno) && !tileHasExtra(newtile, EXTRA_HUT()) && (newtile["extras_owner"] == clientPlaying().playerno || !tileHasTerritoryClaimingExtra(newtile))) {
+      order["order"] = ORDER_MOVE$1;
+    }
+    sendUnitOrders({
+      unit_id: punit["id"],
+      src_tile: ptile["index"],
+      length: 1,
+      repeat: false,
+      vigilant: false,
+      orders: [order],
+      dest_tile: newtile["index"]
+    });
+    unit_move_sound_play(punit);
+  }
+  deactivate_goto(true);
+}
+function orientation_changed() {
 }
 const MATCH_NONE$1 = 0;
 const MATCH_SAME$1 = 1;
@@ -2691,13 +4117,13 @@ const MATCH_PAIR$1 = 2;
 const MATCH_FULL$1 = 3;
 const CELL_WHOLE$1 = 0;
 const CELL_CORNER$1 = 1;
-const _w$4 = window;
-_w$4.MATCH_NONE = MATCH_NONE$1;
-_w$4.MATCH_SAME = MATCH_SAME$1;
-_w$4.MATCH_PAIR = MATCH_PAIR$1;
-_w$4.MATCH_FULL = MATCH_FULL$1;
-_w$4.CELL_WHOLE = CELL_WHOLE$1;
-_w$4.CELL_CORNER = CELL_CORNER$1;
+const _w = window;
+_w.MATCH_NONE = MATCH_NONE$1;
+_w.MATCH_SAME = MATCH_SAME$1;
+_w.MATCH_PAIR = MATCH_PAIR$1;
+_w.MATCH_FULL = MATCH_FULL$1;
+_w.CELL_WHOLE = CELL_WHOLE$1;
+_w.CELL_CORNER = CELL_CORNER$1;
 const tileset_tile_width = 96;
 const tileset_tile_height = 48;
 const tileset_name = "amplio2";
@@ -3045,114 +4471,57 @@ const cellgroup_map = {
   "floor.106": "t.l0.cellgroup_l_l_l_d",
   "floor.107": "t.l0.cellgroup_l_d_l_l"
 };
-const audio = window.audio;
-const music_list = window.music_list || [];
-const supports_mp3 = () => window.supports_mp3?.() ?? false;
-let auto_center_on_unit = true;
-let popup_actor_arrival = true;
-let draw_fog_of_war = true;
-let draw_units = true;
-function init_options_dialog() {
-  if (audio != null && !audio.source.src) {
-    if (!supports_mp3()) {
-      audio.load("/music/" + music_list[Math.floor(Math.random() * music_list.length)] + ".ogg");
-    } else {
-      audio.load("/music/" + music_list[Math.floor(Math.random() * music_list.length)] + ".mp3");
-    }
-  }
-  const soundsCheckbox = document.getElementById("play_sounds_setting");
-  if (soundsCheckbox) {
-    soundsCheckbox.checked = store.soundsEnabled;
-    soundsCheckbox.addEventListener("change", function() {
-      store.soundsEnabled = this.checked;
-      localStorage.setItem("sndFX", JSON.stringify(store.soundsEnabled));
-    });
-  }
+let citydlg_map_width = 384;
+let citydlg_map_height = 192;
+const tileset_width = 96;
+const tileset_height = 48;
+let cities = {};
+let city_rules = {};
+let city_trade_routes = {};
+let active_city = null;
+let production_selection = [];
+let worklist_selection = [];
+const CITYO_DISBAND = 0;
+const FEELING_FINAL$1 = 5;
+const MAX_LEN_WORKLIST = 64;
+let city_tab_index = 0;
+let city_prod_clicks = 0;
+let _update_city_screen_fn = null;
+function set_city_screen_updater_fn(fn) {
+  _update_city_screen_fn = fn;
 }
-function initTableSort(selector, options) {
-  const table = document.querySelector(selector);
-  if (!table) return;
-  const thead = table.tHead;
-  if (!thead) return;
-  const headers = thead.querySelectorAll("th");
-  headers.forEach((th, colIdx) => {
-    th.style.cursor = "pointer";
-    th.addEventListener("click", () => {
-      const currentDir = th.dataset.sortDir === "asc" ? "desc" : "asc";
-      headers.forEach((h2) => {
-        h2.dataset.sortDir = "";
-        h2.classList.remove("tablesorter-headerAsc", "tablesorter-headerDesc");
-      });
-      th.dataset.sortDir = currentDir;
-      th.classList.add(currentDir === "asc" ? "tablesorter-headerAsc" : "tablesorter-headerDesc");
-      sortTable(table, colIdx, currentDir === "asc" ? 0 : 1);
-    });
-  });
-  if (options?.sortList) {
-    for (const [col, dir] of options.sortList) {
-      if (col < headers.length) {
-        const dirStr = dir === 0 ? "asc" : "desc";
-        headers[col].dataset.sortDir = dirStr;
-        headers[col].classList.add(dirStr === "asc" ? "tablesorter-headerAsc" : "tablesorter-headerDesc");
-        sortTable(table, col, dir);
-      }
-    }
-  }
+function _update_city_screen_proxy() {
+  if (_update_city_screen_fn) _update_city_screen_fn();
 }
-function sortTable(table, colIdx, direction) {
-  const tbody = table.tBodies[0];
-  if (!tbody) return;
-  const rows = Array.from(tbody.rows);
-  rows.sort((a2, b2) => {
-    const aText = a2.cells[colIdx]?.textContent?.trim() ?? "";
-    const bText = b2.cells[colIdx]?.textContent?.trim() ?? "";
-    const aNum = parseFloat(aText);
-    const bNum = parseFloat(bText);
-    let cmp;
-    if (!isNaN(aNum) && !isNaN(bNum)) {
-      cmp = aNum - bNum;
-    } else {
-      cmp = aText.localeCompare(bText);
-    }
-    return direction === 0 ? cmp : -cmp;
-  });
-  for (const row of rows) {
-    tbody.appendChild(row);
-  }
+const city_screen_updater = new EventAggregator(
+  _update_city_screen_proxy,
+  250,
+  EventAggregator.DP_NONE,
+  250,
+  3,
+  250
+);
+let opt_show_unreachable_items = false;
+function set_citydlg_map_width(v2) {
+  citydlg_map_width = v2;
 }
-const packet_authentication_reply = 7;
-const packet_chat_msg_req = 26;
-const packet_city_sell = 33;
-const packet_city_buy = 34;
-const packet_city_change = 35;
-const packet_city_worklist = 36;
-const packet_city_change_specialist = 39;
-const packet_city_rename = 40;
-const packet_city_options_req = 41;
-const packet_city_name_suggestion_req = 43;
-const packet_player_phase_done = 52;
-const packet_player_research = 55;
-const packet_player_tech_goal = 56;
-const packet_player_rates = 53;
-const packet_unit_sscs_set = 71;
-const packet_unit_orders = 73;
-const packet_unit_server_side_agent_set = 74;
-const packet_unit_action_query = 82;
-const packet_unit_do_action = 84;
-const packet_unit_get_actions = 87;
-const packet_unit_change_activity = 222;
-const packet_diplomacy_init_meeting_req = 95;
-const packet_diplomacy_cancel_meeting_req = 97;
-const packet_diplomacy_create_clause_req = 99;
-const packet_diplomacy_remove_clause_req = 101;
-const packet_diplomacy_accept_treaty_req = 103;
-const packet_diplomacy_cancel_pact = 105;
-const packet_conn_pong = 89;
-const packet_client_info = 119;
-const packet_web_cma_clear = 258;
-const packet_web_goto_path_req = 287;
-const packet_web_info_text_req = 289;
-function orientation_changed() {
+function set_citydlg_map_height(v2) {
+  citydlg_map_height = v2;
+}
+function set_active_city(v2) {
+  active_city = v2;
+}
+function set_production_selection(v2) {
+  production_selection = v2;
+}
+function set_worklist_selection(v2) {
+  worklist_selection = v2;
+}
+function set_city_prod_clicks(v2) {
+  city_prod_clicks = v2;
+}
+function set_opt_show_unreachable_items(v2) {
+  opt_show_unreachable_items = v2;
 }
 function $id(id) {
   return document.getElementById(id);
@@ -3223,10 +4592,8 @@ function init_mapview() {
   buffer_canvas_ctx = buffer_canvas.getContext("2d");
   store.mapviewCanvasCtx = mapview_canvas_ctx;
   store.bufferCanvas = buffer_canvas;
+  store.bufferCanvasCtx = buffer_canvas_ctx;
   store.mapviewCanvas = mapview_canvas;
-  window.mapview_canvas_ctx = mapview_canvas_ctx;
-  window.buffer_canvas = buffer_canvas;
-  window.mapview_canvas = mapview_canvas;
   if (mapview_canvas_ctx && "imageSmoothingEnabled" in mapview_canvas_ctx) {
     mapview_canvas_ctx.imageSmoothingEnabled = false;
   }
@@ -3235,8 +4602,8 @@ function init_mapview() {
     store.dashedSupport = dashedSupport;
   }
   setupWindowSize();
-  mapview$1["gui_x0"] = 0;
-  mapview$1["gui_y0"] = 0;
+  mapview["gui_x0"] = 0;
+  mapview["gui_y0"] = 0;
   let i2;
   for (i2 = 0; i2 < 81; i2++) {
     const ids = ["u", "f", "k"];
@@ -3251,7 +4618,6 @@ function init_mapview() {
     fullfog[i2] = buf;
   }
   store.fullfog = fullfog;
-  window.fullfog = fullfog;
   if (is_small_screen()) _win.MAPVIEW_REFRESH_INTERVAL = 12;
   init_sprites();
   if (mapview_canvas) {
@@ -3314,19 +4680,18 @@ function init_cache_sprites() {
     }
     sprites_init = true;
     store.sprites = sprites;
-    window.sprites = sprites;
     if (window.tileset) store.tileset = window.tileset;
     tileset_images[0] = null;
     tileset_images[1] = null;
     tileset_images = null;
   } catch (e2) {
-    console.log("Problem caching sprite: " + (e2.message || e2));
+    console.log("Problem caching sprite: " + (e2 instanceof Error ? e2.message : e2));
   }
 }
 function mapview_window_resized() {
   if (active_city != null || !resize_enabled) return;
   setupWindowSize();
-  if (store.renderer == RENDERER_2DCANVAS$1) {
+  if (store.renderer == RENDERER_2DCANVAS) {
     if (typeof mark_all_dirty === "function") mark_all_dirty();
     update_map_canvas_full();
   }
@@ -3473,11 +4838,10 @@ function set_city_mapview_active() {
   }
   mapview_canvas_ctx = city_canvas.getContext("2d");
   store.mapviewCanvasCtx = mapview_canvas_ctx;
-  window.mapview_canvas_ctx = mapview_canvas_ctx;
-  mapview$1["width"] = citydlg_map_width;
-  mapview$1["height"] = citydlg_map_height;
-  mapview$1["store_width"] = citydlg_map_width;
-  mapview$1["store_height"] = citydlg_map_height;
+  mapview["width"] = citydlg_map_width;
+  mapview["height"] = citydlg_map_height;
+  mapview["store_width"] = citydlg_map_width;
+  mapview["store_height"] = citydlg_map_height;
   set_default_mapview_inactive$1();
 }
 function set_default_mapview_inactive$1() {
@@ -3493,43 +4857,42 @@ function set_default_mapview_inactive$1() {
   }
 }
 function enable_mapview_slide(ptile) {
-  const r2 = map_to_gui_pos$1(ptile["x"], ptile["y"]);
+  const r2 = map_to_gui_pos(ptile["x"], ptile["y"]);
   let gui_x = r2["gui_dx"];
   let gui_y = r2["gui_dy"];
-  gui_x -= mapview$1["width"] - tileset_tile_width >> 1;
-  gui_y -= mapview$1["height"] - tileset_tile_height >> 1;
-  const dx = gui_x - mapview$1["gui_x0"];
-  const dy = gui_y - mapview$1["gui_y0"];
+  gui_x -= mapview["width"] - tileset_tile_width >> 1;
+  gui_y -= mapview["height"] - tileset_tile_height >> 1;
+  const dx = gui_x - mapview["gui_x0"];
+  const dy = gui_y - mapview["gui_y0"];
   mapview_slide["dx"] = dx;
   mapview_slide["dy"] = dy;
   mapview_slide["i"] = mapview_slide["max"];
   mapview_slide["start"] = (/* @__PURE__ */ new Date()).getTime();
-  if (dx == 0 && dy == 0 || mapview_slide["active"] || Math.abs(dx) > mapview$1["width"] || Math.abs(dy) > mapview$1["height"]) {
+  if (dx == 0 && dy == 0 || mapview_slide["active"] || Math.abs(dx) > mapview["width"] || Math.abs(dy) > mapview["height"]) {
     mapview_slide["active"] = false;
     update_map_canvas_full();
     return;
   }
   mapview_slide["active"] = true;
-  const new_width = mapview$1["width"] + Math.abs(dx);
-  const new_height = mapview$1["height"] + Math.abs(dy);
-  const old_width = mapview$1["store_width"];
-  const old_height = mapview$1["store_height"];
+  const new_width = mapview["width"] + Math.abs(dx);
+  const new_height = mapview["height"] + Math.abs(dy);
+  const old_width = mapview["store_width"];
+  const old_height = mapview["store_height"];
   mapview_canvas = buffer_canvas;
   mapview_canvas_ctx = buffer_canvas_ctx;
   store.mapviewCanvasCtx = mapview_canvas_ctx;
-  window.mapview_canvas_ctx = mapview_canvas_ctx;
   if (dx >= 0 && dy <= 0) {
-    mapview$1["gui_y0"] -= Math.abs(dy);
+    mapview["gui_y0"] -= Math.abs(dy);
   } else if (dx <= 0 && dy >= 0) {
-    mapview$1["gui_x0"] -= Math.abs(dx);
+    mapview["gui_x0"] -= Math.abs(dx);
   } else if (dx <= 0 && dy <= 0) {
-    mapview$1["gui_x0"] -= Math.abs(dx);
-    mapview$1["gui_y0"] -= Math.abs(dy);
+    mapview["gui_x0"] -= Math.abs(dx);
+    mapview["gui_y0"] -= Math.abs(dy);
   }
-  mapview$1["store_width"] = new_width;
-  mapview$1["store_height"] = new_height;
-  mapview$1["width"] = new_width;
-  mapview$1["height"] = new_height;
+  mapview["store_width"] = new_width;
+  mapview["store_height"] = new_height;
+  mapview["width"] = new_width;
+  mapview["height"] = new_height;
   if (dx >= 0 && dy >= 0) {
     update_map_canvas(old_width, 0, dx, new_height);
     update_map_canvas(0, old_height, old_width, dy);
@@ -3546,7 +4909,6 @@ function enable_mapview_slide(ptile) {
   mapview_canvas = document.getElementById("canvas");
   mapview_canvas_ctx = mapview_canvas.getContext("2d");
   store.mapviewCanvasCtx = mapview_canvas_ctx;
-  window.mapview_canvas_ctx = mapview_canvas_ctx;
   if (buffer_canvas_ctx && mapview_canvas) {
     if (dx >= 0 && dy >= 0) {
       buffer_canvas_ctx.drawImage(mapview_canvas, 0, 0, old_width, old_height, 0, 0, old_width, old_height);
@@ -3558,1270 +4920,228 @@ function enable_mapview_slide(ptile) {
       buffer_canvas_ctx.drawImage(mapview_canvas, 0, 0, old_width, old_height, 0, Math.abs(dy), old_width, old_height);
     }
   }
-  mapview$1["store_width"] = old_width;
-  mapview$1["store_height"] = old_height;
-  mapview$1["width"] = old_width;
-  mapview$1["height"] = old_height;
+  mapview["store_width"] = old_width;
+  mapview["store_height"] = old_height;
+  mapview["width"] = old_width;
+  mapview["height"] = old_height;
 }
-const TECH_UNKNOWN = 0;
-const TECH_PREREQS_KNOWN = 1;
-const TECH_KNOWN$1 = 2;
-const A_NONE = 0;
-function playerInventionState(pplayer, techId) {
-  if (pplayer == null) {
-    return TECH_UNKNOWN;
-  } else {
-    if (pplayer["inventions"] != null && pplayer["inventions"][techId] != null) {
-      return pplayer["inventions"][techId];
+const map_pos_to_tile$1 = mapPosToTile;
+let touch_start_x;
+let touch_start_y;
+let map_select_setting_enabled = true;
+let map_select_check = false;
+let map_select_check_started = 0;
+let map_select_active = false;
+let map_select_x;
+let map_select_y;
+function setMapSelectActive(v2) {
+  map_select_active = v2;
+}
+function setMapSelectCheck(v2) {
+  map_select_check = v2;
+}
+function setTouchStart(x2, y2) {
+  touch_start_x = x2;
+  touch_start_y = y2;
+}
+function mapctrl_init_2d() {
+  const canvas = document.getElementById("canvas");
+  canvas.addEventListener("mouseup", mapview_mouse_click);
+  canvas.addEventListener("mousedown", mapview_mouse_down);
+  window.addEventListener("mousemove", mouse_moved_cb);
+  if (isTouchDevice()) {
+    canvas.addEventListener("touchstart", mapview_touch_start);
+    canvas.addEventListener("touchend", mapview_touch_end);
+    canvas.addEventListener("touchmove", mapview_touch_move);
+  }
+}
+function mapview_mouse_click(e2) {
+  let rightclick = false;
+  let middleclick = false;
+  if (e2.which) {
+    rightclick = e2.which == 3;
+    middleclick = e2.which == 2;
+  } else if (e2.button) {
+    rightclick = e2.button == 2;
+    middleclick = e2.button == 1 || e2.button == 4;
+  }
+  if (rightclick) {
+    if (!map_select_active || !map_select_setting_enabled) {
+      setContextMenuActive(true);
+      store.contextMenuActive = true;
+      recenter_button_pressed(mouse_x, mouse_y);
     } else {
-      return TECH_UNKNOWN;
+      setContextMenuActive(false);
+      store.contextMenuActive = false;
+      map_select_units(mouse_x, mouse_y);
     }
+    map_select_active = false;
+    map_select_check = false;
+  } else if (!middleclick) {
+    action_button_pressed(mouse_x, mouse_y, SELECT_POPUP);
+    setMapviewMouseMovement(false);
+    store.mapviewMouseMovement = false;
+    update_mouse_cursor();
+  }
+  setKeyboardInput(true);
+  store.keyboardInput = true;
+}
+function mapview_mouse_down(e2) {
+  let rightclick = false;
+  let middleclick = false;
+  if (e2.which) {
+    rightclick = e2.which == 3;
+    middleclick = e2.which == 2;
+  } else if (e2.button) {
+    rightclick = e2.button == 2;
+    middleclick = e2.button == 1 || e2.button == 4;
+  }
+  if (!rightclick && !middleclick) {
+    if (goto_active) return;
+    set_mouse_touch_started_on_unit(canvas_pos_to_tile(mouse_x, mouse_y));
+    check_mouse_drag_unit(canvas_pos_to_tile(mouse_x, mouse_y));
+    setMapviewMouseMovement(true);
+    touch_start_x = mouse_x;
+    touch_start_y = mouse_y;
+  } else if (middleclick || e2["altKey"]) {
+    popit();
+    return false;
+  } else if (rightclick && !map_select_active && isRightMouseSelectionSupported()) {
+    map_select_check = true;
+    map_select_x = mouse_x;
+    map_select_y = mouse_y;
+    map_select_check_started = (/* @__PURE__ */ new Date()).getTime();
+    setContextMenuActive(false);
+    store.contextMenuActive = false;
   }
 }
-function isTechReqForGoal(checkTechId, goalTechId) {
-  if (checkTechId === goalTechId) return true;
-  if (goalTechId === 0 || checkTechId === 0) return false;
-  const goalTech = store.techs[goalTechId];
-  if (goalTech == null) return false;
-  for (let i2 = 0; i2 < goalTech["research_reqs"].length; i2++) {
-    const rid = goalTech["research_reqs"][i2]["value"];
-    if (checkTechId === rid) {
-      return true;
-    } else if (isTechReqForGoal(checkTechId, rid)) {
-      return true;
-    }
-  }
-  return false;
+function mapview_touch_start(e2) {
+  e2.preventDefault();
+  const canvasEl = document.getElementById("canvas");
+  const rect = canvasEl.getBoundingClientRect();
+  touch_start_x = e2.touches[0].pageX - (rect.left + window.scrollX);
+  touch_start_y = e2.touches[0].pageY - (rect.top + window.scrollY);
+  const ptile = canvas_pos_to_tile(touch_start_x, touch_start_y);
+  set_mouse_touch_started_on_unit(ptile);
 }
-function isTechReqForTech(checkTechId, nextTechId) {
-  if (checkTechId === nextTechId) return false;
-  if (nextTechId === 0 || checkTechId === 0) return false;
-  const nextTech = store.techs[nextTechId];
-  if (nextTech == null) return false;
-  for (let i2 = 0; i2 < nextTech["research_reqs"].length; i2++) {
-    const rid = nextTech["research_reqs"][i2]["value"];
-    if (checkTechId === rid) {
-      return true;
-    }
-  }
-  return false;
+function mapview_touch_end(e2) {
+  action_button_pressed(touch_start_x, touch_start_y, SELECT_POPUP);
 }
-function getCurrentBulbsOutput() {
-  let selfBulbs = 0;
-  let selfUpkeep = 0;
-  let pooled = false;
-  let teamBulbs = 0;
-  let teamUpkeep = 0;
-  if (!clientIsObserver() && clientPlaying() != null) {
-    const cplayer = clientPlaying().playerno;
-    for (const cityId in store.cities) {
-      const city = store.cities[cityId];
-      if (city.owner === cplayer) {
-        selfBulbs += city.prod[O_SCIENCE];
-      }
-    }
-    selfUpkeep = clientPlaying()?.tech_upkeep ?? 0;
-    if (store.gameInfo?.["team_pooled_research"]) {
-      const team = clientPlaying()?.team;
-      for (const playerId in store.players) {
-        const player = store.players[playerId];
-        if (player.team === team && player.is_alive) {
-          teamUpkeep += player.tech_upkeep ?? 0;
-          if (player.playerno !== cplayer) {
-            pooled = true;
-          }
+function mapview_touch_move(e2) {
+  const canvasEl = document.getElementById("canvas");
+  const rect = canvasEl.getBoundingClientRect();
+  setMouseX(e2.touches[0].pageX - (rect.left + window.scrollX));
+  setMouseY(e2.touches[0].pageY - (rect.top + window.scrollY));
+  const diff_x = (touch_start_x - mouse_x) * 2;
+  const diff_y = (touch_start_y - mouse_y) * 2;
+  touch_start_x = mouse_x;
+  touch_start_y = mouse_y;
+  if (!goto_active) {
+    check_mouse_drag_unit(canvas_pos_to_tile(mouse_x, mouse_y));
+    mapview["gui_x0"] = (mapview["gui_x0"] ?? 0) + diff_x;
+    mapview["gui_y0"] = (mapview["gui_y0"] ?? 0) + diff_y;
+    mark_all_dirty();
+  }
+  if (clientPlaying() == null) return;
+  if (goto_active && current_focus.length > 0) {
+    const ptile = canvas_pos_to_tile(mouse_x, mouse_y);
+    if (ptile != null) {
+      for (let i2 = 0; i2 < current_focus.length; i2++) {
+        if (i2 >= 20) return;
+        if (goto_request_map[current_focus[i2]["id"] + "," + ptile["x"] + "," + ptile["y"]] == null) {
+          request_goto_path(current_focus[i2]["id"], ptile["x"], ptile["y"]);
         }
       }
-      if (pooled) {
-        teamBulbs = research_data?.[team]?.total_bulbs_prod ?? 0;
-      }
-    }
-    if (!pooled) {
-      teamBulbs = selfBulbs;
-      teamUpkeep = selfUpkeep;
-    }
-  }
-  return {
-    self_bulbs: selfBulbs,
-    self_upkeep: selfUpkeep,
-    pooled,
-    team_bulbs: teamBulbs,
-    team_upkeep: teamUpkeep
-  };
-}
-function getCurrentBulbsOutputText(cbo) {
-  if (cbo === void 0) {
-    cbo = getCurrentBulbsOutput();
-  }
-  let text;
-  if (cbo.self_bulbs === 0 && cbo.self_upkeep === 0) {
-    text = "No bulbs researched";
-  } else {
-    text = String(cbo.self_bulbs);
-    const net = cbo.self_bulbs - cbo.self_upkeep;
-    if (cbo.self_upkeep !== 0) {
-      text = text + " - " + cbo.self_upkeep + " = " + net;
-    }
-    if (1 === Math.abs(net)) {
-      text = text + " bulb/turn";
-    } else {
-      text = text + " bulbs/turn";
-    }
-  }
-  if (cbo.pooled) {
-    text = text + " (" + (cbo.team_bulbs - cbo.team_upkeep) + " team total)";
-  }
-  return text;
-}
-function techIdByName(tname) {
-  for (const techId in store.techs) {
-    if (tname === store.techs[techId]["name"]) return techId;
-  }
-  return null;
-}
-const TILE_INDEX_NONE$1 = -1;
-let action_selection_restart = false;
-let did_not_decide = false;
-function _set_action_selection_restart(val) {
-  action_selection_restart = val;
-}
-function _set_did_not_decide(val) {
-  did_not_decide = val;
-}
-function act_sel_queue_may_be_done(actor_unit_id) {
-  if (!is_more_user_input_needed) {
-    if (action_selection_restart) {
-      action_selection_restart = false;
-    } else {
-      action_selection_no_longer_in_progress(actor_unit_id);
-    }
-    if (did_not_decide) {
-      did_not_decide = false;
-    } else {
-      action_decision_clear_want(actor_unit_id);
-      action_selection_next_in_focus(actor_unit_id);
     }
   }
 }
-function act_sel_queue_done(actor_unit_id) {
-  set_is_more_user_input_needed(false);
-  act_sel_queue_may_be_done(actor_unit_id);
-  action_selection_restart = false;
-  did_not_decide = false;
-}
-function action_selection_actor_unit() {
-  return action_selection_in_progress_for;
-}
-function action_selection_target_city() {
-  if (action_selection_in_progress_for == IDENTITY_NUMBER_ZERO) {
-    return IDENTITY_NUMBER_ZERO;
+function action_button_pressed(canvas_x, canvas_y, qtype) {
+  const ptile = canvas_pos_to_tile(canvas_x, canvas_y);
+  if (canClientChangeView() && ptile != null) {
+    do_map_click(ptile, qtype, true);
   }
-  const el = document.getElementById("act_sel_dialog_" + action_selection_in_progress_for);
-  return el ? Number(el.getAttribute("target_city")) : IDENTITY_NUMBER_ZERO;
 }
-function action_selection_target_unit() {
-  if (action_selection_in_progress_for == IDENTITY_NUMBER_ZERO) {
-    return IDENTITY_NUMBER_ZERO;
-  }
-  const el = document.getElementById("act_sel_dialog_" + action_selection_in_progress_for);
-  return el ? Number(el.getAttribute("target_unit")) : IDENTITY_NUMBER_ZERO;
-}
-function action_selection_target_tile() {
-  if (action_selection_in_progress_for == IDENTITY_NUMBER_ZERO) {
-    return TILE_INDEX_NONE$1;
-  }
-  const el = document.getElementById("act_sel_dialog_" + action_selection_in_progress_for);
-  return el ? Number(el.getAttribute("target_tile")) : TILE_INDEX_NONE$1;
-}
-function action_selection_target_extra() {
-  if (action_selection_in_progress_for == IDENTITY_NUMBER_ZERO) {
-    return EXTRA_NONE$1;
-  }
-  const el = document.getElementById("act_sel_dialog_" + action_selection_in_progress_for);
-  return el ? Number(el.getAttribute("target_extra")) : EXTRA_NONE$1;
-}
-function action_selection_refresh(actor_unit, target_city, target_unit, target_tile, target_extra, act_probs) {
-  document.getElementById("act_sel_dialog_" + actor_unit["id"])?.remove();
-  popup_action_selection(
-    actor_unit,
-    act_probs,
-    target_tile,
-    target_extra,
-    target_unit,
-    target_city
-  );
-}
-function action_selection_close() {
-  const actor_unit_id = action_selection_in_progress_for;
-  const ids = [
-    "act_sel_dialog_" + actor_unit_id,
-    "bribe_unit_dialog_" + actor_unit_id,
-    "incite_city_dialog_" + actor_unit_id,
-    "upgrade_unit_dialog_" + actor_unit_id,
-    "stealtech_dialog_" + actor_unit_id,
-    "sabotage_impr_dialog_" + actor_unit_id,
-    "sel_tgt_unit_dialog_" + actor_unit_id,
-    "sel_tgt_extra_dialog_" + actor_unit_id,
-    "city_name_dialog"
-  ];
-  for (const id of ids) {
-    document.getElementById(id)?.remove();
-  }
-  act_sel_queue_done(actor_unit_id);
-}
-function list_potential_target_extras(act_unit, target_tile) {
-  const potential_targets = [];
-  for (let i2 = 0; i2 < (store.rulesControl?.num_extra_types ?? 0); i2++) {
-    const pextra = store.extras[i2];
-    if (tileHasExtra(target_tile, pextra.id)) {
-      if (isExtraRemovedBy(pextra, ERM_PILLAGE$1) && unit_can_do_action(act_unit, ACTION_PILLAGE$1) || isExtraRemovedBy(pextra, ERM_CLEAN) && unit_can_do_action(act_unit, ACTION_CLEAN)) {
-        potential_targets.push(pextra);
-      }
-    } else {
-      if (pextra.buildable && (isExtraCausedBy(pextra, EC_IRRIGATION) && unit_can_do_action(act_unit, ACTION_IRRIGATE) || isExtraCausedBy(pextra, EC_MINE) && unit_can_do_action(act_unit, ACTION_MINE) || isExtraCausedBy(pextra, EC_BASE) && unit_can_do_action(act_unit, ACTION_BASE) || isExtraCausedBy(pextra, EC_ROAD) && unit_can_do_action(act_unit, ACTION_ROAD))) {
-        potential_targets.push(pextra);
-      }
-    }
-  }
-  return potential_targets;
-}
-function select_tgt_unit(actor_unit, target_tile, potential_tgt_units) {
-}
-function select_tgt_extra(actor_unit, target_unit, target_tile, potential_tgt_extras) {
-}
-const TILE_INDEX_NONE = -1;
-let auto_attack = false;
-function createNativeDialog(dlgId, title, content, buttons, opts) {
-  document.getElementById(dlgId)?.remove();
-  const dlg = document.createElement("div");
-  dlg.id = dlgId;
-  dlg.className = "act_sel_dialog";
-  const w2 = opts?.width || "390px";
-  dlg.style.cssText = "position:fixed;z-index:5000;background:#222;border:1px solid #555;padding:16px;top:20%;left:50%;transform:translateX(-50%);width:" + w2 + ";max-height:70vh;overflow-y:auto;color:#fff;";
-  if (title) {
-    const h2 = document.createElement("h3");
-    h2.textContent = title;
-    h2.style.cssText = "margin:0 0 8px;";
-    dlg.appendChild(h2);
-  }
-  if (content) {
-    const body = document.createElement("div");
-    body.innerHTML = content;
-    dlg.appendChild(body);
-  }
-  const btnContainer = document.createElement("div");
-  btnContainer.style.cssText = "margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;";
-  for (const b2 of buttons) {
-    const btn = document.createElement("button");
-    if (b2.id) btn.id = b2.id;
-    if (b2.class) btn.className = b2.class;
-    btn.textContent = b2.text;
-    if (b2.title) btn.title = b2.title;
-    btn.addEventListener("click", b2.click);
-    btnContainer.appendChild(btn);
-  }
-  dlg.appendChild(btnContainer);
-  document.getElementById("game_page")?.appendChild(dlg);
-  return dlg;
-}
-function removeDialog(dlgId) {
-  document.getElementById(dlgId)?.remove();
-}
-function popup_action_selection(actor_unit, action_probabilities, target_tile, target_extra, target_unit, target_city) {
+function map_select_units(canvas_x, canvas_y) {
+  const selected_tiles = {};
+  const selected_units = [];
   if (clientIsObserver()) return;
-  const dlgId = "act_sel_dialog_" + actor_unit["id"];
-  if (action_selection_in_progress_for != IDENTITY_NUMBER_ZERO && action_selection_in_progress_for != actor_unit["id"]) {
-    logNormal(
-      "Looks like unit %d has an action selection dialog open but a dialog for unit %d is about to be opened.",
-      action_selection_in_progress_for,
-      actor_unit["id"]
-    );
-    logNormal(
-      "Closing the action selection dialog for unit %d",
-      action_selection_in_progress_for
-    );
-    action_selection_close();
-  }
-  const actor_homecity = store.cities[actor_unit["homecity"]];
-  let dhtml = "";
-  if (target_city != null) {
-    dhtml += "Your " + store.unitTypes[actor_unit["type"]]["name"];
-    if (actor_homecity != null) {
-      dhtml += " from " + decodeURIComponent(actor_homecity["name"]);
-    }
-    dhtml += " has arrived at " + decodeURIComponent(target_city["name"]) + ". What is your command?";
-  } else if (target_unit != null) {
-    dhtml += "Your " + store.unitTypes[actor_unit["type"]]["name"] + " is ready to act against " + store.nations[unit_owner(target_unit)["nation"]]["adjective"] + " " + store.unitTypes[target_unit["type"]]["name"] + ".";
-  } else {
-    dhtml += "Your " + store.unitTypes[actor_unit["type"]]["name"] + " is waiting for your command.";
-  }
-  const buttons = [];
-  for (let tgt_kind = ATK_CITY; tgt_kind < ATK_COUNT; tgt_kind++) {
-    let tgt_id = -1;
-    let sub_tgt_id = -1;
-    switch (tgt_kind) {
-      case ATK_CITY:
-        if (target_city != null) tgt_id = target_city["id"];
-        break;
-      case ATK_UNIT:
-        if (target_unit != null) tgt_id = target_unit["id"];
-        break;
-      case ATK_UNITS:
-        if (target_tile != null) tgt_id = target_tile["index"];
-        break;
-      case ATK_TILE:
-      case ATK_EXTRAS:
-        if (target_tile != null) tgt_id = target_tile["index"];
-        if (target_extra != null) sub_tgt_id = target_extra["id"];
-        break;
-      case ATK_SELF:
-        if (actor_unit != null) tgt_id = actor_unit["id"];
-        break;
-      default:
-        logError("Unsupported action target kind " + tgt_kind);
-        break;
-    }
-    for (let action_id = 0; action_id < ACTION_COUNT$1; action_id++) {
-      if (store.actions[action_id]["tgt_kind"] == tgt_kind && actionProbPossible(action_probabilities[action_id])) {
-        const b2 = create_act_sel_button(
-          "#" + dlgId,
-          actor_unit["id"],
-          tgt_id,
-          sub_tgt_id,
-          action_id,
-          action_probabilities
-        );
-        buttons.push({ text: b2.text, id: b2.id, class: b2["class"], title: b2.title, click: b2.click });
+  const start_x = map_select_x < canvas_x ? map_select_x : canvas_x;
+  const start_y = map_select_y < canvas_y ? map_select_y : canvas_y;
+  const end_x = map_select_x < canvas_x ? canvas_x : map_select_x;
+  const end_y = map_select_y < canvas_y ? canvas_y : map_select_y;
+  for (let x2 = start_x; x2 < end_x; x2 += 15) {
+    for (let y2 = start_y; y2 < end_y; y2 += 15) {
+      const ptile = canvas_pos_to_tile(x2, y2);
+      if (ptile != null) {
+        selected_tiles[ptile["index"]] = ptile;
       }
     }
   }
-  if (target_unit != null && tile_units(target_tile).length > 1) {
-    buttons.push({
-      id: "act_sel_tgt_unit_switch" + actor_unit["id"],
-      class: "act_sel_button",
-      text: "Change unit target",
-      click: function() {
-        select_tgt_unit(actor_unit, target_tile, tile_units(target_tile) ?? []);
-        _set_action_selection_restart(true);
-        removeDialog(dlgId);
-      }
-    });
-  }
-  if (target_extra != null) {
-    buttons.push({
-      id: "act_sel_tgt_extra_switch" + actor_unit["id"],
-      class: "act_sel_button",
-      text: "Change extra target",
-      click: function() {
-        select_tgt_extra(
-          actor_unit,
-          target_unit,
-          target_tile,
-          list_potential_target_extras(actor_unit, target_tile)
-        );
-        _set_action_selection_restart(true);
-        removeDialog(dlgId);
-      }
-    });
-  }
-  if (actionProbPossible(action_probabilities[ACTION_ATTACK])) {
-    if (!auto_attack) {
-      buttons.push({
-        id: "act_sel_" + ACTION_ATTACK + "_" + actor_unit["id"],
-        class: "act_sel_button",
-        text: "Auto attack from now on!",
-        title: "Attack without showing this attack dialog in the future",
-        click: function() {
-          request_unit_do_action(ACTION_ATTACK, actor_unit["id"], target_tile["index"]);
-          auto_attack = true;
-          removeDialog(dlgId);
-          act_sel_queue_may_be_done(actor_unit["id"]);
-        }
-      });
-    }
-  }
-  buttons.push({
-    id: "act_sel_wait" + actor_unit["id"],
-    class: "act_sel_button",
-    text: "Wait",
-    click: function() {
-      _set_did_not_decide(true);
-      removeDialog(dlgId);
-      act_sel_queue_may_be_done(actor_unit["id"]);
-    }
-  });
-  buttons.push({
-    id: "act_sel_cancel" + actor_unit["id"],
-    class: "act_sel_button",
-    text: "Cancel",
-    click: function() {
-      removeDialog(dlgId);
-      act_sel_queue_may_be_done(actor_unit["id"]);
-    }
-  });
-  const dlg = createNativeDialog(
-    dlgId,
-    "Choose Your " + store.unitTypes[actor_unit["type"]]["name"] + "'s Strategy",
-    dhtml,
-    buttons
-  );
-  dlg.setAttribute("actor_unit", String(actor_unit != null ? actor_unit["id"] : IDENTITY_NUMBER_ZERO));
-  dlg.setAttribute("target_city", String(target_city != null ? target_city["id"] : IDENTITY_NUMBER_ZERO));
-  dlg.setAttribute("target_unit", String(target_unit != null ? target_unit["id"] : IDENTITY_NUMBER_ZERO));
-  dlg.setAttribute("target_tile", String(target_tile != null ? target_tile["index"] : TILE_INDEX_NONE));
-  dlg.setAttribute("target_extra", String(target_extra != null ? target_extra["id"] : EXTRA_NONE$1));
-  set_is_more_user_input_needed(false);
-}
-function popup_bribe_dialog(actor_unit, target_unit, cost, act_id) {
-  const dlgId = "bribe_unit_dialog_" + actor_unit["id"];
-  let dhtml = "";
-  dhtml += "Treasury contains " + unit_owner(actor_unit)["gold"] + " gold. ";
-  dhtml += "The price of bribing " + store.nations[unit_owner(target_unit)["nation"]]["adjective"] + " " + store.unitTypes[target_unit["type"]]["name"] + " is " + cost + ". ";
-  const bribe_possible = cost <= unit_owner(actor_unit)["gold"];
-  if (!bribe_possible) {
-    dhtml += "Traitors Demand Too Much!<br>";
-  }
-  const buttons = [];
-  if (bribe_possible) {
-    buttons.push({
-      text: "Do it!",
-      click: function() {
-        request_unit_do_action(act_id, actor_unit["id"], target_unit["id"]);
-        removeDialog(dlgId);
-        act_sel_queue_done(actor_unit["id"]);
-      }
-    });
-  }
-  buttons.push({
-    text: bribe_possible ? "Cancel" : "Close",
-    click: function() {
-      removeDialog(dlgId);
-      act_sel_queue_done(actor_unit["id"]);
-    }
-  });
-  createNativeDialog(dlgId, "About that bribery you requested...", dhtml, buttons);
-}
-function popup_incite_dialog(actor_unit, target_city, cost, act_id) {
-  const dlgId = "incite_city_dialog_" + actor_unit["id"];
-  let dhtml = "";
-  dhtml += "Treasury contains " + unit_owner(actor_unit)["gold"] + " gold. ";
-  dhtml += "The price of inciting " + decodeURIComponent(target_city["name"]) + " is " + cost + ".";
-  const incite_possible = cost != INCITE_IMPOSSIBLE_COST && cost <= unit_owner(actor_unit)["gold"];
-  if (!incite_possible) {
-    dhtml += " Traitors Demand Too Much!<br>";
-  }
-  const buttons = [];
-  if (incite_possible) {
-    buttons.push({
-      text: "Do it!",
-      click: function() {
-        request_unit_do_action(act_id, actor_unit["id"], target_city["id"]);
-        removeDialog(dlgId);
-        act_sel_queue_done(actor_unit["id"]);
-      }
-    });
-  }
-  buttons.push({
-    text: incite_possible ? "Cancel" : "Close",
-    click: function() {
-      removeDialog(dlgId);
-      act_sel_queue_done(actor_unit["id"]);
-    }
-  });
-  createNativeDialog(dlgId, "About that incite you requested...", dhtml, buttons);
-}
-function popup_unit_upgrade_dlg(actor_unit, target_city, cost, act_id) {
-  const dlgId = "upgrade_unit_dialog_" + actor_unit["id"];
-  let dhtml = "";
-  dhtml += "Treasury contains " + unit_owner(actor_unit)["gold"] + " gold. ";
-  dhtml += "The price of upgrading our " + store.unitTypes[actor_unit["type"]]["name"] + " is " + cost + ".";
-  const upgrade_possible = cost <= unit_owner(actor_unit)["gold"];
-  const buttons = [];
-  if (upgrade_possible) {
-    buttons.push({
-      text: "Do it!",
-      click: function() {
-        request_unit_do_action(act_id, actor_unit["id"], target_city["id"]);
-        removeDialog(dlgId);
-        act_sel_queue_done(actor_unit["id"]);
-      }
-    });
-  }
-  buttons.push({
-    text: upgrade_possible ? "Cancel" : "Close",
-    click: function() {
-      removeDialog(dlgId);
-      act_sel_queue_done(actor_unit["id"]);
-    }
-  });
-  createNativeDialog(dlgId, "Unit upgrade", dhtml, buttons);
-}
-function create_steal_tech_button(parent_id, tech, actor_id, city_id, action_id) {
-  return {
-    text: tech["name"],
-    click: function() {
-      request_unit_do_action(action_id, actor_id, city_id, tech["id"]);
-      removeDialog(parent_id);
-      act_sel_queue_done(actor_id);
-    }
-  };
-}
-function popup_steal_tech_selection_dialog(actor_unit, target_city, act_probs, action_id) {
-  const dlgId = "stealtech_dialog_" + actor_unit["id"];
-  const buttons = [];
-  let untargeted_action_id = ACTION_COUNT$1;
-  for (const tech_id in store.techs) {
-    const tech = store.techs[tech_id];
-    const act_kn = playerInventionState(clientPlaying(), tech["id"]);
-    const tgt_kn = playerInventionState(target_city["owner"], tech["id"]);
-    if (tgt_kn == TECH_KNOWN$2 && (act_kn == TECH_PREREQS_KNOWN$1 || store.gameInfo["tech_steal_allow_holes"] && act_kn == TECH_UNKNOWN$1)) {
-      buttons.push(create_steal_tech_button(
-        dlgId,
-        tech,
-        actor_unit["id"],
-        target_city["id"],
-        action_id
-      ));
-    }
-  }
-  if (action_id == ACTION_SPY_TARGETED_STEAL_TECH_ESC) {
-    untargeted_action_id = ACTION_SPY_STEAL_TECH_ESC;
-  } else if (action_id == ACTION_SPY_TARGETED_STEAL_TECH) {
-    untargeted_action_id = ACTION_SPY_STEAL_TECH;
-  }
-  if (untargeted_action_id != ACTION_COUNT$1 && actionProbPossible(act_probs[untargeted_action_id])) {
-    buttons.push({
-      text: "At " + store.unitTypes[actor_unit["type"]]["name"] + "'s Discretion",
-      click: function() {
-        request_unit_do_action(
-          untargeted_action_id,
-          actor_unit["id"],
-          target_city["id"]
-        );
-        removeDialog(dlgId);
-        act_sel_queue_done(actor_unit["id"]);
-      }
-    });
-  }
-  buttons.push({
-    text: "Cancel",
-    click: function() {
-      removeDialog(dlgId);
-      act_sel_queue_done(actor_unit["id"]);
-    }
-  });
-  createNativeDialog(dlgId, "Select Advance to Steal", "", buttons, { width: "90%" });
-}
-function create_sabotage_impr_button(improvement, parent_id, actor_unit_id, target_city_id, act_id) {
-  return {
-    text: improvement["name"],
-    click: function() {
-      request_unit_do_action(
-        act_id,
-        actor_unit_id,
-        target_city_id,
-        improvement["id"]
-      );
-      removeDialog(parent_id);
-      act_sel_queue_done(actor_unit_id);
-    }
-  };
-}
-function popup_sabotage_dialog(actor_unit, target_city, city_imprs, act_id) {
-  const dlgId = "sabotage_impr_dialog_" + actor_unit["id"];
-  const buttons = [];
-  for (let i2 = 0; i2 < (store.rulesControl?.["num_impr_types"] ?? 0); i2++) {
-    const improvement = store.improvements[i2];
-    if (city_imprs.isSet(i2) && improvement["sabotage"] > 0) {
-      buttons.push(create_sabotage_impr_button(
-        improvement,
-        dlgId,
-        actor_unit["id"],
-        target_city["id"],
-        act_id
-      ));
-    }
-  }
-  buttons.push({
-    text: "Cancel",
-    click: function() {
-      removeDialog(dlgId);
-      act_sel_queue_done(actor_unit["id"]);
-    }
-  });
-  createNativeDialog(dlgId, "Select Improvement to Sabotage", "", buttons, { width: "90%" });
-}
-const REQEST_PLAYER_INITIATED$3 = 0;
-function action_prob_not_impl(probability) {
-  return probability["min"] == 254 && probability["max"] == 0;
-}
-function format_act_prob_part(prob) {
-  return prob / 2 + "%";
-}
-function format_action_probability(probability) {
-  if (probability["min"] == probability["max"]) {
-    return " (" + format_act_prob_part(probability["max"]) + ")";
-  } else if (probability["min"] < probability["max"]) {
-    return " ([" + format_act_prob_part(probability["min"]) + ", " + format_act_prob_part(probability["max"]) + "])";
-  } else {
-    return "";
-  }
-}
-function format_action_label(action_id, action_probabilities) {
-  return store.actions[action_id]["ui_name"].replace("%s", "").replace(
-    "%s",
-    format_action_probability(action_probabilities[action_id])
-  );
-}
-function format_action_tooltip(act_id, act_probs) {
-  let out = "";
-  if (act_probs[act_id]["min"] == act_probs[act_id]["max"]) {
-    out = "The probability of success is ";
-    out += format_act_prob_part(act_probs[act_id]["max"]) + ".";
-  } else if (act_probs[act_id]["min"] < act_probs[act_id]["max"]) {
-    out = "The probability of success is ";
-    out += format_act_prob_part(act_probs[act_id]["min"]);
-    out += ", ";
-    out += format_act_prob_part(act_probs[act_id]["max"]);
-    out += " or somewhere in between.";
-    if (act_probs[act_id]["max"] - act_probs[act_id]["min"] > 1) {
-      out += " (This is the most precise interval I can calculate ";
-      out += "given the information our nation has access to.)";
-    }
-  }
-  return out;
-}
-function act_sel_click_function(parent_id, actor_unit_id, tgt_id, sub_tgt_id, action_id, action_probabilities) {
-  switch (action_id) {
-    case ACTION_SPY_TARGETED_STEAL_TECH:
-    case ACTION_SPY_TARGETED_STEAL_TECH_ESC:
-      return function() {
-        popup_steal_tech_selection_dialog(
-          store.units[actor_unit_id],
-          store.cities[tgt_id],
-          action_probabilities,
-          action_id
-        );
-        set_is_more_user_input_needed(true);
-        document.querySelector(parent_id)?.remove();
-      };
-    case ACTION_SPY_TARGETED_SABOTAGE_CITY:
-    case ACTION_SPY_TARGETED_SABOTAGE_CITY_ESC:
-    case ACTION_SPY_INCITE_CITY:
-    case ACTION_SPY_INCITE_CITY_ESC:
-    case ACTION_SPY_BRIBE_UNIT:
-    case ACTION_UPGRADE_UNIT:
-      return function() {
-        const packet = {
-          "pid": packet_unit_action_query,
-          "actor_id": actor_unit_id,
-          "target_id": tgt_id,
-          "action_type": action_id,
-          "request_kind": REQEST_PLAYER_INITIATED$3
-        };
-        send_request(JSON.stringify(packet));
-        set_is_more_user_input_needed(true);
-        document.querySelector(parent_id)?.remove();
-      };
-    case ACTION_FOUND_CITY:
-      return function() {
-        const packet = {
-          "pid": packet_city_name_suggestion_req,
-          "unit_id": actor_unit_id
-        };
-        send_request(JSON.stringify(packet));
-        set_is_more_user_input_needed(true);
-        document.querySelector(parent_id)?.remove();
-      };
-    default:
-      return function() {
-        request_unit_do_action(action_id, actor_unit_id, tgt_id, sub_tgt_id);
-        document.querySelector(parent_id)?.remove();
-        act_sel_queue_may_be_done(actor_unit_id);
-      };
-  }
-}
-function create_act_sel_button(parent_id, actor_unit_id, tgt_id, sub_tgt_id, action_id, action_probabilities) {
-  const button = {
-    id: "act_sel_" + action_id + "_" + actor_unit_id,
-    "class": "act_sel_button",
-    text: format_action_label(
-      action_id,
-      action_probabilities
-    ),
-    title: format_action_tooltip(
-      action_id,
-      action_probabilities
-    ),
-    click: act_sel_click_function(
-      parent_id,
-      actor_unit_id,
-      tgt_id,
-      sub_tgt_id,
-      action_id,
-      action_probabilities
-    )
-  };
-  return button;
-}
-function actionByNumber(actId) {
-  const actions = store.actions;
-  if (actions[actId] == void 0) {
-    console.log("Asked for non existing action numbered %d", actId);
-    return null;
-  }
-  return actions[actId];
-}
-function actionHasResult(paction, result) {
-  if (paction == null || paction["result"] == null) {
-    console.log("action_has_result(): bad action");
-    console.log(paction);
-    return null;
-  }
-  return paction["result"] == result;
-}
-function actionProbPossible(aprob) {
-  return 0 < aprob["max"] || action_prob_not_impl(aprob);
-}
-const sounds_enabled_get = () => store.soundsEnabled;
-const soundset_get = () => window.soundset ?? {};
-let sound_path = "/sounds/";
-function unit_move_sound_play(unit) {
-  if (!sounds_enabled_get()) return;
-  if (unit == null) return;
-  if (soundset_get() == null) {
-    console.error("soundset not found.");
-    return;
-  }
-  const ptype = unit_type(unit);
-  if (soundset_get()[ptype["sound_move"]] != null) {
-    play_sound(soundset_get()[ptype["sound_move"]]);
-  } else if (soundset_get()[ptype["sound_move_alt"]] != null) {
-    play_sound(soundset_get()[ptype["sound_move_alt"]]);
-  }
-}
-function play_sound(sound_file) {
-  try {
-    if (!sounds_enabled_get() || !document.createElement("audio").canPlayType || Audio == null) return;
-    const audio2 = new Audio(sound_path + sound_file);
-    const promise = audio2.play();
-    if (promise != null) {
-      promise.catch(sound_error_handler);
-    }
-  } catch (err) {
-    sound_error_handler(err);
-  }
-}
-function sound_error_handler(err) {
-  store.soundsEnabled = false;
-  const trackJs = window.trackJs;
-  if (trackJs) {
-    trackJs.console.log(err);
-    trackJs.track("Sound problem");
-  } else {
-    console.error(err);
-  }
-}
-const B_AIRPORT_NAME = "Airport";
-const improvements_name_index = {};
-function improvements_init() {
-  const improvements2 = store.improvements;
-  Object.keys(improvements2).forEach((k2) => delete improvements2[k2]);
-  Object.keys(improvements_name_index).forEach(
-    (k2) => delete improvements_name_index[k2]
-  );
-}
-function get_improvements_from_tech(techId) {
-  const improvements2 = store.improvements;
-  const result = [];
-  for (const improvementId in improvements2) {
-    const pimprovement = improvements2[improvementId];
-    const reqs = get_improvement_requirements(parseInt(improvementId, 10));
-    for (let i2 = 0; i2 < reqs.length; i2++) {
-      if (reqs[i2] == techId) {
-        result.push(pimprovement);
+  for (const tile_id in selected_tiles) {
+    const ptile = selected_tiles[tile_id];
+    const cunits = tile_units(ptile);
+    if (cunits == null) continue;
+    for (let i2 = 0; i2 < cunits.length; i2++) {
+      const aunit = cunits[i2];
+      if (aunit["owner"] == clientPlaying().playerno) {
+        selected_units.push(aunit);
       }
     }
   }
-  return result;
-}
-function is_wonder(improvement) {
-  return improvement["soundtag"][0] === "w";
-}
-function get_improvement_requirements(improvementId) {
-  const improvements2 = store.improvements;
-  const result = [];
-  const improvement = improvements2[improvementId];
-  if (improvement != null && improvement["reqs"] != null) {
-    for (let i2 = 0; i2 < improvement["reqs"].length; i2++) {
-      if (improvement["reqs"][i2]["kind"] == 1 && improvement["reqs"][i2]["present"]) {
-        result.push(improvement["reqs"][i2]["value"]);
-      }
-    }
-  }
-  return result;
-}
-function improvement_id_by_name(name) {
-  return improvements_name_index.hasOwnProperty(name) ? improvements_name_index[name] : -1;
-}
-function popup_pillage_selection_dialog(punit, tgt) {
-  if (punit == null || typeof clientIsObserver === "function" && clientIsObserver()) return;
-  if (tgt.length === 0) return;
-  const dlgId = "pillage_sel_dialog_" + punit["id"];
-  document.getElementById(dlgId)?.remove();
-  const dlg = document.createElement("div");
-  dlg.id = dlgId;
-  dlg.style.cssText = "position:fixed;z-index:5000;background:#222;border:1px solid #555;padding:16px;top:30%;left:50%;transform:translateX(-50%);width:390px;";
-  dlg.appendChild(document.createTextNode("Your " + store.unitTypes[punit["type"]]["name"] + " is waiting for you to select what to pillage."));
-  const btnContainer = document.createElement("div");
-  btnContainer.style.cssText = "margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;";
-  for (let i2 = 0; i2 < tgt.length; i2++) {
-    const extra_id = tgt[i2];
-    if (extra_id === EXTRA_NONE$1) continue;
-    const btn = document.createElement("button");
-    btn.id = "pillage_sel_" + punit["id"] + "_" + extra_id;
-    btn.className = "act_sel_button";
-    btn.textContent = store.extras[extra_id]["name"];
-    btn.addEventListener("click", function(ev) {
-      pillage_target_selected(ev);
-    });
-    btnContainer.appendChild(btn);
-  }
-  const cancelBtn = document.createElement("button");
-  cancelBtn.className = "act_sel_button";
-  cancelBtn.textContent = "Cancel";
-  cancelBtn.addEventListener("click", function() {
-    dlg.remove();
-  });
-  btnContainer.appendChild(cancelBtn);
-  dlg.appendChild(btnContainer);
-  document.getElementById("game_page")?.appendChild(dlg);
-}
-function pillage_target_selected(ev) {
-  const id = ev.target.id;
-  const params = id.match(/pillage_sel_(\d*)_([^_]*)/);
-  if (!params) return;
-  const extra_id = parseInt(params[2], 10);
-  const punit_id = parseInt(params[1], 10);
-  request_unit_do_action(
-    ACTION_PILLAGE$1,
-    punit_id,
-    store.units[punit_id].tile,
-    extra_id
-  );
-  const dlg = ev.target.closest('[id^="pillage_sel_dialog_"]');
-  if (dlg) dlg.remove();
-}
-const SSA_AUTOEXPLORE$1 = ServerSideAgent.AUTOEXPLORE;
-const SSA_AUTOWORKER$1 = ServerSideAgent.AUTOWORKER;
-const SSA_NONE$1 = ServerSideAgent.NONE;
-const ORDER_MOVE$1 = Order.MOVE;
-const ORDER_ACTION_MOVE$1 = Order.ACTION_MOVE;
-const ORDER_PERFORM_ACTION = Order.PERFORM_ACTION;
-function EXTRA_HUT() {
-  return store.extraIds["EXTRA_HUT"] ?? -1;
-}
-function observerGuard() {
-  return clientIsObserver();
-}
-function key_unit_auto_explore() {
-  if (observerGuard()) return;
-  const funits = get_units_in_focus();
-  for (let i2 = 0; i2 < funits.length; i2++) {
-    request_unit_ssa_set(funits[i2], SSA_AUTOEXPLORE$1);
-  }
-  setTimeout(update_unit_focus, 700);
-}
-function key_unit_load() {
-  if (observerGuard()) return;
-  const funits = get_units_in_focus();
-  for (let i2 = 0; i2 < funits.length; i2++) {
-    const punit = funits[i2];
-    const ptile = indexToTile(punit["tile"]);
-    let transporter_unit_id = 0;
-    let has_transport_unit = false;
-    const units_on_tile = tile_units(ptile) || [];
-    for (let r2 = 0; r2 < units_on_tile.length; r2++) {
-      const tunit = units_on_tile[r2];
-      if (tunit["id"] == punit["id"]) continue;
-      const ntype = unit_type(tunit);
-      if (ntype != null && ntype["transport_capacity"] > 0) {
-        has_transport_unit = true;
-        transporter_unit_id = tunit["id"];
-      }
-    }
-    if (has_transport_unit && transporter_unit_id > 0 && punit["tile"] > 0) {
-      request_unit_do_action(
-        ACTION_TRANSPORT_BOARD,
-        punit["id"],
-        transporter_unit_id
-      );
-    }
-  }
-  setTimeout(advance_unit_focus, 700);
-}
-function key_unit_unload() {
-  if (observerGuard()) return;
-  const funits = get_units_in_focus();
-  if (funits.length === 0) return;
-  const last_unit = funits[funits.length - 1];
-  const units_on_tile = tile_units(indexToTile(last_unit["tile"])) || [];
-  for (let i2 = 0; i2 < units_on_tile.length; i2++) {
-    const punit = units_on_tile[i2];
-    if (punit["transported"] && punit["transported_by"] > 0 && clientPlaying() != null && punit["owner"] == clientPlaying().playerno) {
-      request_new_unit_activity(punit, ACTIVITY_IDLE, EXTRA_NONE$1);
-      request_unit_do_action(
-        ACTION_TRANSPORT_DEBOARD,
-        punit["id"],
-        punit["transported_by"]
-      );
-    } else {
-      request_new_unit_activity(punit, ACTIVITY_IDLE, EXTRA_NONE$1);
-      request_unit_do_action(
-        ACTION_TRANSPORT_UNLOAD,
-        punit["transported_by"],
-        punit["id"]
-      );
-    }
-  }
-  setTimeout(advance_unit_focus, 700);
-}
-function key_unit_show_cargo() {
-  if (observerGuard()) return;
-  const funits = get_units_in_focus();
-  if (funits.length === 0) return;
-  const last_unit = funits[funits.length - 1];
-  const units_on_tile = tile_units(indexToTile(last_unit["tile"])) || [];
-  setCurrentFocus([]);
-  for (let i2 = 0; i2 < units_on_tile.length; i2++) {
-    const punit = units_on_tile[i2];
-    if (punit["transported"] && punit["transported_by"] > 0) {
-      current_focus$1.push(punit);
-    }
-  }
+  setCurrentFocus(selected_units);
+  store.currentFocus = selected_units;
+  action_selection_next_in_focus(IDENTITY_NUMBER_ZERO);
   update_active_units_dialog();
-  update_unit_order_commands();
 }
-function key_unit_wait() {
-  if (observerGuard()) return;
-  const funits = get_units_in_focus();
-  for (let i2 = 0; i2 < funits.length; i2++) {
-    const punit = funits[i2];
-    waiting_units_list.push(punit["id"]);
+function recenter_button_pressed(canvas_x, canvas_y) {
+  const map_scroll_border = 8;
+  const big_map_size = 24;
+  let ptile = canvas_pos_to_tile(canvas_x, canvas_y);
+  const orig_tile = ptile;
+  if (ptile != null && ptile["y"] > store.mapInfo.ysize - map_scroll_border && store.mapInfo.xsize > big_map_size && store.mapInfo.ysize > big_map_size) {
+    ptile = map_pos_to_tile$1(ptile["x"], store.mapInfo.ysize - map_scroll_border);
   }
-  advance_unit_focus();
-}
-function key_unit_noorders() {
-  if (observerGuard()) return;
-  const funits = get_units_in_focus();
-  for (let i2 = 0; i2 < funits.length; i2++) {
-    const punit = funits[i2];
-    punit["done_moving"] = true;
+  if (ptile != null && ptile["y"] < map_scroll_border && store.mapInfo.xsize > big_map_size && store.mapInfo.ysize > big_map_size) {
+    ptile = map_pos_to_tile$1(ptile["x"], map_scroll_border);
   }
-  advance_unit_focus();
-}
-function set_focus_units_activity(activity, target = EXTRA_NONE$1) {
-  if (observerGuard()) return;
-  for (const punit of get_units_in_focus()) {
-    request_new_unit_activity(punit, activity, target);
+  if (canClientChangeView() && ptile != null && orig_tile != null) {
+    const sunit = find_visible_unit(orig_tile);
+    if (!clientIsObserver() && sunit != null && sunit["owner"] == clientPlaying().playerno) {
+      if (current_focus.length <= 1) set_unit_focus(sunit);
+      const canvasEl = document.getElementById("canvas");
+      canvasEl.contextMenu?.(true);
+      canvasEl.dispatchEvent(new Event("contextmenu"));
+    } else {
+      const canvasEl = document.getElementById("canvas");
+      canvasEl.contextMenu?.(false);
+      enable_mapview_slide(ptile);
+      center_tile_mapcanvas(ptile);
+    }
   }
-  setTimeout(update_unit_focus, 700);
 }
-function key_unit_idle() {
-  set_focus_units_activity(ACTIVITY_IDLE);
-}
-function key_unit_sentry() {
-  set_focus_units_activity(ACTIVITY_SENTRY);
-}
-function key_unit_fortify() {
-  set_focus_units_activity(ACTIVITY_FORTIFYING);
-}
-function key_unit_fortress() {
-  const funits = get_units_in_focus();
-  for (let i2 = 0; i2 < funits.length; i2++) {
-    const punit = funits[i2];
-    const ptile = indexToTile(punit["tile"]);
-    for (let b2 = 0; b2 < bases$1.length; b2++) {
-      if (bases$1[b2]["base"]["gui_type"] == BASE_GUI_FORTRESS && !tileHasExtra(ptile, bases$1[b2])) {
-        request_new_unit_activity(punit, ACTIVITY_BASE, bases$1[b2]["id"]);
+function handle_web_info_text_message(packet) {
+  let message = decodeURIComponent(packet["message"]);
+  const lines = message.split("\n");
+  const matcher = {
+    "Terri": /^(Territory of )([^(]*)(\s+\([^,]*)(.*)/,
+    "City:": /^(City:[^|]*\|\s+)([^(]*)(\s+\([^,]*)(.*)/,
+    "Unit:": /^(Unit:[^|]*\|\s+)([^(]*)(\s+\([^,]*)(.*)/
+  };
+  for (let i2 = 0; i2 < lines.length; i2++) {
+    const re = matcher[lines[i2].substr(0, 5)];
+    if (re !== void 0) {
+      let pplayer = null;
+      const split_txt = lines[i2].match(re);
+      if (split_txt != null && split_txt.length > 4) {
+        pplayer = player_by_full_username(split_txt[2]);
+      }
+      if (pplayer != null && split_txt != null && (clientPlaying() == null || pplayer != clientPlaying())) {
+        lines[i2] = split_txt[1] + "<a href='#' onclick='javascript:nation_table_select_player(" + pplayer["playerno"] + ");' style='color: black;'>" + split_txt[2] + "</a>" + split_txt[3] + ", " + get_player_connection_status(pplayer) + split_txt[4];
       }
     }
   }
-  setTimeout(update_unit_focus, 700);
-}
-function key_unit_airbase() {
-  const funits = get_units_in_focus();
-  for (let i2 = 0; i2 < funits.length; i2++) {
-    const punit = funits[i2];
-    const ptile = indexToTile(punit["tile"]);
-    for (let b2 = 0; b2 < bases$1.length; b2++) {
-      if (bases$1[b2]["base"]["gui_type"] == BASE_GUI_AIRBASE && !tileHasExtra(ptile, bases$1[b2])) {
-        request_new_unit_activity(punit, ACTIVITY_BASE, bases$1[b2]["id"]);
-      }
-    }
-  }
-  setTimeout(update_unit_focus, 700);
-}
-function key_unit_irrigate() {
-  set_focus_units_activity(ACTIVITY_IRRIGATE);
-}
-function key_unit_cultivate() {
-  set_focus_units_activity(ACTIVITY_CULTIVATE);
-}
-function key_unit_clean() {
-  set_focus_units_activity(ACTIVITY_CLEAN);
-}
-function key_unit_nuke() {
-  if (observerGuard()) return;
-  activate_goto_last(ORDER_PERFORM_ACTION, ACTION_NUKE);
-}
-function key_unit_upgrade() {
-  if (observerGuard()) return;
-  const funits = get_units_in_focus();
-  for (let i2 = 0; i2 < funits.length; i2++) {
-    const punit = funits[i2];
-    const pcity = tileCity(indexToTile(punit["tile"]));
-    const target_id = pcity != null ? pcity["id"] : 0;
-    request_unit_do_action(ACTION_UPGRADE_UNIT, punit["id"], target_id);
-  }
-  update_unit_focus();
-}
-function key_unit_paradrop() {
-  if (observerGuard()) return;
-  setParadropActive(true);
-  message_log.update({
-    event: E_BEGINNER_HELP,
-    message: "Click on the tile to send this paratrooper to."
-  });
-}
-function key_unit_airlift() {
-  if (observerGuard()) return;
-  setAirliftActive(true);
-  message_log.update({
-    event: E_BEGINNER_HELP,
-    message: "Click on the city to airlift this unit to."
-  });
-}
-function key_unit_transform() {
-  set_focus_units_activity(ACTIVITY_TRANSFORM);
-}
-function key_unit_pillage() {
-  if (observerGuard()) return;
-  const funits = get_units_in_focus();
-  for (let i2 = 0; i2 < funits.length; i2++) {
-    const punit = funits[i2];
-    const tgt = get_what_can_unit_pillage_from(punit, null);
-    if (tgt.length > 0) {
-      if (tgt.length == 1) {
-        request_unit_do_action(
-          ACTION_PILLAGE$1,
-          punit["id"],
-          punit.tile,
-          tgt[0]
-        );
-      } else {
-        popup_pillage_selection_dialog(punit, tgt);
-      }
-    }
-  }
-  setTimeout(update_unit_focus, 700);
-}
-function key_unit_mine() {
-  set_focus_units_activity(ACTIVITY_MINE);
-}
-function key_unit_plant() {
-  set_focus_units_activity(ACTIVITY_PLANT);
-}
-function key_unit_road() {
-  if (observerGuard()) return;
-  const funits = get_units_in_focus();
-  for (let i2 = 0; i2 < funits.length; i2++) {
-    const punit = funits[i2];
-    const ptile = indexToTile(punit["tile"]);
-    for (let r2 = 0; r2 < roads$1.length; r2++) {
-      if (!tileHasExtra(ptile, roads$1[r2])) {
-        request_new_unit_activity(punit, ACTIVITY_GEN_ROAD, roads$1[r2]["id"]);
-      }
-    }
-  }
-  setTimeout(update_unit_focus, 700);
-}
-function key_unit_homecity() {
-  if (observerGuard()) return;
-  const funits = get_units_in_focus();
-  for (let i2 = 0; i2 < funits.length; i2++) {
-    const punit = funits[i2];
-    const ptile = indexToTile(punit["tile"]);
-    const pcity = tileCity(ptile);
-    if (pcity != null) {
-      request_unit_do_action(ACTION_HOME_CITY, punit["id"], pcity["id"]);
-      const el = document.getElementById("order_change_homecity");
-      if (el) el.style.display = "none";
-    }
-  }
-}
-function key_unit_action_select() {
-  if (observerGuard()) return;
-  if (action_tgt_sel_active) {
-    setActionTgtSelActive(false);
-    request_unit_act_sel_vs_own_tile();
-  } else {
-    setActionTgtSelActive(true);
-    message_log.update({
-      event: E_BEGINNER_HELP,
-      message: "Click on a tile to act against it. Press 'd' again to act against own tile."
-    });
-  }
-}
-function request_unit_act_sel_vs(ptile) {
-  const funits = get_units_in_focus();
-  for (let i2 = 0; i2 < funits.length; i2++) {
-    const punit = funits[i2];
-    sendUnitSscsSet(punit["id"], UnitSSDataType.QUEUE, ptile["index"]);
-  }
-}
-function request_unit_act_sel_vs_own_tile() {
-  const funits = get_units_in_focus();
-  for (let i2 = 0; i2 < funits.length; i2++) {
-    const punit = funits[i2];
-    sendUnitSscsSet(punit["id"], 0, punit["tile"]);
-  }
-}
-function key_unit_auto_work() {
-  if (observerGuard()) return;
-  const funits = get_units_in_focus();
-  for (let i2 = 0; i2 < funits.length; i2++) {
-    const punit = funits[i2];
-    request_unit_autoworkers(punit);
-  }
-  setTimeout(update_unit_focus, 700);
-}
-function request_unit_cancel_orders(punit) {
-  if (punit != null && (punit.ssa_controller != SSA_NONE$1 || punit.has_orders)) {
-    punit.ssa_controller = SSA_NONE$1;
-    punit.has_orders = false;
-    sendUnitOrders({
-      unit_id: punit.id,
-      src_tile: punit.tile,
-      length: 0,
-      repeat: false,
-      vigilant: false,
-      dest_tile: punit.tile,
-      orders: []
-    });
-  }
-}
-function request_new_unit_activity(punit, activity, target) {
-  request_unit_cancel_orders(punit);
-  action_decision_clear_want(punit["id"]);
-  sendUnitChangeActivity(punit["id"], activity, target);
-}
-function request_unit_ssa_set(punit, agent) {
-  if (punit != null) {
-    sendUnitServerSideAgentSet(punit["id"], agent);
-  }
-}
-function request_unit_autoworkers(punit) {
-  if (punit != null) {
-    request_unit_cancel_orders(punit);
-    action_decision_clear_want(punit["id"]);
-    request_unit_ssa_set(punit, SSA_AUTOWORKER$1);
-  }
-}
-function request_unit_build_city() {
-  if (observerGuard()) return;
-  if (current_focus$1.length > 0) {
-    const punit = current_focus$1[0];
-    if (punit != null) {
-      if (punit["movesleft"] == 0) {
-        message_log.update({
-          event: E_BAD_COMMAND,
-          message: "Unit has no moves left to build city"
-        });
-        return;
-      }
-      const ptype = unit_type(punit);
-      if (ptype != null && (ptype["name"] == "Settlers" || ptype["name"] == "Engineers")) {
-        const target_city = tileCity(indexToTile(punit["tile"]));
-        if (target_city == null) {
-          sendCityNameSuggestionReq(punit["id"]);
-        } else {
-          request_unit_do_action(ACTION_JOIN_CITY, punit.id, target_city.id);
-        }
-      }
-    }
-  }
-}
-function request_unit_do_action(action_id, actor_id, target_id, sub_tgt_id = 0, name = "") {
-  sendUnitDoAction(action_id, actor_id, target_id, sub_tgt_id || 0, name || "");
-  action_decision_clear_want(actor_id);
-}
-function key_unit_disband() {
-  if (observerGuard()) return;
-  swal(
-    {
-      title: "Disband unit?",
-      text: "Do you want to destroy this unit?",
-      type: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#DD6B55",
-      confirmButtonText: "Yes, disband unit.",
-      closeOnConfirm: true
-    },
-    function() {
-      const funits = get_units_in_focus();
-      for (let i2 = 0; i2 < funits.length; i2++) {
-        const punit = funits[i2];
-        const target_city = tileCity(indexToTile(punit["tile"]));
-        const action_id = target_city ? ACTION_DISBAND_UNIT_RECOVER : ACTION_DISBAND_UNIT;
-        const target_id = target_city ? target_city["id"] : punit["id"];
-        request_unit_do_action(action_id, punit["id"], target_id);
-      }
-      setTimeout(update_unit_focus, 700);
-      setTimeout(update_active_units_dialog, 800);
-    }
-  );
-}
-function key_unit_move(dir) {
-  if (observerGuard()) return;
-  if (current_focus$1.length > 0) {
-    const punit = current_focus$1[0];
-    if (punit == null) {
-      return;
-    }
-    const ptile = indexToTile(punit["tile"]);
-    if (ptile == null) {
-      return;
-    }
-    const newtile = mapstep(ptile, dir);
-    if (newtile == null) {
-      return;
-    }
-    const order = {
-      "order": ORDER_ACTION_MOVE$1,
-      "dir": dir,
-      "activity": ACTIVITY_LAST,
-      "target": 0,
-      "sub_target": 0,
-      "action": ACTION_COUNT$1
-    };
-    if (punit["transported"] && clientPlaying() != null && newtile["units"].every(function(ounit) {
-      return ounit["owner"] == clientPlaying()?.playerno;
-    }) && (tileCity(newtile) == null || tileCity(newtile)["owner"] == clientPlaying()?.playerno) && !tileHasExtra(newtile, EXTRA_HUT()) && (newtile["extras_owner"] == clientPlaying().playerno || !tileHasTerritoryClaimingExtra(newtile))) {
-      order["order"] = ORDER_MOVE$1;
-    }
-    sendUnitOrders({
-      unit_id: punit["id"],
-      src_tile: ptile["index"],
-      length: 1,
-      repeat: false,
-      vigilant: false,
-      orders: [order],
-      dest_tile: newtile["index"]
-    });
-    unit_move_sound_play(punit);
-  }
-  deactivate_goto(true);
+  message = lines.join("<br>\n");
+  showDialogMessage("Tile Information", message);
 }
 function governmentMaxRate(govtId) {
   switch (govtId) {
@@ -4841,219 +5161,194 @@ function governmentMaxRate(govtId) {
       return 100;
   }
 }
+function canPlayerGetGov(_govtId) {
+  return false;
+}
+const state$5 = c({
+  open: false,
+  tax: 0,
+  lux: 0,
+  sci: 0,
+  lockTax: false,
+  lockLux: false,
+  lockSci: false
+});
 function playing() {
   return store.client?.conn?.playing;
 }
-function ratesForm() {
-  return document.rates;
-}
-const Slider = window.Slider;
-function setInnerHtml(id, html) {
-  const el = document.getElementById(id);
-  if (el) el.innerHTML = String(html);
-}
-let s_tax = null;
-let s_lux = null;
-let s_sci = null;
-let tax;
-let sci;
-let lux;
-let maxrate = 80;
-let freeze = false;
 function show_tax_rates_dialog() {
-  document.getElementById("rates_dialog")?.remove();
-  const dlg = document.createElement("div");
-  dlg.id = "rates_dialog";
-  dlg.style.cssText = "position:fixed;z-index:5000;background:#222;border:1px solid #555;padding:16px;top:20%;left:50%;transform:translateX(-50%);width:" + (isSmallScreen() ? "90%" : "40%") + ";color:#fff;";
-  dlg.innerHTML = "<h2>Select tax, luxury and science rates</h2><form name='rates'><table border='0' style='color: #ffffff;'><tr> <td><span>Tax:</td> <td> <div class='slider' id='slider-tax' tabIndex='1'></div></td><td><div id='tax_result' style='float:left;'></div></td><td> <INPUT TYPE='CHECKBOX' NAME='lock'>Lock</td></tr><tr><td>Luxury:</td><td><div class='slider' id='slider-lux' tabIndex='1'></div></td><td> <div id='lux_result' style='float:left;'></div></td><td><INPUT TYPE='CHECKBOX' NAME='lock'>Lock</td></tr><tr><td>Science:</td><td><div class='slider' id='slider-sci' tabIndex='1'></div></td><td><div id='sci_result' style='float:left;'></div></td><td><INPUT TYPE='CHECKBOX' NAME='lock'>Lock</td></tr></table></form><div id='max_tax_rate' style='margin:10px;'></div><div style='margin:10px;'>Net income: <span id='income_info'></span><br>Research: <span id='bulbs_info'></span></div>";
-  const closeBtn = document.createElement("button");
-  closeBtn.textContent = "Close";
-  closeBtn.style.cssText = "margin-top:8px;";
-  closeBtn.addEventListener("click", function() {
-    dlg.remove();
-  });
-  dlg.appendChild(closeBtn);
-  document.getElementById("game_page")?.appendChild(dlg);
-  update_rates_dialog();
-}
-function update_rates_dialog() {
   if (clientIsObserver()) return;
-  maxrate = governmentMaxRate(playing()["government"]);
-  const setHtml2 = (id, html) => {
-    const el = document.getElementById(id);
-    if (el) el.innerHTML = html;
+  const p2 = playing();
+  if (!p2) return;
+  state$5.value = {
+    open: true,
+    tax: p2.tax ?? 0,
+    lux: p2.luxury ?? 0,
+    sci: p2.science ?? 0,
+    lockTax: false,
+    lockLux: false,
+    lockSci: false
   };
-  setHtml2("slider-tax", "<input class='slider-input' id='slider-tax-input' name='slider-tax-input'/>");
-  setHtml2("slider-lux", "<input class='slider-input' id='slider-lux-input' name='slider-lux-input'/>");
-  setHtml2("slider-sci", "<input class='slider-input' id='slider-sci-input' name='slider-sci-input'/>");
-  create_rates_dialog(
-    playing()["tax"],
-    playing()["luxury"],
-    playing()["science"],
-    maxrate
-  );
-  const govt = store.governments[playing()["government"]];
-  const maxRateEl = document.getElementById("max_tax_rate");
-  if (maxRateEl) maxRateEl.innerHTML = "<i>" + govt["name"] + " max rate: " + maxrate + "</i>";
-  update_net_income();
-  update_net_bulbs();
 }
-function update_net_income() {
-  let net_income = playing()["expected_income"];
-  if (playing()["expected_income"] > 0) {
-    net_income = "+" + playing()["expected_income"];
-  }
-  setInnerHtml("income_info", net_income);
+function closeDialog$1() {
+  state$5.value = { ...state$5.value, open: false };
 }
-function update_net_bulbs(bulbs) {
-  if (bulbs === void 0) {
-    const cbo = getCurrentBulbsOutput();
-    bulbs = cbo.self_bulbs - cbo.self_upkeep;
-  }
-  const bulbsStr = bulbs > 0 ? "+" + bulbs : String(bulbs);
-  setInnerHtml("bulbs_info", bulbsStr);
+function clampTo10(v2) {
+  return Math.round(v2 / 10) * 10;
 }
-function create_rates_dialog(taxVal, luxVal, sciVal, max) {
-  s_tax = new Slider(
-    document.getElementById("slider-tax"),
-    document.getElementById("slider-tax-input")
-  );
-  s_tax.setValue(taxVal);
-  s_tax.setMaximum(max);
-  s_tax.setMinimum(0);
-  s_tax.setBlockIncrement(10);
-  s_tax.setUnitIncrement(10);
-  s_tax.onchange = update_tax_rates;
-  s_lux = new Slider(
-    document.getElementById("slider-lux"),
-    document.getElementById("slider-lux-input")
-  );
-  s_lux.setValue(luxVal);
-  s_lux.setMaximum(max);
-  s_lux.setMinimum(0);
-  s_lux.setBlockIncrement(10);
-  s_lux.setUnitIncrement(10);
-  s_lux.onchange = update_lux_rates;
-  s_sci = new Slider(
-    document.getElementById("slider-sci"),
-    document.getElementById("slider-sci-input")
-  );
-  s_sci.setValue(sciVal);
-  s_sci.setMaximum(max);
-  s_sci.setMinimum(0);
-  s_sci.setBlockIncrement(10);
-  s_sci.setUnitIncrement(10);
-  s_sci.onchange = update_sci_rates;
-  maxrate = max;
-  update_rates_labels();
+function adjustRates(changed, newVal, cur, maxrate) {
+  newVal = clampTo10(Math.min(newVal, maxrate));
+  let { tax, lux, sci, lockTax, lockLux, lockSci } = cur;
+  if (changed === "tax") {
+    tax = newVal;
+    if (!lockLux) lux = Math.min(Math.max(100 - tax - sci, 0), maxrate);
+    if (tax + lux + sci !== 100 && !lockSci) sci = Math.min(Math.max(100 - tax - lux, 0), maxrate);
+    if (tax + lux + sci !== 100) tax = 100 - lux - sci;
+  } else if (changed === "lux") {
+    lux = newVal;
+    if (!lockTax) tax = Math.min(Math.max(100 - lux - sci, 0), maxrate);
+    if (tax + lux + sci !== 100 && !lockSci) sci = Math.min(Math.max(100 - lux - tax, 0), maxrate);
+    if (tax + lux + sci !== 100) lux = 100 - tax - sci;
+  } else {
+    sci = newVal;
+    if (!lockLux) lux = Math.min(Math.max(100 - tax - sci, 0), maxrate);
+    if (tax + lux + sci !== 100 && !lockTax) tax = Math.min(Math.max(100 - sci - lux, 0), maxrate);
+    if (tax + lux + sci !== 100) sci = 100 - lux - tax;
+  }
+  tax = Math.max(0, Math.min(100, tax));
+  lux = Math.max(0, Math.min(100, lux));
+  sci = Math.max(0, Math.min(100, sci));
+  return { ...cur, tax, lux, sci };
 }
-function update_rates_labels() {
-  tax = s_tax.getValue();
-  lux = s_lux.getValue();
-  sci = s_sci.getValue();
-  setInnerHtml("tax_result", tax + "%");
-  setInnerHtml("lux_result", lux + "%");
-  setInnerHtml("sci_result", sci + "%");
-}
-function update_tax_rates() {
-  if (freeze) return;
-  freeze = true;
-  if (s_tax.getValue() % 10 !== 0) s_tax.setValue(s_tax.getValue() - s_tax.getValue() % 10);
-  if (s_lux.getValue() % 10 !== 0) s_lux.setValue(s_lux.getValue() - s_lux.getValue() % 10);
-  if (s_sci.getValue() % 10 !== 0) s_sci.setValue(s_sci.getValue() - s_sci.getValue() % 10);
-  const lock_lux = ratesForm().lock[1].checked;
-  const lock_sci = ratesForm().lock[2].checked;
-  tax = s_tax.getValue();
-  lux = s_lux.getValue();
-  sci = s_sci.getValue();
-  if (tax + lux + sci !== 100 && lock_lux === false) {
-    lux = Math.min(Math.max(100 - tax - sci, 0), maxrate);
-  }
-  if (tax + lux + sci !== 100 && lock_sci === false) {
-    sci = Math.min(Math.max(100 - lux - tax, 0), maxrate);
-  }
-  if (tax + lux + sci !== 100) {
-    s_tax.setValue(100 - lux - sci);
-    freeze = false;
-    return;
-  }
-  s_tax.setValue(tax);
-  s_lux.setValue(lux);
-  s_sci.setValue(sci);
-  setInnerHtml("tax_result", tax + "%");
-  setInnerHtml("lux_result", lux + "%");
-  setInnerHtml("sci_result", sci + "%");
-  freeze = false;
-  submit_player_rates();
-}
-function update_lux_rates() {
-  if (freeze) return;
-  freeze = true;
-  if (s_tax.getValue() % 10 !== 0) s_tax.setValue(s_tax.getValue() - s_tax.getValue() % 10);
-  if (s_lux.getValue() % 10 !== 0) s_lux.setValue(s_lux.getValue() - s_lux.getValue() % 10);
-  if (s_sci.getValue() % 10 !== 0) s_sci.setValue(s_sci.getValue() - s_sci.getValue() % 10);
-  const lock_tax = ratesForm().lock[0].checked;
-  const lock_sci = ratesForm().lock[2].checked;
-  tax = s_tax.getValue();
-  lux = s_lux.getValue();
-  sci = s_sci.getValue();
-  if (tax + lux + sci !== 100 && lock_tax === false) {
-    tax = Math.min(Math.max(100 - lux - sci, 0), maxrate);
-  }
-  if (tax + lux + sci !== 100 && lock_sci === false) {
-    sci = Math.min(Math.max(100 - lux - tax, 0), maxrate);
-  }
-  if (tax + lux + sci !== 100) {
-    s_lux.setValue(100 - tax - sci);
-    freeze = false;
-    return;
-  }
-  s_tax.setValue(tax);
-  s_lux.setValue(lux);
-  s_sci.setValue(sci);
-  setInnerHtml("tax_result", tax + "%");
-  setInnerHtml("lux_result", lux + "%");
-  setInnerHtml("sci_result", sci + "%");
-  freeze = false;
-  submit_player_rates();
-}
-function update_sci_rates() {
-  if (freeze) return;
-  freeze = true;
-  if (s_tax.getValue() % 10 !== 0) s_tax.setValue(s_tax.getValue() - s_tax.getValue() % 10);
-  if (s_lux.getValue() % 10 !== 0) s_lux.setValue(s_lux.getValue() - s_lux.getValue() % 10);
-  if (s_sci.getValue() % 10 !== 0) s_sci.setValue(s_sci.getValue() - s_sci.getValue() % 10);
-  const lock_tax = ratesForm().lock[0].checked;
-  const lock_lux = ratesForm().lock[1].checked;
-  tax = s_tax.getValue();
-  lux = s_lux.getValue();
-  sci = s_sci.getValue();
-  if (tax + lux + sci !== 100 && lock_lux === false) {
-    lux = Math.min(Math.max(100 - tax - sci, 0), maxrate);
-  }
-  if (tax + lux + sci !== 100 && lock_tax === false) {
-    tax = Math.min(Math.max(100 - sci - lux, 0), maxrate);
-  }
-  if (tax + lux + sci !== 100) {
-    s_sci.setValue(100 - lux - tax);
-    freeze = false;
-    return;
-  }
-  s_tax.setValue(tax);
-  s_lux.setValue(lux);
-  s_sci.setValue(sci);
-  setInnerHtml("tax_result", tax + "%");
-  setInnerHtml("lux_result", lux + "%");
-  setInnerHtml("sci_result", sci + "%");
-  freeze = false;
-  submit_player_rates();
-}
-function submit_player_rates() {
+function submitRates(tax, lux, sci) {
   if (tax >= 0 && tax <= 100 && lux >= 0 && lux <= 100 && sci >= 0 && sci <= 100) {
     sendPlayerRates(tax, lux, sci);
   } else {
     swal("Invalid tax rate values");
   }
+}
+function update_net_bulbs(_bulbs) {
+}
+function RatesDialog() {
+  const { open, tax, lux, sci, lockTax, lockLux, lockSci } = state$5.value;
+  if (clientIsObserver()) return null;
+  const p2 = playing();
+  if (!p2) return null;
+  const maxrate = governmentMaxRate(p2.government ?? 0);
+  const govName = store.governments?.[p2.government]?.name ?? "";
+  const netIncome = p2.expected_income ?? 0;
+  const cbo = getCurrentBulbsOutput();
+  const netBulbs = cbo.self_bulbs - cbo.self_upkeep;
+  const handleChange = (which, val) => {
+    const next = adjustRates(which, val, state$5.value, maxrate);
+    state$5.value = next;
+    submitRates(next.tax, next.lux, next.sci);
+  };
+  const sliderStyle = { width: "100%", cursor: "pointer" };
+  const rowStyle = { display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" };
+  const labelStyle = { width: "65px", textAlign: "right" };
+  const valStyle = { width: "40px", textAlign: "right" };
+  return /* @__PURE__ */ u(
+    Dialog,
+    {
+      title: "Tax, Luxury and Science Rates",
+      open,
+      onClose: closeDialog$1,
+      width: isSmallScreen() ? "90%" : 420,
+      modal: false,
+      children: [
+        /* @__PURE__ */ u("div", { style: rowStyle, children: [
+          /* @__PURE__ */ u("span", { style: labelStyle, children: "Tax:" }),
+          /* @__PURE__ */ u(
+            "input",
+            {
+              type: "range",
+              min: 0,
+              max: maxrate,
+              step: 10,
+              value: tax,
+              onInput: (e2) => handleChange("tax", Number(e2.target.value)),
+              style: sliderStyle
+            }
+          ),
+          /* @__PURE__ */ u("span", { style: valStyle, children: [
+            tax,
+            "%"
+          ] }),
+          /* @__PURE__ */ u("label", { children: [
+            /* @__PURE__ */ u("input", { type: "checkbox", checked: lockTax, onChange: () => {
+              state$5.value = { ...state$5.value, lockTax: !lockTax };
+            } }),
+            " Lock"
+          ] })
+        ] }),
+        /* @__PURE__ */ u("div", { style: rowStyle, children: [
+          /* @__PURE__ */ u("span", { style: labelStyle, children: "Luxury:" }),
+          /* @__PURE__ */ u(
+            "input",
+            {
+              type: "range",
+              min: 0,
+              max: maxrate,
+              step: 10,
+              value: lux,
+              onInput: (e2) => handleChange("lux", Number(e2.target.value)),
+              style: sliderStyle
+            }
+          ),
+          /* @__PURE__ */ u("span", { style: valStyle, children: [
+            lux,
+            "%"
+          ] }),
+          /* @__PURE__ */ u("label", { children: [
+            /* @__PURE__ */ u("input", { type: "checkbox", checked: lockLux, onChange: () => {
+              state$5.value = { ...state$5.value, lockLux: !lockLux };
+            } }),
+            " Lock"
+          ] })
+        ] }),
+        /* @__PURE__ */ u("div", { style: rowStyle, children: [
+          /* @__PURE__ */ u("span", { style: labelStyle, children: "Science:" }),
+          /* @__PURE__ */ u(
+            "input",
+            {
+              type: "range",
+              min: 0,
+              max: maxrate,
+              step: 10,
+              value: sci,
+              onInput: (e2) => handleChange("sci", Number(e2.target.value)),
+              style: sliderStyle
+            }
+          ),
+          /* @__PURE__ */ u("span", { style: valStyle, children: [
+            sci,
+            "%"
+          ] }),
+          /* @__PURE__ */ u("label", { children: [
+            /* @__PURE__ */ u("input", { type: "checkbox", checked: lockSci, onChange: () => {
+              state$5.value = { ...state$5.value, lockSci: !lockSci };
+            } }),
+            " Lock"
+          ] })
+        ] }),
+        /* @__PURE__ */ u("div", { style: { margin: "8px 0", fontStyle: "italic", fontSize: "13px" }, children: [
+          govName,
+          " max rate: ",
+          maxrate,
+          "%"
+        ] }),
+        /* @__PURE__ */ u("div", { style: { margin: "8px 0" }, children: [
+          "Net income: ",
+          /* @__PURE__ */ u("b", { children: netIncome > 0 ? "+" + netIncome : netIncome }),
+          /* @__PURE__ */ u("br", {}),
+          "Research: ",
+          /* @__PURE__ */ u("b", { children: netBulbs > 0 ? "+" + netBulbs : netBulbs })
+        ] }),
+        /* @__PURE__ */ u("div", { style: { display: "flex", justifyContent: "flex-end" }, children: /* @__PURE__ */ u(Button, { variant: "secondary", onClick: closeDialog$1, children: "Close" }) })
+      ]
+    }
+  );
 }
 const reqtree = {
   "2": { "x": 0, "y": 0 },
@@ -5273,6 +5568,7 @@ const bulbs_output_updater = new EventAggregator(
   3,
   250
 );
+globalEvents.on("tech:bulbsUpdate", () => bulbs_output_updater?.update());
 function init_tech_screen() {
   if (isSmallScreen()) tech_canvas_text_font = "20px Arial";
   const techEl = byId$4("technologies");
@@ -5331,8 +5627,9 @@ function update_tech_tree() {
     }
     const sx = Math.floor(reqtree[tech_id + ""]["x"] * tech_xscale);
     const sy = reqtree[tech_id + ""]["y"];
-    for (let i2 = 0; i2 < ptech["research_reqs"].length; i2++) {
-      const rid = ptech["research_reqs"][i2]["value"];
+    const reqs = ptech["research_reqs"];
+    for (let i2 = 0; i2 < reqs.length; i2++) {
+      const rid = reqs[i2]["value"];
       if (rid == 0 || reqtree[rid + ""] == null) continue;
       const dx = Math.floor(reqtree[rid + ""]["x"] * tech_xscale);
       const dy = reqtree[rid + ""]["y"];
@@ -5353,7 +5650,7 @@ function update_tech_tree() {
     }
     const x2 = Math.floor(reqtree[tech_id + ""]["x"] * tech_xscale) + 2;
     const y2 = reqtree[tech_id + ""]["y"] + 2;
-    if (playerInventionState(clientPlaying(), ptech["id"]) == TECH_KNOWN$1) {
+    if (playerInventionState(clientPlaying(), ptech["id"]) == TECH_KNOWN) {
       const tag = tileset_tech_graphic_tag(ptech);
       tech_canvas_ctx.fillStyle = "rgb(255, 255, 255)";
       tech_canvas_ctx.fillRect(x2 - 2, y2 - 2, tech_item_width, tech_item_height);
@@ -5467,11 +5764,11 @@ function get_advances_text(tech_id) {
   const is_valid_and_required = (next_tech_id) => reqtree.hasOwnProperty(next_tech_id) && isTechReqForTech(tech_id, parseInt(next_tech_id));
   const format_list_with_intro = (intro, list) => (list = list.filter(Boolean)).length ? intro + " " + list.join(", ") : "";
   const ptech = techs[tech_id];
-  return tech_span(ptech.name, null, null) + " (" + Math.floor(ptech.cost) + ")" + format_list_with_intro(
+  return tech_span(ptech.name, null, null) + " (" + Math.floor(ptech["cost"]) + ")" + format_list_with_intro(
     " allows",
     [
-      format_list_with_intro("building unit", get_units_from_tech(tech_id).map((unit) => tech_span(unit.name, unit.id, null, unit.helptext))),
-      format_list_with_intro("building", get_improvements_from_tech(tech_id).map((impr) => tech_span(impr.name, null, impr.id, impr.helptext))),
+      format_list_with_intro("building unit", get_units_from_tech(tech_id).map((unit) => tech_span(unit.name, unit.id, null, unit["helptext"]))),
+      format_list_with_intro("building", get_improvements_from_tech(tech_id).map((impr) => tech_span(impr.name, null, impr.id, impr["helptext"]))),
       format_list_with_intro("researching", Object.keys(techs).filter(is_valid_and_required).map((tid) => techs[tid]).map((tech) => tech_span(tech.name, null, null)))
     ]
   ) + ".";
@@ -5750,8 +6047,8 @@ function mouse_moved_cb(e2) {
     if (mapview_mouse_movement && !goto_active) {
       const diff_x = (touch_start_x - mouse_x) * 2;
       const diff_y = (touch_start_y - mouse_y) * 2;
-      mapview$1["gui_x0"] += diff_x;
-      mapview$1["gui_y0"] += diff_y;
+      mapview["gui_x0"] += diff_x;
+      mapview["gui_y0"] += diff_y;
       mark_all_dirty();
       redraw_overview();
       setTouchStart(mouse_x, mouse_y);
@@ -5821,225 +6118,2968 @@ function check_mouse_drag_unit(ptile) {
     update_active_units_dialog();
   }
 }
-const map_pos_to_tile$1 = mapPosToTile;
-let touch_start_x;
-let touch_start_y;
-let map_select_setting_enabled = true;
-let map_select_check = false;
-let map_select_check_started = 0;
-let map_select_active = false;
-let map_select_x;
-let map_select_y;
-function setMapSelectActive(v2) {
-  map_select_active = v2;
-}
-function setMapSelectCheck(v2) {
-  map_select_check = v2;
-}
-function setTouchStart(x2, y2) {
-  touch_start_x = x2;
-  touch_start_y = y2;
-}
-function mapctrl_init_2d() {
-  const canvas = document.getElementById("canvas");
-  canvas.addEventListener("mouseup", mapview_mouse_click);
-  canvas.addEventListener("mousedown", mapview_mouse_down);
-  window.addEventListener("mousemove", mouse_moved_cb);
-  if (isTouchDevice()) {
-    canvas.addEventListener("touchstart", mapview_touch_start);
-    canvas.addEventListener("touchend", mapview_touch_end);
-    canvas.addEventListener("touchmove", mapview_touch_move);
-  }
-}
-function mapview_mouse_click(e2) {
-  let rightclick = false;
-  let middleclick = false;
-  if (!e2) e2 = window.event;
-  if (e2.which) {
-    rightclick = e2.which == 3;
-    middleclick = e2.which == 2;
-  } else if (e2.button) {
-    rightclick = e2.button == 2;
-    middleclick = e2.button == 1 || e2.button == 4;
-  }
-  if (rightclick) {
-    if (!map_select_active || !map_select_setting_enabled) {
-      setContextMenuActive(true);
-      store.contextMenuActive = true;
-      recenter_button_pressed(mouse_x, mouse_y);
-    } else {
-      setContextMenuActive(false);
-      store.contextMenuActive = false;
-      map_select_units(mouse_x, mouse_y);
-    }
-    map_select_active = false;
-    map_select_check = false;
-  } else if (!middleclick) {
-    action_button_pressed(mouse_x, mouse_y, SELECT_POPUP);
-    setMapviewMouseMovement(false);
-    store.mapviewMouseMovement = false;
-    update_mouse_cursor();
-  }
-  setKeyboardInput(true);
-  store.keyboardInput = true;
-}
-function mapview_mouse_down(e2) {
-  let rightclick = false;
-  let middleclick = false;
-  if (!e2) e2 = window.event;
-  if (e2.which) {
-    rightclick = e2.which == 3;
-    middleclick = e2.which == 2;
-  } else if (e2.button) {
-    rightclick = e2.button == 2;
-    middleclick = e2.button == 1 || e2.button == 4;
-  }
-  if (!rightclick && !middleclick) {
-    if (goto_active) return;
-    set_mouse_touch_started_on_unit(canvas_pos_to_tile(mouse_x, mouse_y));
-    check_mouse_drag_unit(canvas_pos_to_tile(mouse_x, mouse_y));
-    setMapviewMouseMovement(true);
-    touch_start_x = mouse_x;
-    touch_start_y = mouse_y;
-  } else if (middleclick || e2["altKey"]) {
-    popit();
+const USSDT_QUEUE = UnitSSDataType.QUEUE;
+const ORDER_LAST = Order.LAST;
+const ORDER_MOVE = Order.MOVE;
+const ORDER_ACTION_MOVE = Order.ACTION_MOVE;
+const ORDER_FULL_MP = Order.FULL_MP;
+function order_wants_direction(order, act_id, ptile) {
+  const action = store.actions[act_id];
+  if (order == goto_last_order && action == null) {
+    console.log("Asked to put invalid action " + act_id + " in an order.");
     return false;
-  } else if (rightclick && !map_select_active && isRightMouseSelectionSupported()) {
-    map_select_check = true;
-    map_select_x = mouse_x;
-    map_select_y = mouse_y;
-    map_select_check_started = (/* @__PURE__ */ new Date()).getTime();
-    setContextMenuActive(false);
-    store.contextMenuActive = false;
+  }
+  switch (order) {
+    case ORDER_MOVE:
+    case ORDER_ACTION_MOVE:
+      return true;
+    case Order.PERFORM_ACTION:
+      if (action["min_distance"] > 0) {
+        return true;
+      }
+      if (action["max_distance"] < 1) {
+        return false;
+      }
+      if (tileCity(ptile) != null || (tile_units(ptile) ?? []).length != 0) {
+        return true;
+      }
+      return false;
+    default:
+      return false;
   }
 }
-function mapview_touch_start(e2) {
-  e2.preventDefault();
-  const canvasEl = document.getElementById("canvas");
-  const rect = canvasEl.getBoundingClientRect();
-  touch_start_x = e2.touches[0].pageX - (rect.left + window.scrollX);
-  touch_start_y = e2.touches[0].pageY - (rect.top + window.scrollY);
-  const ptile = canvas_pos_to_tile(touch_start_x, touch_start_y);
-  set_mouse_touch_started_on_unit(ptile);
-}
-function mapview_touch_end(e2) {
-  action_button_pressed(touch_start_x, touch_start_y, SELECT_POPUP);
-}
-function mapview_touch_move(e2) {
-  const canvasEl = document.getElementById("canvas");
-  const rect = canvasEl.getBoundingClientRect();
-  setMouseX(e2.touches[0].pageX - (rect.left + window.scrollX));
-  setMouseY(e2.touches[0].pageY - (rect.top + window.scrollY));
-  const diff_x = (touch_start_x - mouse_x) * 2;
-  const diff_y = (touch_start_y - mouse_y) * 2;
-  touch_start_x = mouse_x;
-  touch_start_y = mouse_y;
-  if (!goto_active) {
-    check_mouse_drag_unit(canvas_pos_to_tile(mouse_x, mouse_y));
-    mapview$1["gui_x0"] = (mapview$1["gui_x0"] ?? 0) + diff_x;
-    mapview$1["gui_y0"] = (mapview$1["gui_y0"] ?? 0) + diff_y;
-    mark_all_dirty();
+function do_unit_paradrop_to(punit, ptile) {
+  let act_id;
+  let paradrop_action = null;
+  const FC_ACTION_COUNT = ACTION_COUNT$1;
+  for (act_id = 0; act_id < FC_ACTION_COUNT; act_id++) {
+    const paction = actionByNumber(act_id);
+    if (!(actionHasResult(paction, ACTRES_PARADROP_CONQUER) || actionHasResult(paction, ACTRES_PARADROP))) {
+      continue;
+    }
+    if (utype_can_do_action(unit_type(punit), act_id)) {
+      if (paradrop_action == null) {
+        paradrop_action = paction;
+      } else {
+        sendUnitSscsSet(punit["id"], USSDT_QUEUE, ptile["index"]);
+        return;
+      }
+    }
   }
-  if (clientPlaying() == null) return;
-  if (goto_active && current_focus$1.length > 0) {
-    const ptile = canvas_pos_to_tile(mouse_x, mouse_y);
+  if (paradrop_action != null) {
+    request_unit_do_action(
+      paradrop_action["id"],
+      punit["id"],
+      ptile["index"]
+    );
+  }
+}
+function do_map_click(ptile, qtype, first_time_called) {
+  let punit;
+  let packet;
+  let pcity;
+  if (ptile == null || clientIsObserver()) return;
+  if (current_focus.length > 0 && current_focus[0]["tile"] == ptile["index"]) {
+    if (goto_active && !isTouchDevice()) {
+      deactivate_goto(false);
+    }
+    if (store.renderer == RENDERER_2DCANVAS) {
+      document.getElementById("canvas")?.dispatchEvent(new Event("contextmenu"));
+    } else {
+      document.getElementById("canvas_div")?.dispatchEvent(new Event("contextmenu"));
+    }
+    return;
+  }
+  const sunits = tile_units(ptile);
+  pcity = tileCity(ptile);
+  if (goto_active) {
+    if (current_focus.length > 0) {
+      for (let s2 = 0; s2 < current_focus.length; s2++) {
+        punit = current_focus[s2];
+        const goto_path = goto_request_map[punit["id"] + "," + ptile["x"] + "," + ptile["y"]];
+        if (goto_path == null) {
+          continue;
+        }
+        const old_tile = indexToTile(punit["tile"]);
+        packet = {
+          "unit_id": punit["id"],
+          "src_tile": old_tile["index"],
+          "length": goto_path["length"],
+          "repeat": false,
+          "vigilant": false,
+          "dest_tile": ptile["index"],
+          "orders": []
+        };
+        const order = {
+          "order": ORDER_LAST,
+          "activity": ACTIVITY_LAST,
+          "target": 0,
+          "sub_target": 0,
+          "action": ACTION_COUNT$1,
+          "dir": -1
+        };
+        for (let i2 = 0; i2 < goto_path["length"]; i2++) {
+          if (goto_path["dir"][i2] == -1) {
+            order["order"] = ORDER_FULL_MP;
+          } else if (i2 + 1 != goto_path["length"]) {
+            order["order"] = ORDER_MOVE;
+          } else {
+            order["order"] = ORDER_ACTION_MOVE;
+          }
+          order["dir"] = goto_path["dir"][i2];
+          order["activity"] = ACTIVITY_LAST;
+          order["target"] = 0;
+          order["sub_target"] = 0;
+          order["action"] = ACTION_COUNT$1;
+          packet["orders"][i2] = Object.assign({}, order);
+        }
+        if (goto_last_order != ORDER_LAST) {
+          let pos;
+          if (!order_wants_direction(
+            goto_last_order,
+            goto_last_action,
+            ptile
+          )) {
+            pos = packet["length"];
+            packet["length"] = packet["length"] + 1;
+            order["order"] = ORDER_LAST;
+            order["dir"] = -1;
+            order["activity"] = ACTIVITY_LAST;
+            order["target"] = 0;
+            order["sub_target"] = 0;
+            order["action"] = ACTION_COUNT$1;
+          } else {
+            pos = packet["length"] - 1;
+          }
+          order["order"] = goto_last_order;
+          order["action"] = goto_last_action;
+          order["target"] = ptile["index"];
+          packet["orders"][pos] = Object.assign({}, order);
+        }
+        setGotoLastOrder(ORDER_LAST);
+        setGotoLastAction(ACTION_COUNT$1);
+        if (punit["id"] != goto_path["unit_id"]) {
+          console.log("Error: Tried to order unit " + punit["id"] + " to move along a path made for unit " + goto_path["unit_id"]);
+          return;
+        }
+        sendUnitOrders(packet);
+        if (punit["movesleft"] > 0) {
+          unit_move_sound_play(punit);
+        } else if (!has_movesleft_warning_been_shown) {
+          setHasMovesleftWarningBeenShown(true);
+          const ptype = unit_type(punit);
+          message_log.update({
+            event: E_BAD_COMMAND,
+            message: (ptype ? ptype["name"] : "Unit") + " has no moves left. Press turn done for the next turn."
+          });
+        }
+      }
+      clearGotoTiles();
+    } else if (isTouchDevice()) {
+      if (current_focus.length > 0) {
+        request_goto_path(current_focus[0]["id"], ptile["x"], ptile["y"]);
+        if (first_time_called) {
+          setTimeout(function() {
+            do_map_click(ptile, qtype, false);
+          }, 250);
+        }
+        return;
+      }
+    }
+    deactivate_goto(true);
+    update_unit_focus();
+  } else if (paradrop_active && current_focus.length > 0) {
+    punit = current_focus[0];
+    do_unit_paradrop_to(punit, ptile);
+    setParadropActive(false);
+  } else if (airlift_active && current_focus.length > 0) {
+    punit = current_focus[0];
+    pcity = tileCity(ptile);
+    if (pcity != null) {
+      request_unit_do_action(ACTION_AIRLIFT, punit["id"], pcity["id"]);
+    }
+    setAirliftActive(false);
+  } else if (action_tgt_sel_active && current_focus.length > 0) {
+    request_unit_act_sel_vs(ptile);
+    setActionTgtSelActive(false);
+  } else {
+    if (pcity != null) {
+      if (clientPlaying() != null && pcity["owner"] == clientPlaying().playerno) {
+        if (sunits != null && sunits.length > 0 && sunits[0]["activity"] == ACTIVITY_IDLE) {
+          set_unit_focus_and_redraw(sunits[0]);
+          if (store.renderer == RENDERER_2DCANVAS) {
+            document.getElementById("canvas")?.dispatchEvent(new Event("contextmenu"));
+          } else {
+            document.getElementById("canvas_div")?.dispatchEvent(new Event("contextmenu"));
+          }
+        } else if (!goto_active) {
+          show_city_dialog(pcity);
+        }
+      }
+      return;
+    }
+    if (sunits != null && sunits.length == 0) {
+      set_unit_focus_and_redraw(null);
+    } else if (sunits != null && sunits.length > 0) {
+      if (clientPlaying() != null && sunits[0]["owner"] == clientPlaying().playerno) {
+        if (sunits.length == 1) {
+          const unit = sunits[0];
+          set_unit_focus_and_activate(unit);
+        } else {
+          set_unit_focus_and_redraw(sunits[0]);
+          update_active_units_dialog();
+        }
+        if (isTouchDevice()) {
+          if (store.renderer == RENDERER_2DCANVAS) {
+            document.getElementById("canvas")?.dispatchEvent(new Event("contextmenu"));
+          } else {
+            document.getElementById("canvas_div")?.dispatchEvent(new Event("contextmenu"));
+          }
+        }
+      } else if (pcity == null) {
+        setCurrentFocus(sunits);
+        const guod = document.getElementById("game_unit_orders_default");
+        if (guod) guod.style.display = "none";
+        update_active_units_dialog();
+      }
+    }
+  }
+  setParadropActive(false);
+  setAirliftActive(false);
+  setActionTgtSelActive(false);
+}
+function find_active_dialog() {
+  const permanent_widgets = ["game_overview_panel", "game_unit_panel", "game_chatbox_panel"];
+  const dialogs = document.querySelectorAll(".ui-dialog");
+  for (let i2 = 0; i2 < dialogs.length; i2++) {
+    const dialog = dialogs[i2];
+    if (dialog.style.display == "none") {
+      continue;
+    }
+    const children = dialog.children;
+    if (children.length >= 2 && permanent_widgets.indexOf(children[1].id) < 0) {
+      return dialog;
+    }
+  }
+  return null;
+}
+function activate_goto() {
+  clearGotoTiles();
+  activate_goto_last(ORDER_LAST, ACTION_COUNT$1);
+}
+function activate_goto_last(last_order, last_action) {
+  setGotoActive(true);
+  const canvasDiv = document.getElementById("canvas_div");
+  if (canvasDiv) canvasDiv.style.cursor = "crosshair";
+  setGotoLastOrder(last_order);
+  setGotoLastAction(last_action);
+  if (current_focus.length > 0) {
+    if (intro_click_description) {
+      if (isTouchDevice()) {
+        message_log.update({
+          event: E_BEGINNER_HELP,
+          message: "Carefully drag unit to the tile you want it to go to."
+        });
+      } else {
+        message_log.update({
+          event: E_BEGINNER_HELP,
+          message: "Click on the tile to send this unit to."
+        });
+      }
+      setIntroClickDescription(false);
+    }
+  } else {
+    message_log.update({
+      event: E_BEGINNER_HELP,
+      message: "First select a unit to move by clicking on it, then click on the goto button or the 'G' key, then click on the position to move to."
+    });
+    deactivate_goto(false);
+  }
+}
+function deactivate_goto(will_advance_unit_focus) {
+  setGotoActive(false);
+  const canvasDivEl = document.getElementById("canvas_div");
+  if (canvasDivEl) canvasDivEl.style.cursor = "default";
+  setGotoRequestMap({});
+  setGotoTurnsRequestMap({});
+  clearGotoTiles();
+  setGotoLastOrder(ORDER_LAST);
+  setGotoLastAction(ACTION_COUNT$1);
+  if (will_advance_unit_focus) setTimeout(update_unit_focus, 600);
+}
+function send_end_turn() {
+  if (store.gameInfo == null) return;
+  const turnDoneBtn = document.getElementById("turn_done_button");
+  if (turnDoneBtn) turnDoneBtn.disabled = true;
+  sendPlayerPhaseDone(store.gameInfo["turn"]);
+  if (isLongturn()) {
+    showDialogMessage(
+      "Turn done!",
+      "Your turn in this Freeciv-web: One Turn per Day game is now over. In this game one turn is played every day. To play your next turn in this game, go to " + window.location.host + " and click <b>Games</b> in the menu, then <b>Multiplayer</b> and there you will find this Freeciv-web: One Turn per Day game in the list. You can also bookmark this page.<br>See you again soon!"
+    );
+  }
+}
+function request_goto_path(unit_id, dst_x, dst_y) {
+  if (goto_request_map[unit_id + "," + dst_x + "," + dst_y] == null) {
+    goto_request_map[unit_id + "," + dst_x + "," + dst_y] = true;
+    sendGotoPathReq(unit_id, mapPosToTile(dst_x, dst_y)["index"]);
+    setCurrentGotoTurns(null);
+    const unitTextDetails = document.getElementById("unit_text_details");
+    if (unitTextDetails) unitTextDetails.innerHTML = "Choose unit goto";
+    setTimeout(update_mouse_cursor, 700);
+  } else {
+    update_goto_path(goto_request_map[unit_id + "," + dst_x + "," + dst_y]);
+  }
+}
+function check_request_goto_path() {
+  if (goto_active && current_focus.length > 0 && prev_mouse_x == mouse_x && prev_mouse_y == mouse_y) {
+    let ptile;
+    clearGotoTiles();
+    ptile = canvas_pos_to_tile(mouse_x, mouse_y);
     if (ptile != null) {
-      for (let i2 = 0; i2 < current_focus$1.length; i2++) {
-        if (i2 >= 20) return;
-        if (goto_request_map[current_focus$1[i2]["id"] + "," + ptile["x"] + "," + ptile["y"]] == null) {
-          request_goto_path(current_focus$1[i2]["id"], ptile["x"], ptile["y"]);
+      for (let i2 = 0; i2 < current_focus.length; i2++) {
+        request_goto_path(current_focus[i2]["id"], ptile["x"], ptile["y"]);
+      }
+    }
+  }
+  setPrevMouseX(mouse_x);
+  setPrevMouseY(mouse_y);
+}
+function update_goto_path(goto_packet) {
+  const punit = store.units[goto_packet["unit_id"]];
+  if (punit == null) return;
+  const t0 = indexToTile(punit["tile"]);
+  let ptile = t0;
+  const goaltile = indexToTile(goto_packet["dest"]);
+  for (let i2 = 0; i2 < goto_packet["dir"].length; i2++) {
+    if (ptile == null) break;
+    const dir = goto_packet["dir"][i2];
+    if (dir == -1) {
+      continue;
+    }
+    ptile["goto_dir"] = dir;
+    ptile = mapstep(ptile, dir);
+  }
+  setCurrentGotoTurns(goto_packet["turns"]);
+  goto_request_map[goto_packet["unit_id"] + "," + goaltile["x"] + "," + goaltile["y"]] = goto_packet;
+  goto_turns_request_map[goto_packet["unit_id"] + "," + goaltile["x"] + "," + goaltile["y"]] = current_goto_turns;
+  if (current_goto_turns != void 0) {
+    const activeUnitInfo = document.getElementById("active_unit_info");
+    if (activeUnitInfo) activeUnitInfo.innerHTML = "Turns for goto: " + current_goto_turns;
+  }
+  update_mouse_cursor();
+}
+function center_tile_mapcanvas(ptile) {
+  if (ptile == null) return;
+  center_tile_mapcanvas_2d(ptile);
+}
+function popit() {
+  let ptile;
+  ptile = canvas_pos_to_tile(mouse_x, mouse_y);
+  if (ptile == null) return;
+  popit_req(ptile);
+}
+function popit_req(ptile) {
+  if (ptile == null) return;
+  if (tileGetKnown(ptile) == TILE_UNKNOWN) {
+    showDialogMessage("Tile info", "Location: x:" + ptile["x"] + " y:" + ptile["y"]);
+    return;
+  }
+  let punit_id = 0;
+  const punit = find_visible_unit(ptile);
+  if (punit != null) punit_id = punit["id"];
+  let focus_unit_id = 0;
+  if (current_focus.length > 0) {
+    focus_unit_id = current_focus[0]["id"];
+  }
+  sendInfoTextReq(punit_id, ptile["index"], focus_unit_id);
+}
+function center_on_any_city() {
+  for (const city_id in store.cities) {
+    const pcity = store.cities[city_id];
+    center_tile_mapcanvas(cityTile(pcity));
+    return;
+  }
+}
+const CLAUSE_VISION$1 = 8;
+function getDiplstates() {
+  return store.diplstates;
+}
+function getSelectedPlayer() {
+  return store.selectedPlayer;
+}
+function setSelectedPlayer(v2) {
+  store.selectedPlayer = v2;
+}
+function jqButtonEnable(id) {
+  const el = document.getElementById(id);
+  if (el) el.disabled = false;
+}
+function jqButtonDisable(id) {
+  const el = document.getElementById(id);
+  if (el) el.disabled = true;
+}
+function jqButtonLabel(id, label) {
+  const el = document.getElementById(id);
+  if (el) {
+    const inner = el.querySelector(".ui-button-text");
+    if (inner) inner.textContent = label;
+    else el.textContent = label;
+  }
+}
+const MAX_AI_LOVE = 1e3;
+function loveText(love) {
+  if (love <= -MAX_AI_LOVE * 90 / 100) {
+    return "Genocidal";
+  } else if (love <= -MAX_AI_LOVE * 70 / 100) {
+    return "Belligerent";
+  } else if (love <= -MAX_AI_LOVE * 50 / 100) {
+    return "Hostile";
+  } else if (love <= -MAX_AI_LOVE * 25 / 100) {
+    return "Uncooperative";
+  } else if (love <= -MAX_AI_LOVE * 10 / 100) {
+    return "Uneasy";
+  } else if (love <= MAX_AI_LOVE * 10 / 100) {
+    return "Neutral";
+  } else if (love <= MAX_AI_LOVE * 25 / 100) {
+    return "Respectful";
+  } else if (love <= MAX_AI_LOVE * 50 / 100) {
+    return "Helpful";
+  } else if (love <= MAX_AI_LOVE * 70 / 100) {
+    return "Enthusiastic";
+  } else if (love <= MAX_AI_LOVE * 90 / 100) {
+    return "Admiring";
+  } else {
+    return "Worshipful";
+  }
+}
+function getScoreText(player) {
+  const score = player["score"];
+  if (score != null && score >= 0) {
+    return score;
+  } else {
+    return "?";
+  }
+}
+function colLove(pplayer) {
+  if (clientIsObserver() || store.client?.conn?.playing == null || pplayer["playerno"] === clientPlaying()["playerno"] || pplayer["flags"].isSet(PlayerFlag.PLRF_AI) === false) {
+    return "-";
+  } else {
+    return loveText(pplayer["love"][clientPlaying()["playerno"]]);
+  }
+}
+function updateNationScreen() {
+  const diplstates = getDiplstates();
+  let total_players = 0;
+  let no_humans = 0;
+  let no_ais = 0;
+  let nation_list_html = "<table class='tablesorter' id='nation_table' width='95%' border=0 cellspacing=0 ><thead><tr><th>Flag</th><th>Color</th><th>Player Name:</th><th>Nation:</th><th class='nation_attitude'>Attitude</th><th>Score</th><th>AI/Human</th><th>Alive?</th><th>Diplomatic state</th><th>Embassy</th><th>Shared vision</th><th class='nation_team'>Team</th><th>State</th></tr></thead><tbody class='nation_table_body'>";
+  for (const player_id in store.players) {
+    const pplayer = store.players[player_id];
+    if (pplayer["nation"] === -1) continue;
+    if (isLongturn() && pplayer["name"].indexOf("New Available Player") !== -1) continue;
+    total_players++;
+    const flag_html = "<canvas id='nation_dlg_flags_" + player_id + "' width='29' height='20' class='nation_flags'></canvas>";
+    let plr_class = "";
+    if (!clientIsObserver() && clientPlaying() != null && Number(player_id) === clientPlaying()["playerno"]) {
+      plr_class = "nation_row_self";
+    }
+    if (!pplayer["is_alive"]) plr_class = "nation_row_dead";
+    if (!clientIsObserver() && diplstates[Number(player_id)] != null && diplstates[Number(player_id)] === DiplState.DS_WAR) {
+      plr_class = "nation_row_war";
+    }
+    nation_list_html += "<tr data-plrid='" + player_id + "' class='" + plr_class + "'><td>" + flag_html + "</td>";
+    nation_list_html += "<td><div style='background-color: " + store.nations[pplayer["nation"]]["color"] + "; margin: 5px; width: 25px; height: 25px;'></div></td>";
+    nation_list_html += "<td>" + pplayer["name"] + '</td><td title="' + store.nations[pplayer["nation"]]["legend"] + '">' + store.nations[pplayer["nation"]]["adjective"] + "</td><td class='nation_attitude'>" + colLove(pplayer) + "</td><td>" + getScoreText(pplayer) + "</td><td>" + (pplayer["flags"].isSet(PlayerFlag.PLRF_AI) ? get_ai_level_text(pplayer) + " AI" : "Human") + "</td><td>" + (pplayer["is_alive"] ? "Alive" : "Dead") + "</td>";
+    if (!clientIsObserver() && clientPlaying() != null && diplstates[Number(player_id)] != null && Number(player_id) !== clientPlaying()["playerno"]) {
+      nation_list_html += "<td>" + get_diplstate_text(diplstates[Number(player_id)]) + "</td>";
+    } else {
+      nation_list_html += "<td>-</td>";
+    }
+    nation_list_html += "<td>" + get_embassy_text(Number(player_id)) + "</td>";
+    nation_list_html += "<td>";
+    if (!clientIsObserver() && clientPlaying() != null) {
+      if (pplayer["gives_shared_vision"].isSet(clientPlaying()["playerno"]) && clientPlaying()["gives_shared_vision"].isSet(Number(player_id))) {
+        nation_list_html += "Both ways";
+      } else if (pplayer["gives_shared_vision"].isSet(clientPlaying()["playerno"])) {
+        nation_list_html += "To you";
+      } else if (clientPlaying()["gives_shared_vision"].isSet(Number(player_id))) {
+        nation_list_html += "To them";
+      } else {
+        nation_list_html += "None";
+      }
+    }
+    nation_list_html += "</td>";
+    nation_list_html += "<td class='nation_team'>" + (pplayer["team"] + 1) + "</td>";
+    let pstate = " ";
+    if (pplayer["phase_done"] && !pplayer["flags"].isSet(PlayerFlag.PLRF_AI)) {
+      pstate = "Done";
+    } else if (!pplayer["flags"].isSet(PlayerFlag.PLRF_AI) && (pplayer["nturns_idle"] ?? 0) > 1) {
+      pstate += "Idle for " + pplayer["nturns_idle"] + " turns";
+    } else if (!pplayer["phase_done"] && !pplayer["flags"].isSet(PlayerFlag.PLRF_AI)) {
+      pstate = "Moving";
+    }
+    nation_list_html += "<td id='player_state_" + player_id + "'>" + pstate + "</td>";
+    nation_list_html += "</tr>";
+    if (!pplayer["flags"].isSet(PlayerFlag.PLRF_AI) && pplayer["is_alive"] && (pplayer["nturns_idle"] ?? 0) <= 4) {
+      no_humans++;
+    }
+    if (pplayer["flags"].isSet(PlayerFlag.PLRF_AI) && pplayer["is_alive"]) no_ais++;
+  }
+  nation_list_html += "</tbody></table>";
+  const nationsListEl = document.getElementById("nations_list");
+  if (nationsListEl) nationsListEl.innerHTML = nation_list_html;
+  const nationsTitleEl = document.getElementById("nations_title");
+  if (nationsTitleEl) nationsTitleEl.innerHTML = "Nations of the World";
+  const nationsLabelEl = document.getElementById("nations_label");
+  if (nationsLabelEl) {
+    nationsLabelEl.innerHTML = "Human players: " + no_humans + ". AIs: " + no_ais + ". Inactive/dead: " + (total_players - no_humans - no_ais) + ".";
+  }
+  selectNoNation();
+  if (isLongturn()) {
+    const takeBtn = document.getElementById("take_player_button");
+    if (takeBtn) takeBtn.style.display = "none";
+    const toggleBtn = document.getElementById("toggle_ai_button");
+    if (toggleBtn) toggleBtn.style.display = "none";
+    const scoresBtn = document.getElementById("game_scores_button");
+    if (scoresBtn) scoresBtn.style.display = "none";
+  }
+  if (isSmallScreen()) {
+    const takeBtn = document.getElementById("take_player_button");
+    if (takeBtn) takeBtn.style.display = "none";
+  }
+  for (const player_id in store.players) {
+    const pplayer = store.players[player_id];
+    const flag_canvas = document.getElementById("nation_dlg_flags_" + player_id);
+    if (flag_canvas) {
+      const flag_canvas_ctx = flag_canvas.getContext("2d");
+      const tag = "f." + store.nations[pplayer["nation"]]["graphic_str"];
+      if (flag_canvas_ctx != null && store.sprites[tag] != null) {
+        flag_canvas_ctx.drawImage(store.sprites[tag], 0, 0);
+      }
+    }
+  }
+  initTableSort("#nation_table", { sortList: [[2, 0]] });
+  if (isSmallScreen()) {
+    const nationsEl = document.getElementById("nations");
+    if (nationsEl) {
+      nationsEl.style.height = window.innerHeight - 150 + "px";
+      nationsEl.style.width = window.innerWidth + "px";
+    }
+  }
+  const statusUrl = "/civsocket/" + (parseInt(String(store.civserverport)) + 1e3) + "/status";
+  fetch(statusUrl, { cache: "no-store" }).then(function(response) {
+    return response.text();
+  }).then(function(data) {
+    const online_players = {};
+    const players_re = /username: <b>([^<]*)/g;
+    let found;
+    while ((found = players_re.exec(data)) !== null) {
+      if (found[1].length > 0) {
+        online_players[found[1].toLowerCase()] = true;
+      }
+    }
+    for (const player_id in store.players) {
+      const pplayer = store.players[player_id];
+      if (online_players[pplayer["username"].toLowerCase()]) {
+        const stateEl = document.getElementById("player_state_" + player_id);
+        if (stateEl) {
+          stateEl.innerHTML = "<span style='color: #00EE00;'><b>Online</b></span>";
+        }
+      }
+    }
+    const nationTable = document.getElementById("nation_table");
+    if (nationTable) nationTable.dispatchEvent(new Event("update"));
+  }).catch(function() {
+  });
+  if (isLongturn()) {
+    document.querySelectorAll(".nation_attitude").forEach(function(el) {
+      el.style.display = "none";
+    });
+    document.querySelectorAll(".nation_team").forEach(function(el) {
+      el.style.display = "none";
+    });
+  }
+}
+function handleNationTableSelect(ev) {
+  ev.stopPropagation();
+  const new_element = ev.currentTarget;
+  const new_player = parseFloat(new_element.dataset.plrid || "");
+  if (new_player === getSelectedPlayer()) {
+    new_element.classList.remove("ui-selected");
+    selectNoNation();
+  } else {
+    const parent = new_element.parentElement;
+    if (parent) {
+      Array.from(parent.children).forEach(function(sibling) {
+        if (sibling !== new_element) sibling.classList.remove("ui-selected");
+      });
+    }
+    new_element.classList.add("ui-selected");
+    setSelectedPlayer(new_player);
+    selectANation();
+  }
+}
+function selectANation() {
+  const diplstates = getDiplstates();
+  const player_id = getSelectedPlayer();
+  const pplayer = store.players[getSelectedPlayer()];
+  if (pplayer == null) return;
+  const selected_myself = clientPlaying() != null && player_id === clientPlaying()["playerno"];
+  const both_alive_and_different = clientPlaying() != null && player_id !== clientPlaying()["playerno"] && pplayer["is_alive"] && clientPlaying()["is_alive"];
+  if (pplayer["is_alive"] && (clientIsObserver() || selected_myself || diplstates[player_id] != null && diplstates[player_id] !== DiplState.DS_NO_CONTACT || clientState() === C_S_OVER)) {
+    jqButtonEnable("view_player_button");
+  } else {
+    jqButtonDisable("view_player_button");
+  }
+  if (!clientIsObserver() && both_alive_and_different && diplstates[player_id] != null && diplstates[player_id] !== DiplState.DS_NO_CONTACT) {
+    jqButtonEnable("meet_player_button");
+  } else {
+    jqButtonDisable("meet_player_button");
+  }
+  if (!pplayer["flags"].isSet(PlayerFlag.PLRF_AI) && diplstates[player_id] != null && diplstates[player_id] === DiplState.DS_NO_CONTACT) {
+    jqButtonDisable("meet_player_button");
+  }
+  if (pplayer["flags"].isSet(PlayerFlag.PLRF_AI) || selected_myself) {
+    jqButtonDisable("send_message_button");
+  } else {
+    jqButtonEnable("send_message_button");
+  }
+  if (!clientIsObserver() && both_alive_and_different && pplayer["team"] !== clientPlaying()["team"] && diplstates[player_id] != null && diplstates[player_id] !== DiplState.DS_WAR && diplstates[player_id] !== DiplState.DS_NO_CONTACT) {
+    jqButtonEnable("cancel_treaty_button");
+  } else {
+    jqButtonDisable("cancel_treaty_button");
+  }
+  if (canClientControl() && !selected_myself) {
+    if (diplstates[player_id] === DiplState.DS_CEASEFIRE || diplstates[player_id] === DiplState.DS_ARMISTICE || diplstates[player_id] === DiplState.DS_PEACE) {
+      jqButtonLabel("cancel_treaty_button", "Declare war");
+    } else {
+      jqButtonLabel("cancel_treaty_button", "Cancel treaty");
+    }
+  }
+  if (canClientControl() && both_alive_and_different && pplayer["team"] !== clientPlaying()["team"] && clientPlaying()["gives_shared_vision"].isSet(player_id)) {
+    jqButtonEnable("withdraw_vision_button");
+  } else {
+    jqButtonDisable("withdraw_vision_button");
+  }
+  if (clientIsObserver() || both_alive_and_different && diplstates[player_id] !== DiplState.DS_NO_CONTACT) {
+    jqButtonEnable("intelligence_report_button");
+  } else {
+    jqButtonDisable("intelligence_report_button");
+  }
+  if (clientIsObserver() && pplayer["flags"].isSet(PlayerFlag.PLRF_AI) && store.nations[pplayer["nation"]]["is_playable"] && getUrlVar("multi") === "true") {
+    jqButtonEnable("take_player_button");
+  } else {
+    jqButtonDisable("take_player_button");
+  }
+  jqButtonEnable("toggle_ai_button");
+}
+function selectNoNation() {
+  setSelectedPlayer(-1);
+  try {
+    const container = document.getElementById("nations_button_div");
+    if (container) {
+      const buttons = container.querySelectorAll("button");
+      buttons.forEach(function(btn) {
+        if (btn.id !== "game_scores_button") {
+          btn.disabled = true;
+        }
+      });
+    }
+  } catch (_e) {
+  }
+}
+function nationTableSelectPlayer(player_no) {
+  const playersTabLink = document.querySelector("#players_tab a");
+  if (playersTabLink) playersTabLink.click();
+  const row = document.querySelector('#nation_table tr[data-plrid="' + player_no + '"]');
+  if (row) {
+    row.click();
+    row.scrollIntoView();
+  }
+}
+async function cancelTreatyClicked() {
+  if (getSelectedPlayer() === -1) return;
+  const { diplomacy_cancel_treaty: diplomacy_cancel_treaty2 } = await Promise.resolve().then(() => diplomacy);
+  diplomacy_cancel_treaty2(getSelectedPlayer());
+  setDefaultMapviewActive();
+}
+function withdrawVisionClicked() {
+  if (getSelectedPlayer() === -1) return;
+  sendDiplomacyCancelPact(getSelectedPlayer(), CLAUSE_VISION$1);
+  setDefaultMapviewActive();
+}
+function nationMeetClicked() {
+  if (getSelectedPlayer() === -1) return;
+  const pplayer = store.players[getSelectedPlayer()];
+  if (pplayer == null) return;
+  sendDiplomacyInitMeeting(pplayer["playerno"]);
+  setDefaultMapviewActive();
+}
+function takePlayerClicked() {
+  if (getSelectedPlayer() === -1) return;
+  const pplayer = store.players[getSelectedPlayer()];
+  takePlayer(pplayer["name"]);
+  setDefaultMapviewActive();
+}
+function toggleAiClicked() {
+  if (getSelectedPlayer() === -1) return;
+  const pplayer = store.players[getSelectedPlayer()];
+  aitogglePlayer(pplayer["name"]);
+  setDefaultMapviewActive();
+}
+function takePlayer(player_name) {
+  send_message("/take " + player_name);
+  store.observing = false;
+}
+function aitogglePlayer(player_name) {
+  send_message("/aitoggle " + player_name);
+  store.observing = false;
+}
+function centerOnPlayer() {
+  if (getSelectedPlayer() === -1) return;
+  for (const city_id in store.cities) {
+    const pcity = store.cities[city_id];
+    if (cityOwnerPlayerId(pcity) === getSelectedPlayer()) {
+      center_tile_mapcanvas(cityTile(pcity));
+      setDefaultMapviewActive();
+      return;
+    }
+  }
+}
+function sendPrivateMessage(other_player_name) {
+  const inputEl = document.getElementById("private_message_text");
+  const message = other_player_name + ": " + encode_message_text(inputEl ? inputEl.value : "");
+  sendChatMessage(message);
+  setKeyboardInput(true);
+  const dlg = document.getElementById("dialog");
+  if (dlg) dlg.remove();
+}
+function showSendPrivateMessageDialog() {
+  if (getSelectedPlayer() === -1) return;
+  const pplayer = store.players[getSelectedPlayer()];
+  if (pplayer == null) {
+    swal("Please select a player to send a private message to first.");
+    return;
+  }
+  const name = pplayer["name"];
+  setKeyboardInput(false);
+  const oldDialog = document.getElementById("dialog");
+  if (oldDialog) oldDialog.remove();
+  const gamePage = document.querySelector("div#game_page");
+  const dialogEl = document.createElement("div");
+  dialogEl.id = "dialog";
+  if (gamePage) gamePage.appendChild(dialogEl);
+  const intro_html = "Message: <input id='private_message_text' type='text' size='50' maxlength='80'>";
+  dialogEl.innerHTML = intro_html;
+  dialogEl.setAttribute("title", "Send private message to " + name);
+  dialogEl.style.cssText = "position:fixed;z-index:5000;background:#222;border:1px solid #555;padding:16px;top:30%;left:50%;transform:translateX(-50%);width:" + (isSmallScreen() ? "80%" : "40%") + ";";
+  const sendBtn = document.createElement("button");
+  sendBtn.textContent = "Send";
+  sendBtn.style.cssText = "margin-top:8px;margin-right:8px;";
+  sendBtn.addEventListener("click", function() {
+    sendPrivateMessage(name);
+  });
+  const cancelBtn = document.createElement("button");
+  cancelBtn.textContent = "Cancel";
+  cancelBtn.style.cssText = "margin-top:8px;";
+  cancelBtn.addEventListener("click", function() {
+    dialogEl.remove();
+  });
+  dialogEl.appendChild(document.createElement("br"));
+  dialogEl.appendChild(sendBtn);
+  dialogEl.appendChild(cancelBtn);
+  dialogEl.addEventListener("keyup", function(e2) {
+    if (e2.keyCode === 13) {
+      sendPrivateMessage(name);
+    }
+  });
+}
+const FC_DS_ALLIANCE = DiplState.DS_ALLIANCE;
+const FC_PLRF_AI = PlayerFlag.PLRF_AI;
+function chat_context_change() {
+  const recipients = chat_context_get_recipients();
+  if (recipients.length < 4) {
+    chat_context_set_next(recipients);
+  } else {
+    chat_context_dialog_show(recipients);
+  }
+}
+function chat_context_get_recipients() {
+  let allies = false;
+  const pm = [];
+  pm.push({ id: null, flag: null, description: "Everybody" });
+  let self = -1;
+  if (clientPlaying() != null) {
+    self = clientPlaying()["playerno"];
+  }
+  for (const player_id_str in store.players) {
+    const player_id = parseInt(player_id_str);
+    if (player_id == self) continue;
+    const pplayer = store.players[player_id];
+    if (pplayer["flags"].isSet(FC_PLRF_AI)) continue;
+    if (!pplayer["is_alive"]) continue;
+    if (isLongturn() && pplayer["name"].indexOf("New Available Player") != -1) continue;
+    const nation = store.nations[pplayer["nation"]];
+    if (nation == null) continue;
+    pm.push({
+      id: player_id,
+      description: pplayer["name"] + " of the " + nation["adjective"],
+      flag: store.sprites["f." + nation["graphic_str"]]
+    });
+    if (getDiplstates()[player_id] == FC_DS_ALLIANCE) {
+      allies = true;
+    }
+  }
+  if (allies && self >= 0) {
+    pm.push({ id: self, flag: null, description: "Allies" });
+  }
+  pm.sort(function(a2, b2) {
+    if (a2.id == null) return -1;
+    if (b2.id == null) return 1;
+    if (a2.id == self) return -1;
+    if (b2.id == self) return 1;
+    if (a2.description < b2.description) return -1;
+    if (a2.description > b2.description) return 1;
+    return 0;
+  });
+  return pm;
+}
+function chat_context_set_next(recipients) {
+  let next = 0;
+  while (next < recipients.length && recipients[next].id != chat_send_to) {
+    next++;
+  }
+  next++;
+  if (next >= recipients.length) {
+    next = 0;
+  }
+  set_chat_direction(recipients[next].id);
+}
+function chat_context_dialog_show(recipients) {
+  const existingDlg = document.getElementById("chat_context_dialog");
+  if (existingDlg) existingDlg.remove();
+  const dlgDiv = document.createElement("div");
+  dlgDiv.id = "chat_context_dialog";
+  dlgDiv.title = "Choose chat recipient";
+  document.querySelector("div#game_page").appendChild(dlgDiv);
+  let self = -1;
+  if (clientPlaying() != null) {
+    self = clientPlaying()["playerno"];
+  }
+  const tbody_el = document.createElement("tbody");
+  const add_row = function(id, flag, description) {
+    let flag_canvas, ctx, row, cell;
+    row = document.createElement("tr");
+    cell = document.createElement("td");
+    flag_canvas = document.createElement("canvas");
+    flag_canvas.width = 29;
+    flag_canvas.height = 20;
+    ctx = flag_canvas.getContext("2d");
+    if (flag != null) {
+      ctx.drawImage(flag, 0, 0);
+    }
+    cell.appendChild(flag_canvas);
+    row.appendChild(cell);
+    cell = document.createElement("td");
+    cell.appendChild(document.createTextNode(description));
+    row.appendChild(cell);
+    if (id != null) {
+      row.dataset.chatSendTo = String(id);
+    }
+    tbody_el.appendChild(row);
+    return ctx;
+  };
+  for (let i2 = 0; i2 < recipients.length; i2++) {
+    if (recipients[i2].id != chat_send_to) {
+      const ctx = add_row(
+        recipients[i2].id,
+        recipients[i2].flag,
+        recipients[i2].description
+      );
+      if (recipients[i2].id == null || recipients[i2].id == self) {
+        ctx.font = "18px FontAwesome";
+        ctx.fillStyle = "rgba(32, 32, 32, 1)";
+        if (recipients[i2].id == null) {
+          ctx.fillText(CHAT_ICON_EVERYBODY, 5, 15);
+        } else {
+          ctx.fillText(CHAT_ICON_ALLIES, 8, 16);
         }
       }
     }
   }
+  const table = document.createElement("table");
+  table.appendChild(tbody_el);
+  table.addEventListener("click", function(ev) {
+    const row = ev.target.closest("tbody tr");
+    if (row) {
+      handle_chat_direction_chosen.call(row, ev);
+    }
+  });
+  document.getElementById("chat_context_dialog").appendChild(table);
+  const chatDlg = document.getElementById("chat_context_dialog");
+  chatDlg.style.cssText = "position:absolute;z-index:5000;background:#222;border:1px solid #555;padding:8px;max-height:" + Math.floor(0.9 * window.innerHeight) + "px;overflow-y:auto;";
+  chatDlg.style.display = "block";
 }
-function action_button_pressed(canvas_x, canvas_y, qtype) {
-  const ptile = canvas_pos_to_tile(canvas_x, canvas_y);
-  if (canClientChangeView() && ptile != null) {
-    do_map_click(ptile, qtype, true);
+function handle_chat_direction_chosen(ev) {
+  const new_send_to = this.dataset.chatSendTo;
+  const chatDlg = document.getElementById("chat_context_dialog");
+  if (chatDlg) chatDlg.remove();
+  if (new_send_to == null) {
+    set_chat_direction(null);
+  } else {
+    set_chat_direction(parseFloat(new_send_to));
   }
 }
-function map_select_units(canvas_x, canvas_y) {
-  const selected_tiles = {};
-  const selected_units = [];
-  if (clientIsObserver()) return;
-  const start_x = map_select_x < canvas_x ? map_select_x : canvas_x;
-  const start_y = map_select_y < canvas_y ? map_select_y : canvas_y;
-  const end_x = map_select_x < canvas_x ? canvas_x : map_select_x;
-  const end_y = map_select_y < canvas_y ? canvas_y : map_select_y;
-  for (let x2 = start_x; x2 < end_x; x2 += 15) {
-    for (let y2 = start_y; y2 < end_y; y2 += 15) {
-      const ptile = canvas_pos_to_tile(x2, y2);
-      if (ptile != null) {
-        selected_tiles[ptile["tile"]] = ptile;
-      }
+function set_chat_direction(player_id) {
+  if (player_id == chat_send_to) return;
+  let player_name;
+  const iconEl = document.getElementById("chat_direction");
+  if (!iconEl) return;
+  const ctx = iconEl.getContext("2d");
+  if (!ctx) return;
+  if (player_id == null || player_id < 0) {
+    player_id = null;
+    ctx.clearRect(0, 0, 29, 20);
+    ctx.font = "18px FontAwesome";
+    ctx.fillStyle = "rgba(192, 192, 192, 1)";
+    ctx.fillText(CHAT_ICON_EVERYBODY, 7, 15);
+    player_name = "everybody";
+  } else if (clientPlaying() != null && player_id == clientPlaying()["playerno"]) {
+    ctx.clearRect(0, 0, 29, 20);
+    ctx.font = "18px FontAwesome";
+    ctx.fillStyle = "rgba(192, 192, 192, 1)";
+    ctx.fillText(CHAT_ICON_ALLIES, 10, 16);
+    player_name = "allies";
+  } else {
+    const pplayer = store.players[player_id];
+    if (pplayer == null) return;
+    player_name = pplayer["name"] + " of the " + store.nations[pplayer["nation"]]["adjective"];
+    ctx.clearRect(0, 0, 29, 20);
+    const flag = store.sprites["f." + store.nations[pplayer["nation"]]["graphic_str"]];
+    if (flag != null) {
+      ctx.drawImage(flag, 0, 0);
     }
   }
-  for (const tile_id in selected_tiles) {
-    const ptile = selected_tiles[tile_id];
-    const cunits = tile_units(ptile);
-    if (cunits == null) continue;
-    for (let i2 = 0; i2 < cunits.length; i2++) {
-      const aunit = cunits[i2];
-      if (aunit["owner"] == clientPlaying().playerno) {
-        selected_units.push(aunit);
-      }
-    }
-  }
-  setCurrentFocus(selected_units);
-  store.currentFocus = selected_units;
-  action_selection_next_in_focus(IDENTITY_NUMBER_ZERO);
-  update_active_units_dialog();
+  iconEl.title = "Sending messages to " + player_name;
+  setChatSendTo(player_id);
+  const textInput = document.getElementById("game_text_input");
+  if (textInput) textInput.focus();
 }
-function recenter_button_pressed(canvas_x, canvas_y) {
-  const map_scroll_border = 8;
-  const big_map_size = 24;
-  let ptile = canvas_pos_to_tile(canvas_x, canvas_y);
-  const orig_tile = ptile;
-  if (ptile != null && ptile["y"] > store.mapInfo["ysize"] - map_scroll_border && store.mapInfo["xsize"] > big_map_size && store.mapInfo["ysize"] > big_map_size) {
-    ptile = map_pos_to_tile$1(ptile["x"], store.mapInfo["ysize"] - map_scroll_border);
+function encode_message_text(message) {
+  message = message.replace(/^\s+|\s+$/g, "");
+  message = message.replace(/&/g, "&amp;");
+  message = message.replace(/'/g, "&apos;");
+  message = message.replace(/"/g, "&quot;");
+  message = message.replace(/</g, "&lt;");
+  message = message.replace(/>/g, "&gt;");
+  return encodeURIComponent(message);
+}
+function is_unprefixed_message(message) {
+  if (message === null) return false;
+  if (message.length === 0) return true;
+  const first = message.charAt(0);
+  if (first === "/" || first === "." || first === ":") return false;
+  let quoted_pos = -1;
+  if (first === '"' || first === "'") {
+    quoted_pos = message.indexOf(first, 1);
   }
-  if (ptile != null && ptile["y"] < map_scroll_border && store.mapInfo["xsize"] > big_map_size && store.mapInfo["ysize"] > big_map_size) {
-    ptile = map_pos_to_tile$1(ptile["x"], map_scroll_border);
-  }
-  if (canClientChangeView() && ptile != null && orig_tile != null) {
-    const sunit = find_visible_unit(orig_tile);
-    if (!clientIsObserver() && sunit != null && sunit["owner"] == clientPlaying().playerno) {
-      if (current_focus$1.length <= 1) set_unit_focus(sunit);
-      const canvasEl = document.getElementById("canvas");
-      canvasEl.contextMenu?.(true);
-      canvasEl.dispatchEvent(new Event("contextmenu"));
+  const private_mark = message.indexOf(":", quoted_pos);
+  if (private_mark < 0) return true;
+  const space_pos = message.indexOf(" ", quoted_pos);
+  return space_pos !== -1 && space_pos < private_mark;
+}
+function check_text_input(event, chatboxtextarea) {
+  if (event.keyCode == 13 && !event.shiftKey) {
+    let message = chatboxtextarea.value;
+    if (chat_send_to != null && chat_send_to >= 0 && is_unprefixed_message(message)) {
+      if (clientPlaying() != null && chat_send_to == clientPlaying()["playerno"]) {
+        message = ". " + encode_message_text(message);
+      } else {
+        const pplayer = store.players[chat_send_to];
+        if (pplayer == null) {
+          set_chat_direction(null);
+          return;
+        }
+        let player_name = pplayer["name"];
+        const badchars = [" ", '"', "'"];
+        for (const c2 of badchars) {
+          const i2 = player_name.indexOf(c2);
+          if (i2 > 0) {
+            player_name = player_name.substring(0, i2);
+          }
+        }
+        message = player_name + encode_message_text(": " + message);
+      }
     } else {
-      const canvasEl = document.getElementById("canvas");
-      canvasEl.contextMenu?.(false);
-      enable_mapview_slide(ptile);
-      center_tile_mapcanvas(ptile);
+      message = encode_message_text(message);
+    }
+    chatboxtextarea.value = "";
+    if (!isTouchDevice()) chatboxtextarea.focus();
+    setKeyboardInput(true);
+    if (message.length >= 4 && message === message.toUpperCase()) {
+      return;
+    }
+    if (isLongturn() && C_S_RUNNING == clientState() && message != null && message.indexOf(encode_message_text("/set")) != -1) {
+      return;
+    }
+    if (message.length >= max_chat_message_length) {
+      message_log.update({
+        event: E_LOG_ERROR,
+        message: "Error! The message is too long. Limit: " + max_chat_message_length
+      });
+      return;
+    }
+    send_message(message);
+    return false;
+  }
+}
+const PAGE_MAIN = 0;
+const PAGE_START = 1;
+const PAGE_NETWORK = 4;
+const PAGE_GAME = 6;
+let old_page = -1;
+function set_client_page(page) {
+  if (old_page === page) return;
+  if (old_page === -1) {
+    document.getElementById("pregame_page")?.remove();
+  }
+  if (page === PAGE_GAME) {
+    const gamePage = document.getElementById("game_page");
+    if (gamePage) gamePage.style.display = "";
+    set_chat_direction(null);
+  }
+  old_page = page;
+}
+function get_client_page() {
+  return old_page;
+}
+const state$4 = c({
+  open: false,
+  title: "",
+  message: ""
+});
+let autoCloseTimer = null;
+function showMessageDialog(title, message) {
+  if (autoCloseTimer) {
+    clearTimeout(autoCloseTimer);
+    autoCloseTimer = null;
+  }
+  state$4.value = { open: true, title, message };
+  autoCloseTimer = setTimeout(() => {
+    closeMessageDialog();
+  }, 24e3);
+}
+function closeMessageDialog() {
+  if (autoCloseTimer) {
+    clearTimeout(autoCloseTimer);
+    autoCloseTimer = null;
+  }
+  state$4.value = { ...state$4.value, open: false };
+  const input = document.getElementById("game_text_input");
+  if (input) input.blur();
+}
+function MessageDialog() {
+  const { open, title, message } = state$4.value;
+  return /* @__PURE__ */ u(
+    Dialog,
+    {
+      title,
+      open,
+      onClose: closeMessageDialog,
+      width: window.innerWidth <= 600 ? "90%" : "50%",
+      modal: false,
+      children: [
+        /* @__PURE__ */ u(
+          "div",
+          {
+            style: { maxHeight: "450px", overflow: "auto" },
+            dangerouslySetInnerHTML: { __html: message }
+          }
+        ),
+        /* @__PURE__ */ u("div", { style: { marginTop: "12px", textAlign: "right" }, children: /* @__PURE__ */ u(Button, { onClick: closeMessageDialog, children: "Ok" }) })
+      ]
+    }
+  );
+}
+function setClientState(newstate) {
+  if (store.civclientState === newstate) return;
+  store.civclientState = newstate;
+  switch (newstate) {
+    case C_S_RUNNING:
+      try {
+        clear_chatbox();
+        unblockUI();
+        showNewGameMessage();
+      } catch (e2) {
+        console.error("[set_client_state] Error in pre-page setup:", e2);
+      }
+      set_client_page(PAGE_GAME);
+      setupWindowSize();
+      document.querySelectorAll(".context-menu-root").forEach((el) => el.remove());
+      center_on_any_city();
+      advance_unit_focus();
+      break;
+    case C_S_OVER:
+      setTimeout(function() {
+        showEndgameDialog();
+      }, 500);
+      break;
+  }
+}
+function setupWindowSize() {
+  const winWidth = window.innerWidth;
+  const winHeight = window.innerHeight;
+  const new_mapview_width = winWidth - store.widthOffset;
+  const new_mapview_height = winHeight - store.heightOffset;
+  if (store.renderer === RENDERER_2DCANVAS && store.mapviewCanvas) {
+    store.mapviewCanvas.width = new_mapview_width;
+    store.mapviewCanvas.height = new_mapview_height;
+    if (store.bufferCanvas) {
+      store.bufferCanvas.width = Math.floor(new_mapview_width * 1.5);
+      store.bufferCanvas.height = Math.floor(new_mapview_height * 1.5);
+    }
+    mapview["width"] = new_mapview_width;
+    mapview["height"] = new_mapview_height;
+    mapview["store_width"] = new_mapview_width;
+    mapview["store_height"] = new_mapview_height;
+    if (store.mapviewCanvasCtx) store.mapviewCanvasCtx.font = canvas_text_font;
+    if (store.bufferCanvasCtx) store.bufferCanvasCtx.font = canvas_text_font;
+  }
+  const _el = (id) => document.getElementById(id);
+  const _setH = (id, h2) => {
+    const el = _el(id);
+    if (el) el.style.height = typeof h2 === "number" ? h2 + "px" : h2;
+  };
+  const _setW = (id, w2) => {
+    const el = _el(id);
+    if (el) el.style.width = typeof w2 === "number" ? w2 + "px" : w2;
+  };
+  const _show = (id) => {
+    const el = _el(id);
+    if (el) el.style.display = "";
+  };
+  const _hide = (id) => {
+    const el = _el(id);
+    if (el) el.style.display = "none";
+  };
+  _setH("nations", new_mapview_height - 100);
+  _setW("nations", new_mapview_width);
+  const tabs = _el("tabs");
+  if (tabs) tabs.style.height = winHeight + "px";
+  _setH("tabs-map", "auto");
+  _setH("city_viewport", new_mapview_height - 20);
+  _show("opt_tab");
+  _show("players_tab");
+  _show("freeciv_logo");
+  _hide("tabs-hel");
+  if (is_small_screen()) {
+    const setTabIcon = (id, emoji) => {
+      const el = _el(id);
+      if (el) {
+        const a2 = el.querySelector("a");
+        if (a2) a2.textContent = emoji;
+      }
+    };
+    setTabIcon("map_tab", "🌍");
+    setTabIcon("opt_tab", "⚙️");
+    setTabIcon("players_tab", "🏴");
+    setTabIcon("tech_tab", "🧪");
+    setTabIcon("hel_tab", "❓");
+    document.querySelectorAll(".ui-tabs-anchor").forEach((el) => el.style.padding = "7px");
+    document.querySelectorAll(".overview_dialog").forEach((el) => el.style.display = "none");
+    document.querySelectorAll(".ui-dialog-titlebar").forEach((el) => el.style.display = "none");
+    _hide("freeciv_logo");
+    setOverviewActive(false);
+    _el("game_unit_orders_default")?.remove();
+    _el("game_unit_orders_settlers")?.remove();
+    const statusBottom = _el("game_status_panel_bottom");
+    if (statusBottom) statusBottom.style.fontSize = "0.8em";
+  }
+  if (overview_active) init_overview();
+  if (unitpanel_active) init_game_unit_panel();
+}
+function showNewGameMessage() {
+  clear_chatbox();
+}
+function showEndgameDialog() {
+  const title = "Final Report: The Greatest Civilizations in the world!";
+  let message = "";
+  for (let i2 = 0; i2 < store.endgamePlayerInfo.length; i2++) {
+    const info = store.endgamePlayerInfo[i2];
+    const pplayer = store.players[info["player_id"]];
+    const nation_adj = store.nations[pplayer["nation"]]?.["adjective"] ?? "Unknown";
+    message += i2 + 1 + ": The " + nation_adj + " ruler " + pplayer["name"] + " scored " + info["score"] + " points<br>";
+  }
+  showMessageDialog(title, message);
+}
+function setDefaultMapviewActive() {
+  if (store.renderer === RENDERER_2DCANVAS && store.mapviewCanvas) {
+    store.mapviewCanvasCtx = store.mapviewCanvas.getContext("2d");
+    if (store.mapviewCanvasCtx) store.mapviewCanvasCtx.font = canvas_text_font;
+  }
+  const active_tab = getActiveTab("#tabs");
+  if (active_tab === 4) return;
+  if (unitpanel_active) {
+    update_active_units_dialog();
+  }
+  if (chatbox_active) {
+    const chatPanel = document.getElementById("game_chatbox_panel");
+    if (chatPanel?.parentElement) chatPanel.parentElement.style.display = "";
+  }
+  setActiveTab("#tabs", 0);
+  const tabsMap = document.getElementById("tabs-map");
+  if (tabsMap) tabsMap.style.height = "auto";
+  setTechDialogActive(false);
+  setAllowRightClick(false);
+  setKeyboardInput(true);
+  const scrollDiv = document.getElementById("freeciv_custom_scrollbar_div");
+  if (scrollDiv) scrollDiv.scrollTop = scrollDiv.scrollHeight;
+  if (!is_small_screen()) {
+    const overviewPanel = document.getElementById("game_overview_panel");
+    if (overviewPanel?.parentElement) overviewPanel.parentElement.style.display = "";
+  }
+  mark_all_dirty();
+}
+const TILE_INDEX_NONE$1 = -1;
+let action_selection_restart = false;
+let did_not_decide = false;
+function _set_action_selection_restart(val) {
+  action_selection_restart = val;
+}
+function _set_did_not_decide(val) {
+  did_not_decide = val;
+}
+function act_sel_queue_may_be_done(actor_unit_id) {
+  if (!is_more_user_input_needed) {
+    if (action_selection_restart) {
+      action_selection_restart = false;
+    } else {
+      action_selection_no_longer_in_progress(actor_unit_id);
+    }
+    if (did_not_decide) {
+      did_not_decide = false;
+    } else {
+      action_decision_clear_want(actor_unit_id);
+      action_selection_next_in_focus(actor_unit_id);
     }
   }
 }
-function handle_web_info_text_message(packet) {
-  let message = decodeURIComponent(packet["message"]);
-  const lines = message.split("\n");
-  const matcher = {
-    "Terri": /^(Territory of )([^(]*)(\s+\([^,]*)(.*)/,
-    "City:": /^(City:[^|]*\|\s+)([^(]*)(\s+\([^,]*)(.*)/,
-    "Unit:": /^(Unit:[^|]*\|\s+)([^(]*)(\s+\([^,]*)(.*)/
-  };
-  for (let i2 = 0; i2 < lines.length; i2++) {
-    const re = matcher[lines[i2].substr(0, 5)];
-    if (re !== void 0) {
-      let pplayer = null;
-      const split_txt = lines[i2].match(re);
-      if (split_txt != null && split_txt.length > 4) {
-        pplayer = player_by_full_username(split_txt[2]);
+function act_sel_queue_done(actor_unit_id) {
+  set_is_more_user_input_needed(false);
+  act_sel_queue_may_be_done(actor_unit_id);
+  action_selection_restart = false;
+  did_not_decide = false;
+}
+function action_selection_actor_unit() {
+  return action_selection_in_progress_for;
+}
+function action_selection_target_city() {
+  if (action_selection_in_progress_for == IDENTITY_NUMBER_ZERO) {
+    return IDENTITY_NUMBER_ZERO;
+  }
+  const el = document.getElementById("act_sel_dialog_" + action_selection_in_progress_for);
+  return el ? Number(el.getAttribute("target_city")) : IDENTITY_NUMBER_ZERO;
+}
+function action_selection_target_unit() {
+  if (action_selection_in_progress_for == IDENTITY_NUMBER_ZERO) {
+    return IDENTITY_NUMBER_ZERO;
+  }
+  const el = document.getElementById("act_sel_dialog_" + action_selection_in_progress_for);
+  return el ? Number(el.getAttribute("target_unit")) : IDENTITY_NUMBER_ZERO;
+}
+function action_selection_target_tile() {
+  if (action_selection_in_progress_for == IDENTITY_NUMBER_ZERO) {
+    return TILE_INDEX_NONE$1;
+  }
+  const el = document.getElementById("act_sel_dialog_" + action_selection_in_progress_for);
+  return el ? Number(el.getAttribute("target_tile")) : TILE_INDEX_NONE$1;
+}
+function action_selection_target_extra() {
+  if (action_selection_in_progress_for == IDENTITY_NUMBER_ZERO) {
+    return EXTRA_NONE;
+  }
+  const el = document.getElementById("act_sel_dialog_" + action_selection_in_progress_for);
+  return el ? Number(el.getAttribute("target_extra")) : EXTRA_NONE;
+}
+function action_selection_refresh(actor_unit, target_city, target_unit, target_tile, target_extra, act_probs) {
+  document.getElementById("act_sel_dialog_" + actor_unit["id"])?.remove();
+  popup_action_selection(
+    actor_unit,
+    act_probs,
+    target_tile,
+    target_extra,
+    target_unit,
+    target_city
+  );
+}
+function action_selection_close() {
+  const actor_unit_id = action_selection_in_progress_for;
+  const ids = [
+    "act_sel_dialog_" + actor_unit_id,
+    "bribe_unit_dialog_" + actor_unit_id,
+    "incite_city_dialog_" + actor_unit_id,
+    "upgrade_unit_dialog_" + actor_unit_id,
+    "stealtech_dialog_" + actor_unit_id,
+    "sabotage_impr_dialog_" + actor_unit_id,
+    "sel_tgt_unit_dialog_" + actor_unit_id,
+    "sel_tgt_extra_dialog_" + actor_unit_id,
+    "city_name_dialog"
+  ];
+  for (const id of ids) {
+    document.getElementById(id)?.remove();
+  }
+  act_sel_queue_done(actor_unit_id);
+}
+function list_potential_target_extras(act_unit, target_tile) {
+  const potential_targets = [];
+  if (!target_tile) return potential_targets;
+  for (let i2 = 0; i2 < (store.rulesControl?.num_extra_types ?? 0); i2++) {
+    const pextra = store.extras[i2];
+    if (tileHasExtra(target_tile, pextra.id)) {
+      if (isExtraRemovedBy(pextra, ERM_PILLAGE) && unit_can_do_action(act_unit, ACTION_PILLAGE) || isExtraRemovedBy(pextra, ERM_CLEAN) && unit_can_do_action(act_unit, ACTION_CLEAN)) {
+        potential_targets.push(pextra);
       }
-      if (pplayer != null && split_txt != null && (clientPlaying() == null || pplayer != clientPlaying())) {
-        lines[i2] = split_txt[1] + "<a href='#' onclick='javascript:nation_table_select_player(" + pplayer["playerno"] + ");' style='color: black;'>" + split_txt[2] + "</a>" + split_txt[3] + ", " + get_player_connection_status(pplayer) + split_txt[4];
+    } else {
+      if (pextra.buildable && (isExtraCausedBy(pextra, EC_IRRIGATION) && unit_can_do_action(act_unit, ACTION_IRRIGATE) || isExtraCausedBy(pextra, EC_MINE) && unit_can_do_action(act_unit, ACTION_MINE) || isExtraCausedBy(pextra, EC_BASE) && unit_can_do_action(act_unit, ACTION_BASE) || isExtraCausedBy(pextra, EC_ROAD) && unit_can_do_action(act_unit, ACTION_ROAD))) {
+        potential_targets.push(pextra);
       }
     }
   }
-  message = lines.join("<br>\n");
-  showDialogMessage("Tile Information", message);
+  return potential_targets;
+}
+function select_tgt_unit(actor_unit, target_tile, potential_tgt_units) {
+}
+function select_tgt_extra(actor_unit, target_unit, target_tile, potential_tgt_extras) {
+}
+const TILE_INDEX_NONE = -1;
+let auto_attack = false;
+function createNativeDialog(dlgId, title, content, buttons, opts) {
+  document.getElementById(dlgId)?.remove();
+  const dlg = document.createElement("div");
+  dlg.id = dlgId;
+  dlg.className = "act_sel_dialog";
+  const w2 = opts?.width || "390px";
+  dlg.style.cssText = "position:fixed;z-index:5000;background:#222;border:1px solid #555;padding:16px;top:20%;left:50%;transform:translateX(-50%);width:" + w2 + ";max-height:70vh;overflow-y:auto;color:#fff;";
+  if (title) {
+    const h2 = document.createElement("h3");
+    h2.textContent = title;
+    h2.style.cssText = "margin:0 0 8px;";
+    dlg.appendChild(h2);
+  }
+  if (content) {
+    const body = document.createElement("div");
+    body.innerHTML = content;
+    dlg.appendChild(body);
+  }
+  const btnContainer = document.createElement("div");
+  btnContainer.style.cssText = "margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;";
+  for (const b2 of buttons) {
+    const btn = document.createElement("button");
+    if (b2.id) btn.id = b2.id;
+    if (b2.class) btn.className = b2.class;
+    btn.textContent = b2.text;
+    if (b2.title) btn.title = b2.title;
+    btn.addEventListener("click", b2.click);
+    btnContainer.appendChild(btn);
+  }
+  dlg.appendChild(btnContainer);
+  document.getElementById("game_page")?.appendChild(dlg);
+  return dlg;
+}
+function removeDialog(dlgId) {
+  document.getElementById(dlgId)?.remove();
+}
+function popup_action_selection(actor_unit, action_probabilities, target_tile, target_extra, target_unit, target_city) {
+  if (clientIsObserver()) return;
+  const dlgId = "act_sel_dialog_" + actor_unit["id"];
+  if (action_selection_in_progress_for != IDENTITY_NUMBER_ZERO && action_selection_in_progress_for != actor_unit["id"]) {
+    logNormal(
+      "Looks like unit %d has an action selection dialog open but a dialog for unit %d is about to be opened.",
+      action_selection_in_progress_for,
+      actor_unit["id"]
+    );
+    logNormal(
+      "Closing the action selection dialog for unit %d",
+      action_selection_in_progress_for
+    );
+    action_selection_close();
+  }
+  const actor_homecity = store.cities[actor_unit["homecity"]];
+  let dhtml = "";
+  if (target_city != null) {
+    dhtml += "Your " + store.unitTypes[actor_unit["type"]]["name"];
+    if (actor_homecity != null) {
+      dhtml += " from " + decodeURIComponent(actor_homecity["name"]);
+    }
+    dhtml += " has arrived at " + decodeURIComponent(target_city["name"]) + ". What is your command?";
+  } else if (target_unit != null) {
+    dhtml += "Your " + store.unitTypes[actor_unit["type"]]["name"] + " is ready to act against " + store.nations[unit_owner(target_unit)["nation"]]["adjective"] + " " + store.unitTypes[target_unit["type"]]["name"] + ".";
+  } else {
+    dhtml += "Your " + store.unitTypes[actor_unit["type"]]["name"] + " is waiting for your command.";
+  }
+  const buttons = [];
+  for (let tgt_kind = ATK_CITY; tgt_kind < ATK_COUNT; tgt_kind++) {
+    let tgt_id = -1;
+    let sub_tgt_id = -1;
+    switch (tgt_kind) {
+      case ATK_CITY:
+        if (target_city != null) tgt_id = target_city["id"];
+        break;
+      case ATK_UNIT:
+        if (target_unit != null) tgt_id = target_unit["id"];
+        break;
+      case ATK_UNITS:
+        if (target_tile != null) tgt_id = target_tile["index"];
+        break;
+      case ATK_TILE:
+      case ATK_EXTRAS:
+        if (target_tile != null) tgt_id = target_tile["index"];
+        if (target_extra != null) sub_tgt_id = target_extra["id"];
+        break;
+      case ATK_SELF:
+        if (actor_unit != null) tgt_id = actor_unit["id"];
+        break;
+      default:
+        logError("Unsupported action target kind " + tgt_kind);
+        break;
+    }
+    for (let action_id = 0; action_id < ACTION_COUNT$1; action_id++) {
+      if (store.actions[action_id]["tgt_kind"] == tgt_kind && actionProbPossible(action_probabilities[action_id])) {
+        const b2 = create_act_sel_button(
+          "#" + dlgId,
+          actor_unit["id"],
+          tgt_id,
+          sub_tgt_id,
+          action_id,
+          action_probabilities
+        );
+        buttons.push({ text: b2.text, id: b2.id, class: b2["class"], title: b2.title, click: b2.click });
+      }
+    }
+  }
+  if (target_unit != null && tile_units(target_tile).length > 1) {
+    buttons.push({
+      id: "act_sel_tgt_unit_switch" + actor_unit["id"],
+      class: "act_sel_button",
+      text: "Change unit target",
+      click: function() {
+        select_tgt_unit(actor_unit, target_tile, tile_units(target_tile) ?? []);
+        _set_action_selection_restart(true);
+        removeDialog(dlgId);
+      }
+    });
+  }
+  if (target_extra != null) {
+    buttons.push({
+      id: "act_sel_tgt_extra_switch" + actor_unit["id"],
+      class: "act_sel_button",
+      text: "Change extra target",
+      click: function() {
+        select_tgt_extra(
+          actor_unit,
+          target_unit,
+          target_tile,
+          list_potential_target_extras(actor_unit, target_tile)
+        );
+        _set_action_selection_restart(true);
+        removeDialog(dlgId);
+      }
+    });
+  }
+  if (actionProbPossible(action_probabilities[ACTION_ATTACK])) {
+    if (!auto_attack) {
+      buttons.push({
+        id: "act_sel_" + ACTION_ATTACK + "_" + actor_unit["id"],
+        class: "act_sel_button",
+        text: "Auto attack from now on!",
+        title: "Attack without showing this attack dialog in the future",
+        click: function() {
+          request_unit_do_action(ACTION_ATTACK, actor_unit["id"], target_tile["index"]);
+          auto_attack = true;
+          removeDialog(dlgId);
+          act_sel_queue_may_be_done(actor_unit["id"]);
+        }
+      });
+    }
+  }
+  buttons.push({
+    id: "act_sel_wait" + actor_unit["id"],
+    class: "act_sel_button",
+    text: "Wait",
+    click: function() {
+      _set_did_not_decide(true);
+      removeDialog(dlgId);
+      act_sel_queue_may_be_done(actor_unit["id"]);
+    }
+  });
+  buttons.push({
+    id: "act_sel_cancel" + actor_unit["id"],
+    class: "act_sel_button",
+    text: "Cancel",
+    click: function() {
+      removeDialog(dlgId);
+      act_sel_queue_may_be_done(actor_unit["id"]);
+    }
+  });
+  const dlg = createNativeDialog(
+    dlgId,
+    "Choose Your " + store.unitTypes[actor_unit["type"]]["name"] + "'s Strategy",
+    dhtml,
+    buttons
+  );
+  dlg.setAttribute("actor_unit", String(actor_unit != null ? actor_unit["id"] : IDENTITY_NUMBER_ZERO));
+  dlg.setAttribute("target_city", String(target_city != null ? target_city["id"] : IDENTITY_NUMBER_ZERO));
+  dlg.setAttribute("target_unit", String(target_unit != null ? target_unit["id"] : IDENTITY_NUMBER_ZERO));
+  dlg.setAttribute("target_tile", String(target_tile != null ? target_tile["index"] : TILE_INDEX_NONE));
+  dlg.setAttribute("target_extra", String(target_extra != null ? target_extra["id"] : EXTRA_NONE));
+  set_is_more_user_input_needed(false);
+}
+function popup_bribe_dialog(actor_unit, target_unit, cost, act_id) {
+  const dlgId = "bribe_unit_dialog_" + actor_unit["id"];
+  let dhtml = "";
+  dhtml += "Treasury contains " + unit_owner(actor_unit)["gold"] + " gold. ";
+  dhtml += "The price of bribing " + store.nations[unit_owner(target_unit)["nation"]]["adjective"] + " " + store.unitTypes[target_unit["type"]]["name"] + " is " + cost + ". ";
+  const bribe_possible = cost <= unit_owner(actor_unit)["gold"];
+  if (!bribe_possible) {
+    dhtml += "Traitors Demand Too Much!<br>";
+  }
+  const buttons = [];
+  if (bribe_possible) {
+    buttons.push({
+      text: "Do it!",
+      click: function() {
+        request_unit_do_action(act_id, actor_unit["id"], target_unit["id"]);
+        removeDialog(dlgId);
+        act_sel_queue_done(actor_unit["id"]);
+      }
+    });
+  }
+  buttons.push({
+    text: bribe_possible ? "Cancel" : "Close",
+    click: function() {
+      removeDialog(dlgId);
+      act_sel_queue_done(actor_unit["id"]);
+    }
+  });
+  createNativeDialog(dlgId, "About that bribery you requested...", dhtml, buttons);
+}
+function popup_incite_dialog(actor_unit, target_city, cost, act_id) {
+  const dlgId = "incite_city_dialog_" + actor_unit["id"];
+  let dhtml = "";
+  dhtml += "Treasury contains " + unit_owner(actor_unit)["gold"] + " gold. ";
+  dhtml += "The price of inciting " + decodeURIComponent(target_city["name"]) + " is " + cost + ".";
+  const incite_possible = cost != INCITE_IMPOSSIBLE_COST && cost <= unit_owner(actor_unit)["gold"];
+  if (!incite_possible) {
+    dhtml += " Traitors Demand Too Much!<br>";
+  }
+  const buttons = [];
+  if (incite_possible) {
+    buttons.push({
+      text: "Do it!",
+      click: function() {
+        request_unit_do_action(act_id, actor_unit["id"], target_city["id"]);
+        removeDialog(dlgId);
+        act_sel_queue_done(actor_unit["id"]);
+      }
+    });
+  }
+  buttons.push({
+    text: incite_possible ? "Cancel" : "Close",
+    click: function() {
+      removeDialog(dlgId);
+      act_sel_queue_done(actor_unit["id"]);
+    }
+  });
+  createNativeDialog(dlgId, "About that incite you requested...", dhtml, buttons);
+}
+function popup_unit_upgrade_dlg(actor_unit, target_city, cost, act_id) {
+  const dlgId = "upgrade_unit_dialog_" + actor_unit["id"];
+  let dhtml = "";
+  dhtml += "Treasury contains " + unit_owner(actor_unit)["gold"] + " gold. ";
+  dhtml += "The price of upgrading our " + store.unitTypes[actor_unit["type"]]["name"] + " is " + cost + ".";
+  const upgrade_possible = cost <= unit_owner(actor_unit)["gold"];
+  const buttons = [];
+  if (upgrade_possible) {
+    buttons.push({
+      text: "Do it!",
+      click: function() {
+        request_unit_do_action(act_id, actor_unit["id"], target_city["id"]);
+        removeDialog(dlgId);
+        act_sel_queue_done(actor_unit["id"]);
+      }
+    });
+  }
+  buttons.push({
+    text: upgrade_possible ? "Cancel" : "Close",
+    click: function() {
+      removeDialog(dlgId);
+      act_sel_queue_done(actor_unit["id"]);
+    }
+  });
+  createNativeDialog(dlgId, "Unit upgrade", dhtml, buttons);
+}
+function create_steal_tech_button(parent_id, tech, actor_id, city_id, action_id) {
+  return {
+    text: tech["name"],
+    click: function() {
+      request_unit_do_action(action_id, actor_id, city_id, tech["id"]);
+      removeDialog(parent_id);
+      act_sel_queue_done(actor_id);
+    }
+  };
+}
+function popup_steal_tech_selection_dialog(actor_unit, target_city, act_probs, action_id) {
+  const dlgId = "stealtech_dialog_" + actor_unit["id"];
+  const buttons = [];
+  let untargeted_action_id = ACTION_COUNT$1;
+  for (const tech_id in store.techs) {
+    const tech = store.techs[tech_id];
+    const act_kn = playerInventionState(clientPlaying(), tech["id"]);
+    const tgt_kn = playerInventionState(store.players[target_city["owner"]], tech["id"]);
+    if (tgt_kn == TECH_KNOWN$1 && (act_kn == TECH_PREREQS_KNOWN$1 || store.gameInfo["tech_steal_allow_holes"] && act_kn == TECH_UNKNOWN$1)) {
+      buttons.push(create_steal_tech_button(
+        dlgId,
+        tech,
+        actor_unit["id"],
+        target_city["id"],
+        action_id
+      ));
+    }
+  }
+  if (action_id == ACTION_SPY_TARGETED_STEAL_TECH_ESC) {
+    untargeted_action_id = ACTION_SPY_STEAL_TECH_ESC;
+  } else if (action_id == ACTION_SPY_TARGETED_STEAL_TECH) {
+    untargeted_action_id = ACTION_SPY_STEAL_TECH;
+  }
+  if (untargeted_action_id != ACTION_COUNT$1 && actionProbPossible(act_probs[untargeted_action_id])) {
+    buttons.push({
+      text: "At " + store.unitTypes[actor_unit["type"]]["name"] + "'s Discretion",
+      click: function() {
+        request_unit_do_action(
+          untargeted_action_id,
+          actor_unit["id"],
+          target_city["id"]
+        );
+        removeDialog(dlgId);
+        act_sel_queue_done(actor_unit["id"]);
+      }
+    });
+  }
+  buttons.push({
+    text: "Cancel",
+    click: function() {
+      removeDialog(dlgId);
+      act_sel_queue_done(actor_unit["id"]);
+    }
+  });
+  createNativeDialog(dlgId, "Select Advance to Steal", "", buttons, { width: "90%" });
+}
+function create_sabotage_impr_button(improvement, parent_id, actor_unit_id, target_city_id, act_id) {
+  return {
+    text: improvement["name"],
+    click: function() {
+      request_unit_do_action(
+        act_id,
+        actor_unit_id,
+        target_city_id,
+        improvement["id"]
+      );
+      removeDialog(parent_id);
+      act_sel_queue_done(actor_unit_id);
+    }
+  };
+}
+function popup_sabotage_dialog(actor_unit, target_city, city_imprs, act_id) {
+  const dlgId = "sabotage_impr_dialog_" + actor_unit["id"];
+  const buttons = [];
+  for (let i2 = 0; i2 < (store.rulesControl?.["num_impr_types"] ?? 0); i2++) {
+    const improvement = store.improvements[i2];
+    if (city_imprs.isSet(i2) && improvement["sabotage"] > 0) {
+      buttons.push(create_sabotage_impr_button(
+        improvement,
+        dlgId,
+        actor_unit["id"],
+        target_city["id"],
+        act_id
+      ));
+    }
+  }
+  buttons.push({
+    text: "Cancel",
+    click: function() {
+      removeDialog(dlgId);
+      act_sel_queue_done(actor_unit["id"]);
+    }
+  });
+  createNativeDialog(dlgId, "Select Improvement to Sabotage", "", buttons, { width: "90%" });
+}
+const REQEST_PLAYER_INITIATED$3 = 0;
+function format_act_prob_part(prob) {
+  return prob / 2 + "%";
+}
+function format_action_probability(probability) {
+  if (probability["min"] == probability["max"]) {
+    return " (" + format_act_prob_part(probability["max"]) + ")";
+  } else if (probability["min"] < probability["max"]) {
+    return " ([" + format_act_prob_part(probability["min"]) + ", " + format_act_prob_part(probability["max"]) + "])";
+  } else {
+    return "";
+  }
+}
+function format_action_label(action_id, action_probabilities) {
+  return store.actions[action_id]["ui_name"].replace("%s", "").replace(
+    "%s",
+    format_action_probability(action_probabilities[action_id])
+  );
+}
+function format_action_tooltip(act_id, act_probs) {
+  let out = "";
+  if (act_probs[act_id]["min"] == act_probs[act_id]["max"]) {
+    out = "The probability of success is ";
+    out += format_act_prob_part(act_probs[act_id]["max"]) + ".";
+  } else if (act_probs[act_id]["min"] < act_probs[act_id]["max"]) {
+    out = "The probability of success is ";
+    out += format_act_prob_part(act_probs[act_id]["min"]);
+    out += ", ";
+    out += format_act_prob_part(act_probs[act_id]["max"]);
+    out += " or somewhere in between.";
+    if (act_probs[act_id]["max"] - act_probs[act_id]["min"] > 1) {
+      out += " (This is the most precise interval I can calculate ";
+      out += "given the information our nation has access to.)";
+    }
+  }
+  return out;
+}
+function act_sel_click_function(parent_id, actor_unit_id, tgt_id, sub_tgt_id, action_id, action_probabilities) {
+  switch (action_id) {
+    case ACTION_SPY_TARGETED_STEAL_TECH:
+    case ACTION_SPY_TARGETED_STEAL_TECH_ESC:
+      return function() {
+        popup_steal_tech_selection_dialog(
+          store.units[actor_unit_id],
+          store.cities[tgt_id],
+          action_probabilities,
+          action_id
+        );
+        set_is_more_user_input_needed(true);
+        document.querySelector(parent_id)?.remove();
+      };
+    case ACTION_SPY_TARGETED_SABOTAGE_CITY:
+    case ACTION_SPY_TARGETED_SABOTAGE_CITY_ESC:
+    case ACTION_SPY_INCITE_CITY:
+    case ACTION_SPY_INCITE_CITY_ESC:
+    case ACTION_SPY_BRIBE_UNIT:
+    case ACTION_UPGRADE_UNIT:
+      return function() {
+        const packet = {
+          "pid": packet_unit_action_query,
+          "actor_id": actor_unit_id,
+          "target_id": tgt_id,
+          "action_type": action_id,
+          "request_kind": REQEST_PLAYER_INITIATED$3
+        };
+        send_request(JSON.stringify(packet));
+        set_is_more_user_input_needed(true);
+        document.querySelector(parent_id)?.remove();
+      };
+    case ACTION_FOUND_CITY:
+      return function() {
+        const packet = {
+          "pid": packet_city_name_suggestion_req,
+          "unit_id": actor_unit_id
+        };
+        send_request(JSON.stringify(packet));
+        set_is_more_user_input_needed(true);
+        document.querySelector(parent_id)?.remove();
+      };
+    default:
+      return function() {
+        request_unit_do_action(action_id, actor_unit_id, tgt_id, sub_tgt_id);
+        document.querySelector(parent_id)?.remove();
+        act_sel_queue_may_be_done(actor_unit_id);
+      };
+  }
+}
+function create_act_sel_button(parent_id, actor_unit_id, tgt_id, sub_tgt_id, action_id, action_probabilities) {
+  const button = {
+    id: "act_sel_" + action_id + "_" + actor_unit_id,
+    "class": "act_sel_button",
+    text: format_action_label(
+      action_id,
+      action_probabilities
+    ),
+    title: format_action_tooltip(
+      action_id,
+      action_probabilities
+    ),
+    click: act_sel_click_function(
+      parent_id,
+      actor_unit_id,
+      tgt_id,
+      sub_tgt_id,
+      action_id,
+      action_probabilities
+    )
+  };
+  return button;
+}
+function ac() {
+  return active_city;
+}
+function byId$3(id) {
+  return document.getElementById(id);
+}
+function setHtml$2(id, html) {
+  const el = byId$3(id);
+  if (el) el.innerHTML = html;
+}
+function setHeight(id, px) {
+  const el = byId$3(id);
+  if (el) el.style.height = px + "px";
+}
+function setBtnEnabled(id, enabled) {
+  const el = byId$3(id);
+  if (el) el.disabled = !enabled;
+}
+function get_unit_type_image_sprite$1(unit_type2) {
+}
+function city_worklist_dialog(pcity) {
+  if (pcity == null) return;
+  const universals_list = [];
+  let kind;
+  let value;
+  if (pcity["worklist"] != null && pcity["worklist"].length != 0) {
+    const work_list = pcity["worklist"];
+    for (let i2 = 0; i2 < work_list.length; i2++) {
+      const work_item = work_list[i2];
+      kind = work_item["kind"];
+      value = work_item["value"];
+      if (kind == null || value == null || work_item.length == 0) continue;
+      if (kind == VUT_IMPROVEMENT) {
+        const pimpr = store.improvements[value];
+        let build_cost = pimpr["build_cost"];
+        if (pimpr["name"] == "Coinage") build_cost = "-";
+        universals_list.push({
+          "name": pimpr["name"],
+          "kind": kind,
+          "value": value,
+          "helptext": pimpr["helptext"],
+          "build_cost": build_cost,
+          "sprite": get_improvement_image_sprite(pimpr)
+        });
+      } else if (kind == VUT_UTYPE) {
+        const putype = store.unitTypes[value];
+        universals_list.push({
+          "name": putype["name"],
+          "kind": kind,
+          "value": value,
+          "helptext": putype["helptext"],
+          "build_cost": putype["build_cost"],
+          "sprite": get_unit_type_image_sprite$1()
+        });
+      } else {
+        console.log("unknown kind: " + kind);
+      }
+    }
+  }
+  let worklist_html = "<table class='worklist_table'><tr><td>Type</td><td>Name</td><td>Cost</td></tr>";
+  for (let j2 = 0; j2 < universals_list.length; j2++) {
+    const universal = universals_list[j2];
+    const sprite = universal["sprite"];
+    if (sprite == null) {
+      console.log("Missing sprite for " + universal["name"]);
+      continue;
+    }
+    worklist_html += "<tr class='prod_choice_list_item" + (canCityBuildNow(pcity, universal["kind"], universal["value"]) ? "" : " cannot_build_item") + "' data-wlitem='" + j2 + `'  title="` + universal["helptext"] + `"><td><div class='production_list_item_sub' style=' background: transparent url(` + sprite["image-src"] + ");background-position:-" + sprite["tileset-x"] + "px -" + sprite["tileset-y"] + "px;  width: " + sprite["width"] + "px;height: " + sprite["height"] + "px;'></div></td><td class='prod_choice_name'>" + universal["name"] + "</td><td class='prod_choice_cost'>" + universal["build_cost"] + "</td></tr>";
+  }
+  worklist_html += "</table>";
+  setHtml$2("city_current_worklist", worklist_html);
+  populate_worklist_production_choices(pcity);
+  const showUnreachable = byId$3("show_unreachable_items");
+  if (showUnreachable) {
+    const newEl = showUnreachable.cloneNode(true);
+    showUnreachable.parentNode?.replaceChild(newEl, showUnreachable);
+    newEl.addEventListener("click", function() {
+      set_opt_show_unreachable_items(!opt_show_unreachable_items);
+      newEl.checked = opt_show_unreachable_items;
+      if (production_selection.length !== 0) {
+        set_production_selection([]);
+        update_worklist_actions();
+      }
+      populate_worklist_production_choices(pcity);
+    });
+    newEl.checked = opt_show_unreachable_items;
+  }
+  const turns_to_complete = getCityProductionTime(pcity);
+  const prod_type = getCityProductionTypeSprite(pcity);
+  let prod_img_html = "";
+  if (prod_type != null) {
+    const sprite = prod_type["sprite"];
+    prod_img_html = "<div style='background: transparent url(" + sprite["image-src"] + ");background-position:-" + sprite["tileset-x"] + "px -" + sprite["tileset-y"] + "px;  width: " + sprite["width"] + "px;height: " + sprite["height"] + "px;float: left; '></div>";
+  }
+  let headline = prod_img_html + "<div id='prod_descr'>" + (isSmallScreen() ? " " : " Production: ") + (prod_type != null ? prod_type["type"]["name"] : "None");
+  if (turns_to_complete != FC_INFINITY) {
+    headline += ", turns: " + turns_to_complete;
+  }
+  setHtml$2("worklist_dialog_headline", headline + "</div>");
+  if (isTouchDevice()) {
+    setHtml$2("prod_buttons", "<x-small>Click to change production, next clicks will add to worklist on mobile.</x-small>");
+  }
+  const tabEl = byId$3("city_production_tab");
+  const tab_h = tabEl ? tabEl.offsetHeight : 400;
+  setHeight("city_current_worklist", tab_h - 150);
+  setHeight("worklist_production_choices", tab_h - 121);
+  const wlControl = byId$3("worklist_control");
+  if (wlControl) {
+    if (tab_h > 250) {
+      wlControl.style.height = tab_h - 148 + "px";
+      wlControl.style.paddingTop = "73px";
+    } else {
+      wlControl.style.height = tab_h - 77 + "px";
+    }
+  }
+  const worklistContainer = byId$3("city_current_worklist");
+  const worklist_items = worklistContainer ? Array.from(worklistContainer.querySelectorAll(".prod_choice_list_item")) : [];
+  const max_selection = Math.min(MAX_LEN_WORKLIST, worklist_items.length);
+  for (let k2 = 0; k2 < worklist_selection.length; k2++) {
+    if (worklist_selection[k2] >= max_selection) {
+      worklist_selection.splice(k2, worklist_selection.length - k2);
+      break;
+    }
+    worklist_items[worklist_selection[k2]]?.classList.add("ui-selected");
+  }
+  if (!isTouchDevice()) {
+    worklist_items.forEach((item) => {
+      item.addEventListener("click", function(e2) {
+        if (e2.ctrlKey || e2.metaKey) {
+          if (item.classList.contains("ui-selected")) {
+            item.classList.remove("ui-selected");
+            handle_current_worklist_unselect(e2, { unselected: item });
+          } else {
+            item.classList.add("ui-selected");
+            handle_current_worklist_select(e2, { selected: item });
+          }
+        } else {
+          worklist_items.forEach((el) => el.classList.remove("ui-selected"));
+          item.classList.add("ui-selected");
+          set_worklist_selection([]);
+          handle_current_worklist_select(e2, { selected: item });
+        }
+      });
+    });
+  } else {
+    worklist_items.forEach((item) => {
+      item.addEventListener("click", handle_current_worklist_click.bind(item));
+    });
+  }
+  worklist_items.forEach((item) => {
+    item.addEventListener("dblclick", handle_current_worklist_direct_remove.bind(item));
+  });
+  update_worklist_actions();
+}
+function populate_worklist_production_choices(pcity) {
+  const production_list = generateProductionList();
+  let production_html = "<table class='worklist_table'><tr><td>Type</td><td>Name</td><td title='Attack/Defense/Firepower'>Info</td><td>Cost</td></tr>";
+  for (let a2 = 0; a2 < production_list.length; a2++) {
+    const sprite = production_list[a2]["sprite"];
+    if (sprite == null) {
+      console.log("Missing sprite for " + production_list[a2]["value"]);
+      continue;
+    }
+    const kind = production_list[a2]["kind"];
+    const value = production_list[a2]["value"];
+    const can_build = canCityBuildNow(pcity, kind, value);
+    if (can_build || opt_show_unreachable_items) {
+      production_html += "<tr class='prod_choice_list_item kindvalue_item" + (can_build ? "" : " cannot_build_item") + "' data-value='" + value + "' data-kind='" + kind + `'><td><div class='production_list_item_sub' title="` + production_list[a2]["helptext"] + `" style=' background: transparent url(` + sprite["image-src"] + ");background-position:-" + sprite["tileset-x"] + "px -" + sprite["tileset-y"] + "px;  width: " + sprite["width"] + "px;height: " + sprite["height"] + "px;'></div></td><td class='prod_choice_name'>" + production_list[a2]["text"] + "</td><td class='prod_choice_name'>" + production_list[a2]["unit_details"] + "</td><td class='prod_choice_cost'>" + production_list[a2]["build_cost"] + "</td></tr>";
+    }
+  }
+  production_html += "</table>";
+  setHtml$2("worklist_production_choices", production_html);
+  const choicesContainer = byId$3("worklist_production_choices");
+  const kindValueItems = choicesContainer ? Array.from(choicesContainer.querySelectorAll(".kindvalue_item")) : [];
+  if (!isTouchDevice()) {
+    kindValueItems.forEach((item) => {
+      item.addEventListener("click", function(e2) {
+        if (e2.ctrlKey || e2.metaKey) {
+          if (item.classList.contains("ui-selected")) {
+            item.classList.remove("ui-selected");
+            handle_worklist_unselect(e2, { unselected: item });
+          } else {
+            item.classList.add("ui-selected");
+            handle_worklist_select(e2, { selected: item });
+          }
+        } else {
+          kindValueItems.forEach((el) => el.classList.remove("ui-selected"));
+          item.classList.add("ui-selected");
+          set_production_selection([]);
+          handle_worklist_select(e2, { selected: item });
+        }
+      });
+    });
+    if (production_selection.length > 0) {
+      production_selection.forEach(function(v2) {
+        const match = choicesContainer?.querySelector(
+          "[data-value='" + v2.value + "'][data-kind='" + v2.kind + "']"
+        );
+        match?.classList.add("ui-selected");
+      });
+    }
+    kindValueItems.forEach((item) => {
+      item.addEventListener("dblclick", function() {
+        const value = parseFloat(item.dataset.value || "0");
+        const kind = parseFloat(item.dataset.kind || "0");
+        send_city_worklist_add(pcity["id"], kind, value);
+      });
+    });
+  } else {
+    kindValueItems.forEach((item) => {
+      item.addEventListener("click", function() {
+        const value = parseFloat(item.dataset.value || "0");
+        const kind = parseFloat(item.dataset.kind || "0");
+        if (city_prod_clicks == 0) {
+          send_city_change(pcity["id"], kind, value);
+        } else {
+          send_city_worklist_add(pcity["id"], kind, value);
+        }
+        set_city_prod_clicks(city_prod_clicks + 1);
+      });
+    });
+  }
+}
+function extract_universal(element) {
+  const el = element;
+  return {
+    value: parseFloat(el.dataset.value || el.getAttribute("data-value") || "0"),
+    kind: parseFloat(el.dataset.kind || el.getAttribute("data-kind") || "0")
+  };
+}
+function find_universal_in_worklist(universal, worklist) {
+  for (let i2 = 0; i2 < worklist.length; i2++) {
+    if (worklist[i2].kind === universal.kind && worklist[i2].value === universal.value) {
+      return i2;
+    }
+  }
+  return -1;
+}
+function handle_worklist_select(event, ui) {
+  const selected = extract_universal(ui.selected);
+  const idx = find_universal_in_worklist(selected, production_selection);
+  if (idx < 0) {
+    production_selection.push(selected);
+    update_worklist_actions();
+  }
+}
+function handle_worklist_unselect(event, ui) {
+  const selected = extract_universal(ui.unselected);
+  const idx = find_universal_in_worklist(selected, production_selection);
+  if (idx >= 0) {
+    production_selection.splice(idx, 1);
+    update_worklist_actions();
+  }
+}
+function handle_current_worklist_select(event, ui) {
+  const idx = parseInt(ui.selected.dataset.wlitem || "0", 10);
+  let i2 = worklist_selection.length - 1;
+  while (i2 >= 0 && worklist_selection[i2] > idx)
+    i2--;
+  if (i2 < 0 || worklist_selection[i2] < idx) {
+    worklist_selection.splice(i2 + 1, 0, idx);
+    update_worklist_actions();
+  }
+}
+function handle_current_worklist_unselect(event, ui) {
+  const idx = parseInt(ui.unselected.dataset.wlitem || "0", 10);
+  let i2 = worklist_selection.length - 1;
+  while (i2 >= 0 && worklist_selection[i2] > idx)
+    i2--;
+  if (i2 >= 0 && worklist_selection[i2] === idx) {
+    worklist_selection.splice(i2, 1);
+    update_worklist_actions();
+  }
+}
+function handle_current_worklist_click(event) {
+  event.stopPropagation();
+  const element = this;
+  const item = parseInt(element.dataset.wlitem || "0", 10);
+  if (worklist_selection.length === 1 && worklist_selection[0] === item) {
+    element.classList.remove("ui-selected");
+    set_worklist_selection([]);
+  } else {
+    const parent = element.parentElement;
+    if (parent) {
+      parent.querySelectorAll(".ui-selected").forEach((el) => el.classList.remove("ui-selected"));
+    }
+    element.classList.add("ui-selected");
+    set_worklist_selection([item]);
+  }
+  update_worklist_actions();
+}
+function update_worklist_actions() {
+  if (worklist_selection.length > 0) {
+    setBtnEnabled("city_worklist_up_btn", true);
+    setBtnEnabled("city_worklist_remove_btn", true);
+    if (worklist_selection[worklist_selection.length - 1] === active_city["worklist"].length - 1) {
+      setBtnEnabled("city_worklist_down_btn", false);
+    } else {
+      setBtnEnabled("city_worklist_down_btn", true);
+    }
+  } else {
+    setBtnEnabled("city_worklist_up_btn", false);
+    setBtnEnabled("city_worklist_down_btn", false);
+    setBtnEnabled("city_worklist_exchange_btn", false);
+    setBtnEnabled("city_worklist_remove_btn", false);
+  }
+  if (production_selection.length > 0) {
+    setBtnEnabled("city_add_to_worklist_btn", true);
+    setBtnEnabled("city_worklist_insert_btn", true);
+    if (production_selection.length == worklist_selection.length || worklist_selection.length == 1) {
+      setBtnEnabled("city_worklist_exchange_btn", true);
+    } else {
+      setBtnEnabled("city_worklist_exchange_btn", false);
+    }
+  } else {
+    setBtnEnabled("city_add_to_worklist_btn", false);
+    setBtnEnabled("city_worklist_insert_btn", false);
+    setBtnEnabled("city_worklist_exchange_btn", false);
+  }
+  if (production_selection.length === 1) {
+    setBtnEnabled("city_change_production_btn", true);
+  } else {
+    setBtnEnabled("city_change_production_btn", false);
+  }
+}
+function send_city_worklist(city_id) {
+  const worklist = cities[city_id]["worklist"];
+  const overflow = worklist.length - MAX_LEN_WORKLIST;
+  if (overflow > 0) {
+    worklist.splice(MAX_LEN_WORKLIST, overflow);
+  }
+  send_request(JSON.stringify({
+    pid: packet_city_worklist,
+    city_id,
+    worklist
+  }));
+}
+function send_city_worklist_add(city_id, kind, value) {
+  const pcity = cities[city_id];
+  if (pcity["worklist"].length >= MAX_LEN_WORKLIST) {
+    return;
+  }
+  pcity["worklist"].push({ "kind": kind, "value": value });
+  send_city_worklist(city_id);
+}
+function city_change_production() {
+  if (clientIsObserver()) return;
+  if (production_selection.length === 1) {
+    send_city_change(
+      ac()["id"],
+      production_selection[0].kind,
+      production_selection[0].value
+    );
+  }
+}
+function city_add_to_worklist() {
+  if (production_selection.length > 0) {
+    ac()["worklist"] = ac()["worklist"].concat(production_selection);
+    send_city_worklist(ac()["id"]);
+  }
+}
+function handle_current_worklist_direct_remove() {
+  const idx = parseInt(this.dataset.wlitem || "0", 10);
+  ac()["worklist"].splice(idx, 1);
+  let i2 = worklist_selection.length - 1;
+  while (i2 >= 0 && worklist_selection[i2] > idx) {
+    worklist_selection[i2]--;
+    i2--;
+  }
+  if (i2 >= 0 && worklist_selection[i2] === idx) {
+    worklist_selection.splice(i2, 1);
+  }
+  send_city_worklist(ac()["id"]);
+}
+function city_insert_in_worklist() {
+  const count = Math.min(production_selection.length, MAX_LEN_WORKLIST);
+  if (count === 0) return;
+  let i2;
+  const wl = ac()["worklist"];
+  if (worklist_selection.length === 0) {
+    wl.splice(...[0, 0].concat(production_selection));
+    for (i2 = 0; i2 < count; i2++) {
+      worklist_selection.push(i2);
+    }
+  } else {
+    wl.splice(...[worklist_selection[0], 0].concat(production_selection));
+    for (i2 = 0; i2 < worklist_selection.length; i2++) {
+      worklist_selection[i2] += count;
+    }
+  }
+  send_city_worklist(ac()["id"]);
+}
+function city_worklist_task_up() {
+  let count = worklist_selection.length;
+  if (count === 0) return;
+  let swap;
+  const wl = ac()["worklist"];
+  if (worklist_selection[0] === 0) {
+    worklist_selection.shift();
+    if (wl[0].kind !== ac()["production_kind"] || wl[0].value !== ac()["production_value"]) {
+      swap = wl[0];
+      wl[0] = {
+        kind: ac()["production_kind"],
+        value: ac()["production_value"]
+      };
+      send_city_change(ac()["id"], swap.kind, swap.value);
+    }
+    count--;
+  }
+  for (let i2 = 0; i2 < count; i2++) {
+    const task_idx = worklist_selection[i2];
+    swap = wl[task_idx - 1];
+    wl[task_idx - 1] = wl[task_idx];
+    wl[task_idx] = swap;
+    worklist_selection[i2]--;
+  }
+  send_city_worklist(ac()["id"]);
+}
+function city_worklist_task_down() {
+  let count = worklist_selection.length;
+  if (count === 0) return;
+  let swap;
+  const wl = ac()["worklist"];
+  if (worklist_selection[--count] === wl.length - 1) return;
+  while (count >= 0) {
+    const task_idx = worklist_selection[count];
+    swap = wl[task_idx + 1];
+    wl[task_idx + 1] = wl[task_idx];
+    wl[task_idx] = swap;
+    worklist_selection[count]++;
+    count--;
+  }
+  send_city_worklist(ac()["id"]);
+}
+function city_exchange_worklist_task() {
+  let prod_l = production_selection.length;
+  if (prod_l === 0) return;
+  let i2;
+  let same = true;
+  const wl = ac()["worklist"];
+  const task_l = worklist_selection.length;
+  if (prod_l === task_l) {
+    for (i2 = 0; i2 < prod_l; i2++) {
+      if (same && (wl[worklist_selection[i2]].kind !== production_selection[i2].kind || wl[worklist_selection[i2]].value !== production_selection[i2].value)) {
+        same = false;
+      }
+      wl[worklist_selection[i2]] = production_selection[i2];
+    }
+  } else if (task_l === 1) {
+    i2 = worklist_selection[0];
+    wl.splice(...[i2, 1].concat(production_selection));
+    same = false;
+    while (--prod_l) {
+      worklist_selection.push(++i2);
+    }
+  }
+  if (!same) {
+    send_city_worklist(ac()["id"]);
+  }
+}
+function city_worklist_task_remove() {
+  let count = worklist_selection.length;
+  if (count === 0) return;
+  const wl = ac()["worklist"];
+  while (--count >= 0) {
+    wl.splice(worklist_selection[count], 1);
+  }
+  set_worklist_selection([]);
+  send_city_worklist(ac()["id"]);
+}
+function byId$2(id) {
+  return document.getElementById(id);
+}
+function setHtml$1(id, html) {
+  const el = byId$2(id);
+  if (el) el.innerHTML = String(html);
+}
+set_city_screen_updater_fn(update_city_screen);
+globalEvents.on("city:screenUpdate", () => city_screen_updater?.update());
+function show_city_dialog_by_id(pcity_id) {
+  show_city_dialog(cities[pcity_id]);
+}
+function show_city_dialog(pcity) {
+  let turns_to_complete;
+  let sprite;
+  let punit;
+  if (active_city != pcity || active_city == null) {
+    set_city_prod_clicks(0);
+    set_production_selection([]);
+    set_worklist_selection([]);
+  }
+  if (active_city != null) close_city_dialog();
+  set_active_city(pcity);
+  if (pcity == null) return;
+  byId$2("city_dialog")?.remove();
+  const dlg = document.createElement("div");
+  dlg.id = "city_dialog";
+  const dlgWidth = isSmallScreen() ? "98%" : "80%";
+  const dlgHeight = isSmallScreen() ? window.innerHeight + 10 : window.innerHeight - 80;
+  dlg.style.cssText = "position:fixed;z-index:4000;background:#222;border:1px solid #555;padding:0;left:50%;top:50%;transform:translate(-50%,-50%);width:" + dlgWidth + ";height:" + dlgHeight + "px;overflow:auto;color:#fff;";
+  document.getElementById("game_page")?.appendChild(dlg);
+  const titleBar = document.createElement("div");
+  titleBar.style.cssText = "background:#333;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #555;";
+  titleBar.innerHTML = '<span style="font-weight:bold;">' + decodeURIComponent(pcity["name"]) + " (" + pcity["size"] + ")</span>";
+  const btnRow = document.createElement("div");
+  btnRow.style.cssText = "display:flex;gap:6px;";
+  const buttonDefs = isSmallScreen() ? [["Next", next_city], ["Buy", request_city_buy], ["Close", close_city_dialog]] : [["Previous city", previous_city], ["Next city (N)", next_city], ["Buy (B)", request_city_buy], ["Rename", rename_city], ["Close", close_city_dialog]];
+  buttonDefs.forEach(([label, fn]) => {
+    const b2 = document.createElement("button");
+    b2.textContent = label;
+    b2.addEventListener("click", fn);
+    btnRow.appendChild(b2);
+  });
+  titleBar.appendChild(btnRow);
+  dlg.appendChild(titleBar);
+  const contentArea = document.createElement("div");
+  contentArea.style.cssText = "padding:8px;overflow:auto;height:calc(100% - 50px);";
+  contentArea.innerHTML = getCityDialogHtml();
+  dlg.appendChild(contentArea);
+  const cityCanvas = byId$2("city_canvas");
+  if (cityCanvas) cityCanvas.addEventListener("click", city_mapview_mouse_click);
+  dlg.addEventListener("keydown", function(e2) {
+    if (e2.key === "Escape") close_city_dialog();
+    else city_keyboard_listener(e2);
+  });
+  byId$2("game_text_input")?.blur();
+  if (!isSmallScreen()) {
+    byId$2("city_tabs-6")?.remove();
+    document.querySelectorAll(".extra_tabs_small").forEach((el) => el.remove());
+    byId$2("mobile_cma_checkbox")?.remove();
+  } else {
+    byId$2("city_tabs-5")?.remove();
+    document.querySelectorAll(".extra_tabs_big").forEach((el) => el.remove());
+    const cityStats = byId$2("city_stats");
+    if (cityStats) cityStats.style.display = "none";
+    const unitsElement = byId$2("city_improvements_panel");
+    const cityUnitsTab = byId$2("city_units_tab");
+    if (unitsElement && cityUnitsTab) {
+      cityUnitsTab.appendChild(unitsElement);
+    }
+  }
+  initTabs("#city_tabs", { active: city_tab_index });
+  const tabHeight = isSmallScreen() ? window.innerHeight - 110 : window.innerHeight - 225;
+  document.querySelectorAll(".citydlg_tabs").forEach((el) => {
+    el.style.height = tabHeight + "px";
+  });
+  city_worklist_dialog(pcity);
+  store.renderer;
+  set_citydlg_dimensions(pcity);
+  set_city_mapview_active();
+  center_tile_mapcanvas(cityTile(pcity));
+  update_map_canvas(0, 0, mapview["store_width"] ?? 0, mapview["store_height"] ?? 0);
+  let governor_text = "";
+  if (typeof pcity["cma_enabled"] !== "undefined") {
+    governor_text = "<br>" + (pcity["cma_enabled"] ? "Governor Enabled" : "Governor Disabled");
+  }
+  setHtml$1("city_size", "Population: " + numberWithCommas(cityPopulation(pcity) * 1e3) + "<br>Size: " + pcity["size"] + "<br>Granary: " + pcity["food_stock"] + "/" + pcity["granary_size"] + "<br>Change in: " + cityTurnsToGrowthText(pcity) + governor_text);
+  const prod_type = getCityProductionTypeSprite(pcity);
+  setHtml$1("city_production_overview", "Producing: " + (prod_type != null ? prod_type["type"]["name"] : "None"));
+  turns_to_complete = getCityProductionTime(pcity);
+  if (turns_to_complete != FC_INFINITY) {
+    setHtml$1("city_production_turns_overview", turns_to_complete + " turns &nbsp;&nbsp;(" + getProductionProgress(pcity) + ")");
+  } else {
+    setHtml$1("city_production_turns_overview", "-");
+  }
+  let improvements_html = "";
+  for (let z2 = 0; z2 < (store.rulesControl?.num_impr_types ?? 0); z2++) {
+    if (pcity["improvements"] != null && pcity["improvements"].isSet(z2)) {
+      sprite = get_improvement_image_sprite(store.improvements[z2]);
+      if (sprite == null) {
+        console.log("Missing sprite for improvement " + z2);
+        continue;
+      }
+      improvements_html = improvements_html + "<div id='city_improvement_element'><div style='background: transparent url(" + sprite["image-src"] + ");background-position:-" + sprite["tileset-x"] + "px -" + sprite["tileset-y"] + "px;  width: " + sprite["width"] + "px;height: " + sprite["height"] + `px;float:left; 'title="` + store.improvements[z2]["helptext"] + `" onclick='city_sell_improvement(` + z2 + ");'></div>" + store.improvements[z2]["name"] + "</div>";
+    }
+  }
+  setHtml$1("city_improvements_list", improvements_html);
+  const punits = tile_units(cityTile(pcity));
+  if (punits != null) {
+    let present_units_html = "";
+    for (let r2 = 0; r2 < punits.length; r2++) {
+      punit = punits[r2];
+      sprite = get_unit_image_sprite(punit);
+      if (sprite == null) {
+        console.log("Missing sprite for " + punit);
+        continue;
+      }
+      present_units_html = present_units_html + "<div class='game_unit_list_item' title='" + get_unit_city_info(punit) + "' style='cursor:pointer;cursor:hand; background: transparent url(" + sprite["image-src"] + ");background-position:-" + sprite["tileset-x"] + "px -" + sprite["tileset-y"] + "px;  width: " + sprite["width"] + "px;height: " + sprite["height"] + "px;float:left; ' onclick='city_dialog_activate_unit(units[" + punit["id"] + "]);'></div>";
+    }
+    setHtml$1("city_present_units_list", present_units_html);
+  }
+  const sunits = get_supported_units(pcity);
+  if (sunits != null) {
+    let supported_units_html = "";
+    for (let t2 = 0; t2 < sunits.length; t2++) {
+      punit = sunits[t2];
+      sprite = get_unit_image_sprite(punit);
+      if (sprite == null) {
+        console.log("Missing sprite for " + punit);
+        continue;
+      }
+      supported_units_html = supported_units_html + "<div class='game_unit_list_item' title='" + get_unit_city_info(punit) + "' style='cursor:pointer;cursor:hand; background: transparent url(" + sprite["image-src"] + ");background-position:-" + sprite["tileset-x"] + "px -" + sprite["tileset-y"] + "px;  width: " + sprite["width"] + "px;height: " + sprite["height"] + "px;float:left; ' onclick='city_dialog_activate_unit(units[" + punit["id"] + "]);'></div>";
+    }
+    setHtml$1("city_supported_units_list", supported_units_html);
+  }
+  if ("prod" in pcity && "surplus" in pcity) {
+    let food_txt = pcity["prod"][O_FOOD] + " ( ";
+    if (pcity["surplus"][O_FOOD] > 0) food_txt += "+";
+    food_txt += pcity["surplus"][O_FOOD] + ")";
+    let shield_txt = pcity["prod"][O_SHIELD] + " ( ";
+    if (pcity["surplus"][O_SHIELD] > 0) shield_txt += "+";
+    shield_txt += pcity["surplus"][O_SHIELD] + ")";
+    let trade_txt = pcity["prod"][O_TRADE] + " ( ";
+    if (pcity["surplus"][O_TRADE] > 0) trade_txt += "+";
+    trade_txt += pcity["surplus"][O_TRADE] + ")";
+    let gold_txt = pcity["prod"][O_GOLD] + " ( ";
+    if (pcity["surplus"][O_GOLD] > 0) gold_txt += "+";
+    gold_txt += pcity["surplus"][O_GOLD] + ")";
+    const luxury_txt = pcity["prod"][O_LUXURY];
+    const science_txt = pcity["prod"][O_SCIENCE];
+    setHtml$1("city_food", food_txt);
+    setHtml$1("city_prod", shield_txt);
+    setHtml$1("city_trade", trade_txt);
+    setHtml$1("city_gold", gold_txt);
+    setHtml$1("city_luxury", String(luxury_txt));
+    setHtml$1("city_science", String(science_txt));
+    setHtml$1("city_corruption", String(pcity["waste"][O_TRADE]));
+    setHtml$1("city_waste", String(pcity["waste"][O_SHIELD]));
+    setHtml$1("city_pollution", String(pcity["pollution"]));
+    setHtml$1("city_steal", String(pcity["steal"]));
+    setHtml$1("city_culture", String(pcity["culture"]));
+  }
+  let specialist_html = "";
+  const citizen_types = ["angry", "unhappy", "content", "happy"];
+  for (let s2 = 0; s2 < citizen_types.length; s2++) {
+    if (pcity["ppl_" + citizen_types[s2]] == null) continue;
+    for (let i2 = 0; i2 < pcity["ppl_" + citizen_types[s2]][FEELING_FINAL$1]; i2++) {
+      sprite = get_specialist_image_sprite();
+      if (sprite == null) continue;
+      specialist_html = specialist_html + "<div class='specialist_item' style='background: transparent url(" + sprite["image-src"] + ");background-position:-" + sprite["tileset-x"] + "px -" + sprite["tileset-y"] + "px;  width: " + sprite["width"] + "px;height: " + sprite["height"] + "px;float:left; ' title='One " + citizen_types[s2] + " citizen'></div>";
+    }
+  }
+  for (let u2 = 0; u2 < pcity["specialists_size"]; u2++) {
+    const spec_type_name = store.specialists[u2]["plural_name"];
+    "specialist." + store.specialists[u2]["rule_name"] + "_0";
+    for (let j2 = 0; j2 < pcity["specialists"][u2]; j2++) {
+      sprite = get_specialist_image_sprite();
+      if (sprite == null) continue;
+      specialist_html = specialist_html + "<div class='specialist_item' style='cursor:pointer;cursor:hand; background: transparent url(" + sprite["image-src"] + ");background-position:-" + sprite["tileset-x"] + "px -" + sprite["tileset-y"] + "px;  width: " + sprite["width"] + "px;height: " + sprite["height"] + "px;float:left; ' onclick='city_change_specialist(" + pcity["id"] + "," + store.specialists[u2]["id"] + ");' title='" + spec_type_name + " (click to change)'></div>";
+    }
+  }
+  specialist_html += "<div style='clear: both;'></div>";
+  setHtml$1("specialist_panel", specialist_html);
+  const disbandEl = byId$2("disbandable_city");
+  if (disbandEl) {
+    const newDisband = disbandEl.cloneNode(true);
+    disbandEl.parentNode?.replaceChild(newDisband, disbandEl);
+    newDisband.checked = pcity["city_options"] != null && pcity["city_options"].isSet(CITYO_DISBAND);
+    newDisband.addEventListener("click", function() {
+      const options = pcity["city_options"];
+      const packet = {
+        "pid": packet_city_options_req,
+        "city_id": active_city["id"],
+        "options": options.raw
+      };
+      if (newDisband.checked) {
+        options.set(CITYO_DISBAND);
+      } else {
+        options.unset(CITYO_DISBAND);
+      }
+      send_request(JSON.stringify(packet));
+    });
+  }
+  if (isSmallScreen()) {
+    document.querySelectorAll(".ui-tabs-anchor").forEach((el) => {
+      el.style.padding = "2px";
+    });
+  }
+}
+function request_city_buy() {
+  if (clientIsObserver()) return;
+  const pcity = active_city;
+  const pplayer = clientPlaying();
+  byId$2("dialog")?.remove();
+  let buy_question_string = "";
+  if (pcity["production_kind"] == VUT_UTYPE) {
+    const punit_type = store.unitTypes[pcity["production_value"]];
+    if (punit_type != null) {
+      punit_type["name"] + " costs " + pcity["buy_cost"] + " gold.";
+      buy_question_string = "Buy " + punit_type["name"] + " for " + pcity["buy_cost"] + " gold?";
+    }
+  } else {
+    const improvement = store.improvements[pcity["production_value"]];
+    if (improvement != null) {
+      improvement["name"] + " costs " + pcity["buy_cost"] + " gold.";
+      buy_question_string = "Buy " + improvement["name"] + " for " + pcity["buy_cost"] + " gold?";
+    }
+  }
+  const treasury_text = "<br>Treasury contains " + pplayer["gold"] + " gold.";
+  if (pcity["buy_cost"] > pplayer["gold"]) {
+    return;
+  }
+  const buyDlg = document.createElement("div");
+  buyDlg.id = "dialog";
+  buyDlg.style.cssText = "position:fixed;z-index:5000;background:#222;border:1px solid #555;padding:16px;top:30%;left:50%;transform:translateX(-50%);width:" + (isSmallScreen() ? "95%" : "50%") + ";color:#fff;";
+  buyDlg.innerHTML = '<div style="font-weight:bold;margin-bottom:8px;">Buy It!</div>' + buy_question_string + treasury_text + '<div style="margin-top:12px;display:flex;gap:8px;"><button id="buy_yes_btn">Yes</button><button id="buy_no_btn">No</button></div>';
+  document.getElementById("game_page")?.appendChild(buyDlg);
+  byId$2("buy_yes_btn")?.addEventListener("click", function() {
+    send_city_buy();
+    buyDlg.remove();
+  });
+  byId$2("buy_no_btn")?.addEventListener("click", function() {
+    buyDlg.remove();
+  });
+}
+function send_city_buy() {
+  if (clientIsObserver()) return;
+  if (active_city != null) {
+    const packet = { "pid": packet_city_buy, "city_id": active_city["id"] };
+    send_request(JSON.stringify(packet));
+  }
+}
+function send_city_change(city_id, kind, value) {
+  const packet = {
+    "pid": packet_city_change,
+    "city_id": city_id,
+    "production_kind": kind,
+    "production_value": value
+  };
+  send_request(JSON.stringify(packet));
+}
+function close_city_dialog() {
+  byId$2("city_dialog")?.remove();
+  city_dialog_close_handler();
+}
+function city_dialog_close_handler() {
+  setDefaultMapviewActive();
+  if (active_city != null) {
+    setupWindowSize();
+    center_tile_mapcanvas(cityTile(active_city));
+    set_active_city(null);
+    if (store.renderer == RENDERER_2DCANVAS) {
+      update_map_canvas_full();
+    }
+  }
+}
+function city_name_dialog(suggested_name, unit_id) {
+  byId$2("city_name_dialog")?.remove();
+  const nameDlg = document.createElement("div");
+  nameDlg.id = "city_name_dialog";
+  nameDlg.style.cssText = "position:fixed;z-index:5000;background:#222;border:1px solid #555;padding:16px;top:30%;left:50%;transform:translateX(-50%);width:300px;color:#fff;";
+  nameDlg.innerHTML = '<div style="font-weight:bold;margin-bottom:8px;">Build New City</div><div>What should we call our new city?</div><input id="city_name_req" type="text" style="width:100%;margin:8px 0;"><div style="display:flex;gap:8px;"><button id="city_name_ok">Ok</button><button id="city_name_cancel">Cancel</button></div>';
+  document.getElementById("game_page")?.appendChild(nameDlg);
+  const nameInput = byId$2("city_name_req");
+  if (nameInput) {
+    nameInput.value = suggested_name;
+    nameInput.maxLength = MAX_LEN_NAME;
+  }
+  function submitName() {
+    const name = nameInput?.value || "";
+    if (name.length == 0 || name.length >= MAX_LEN_CITYNAME - 6 || encodeURIComponent(name).length >= MAX_LEN_CITYNAME - 6) {
+      swal("City name is invalid. Please try a different shorter name.");
+      return;
+    }
+    const actor_unit = game_find_unit_by_number(unit_id);
+    request_unit_do_action(
+      ACTION_FOUND_CITY,
+      unit_id,
+      actor_unit["tile"],
+      0,
+      encodeURIComponent(name)
+    );
+    nameDlg.remove();
+    act_sel_queue_done(unit_id);
+  }
+  function cancelName() {
+    nameDlg.remove();
+    act_sel_queue_done(unit_id);
+  }
+  byId$2("city_name_ok")?.addEventListener("click", submitName);
+  byId$2("city_name_cancel")?.addEventListener("click", cancelName);
+  nameDlg.addEventListener("keyup", function(e2) {
+    if (e2.key === "Enter") submitName();
+  });
+  blur_input_on_touchdevice();
+}
+function next_city() {
+  if (!clientPlaying()) return;
+  city_screen_updater.fireNow();
+  const currentRow = byId$2("cities_list_" + active_city["id"]);
+  let nextRow = currentRow?.nextElementSibling;
+  if (!nextRow) {
+    nextRow = document.querySelector("#city_table tbody tr");
+  }
+  if (nextRow?.id) {
+    show_city_dialog(cities[Number(nextRow.id.substr(12))]);
+  }
+}
+function previous_city() {
+  if (!clientPlaying()) return;
+  city_screen_updater.fireNow();
+  const currentRow = byId$2("cities_list_" + active_city["id"]);
+  let prevRow = currentRow?.previousElementSibling;
+  if (!prevRow) {
+    const rows = document.querySelectorAll("#city_table tbody tr");
+    prevRow = rows.length > 0 ? rows[rows.length - 1] : null;
+  }
+  if (prevRow?.id) {
+    show_city_dialog(cities[Number(prevRow.id.substr(12))]);
+  }
+}
+function city_sell_improvement(improvement_id) {
+  if (clientIsObserver()) return;
+  if ("confirm" in window) {
+    const agree = confirm("Are you sure you want to sell this building?");
+    if (agree) {
+      const packet = {
+        "pid": packet_city_sell,
+        "city_id": active_city["id"],
+        "build_id": improvement_id
+      };
+      send_request(JSON.stringify(packet));
+    }
+  } else {
+    const packet = {
+      "pid": packet_city_sell,
+      "city_id": active_city["id"],
+      "build_id": improvement_id
+    };
+    send_request(JSON.stringify(packet));
+  }
+}
+function city_change_specialist(city_id, from_specialist_id) {
+  if (clientIsObserver()) return;
+  const city_message = {
+    "pid": packet_city_change_specialist,
+    "city_id": city_id,
+    "from": from_specialist_id,
+    "to": (from_specialist_id + 1) % 3
+  };
+  send_request(JSON.stringify(city_message));
+}
+function rename_city() {
+  if (clientIsObserver() || active_city == null) return;
+  byId$2("city_name_dialog")?.remove();
+  const renameDlg = document.createElement("div");
+  renameDlg.id = "city_name_dialog";
+  renameDlg.style.cssText = "position:fixed;z-index:5000;background:#222;border:1px solid #555;padding:16px;top:30%;left:50%;transform:translateX(-50%);width:300px;color:#fff;";
+  renameDlg.innerHTML = '<div style="font-weight:bold;margin-bottom:8px;">Rename City</div><div>What should we call this city?</div><input id="city_name_req" type="text" style="width:100%;margin:8px 0;"><div style="display:flex;gap:8px;"><button id="rename_ok">Ok</button><button id="rename_cancel">Cancel</button></div>';
+  document.getElementById("game_page")?.appendChild(renameDlg);
+  const nameInput = byId$2("city_name_req");
+  if (nameInput) {
+    nameInput.value = active_city["name"];
+    nameInput.maxLength = MAX_LEN_NAME;
+  }
+  function submitRename() {
+    const name = nameInput?.value || "";
+    if (name.length == 0 || name.length >= MAX_LEN_NAME - 4 || encodeURIComponent(name).length >= MAX_LEN_NAME - 4) {
+      swal("City name is invalid");
+      return;
+    }
+    const packet = { "pid": packet_city_rename, "name": encodeURIComponent(name), "city_id": active_city["id"] };
+    send_request(JSON.stringify(packet));
+    renameDlg.remove();
+  }
+  byId$2("rename_ok")?.addEventListener("click", submitRename);
+  byId$2("rename_cancel")?.addEventListener("click", function() {
+    renameDlg.remove();
+  });
+  renameDlg.addEventListener("keyup", function(e2) {
+    if (e2.key === "Enter") submitRename();
+  });
+}
+function update_city_screen() {
+  if (store.observing) return;
+  const sortList = [];
+  document.querySelectorAll("#city_table thead th").forEach((th) => {
+    const el = th;
+    if (el.classList.contains("tablesorter-headerAsc")) sortList.push([el.cellIndex, 0]);
+    else if (el.classList.contains("tablesorter-headerDesc")) sortList.push([el.cellIndex, 1]);
+  });
+  let city_list_html = "<table class='tablesorter' id='city_table' border=0 cellspacing=0><thead><tr><th>Name</th><th>Population</th><th>Size</th><th>State</th><th>Granary</th><th>Grows In</th><th>Producing</th><th>Surplus<br>Food/Prod/Trade</th><th>Economy<br>Gold/Luxury/Science</th></tr></thead><tbody>";
+  let count = 0;
+  for (const city_id in cities) {
+    const pcity = cities[city_id];
+    if (clientPlaying() != null && cityOwner(pcity) != null && cityOwner(pcity).playerno == clientPlaying().playerno) {
+      count++;
+      const prod_type = getCityProductionType(pcity);
+      let turns_to_complete_str;
+      if (getCityProductionTime(pcity) == FC_INFINITY) {
+        turns_to_complete_str = "-";
+      } else {
+        turns_to_complete_str = getCityProductionTime(pcity) + " turns";
+      }
+      city_list_html += "<tr class='cities_row' id='cities_list_" + pcity["id"] + "' onclick='javascript:show_city_dialog_by_id(" + pcity["id"] + ");'><td>" + pcity["name"] + "</td><td>" + numberWithCommas(cityPopulation(pcity) * 1e3) + "</td><td>" + pcity["size"] + "</td><td>" + get_city_state(pcity) + "</td><td>" + pcity["food_stock"] + "/" + pcity["granary_size"] + "</td><td>" + cityTurnsToGrowthText(pcity) + "</td><td>" + prod_type["name"] + " (" + turns_to_complete_str + ")</td><td>" + pcity["surplus"][O_FOOD] + "/" + pcity["surplus"][O_SHIELD] + "/" + pcity["surplus"][O_TRADE] + "</td><td>" + pcity["prod"][O_GOLD] + "/" + pcity["prod"][O_LUXURY] + "/" + pcity["prod"][O_SCIENCE] + "<td>";
+      city_list_html += "</tr>";
+    }
+  }
+  city_list_html += "</tbody></table>";
+  setHtml$1("cities_list", city_list_html);
+  if (count == 0) {
+    setHtml$1("city_table", "You have no cities. Build new cities with the Settlers unit.");
+  }
+  const citiesScroll = byId$2("cities_scroll");
+  if (citiesScroll) citiesScroll.style.height = window.innerHeight - 200 + "px";
+  initTableSort("#city_table", { sortList });
+}
+function get_city_state(pcity) {
+  if (pcity == null) return;
+  if (pcity["was_happy"] && pcity["size"] >= 3) {
+    return "Celebrating";
+  } else if (pcity["unhappy"]) {
+    return "Disorder";
+  } else {
+    return "Peace";
+  }
+}
+function city_keyboard_listener(ev) {
+  if (document.querySelector("input:focus") || !keyboard_input) return;
+  if (C_S_RUNNING != clientState()) return;
+  const keyboard_key = String.fromCharCode(ev.keyCode);
+  if (active_city != null) {
+    switch (keyboard_key) {
+      case "N":
+        next_city();
+        ev.stopPropagation();
+        break;
+      case "B":
+        request_city_buy();
+        ev.stopPropagation();
+        break;
+    }
+  }
+}
+function set_citydlg_dimensions(pcity) {
+  const city_radius = pcity["city_radius_sq"];
+  const radius_tiles = Math.ceil(Math.sqrt(city_radius));
+  set_citydlg_map_width(tileset_width + radius_tiles * tileset_width);
+  set_citydlg_map_height(tileset_height + radius_tiles * tileset_height);
+  const canvasDiv = byId$2("city_canvas_div");
+  if (canvasDiv) {
+    canvasDiv.style.width = citydlg_map_width + "px";
+    canvasDiv.style.height = citydlg_map_height + "px";
+  }
+  const canvas = byId$2("city_canvas");
+  if (canvas) {
+    canvas.width = citydlg_map_width;
+    canvas.height = citydlg_map_height;
+  }
+}
+function getCityDialogHtml() {
+  return `<div id="city_tabs">
+  <ul>
+    <li><a href="#city_tabs-1" onclick="javascript:city_tab_index=0;">Overview</a></li>
+    <li><a href="#city_tabs-2" onclick="javascript:city_tab_index=1;">Production</a></li>
+    <li><a href="#city_tabs-3" onclick="javascript:city_tab_index=2;">Traderoutes</a></li>
+    <li class="extra_tabs_big" onclick="javascript:city_tab_index=3;"><a href="#city_tabs-5">Settings</a></li>
+    <li><a href="#city_tabs-4" onclick="javascript:city_tab_index=4;">Governor</a></li>
+    <li class="extra_tabs_small" onclick="javascript:city_tab_index=5;"><a href="#city_tabs-6">Units/buildings</a></li>
+  </ul>
+
+  <div id="city_tabs-1">
+    <div id="city_overview_tab" class="citydlg_tabs">
+    <div id="city_viewport">
+    <div id="specialist_panel">
+    </div>
+
+    <div class="city_panel">
+      <div id="city_canvas_div">
+        <canvas id="city_canvas" class="city_canvas" width="384" height="192" moz-opaque="true"></canvas>
+      </div>
+    </div>
+
+    <div class="city_panel">
+      <div id="city_dialog_info">
+	  <div><b>City information:</b></div>
+	  <div style="float:left;">
+	  <span id="city_size"></span>
+	  <div id='city_production_overview'></div>
+	  <div id='city_production_turns_overview'></div>
+	</div>
+	<div style="float: left; margin-top: -20px; padding-left: 20px;">
+	  <table id="city_stats">
+	  <tr><td>Food: </td><td id="city_food"></td></tr>
+	  <tr><td>Prod: </td><td id="city_prod"></td></tr>
+	  <tr><td>Trade: </td><td id="city_trade"></td></tr>
+	  <tr><td>Gold:: </td><td id="city_gold"></td></tr>
+	  <tr><td>Luxury: </td><td id="city_luxury"></td></tr>
+	  <tr><td>Science: </td><td id="city_science"></td></tr>
+	  <tr><td>Corruption: </td><td id="city_corruption"></td></tr>
+	  <tr><td>Waste: </td><td id="city_waste"></td></tr>
+	  <tr><td>Pollution: </td><td id="city_pollution"></td></tr>
+          <tr><td>Tech stolen: </td><td id="city_steal"></td></tr>
+          <tr><td>Culture: </td><td id="city_culture"></td></tr>
+  	  </table>
+        </div>
+      </div>
+
+    </div>
+    <div id="city_improvements_panel" class="city_panel">
+      <div style="clear: left;"></div>
+      <div id="city_improvements">
+        <div id="city_improvements_title">City Improvements:</div>
+        <div id="city_improvements_list"></div>
+      </div>
+
+      <div id="city_present_units" >
+        <div id="city_present_units_title">Present Units:</div>
+        <div id="city_present_units_list"></div>
+      </div>
+
+      <div id="city_supported_units" >
+        <div id="city_supported_units_title">Supported Units:</div>
+        <div id="city_supported_units_list"></div>
+      </div>
+
+    </div>
+
+
+  </div>
+  </div>
+  </div>
+  <div id="city_tabs-2">
+    <div id="city_production_tab" class="citydlg_tabs">
+      <div id='worklist_left'>
+        <div id='worklist_dialog_headline'></div>
+        <div id='worklist_heading'>Target Worklist:</div><div id='city_current_worklist'></div>
+      </div>
+      <div id='worklist_right'>
+        <div id='tasks_heading'>
+          <input id='show_unreachable_items' type='checkbox'/>Show unreachable items<br/>
+          Source tasks:
+        </div>
+        <div id='worklist_production_choices'></div>
+      </div>
+      <div id='prod_buttons'>
+        <button type="button" class="button" onClick="city_change_production();" id="city_change_production_btn">Change Production</button>
+        <button type="button" class="button" onClick="city_add_to_worklist();" id="city_add_to_worklist_btn">Add to worklist</button>
+      </div>
+      <div id="worklist_control">
+        <button type="button" class="button" onClick="city_insert_in_worklist();" id="city_worklist_insert_btn" title="Insert before first selected task, or first in the list"><i class="fa fa-chevron-left fa-fw"></i></button>
+        <div class="wc_spacer"></div>
+        <button type="button" class="button" onClick="city_worklist_task_up();" id="city_worklist_up_btn" style="height: 20%;" title="Move selected tasks up"><i class="fa fa-chevron-up fa-fw"></i></button>
+        <button type="button" class="button" onClick="city_worklist_task_down();" id="city_worklist_down_btn" style="height: 20%;" title="Move selected tasks down"><i class="fa fa-chevron-down fa-fw"></i></button>
+        <div class="wc_spacer"></div>
+        <button type="button" class="button" onClick="city_exchange_worklist_task();" id="city_worklist_exchange_btn" title="Change selected tasks"><i class="fa fa-exchange fa-fw"></i></button>
+        <div class="wc_spacer"></div>
+        <button type="button" class="button" onClick="city_worklist_task_remove();" id="city_worklist_remove_btn" title="Remove selected tasks"><i class="fa fa-trash fa-fw"></i></button>
+      </div>
+    </div>
+  </div>
+  <div id="city_tabs-3">
+    <div id="city_traderoutes_tab" class="citydlg_tabs"></div>
+  </div>
+  <div id="city_tabs-5">
+    <div id="city_settings_tab" class="citydlg_tabs">
+      <div id="city_disband_options" >
+        <input id="disbandable_city" type="checkbox" name="disband_city0" value="disband_city0"/>Disband city if built settler at size 1.
+      </div>
+
+    </div>
+  </div>
+  <div id="city_tabs-6" class="citydlg_tabs">
+    <div id="city_units_tab"></div>
+  </div>
+
+
+    <div id="city_tabs-4">
+        <div id="city_governor_tab" class="citydlg_tabs">
+            <form name="cma_vals" id="cma_form" >
+                <table border="0">
+                    <tbody>
+                    <tr>
+
+                        <td>
+                            <span style="">
+                              <input id="cma_food" type="checkbox" name="cma_food" value="" onclick="button_pushed_toggle_cma();" />
+                              <img style="" class="lowered_gov" src="/images/wheat.png">
+                              <b>Food </b>
+                            </span>
+                        </td>
+                        <td>
+                            <span style="">
+                              <input id="cma_shield" type="checkbox" name="cma_shield" value="" onclick="button_pushed_toggle_cma();" />
+                              <img style="" class="lowered_gov" src="/images/shield14x18.png">
+                              <b>Shield </b>
+                            </span>
+                        </td>
+                        <td>
+                            <span style="">
+                              <input id="cma_trade" type="checkbox" name="cma_trade" value="" onclick="button_pushed_toggle_cma();" />
+                              <img style="" class="lowered_gov" src="/images/trade.png">
+                              <b>Trade </b>
+                            </span>
+                        </td>
+                        <td>
+                            <span style="">
+                              <input id="cma_gold" type="checkbox" name="cma_gold" value="" onclick="button_pushed_toggle_cma();" />
+                              <img style="" class="lowered_gov" src="/images/gold.png">
+                              <b>Gold </b>
+                           </span>
+                        </td>
+                        <td>
+                            <span style="">
+                              <input id="cma_luxury" type="checkbox" name="cma_luxury" value="" onclick="button_pushed_toggle_cma();" />
+                              <img style="" class="lowered_gov" src="/images/lux.png">
+                              <b>Luxury </b>
+                            </span>
+                        </td>
+                        <td>
+                           <span style="">
+                              <input id="cma_science" type="checkbox" name="cma_science" value="" onclick="button_pushed_toggle_cma();" />
+                              <img style="" class="lowered_gov" src="/images/sci.png">
+                              <b>Science </b>
+                           </span>
+                        </td>
+
+                    </tr>
+                    </tbody>
+                </table>
+            </form>
+
+
+        </div>
+    </div>
+
+</div>`;
+}
+function get_specialist_image_sprite(key) {
+  return null;
+}
+function city_mapview_mouse_click() {
+}
+const audio = window.audio;
+const music_list = window.music_list || [];
+const supports_mp3 = () => window.supports_mp3?.() ?? false;
+let auto_center_on_unit = true;
+let popup_actor_arrival = true;
+let draw_fog_of_war = true;
+let draw_units = true;
+function init_options_dialog() {
+  if (audio != null && !audio.source.src) {
+    if (!supports_mp3()) {
+      audio.load("/music/" + music_list[Math.floor(Math.random() * music_list.length)] + ".ogg");
+    } else {
+      audio.load("/music/" + music_list[Math.floor(Math.random() * music_list.length)] + ".mp3");
+    }
+  }
+  const soundsCheckbox = document.getElementById("play_sounds_setting");
+  if (soundsCheckbox) {
+    soundsCheckbox.checked = store.soundsEnabled;
+    soundsCheckbox.addEventListener("change", function() {
+      store.soundsEnabled = this.checked;
+      localStorage.setItem("sndFX", JSON.stringify(store.soundsEnabled));
+    });
+  }
 }
 function handle_processing_started(_packet) {
   store.frozen = true;
@@ -6057,37 +9097,6 @@ function handle_freeze_client(_packet) {
 function handle_thaw_client(_packet) {
   store.frozen = false;
 }
-let BitVector$1 = class BitVector2 {
-  data;
-  constructor(raw) {
-    this.data = raw instanceof Uint8Array ? raw : new Uint8Array(raw);
-  }
-  isSet(bit) {
-    return (this.data[bit >>> 3] & 1 << (bit & 7)) !== 0;
-  }
-  set(bit) {
-    this.data[bit >>> 3] |= 1 << (bit & 7);
-  }
-  unset(bit) {
-    this.data[bit >>> 3] &= ~(1 << (bit & 7));
-  }
-  toBitSet() {
-    const out = [];
-    const len = this.data.length << 3;
-    for (let i2 = 0; i2 < len; i2++) {
-      if (this.isSet(i2)) out.push(i2);
-    }
-    return out;
-  }
-  toString() {
-    let out = "";
-    const len = this.data.length << 3;
-    for (let i2 = 0; i2 < len; i2++) {
-      out += this.isSet(i2) ? "1" : "0";
-    }
-    return out;
-  }
-};
 let terrain_control = {};
 let roads = [];
 let bases = [];
@@ -6147,12 +9156,12 @@ function handle_ruleset_unit(packet) {
   if (packet["name"] != null && packet["name"].indexOf("?unit:") === 0) {
     packet["name"] = packet["name"].replace("?unit:", "");
   }
-  packet["flags"] = new BitVector$1(packet["flags"]);
+  packet["flags"] = new BitVector(packet["flags"]);
   store.unitTypes[packet["id"]] = packet;
 }
 function handle_web_ruleset_unit_addition(packet) {
   if (packet["utype_actions"] != null) {
-    packet["utype_actions"] = new BitVector$1(packet["utype_actions"]);
+    packet["utype_actions"] = new BitVector(packet["utype_actions"]);
   }
   if (store.unitTypes[packet["id"]] != null) {
     Object.assign(store.unitTypes[packet["id"]], packet);
@@ -6192,7 +9201,7 @@ function handle_ruleset_building(packet) {
   store.improvements[packet["id"]] = packet;
 }
 function handle_ruleset_unit_class(packet) {
-  packet["flags"] = new BitVector$1(packet["flags"]);
+  packet["flags"] = new BitVector(packet["flags"]);
   store.unitClasses[packet["id"]] = packet;
 }
 function handle_ruleset_disaster(_packet) {
@@ -6251,8 +9260,8 @@ function handle_ruleset_action_enabler(packet) {
   paction.enablers.push(packet);
 }
 function handle_ruleset_extra(packet) {
-  packet["causes"] = new BitVector$1(packet["causes"]);
-  packet["rmcauses"] = new BitVector$1(packet["rmcauses"]);
+  packet["causes"] = new BitVector(packet["causes"]);
+  packet["rmcauses"] = new BitVector(packet["rmcauses"]);
   packet["name"] = stringUnqualify(packet["name"]);
   store.extras[packet["id"]] = packet;
   store.extras[packet["rule_name"]] = packet;
@@ -6335,11 +9344,11 @@ function update_game_info_pregame() {
   let game_info_html = "";
   if (store.scenarioInfo != null && store.scenarioInfo["is_scenario"]) {
     game_info_html += "<p>";
-    game_info_html += store.scenarioInfo["description"].replace(/\n/g, "<br>");
+    game_info_html += String(store.scenarioInfo["description"]).replace(/\n/g, "<br>");
     game_info_html += "</p>";
     if (store.scenarioInfo["authors"]) {
       game_info_html += "<p>Scenario by ";
-      game_info_html += store.scenarioInfo["authors"].replace(/\n/g, "<br>");
+      game_info_html += String(store.scenarioInfo["authors"]).replace(/\n/g, "<br>");
       game_info_html += "</p>";
     }
     if (store.scenarioInfo["prevent_new_cities"]) {
@@ -6499,7 +9508,7 @@ function handle_research_info(packet) {
   }
   if (!clientIsObserver() && old_inventions != null && clientPlaying() != null && clientPlaying()["playerno"] === packet["id"]) {
     for (let i2 = 0; i2 < packet["inventions"].length; i2++) {
-      if (packet["inventions"][i2] !== old_inventions[i2] && packet["inventions"][i2] === TECH_KNOWN$1) {
+      if (packet["inventions"][i2] !== old_inventions[i2] && packet["inventions"][i2] === TECH_KNOWN) {
         queue_tech_gained_dialog(i2);
         break;
       }
@@ -6534,7 +9543,7 @@ function handle_end_turn(_packet) {
     if (btn) btn.disabled = true;
   }
 }
-function byId$3(id) {
+function byId$1(id) {
   return document.getElementById(id);
 }
 const CLAUSE_ADVANCE = 0;
@@ -6552,7 +9561,7 @@ let clause_infos = {};
 let diplomacy_clause_map = {};
 function show_diplomacy_dialog(counterpart) {
   const pplayer = store.players[counterpart];
-  create_diplomacy_dialog(pplayer, window.Handlebars.templates["diplomacy_meeting"]);
+  create_diplomacy_dialog(pplayer);
 }
 function accept_treaty_req(counterpart_id) {
   if (clientIsObserver()) return;
@@ -6703,19 +9712,18 @@ function diplomacy_cancel_treaty(player_id) {
   setTimeout(updateNationScreen, 500);
   setTimeout(updateNationScreen, 1500);
 }
-function create_diplomacy_dialog(counterpart, template) {
+function create_diplomacy_dialog(counterpart) {
   const pplayer = clientPlaying();
   const counterpart_id = counterpart["playerno"];
   cleanup_diplomacy_dialog(counterpart_id);
-  const gamePage = byId$3("game_page");
+  const gamePage = byId$1("game_page");
   if (gamePage) {
-    gamePage.insertAdjacentHTML("beforeend", template({
-      self: meeting_template_data(pplayer, counterpart),
-      counterpart: meeting_template_data(counterpart, pplayer)
-    }));
+    const selfData = meeting_template_data(pplayer, counterpart);
+    const counterpartData = meeting_template_data(counterpart, pplayer);
+    gamePage.insertAdjacentHTML("beforeend", renderDiplomacyMeetingHtml(selfData, counterpartData));
   }
   const title = "Diplomacy: " + counterpart["name"] + " of the " + store.nations[counterpart["nation"]]["adjective"];
-  const diplomacy_dialog = byId$3("diplomacy_dialog_" + counterpart_id);
+  const diplomacy_dialog = byId$1("diplomacy_dialog_" + counterpart_id);
   if (diplomacy_dialog) {
     const wrapper = document.createElement("div");
     wrapper.style.cssText = "position:fixed;z-index:1000;background:#222;border:1px solid #555;padding:0;top:10%;left:50%;transform:translateX(-50%);width:" + (isSmallScreen() ? "90%" : "50%") + ";height:500px;overflow:visible;color:#fff;";
@@ -6746,9 +9754,9 @@ function create_diplomacy_dialog(counterpart, template) {
   if (nation["customized"]) {
     meeting_paint_custom_flag(nation, document.getElementById("flag_counterpart_" + counterpart_id));
   }
-  const selfHier = byId$3("hierarchy_self_" + counterpart_id);
+  const selfHier = byId$1("hierarchy_self_" + counterpart_id);
   if (selfHier) create_clauses_menu(selfHier);
-  const counterHier = byId$3("hierarchy_counterpart_" + counterpart_id);
+  const counterHier = byId$1("hierarchy_counterpart_" + counterpart_id);
   if (counterHier) create_clauses_menu(counterHier);
   if (store.gameInfo.trading_gold && clause_infos[CLAUSE_GOLD]["enabled"]) {
     const selfGold = document.getElementById("self_gold_" + counterpart_id);
@@ -6858,14 +9866,16 @@ function meeting_gold_change_req(counterpart_id, giver, gold) {
   }
 }
 function meeting_template_data(giver, taker) {
-  const data = {};
   const nation = store.nations[giver["nation"]];
+  const data = {
+    adjective: nation["adjective"],
+    name: giver["name"],
+    pid: giver["playerno"],
+    clauses: []
+  };
   if (!nation["customized"]) {
     data.flag = nation["graphic_str"] + "-web" + getTilesetFileExtension();
   }
-  data.adjective = nation["adjective"];
-  data.name = giver["name"];
-  data.pid = giver["playerno"];
   const all_clauses = [];
   let clauses = [];
   if (clause_infos[CLAUSE_MAP]["enabled"]) {
@@ -6880,7 +9890,7 @@ function meeting_template_data(giver, taker) {
   if (store.gameInfo.trading_tech && clause_infos[CLAUSE_ADVANCE]["enabled"]) {
     clauses = [];
     for (const tech_id in store.techs) {
-      if (playerInventionState(giver, Number(tech_id)) === TECH_KNOWN$1 && (playerInventionState(taker, Number(tech_id)) === TECH_UNKNOWN || playerInventionState(taker, Number(tech_id)) === TECH_PREREQS_KNOWN)) {
+      if (playerInventionState(giver, Number(tech_id)) === TECH_KNOWN && (playerInventionState(taker, Number(tech_id)) === TECH_UNKNOWN || playerInventionState(taker, Number(tech_id)) === TECH_PREREQS_KNOWN)) {
         clauses.push({
           type: CLAUSE_ADVANCE,
           value: tech_id,
@@ -6896,7 +9906,7 @@ function meeting_template_data(giver, taker) {
     clauses = [];
     for (const city_id in store.cities) {
       const pcity = store.cities[city_id];
-      if (cityOwnerPlayerId(pcity) === giver && !doesCityHaveImprovement(pcity, "Palace")) {
+      if (cityOwnerPlayerId(pcity) === giver["playerno"] && !doesCityHaveImprovement(pcity, "Palace")) {
         clauses.push({
           type: CLAUSE_CITY,
           value: city_id,
@@ -6935,6 +9945,82 @@ function meeting_template_data(giver, taker) {
   data.clauses = all_clauses;
   return data;
 }
+function renderPlayerBox(player, box, counterpartPid) {
+  let html = "<div class='diplomacy_player_box'>\n";
+  if (player.flag) {
+    html += "  <img src='/images/flags/" + player.flag + "' class='flag_" + box + "' id='flag_" + box + "_" + counterpartPid + "'>\n";
+  } else {
+    html += "  <canvas class='flag_" + box + "' id='flag_" + box + "_" + counterpartPid + "' width='58' height='40'></canvas>\n";
+  }
+  html += "  <div class='agree_" + box + "' id='agree_" + box + "_" + counterpartPid + "'></div>\n";
+  html += "  <h3>" + player.adjective + " " + player.name + "</h3>\n";
+  html += "  <div class='dipl_div' >\n";
+  html += "    <div id='hierarchy_" + box + "_" + counterpartPid + "'>";
+  html += "<a tabindex='0' class='menu-button-activator ui-button ui-widget ui-state-default ui-corner-all'><span class='ui-icon ui-icon-triangle-1-s'></span>Add Clause...</a>\n";
+  html += "      <ul class='dipl_add'>";
+  for (const entry of player.clauses) {
+    if ("title" in entry) {
+      const group = entry;
+      html += "<li><div>" + group.title + "</div>\n          <ul>";
+      for (const clause of group.clauses) {
+        html += "<li><div><a href='#' onclick='create_clause_req(" + counterpartPid + ", " + player.pid + ", " + clause.type + ", " + clause.value + ");'>" + clause.name + "</a></div></li>\n";
+      }
+      html += "</ul>\n          </li>\n";
+    } else {
+      const clause = entry;
+      html += "<li><div><a href='#' onclick='create_clause_req(" + counterpartPid + ", " + player.pid + ", " + clause.type + ", " + clause.value + ");'>" + clause.name + "</a></div></li>\n";
+    }
+  }
+  html += "</ul>\n    </div>\n";
+  html += "    <span class='diplomacy_gold'>Gold:<input id='" + box + "_gold_" + counterpartPid + "' type='number' step='1' size='3' value='0'></span>\n";
+  html += "  </div>\n</div>\n";
+  return html;
+}
+function renderDiplomacyMeetingHtml(self, counterpart) {
+  let html = "\n<div id='diplomacy_dialog_" + counterpart.pid + "'>\n  <div>\n";
+  html += "    Treaty clauses:<br>\n";
+  html += "    <div class='diplomacy_messages' id='diplomacy_messages_" + counterpart.pid + "'></div>\n";
+  html += renderPlayerBox(self, "self", counterpart.pid);
+  html += renderPlayerBox(counterpart, "counterpart", counterpart.pid);
+  html += "  </div>\n</div>\n";
+  return html;
+}
+const diplomacy = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+  __proto__: null,
+  CLAUSE_ADVANCE,
+  CLAUSE_ALLIANCE,
+  CLAUSE_CEASEFIRE,
+  CLAUSE_CITY,
+  CLAUSE_EMBASSY,
+  CLAUSE_GOLD,
+  CLAUSE_MAP,
+  CLAUSE_PEACE,
+  CLAUSE_SEAMAP,
+  CLAUSE_SHARED_TILES,
+  CLAUSE_VISION,
+  accept_treaty,
+  accept_treaty_req,
+  cancel_meeting,
+  cancel_meeting_req,
+  clause_infos,
+  cleanup_diplomacy_dialog,
+  client_diplomacy_clause_string,
+  create_clause_req,
+  create_clauses_menu,
+  create_diplomacy_dialog,
+  diplomacy_cancel_treaty,
+  get diplomacy_clause_map() {
+    return diplomacy_clause_map;
+  },
+  discard_diplomacy_dialogs,
+  meeting_gold_change_req,
+  meeting_paint_custom_flag,
+  meeting_template_data,
+  remove_clause,
+  remove_clause_req,
+  show_diplomacy_clauses,
+  show_diplomacy_dialog
+}, Symbol.toStringTag, { value: "Module" }));
 function find_conn_by_id(id) {
   return store.connections[id];
 }
@@ -7070,7 +10156,7 @@ function handle_server_setting_control(_packet) {
 }
 function handle_tile_info(packet) {
   if (store.tiles != null) {
-    packet["extras"] = new BitVector$1(packet["extras"]);
+    packet["extras"] = new BitVector(packet["extras"]);
     Object.assign(store.tiles[packet["tile"]], packet);
     if (typeof mark_tile_dirty === "function") {
       mark_tile_dirty(packet["tile"]);
@@ -7094,8 +10180,8 @@ function handle_city_info(packet) {
     mark_tile_dirty(packet["tile"]);
   }
   packet["name"] = decodeURIComponent(packet["name"]);
-  packet["improvements"] = new BitVector$1(packet["improvements"]);
-  packet["city_options"] = new BitVector$1(packet["city_options"]);
+  packet["improvements"] = new BitVector(packet["improvements"]);
+  packet["city_options"] = new BitVector(packet["city_options"]);
   packet["unhappy"] = cityUnhappy(packet);
   if (store.cities[packet["id"]] == null) {
     store.cities[packet["id"]] = packet;
@@ -7129,7 +10215,7 @@ function handle_city_short_info(packet) {
     mark_tile_dirty(packet["tile"]);
   }
   packet["name"] = decodeURIComponent(packet["name"]);
-  packet["improvements"] = new BitVector$1(packet["improvements"]);
+  packet["improvements"] = new BitVector(packet["improvements"]);
   if (store.cities[packet["id"]] == null) {
     store.cities[packet["id"]] = packet;
   } else {
@@ -7155,20 +10241,19 @@ function handle_city_sabotage_list(packet) {
   popup_sabotage_dialog(
     game_find_unit_by_number(packet["actor_id"]),
     game_find_city_by_number(packet["city_id"]),
-    new BitVector$1(packet["improvements"]),
+    new BitVector(packet["improvements"]),
     packet["act_id"]
   );
 }
-const _w$3 = window;
 function assign_nation_color(nation_id) {
   const nation = store.nations[nation_id];
   if (nation == null || nation["color"] != null) return;
   const flag_key = "f." + nation["graphic_str"];
-  const flag_sprite = _w$3.sprites[flag_key];
+  const flag_sprite = store.sprites[flag_key];
   if (flag_sprite == null) return;
   const c2 = flag_sprite.getContext("2d");
-  const width = _w$3.tileset[flag_key][2];
-  const height = _w$3.tileset[flag_key][3];
+  const width = store.tileset[flag_key][2];
+  const height = store.tileset[flag_key][3];
   const color_counts = {};
   if (c2 == null) return;
   const img_data = c2.getImageData(1, 1, width - 2, height - 2).data;
@@ -7206,11 +10291,11 @@ function handle_player_info(packet) {
     packet
   );
   const p2 = store.players[packet["playerno"]];
-  if (p2["flags"] != null && !(p2["flags"] instanceof BitVector$1)) {
-    p2["flags"] = new BitVector$1(p2["flags"]);
+  if (p2["flags"] != null && !(p2["flags"] instanceof BitVector)) {
+    p2["flags"] = new BitVector(p2["flags"]);
   }
-  if (p2["gives_shared_vision"] != null && !(p2["gives_shared_vision"] instanceof BitVector$1)) {
-    p2["gives_shared_vision"] = new BitVector$1(p2["gives_shared_vision"]);
+  if (p2["gives_shared_vision"] != null && !(p2["gives_shared_vision"] instanceof BitVector)) {
+    p2["gives_shared_vision"] = new BitVector(p2["gives_shared_vision"]);
   }
   if (clientPlaying() != null && packet["playerno"] === clientPlaying()["playerno"]) {
     store.client.conn.playing = store.players[packet["playerno"]];
@@ -7222,7 +10307,6 @@ function handle_web_player_info_addition(packet) {
     if (packet["playerno"] === clientPlaying()["playerno"]) {
       store.client.conn.playing = store.players[packet["playerno"]];
       update_game_status_panel();
-      update_net_income();
     }
   }
   update_player_info_pregame();
@@ -7320,12 +10404,12 @@ function handle_unit_short_info(packet) {
 function action_decision_handle(punit) {
   for (let a2 = 0; a2 < auto_attack_actions.length; a2++) {
     const action = auto_attack_actions[a2];
-    if (utype_can_do_action$1(unit_type(punit), action) && store.autoAttack) {
+    if (utype_can_do_action(unit_type(punit), action) && store.autoAttack) {
       sendUnitGetActions(
         punit["id"],
         IDENTITY_NUMBER_ZERO,
         punit["action_decision_tile"],
-        EXTRA_NONE$1,
+        EXTRA_NONE,
         REQEST_BACKGROUND_FAST_AUTO_ATTACK
       );
       return;
@@ -7369,26 +10453,26 @@ function handle_unit_packet_common(packet_unit) {
     store.units[packet_unit["id"]] = packet_unit;
     store.units[packet_unit["id"]]["facing"] = 6;
   } else {
-    if ((punit["action_decision_want"] !== packet_unit["action_decision_want"] || punit["action_decision_tile"] !== packet_unit["action_decision_tile"]) && should_ask_server_for_actions(packet_unit)) {
+    if (punit != null && (punit["action_decision_want"] !== packet_unit["action_decision_want"] || punit["action_decision_tile"] !== packet_unit["action_decision_tile"]) && should_ask_server_for_actions(packet_unit)) {
       action_decision_handle(packet_unit);
     }
     if (typeof update_unit_anim_list === "function") {
       update_unit_anim_list(store.units[packet_unit["id"]], packet_unit);
     }
     Object.assign(store.units[packet_unit["id"]], packet_unit);
-    if (current_focus$1 != null) {
-      for (let i2 = 0; i2 < current_focus$1.length; i2++) {
-        if (current_focus$1[i2]["id"] === packet_unit["id"]) {
-          Object.assign(current_focus$1[i2], packet_unit);
+    if (current_focus != null) {
+      for (let i2 = 0; i2 < current_focus.length; i2++) {
+        if (current_focus[i2]["id"] === packet_unit["id"]) {
+          Object.assign(current_focus[i2], packet_unit);
         }
       }
     }
   }
   update_tile_unit(store.units[packet_unit["id"]]);
-  if (current_focus$1 != null && current_focus$1.length > 0 && current_focus$1[0]["id"] === packet_unit["id"]) {
+  if (current_focus != null && current_focus.length > 0 && current_focus[0]["id"] === packet_unit["id"]) {
     update_active_units_dialog();
     update_unit_order_commands();
-    if (current_focus$1[0]["done_moving"] !== packet_unit["done_moving"]) {
+    if (current_focus[0]["done_moving"] !== packet_unit["done_moving"]) {
       update_unit_focus();
     }
   }
@@ -7480,8 +10564,8 @@ function handle_unit_actions(packet) {
           action_probabilities,
           ptile,
           target_extra,
-          target_unit,
-          target_city
+          target_unit ?? null,
+          target_city ?? null
         );
       } else {
         action_selection_no_longer_in_progress(actor_unit_id);
@@ -7492,9 +10576,9 @@ function handle_unit_actions(packet) {
     case REQEST_BACKGROUND_REFRESH:
       action_selection_refresh(
         pdiplomat,
-        target_city,
-        target_unit,
-        ptile,
+        target_city ?? null,
+        target_unit ?? null,
+        ptile ?? null,
         target_extra,
         action_probabilities
       );
@@ -7745,7 +10829,7 @@ function client_handle_packet(packets) {
     }
     if (packets.length > 0) {
       if (store.debugActive) clinet_debug_collect();
-      if (store.renderer === RENDERER_2DCANVAS$1) update_map_canvas_check();
+      if (store.renderer === RENDERER_2DCANVAS) update_map_canvas_check();
     }
   } catch (e2) {
     console.error(e2);
@@ -7754,10 +10838,10 @@ function client_handle_packet(packets) {
 const FC_ACTIVITY_IDLE = ACTIVITY_IDLE;
 const FC_SSA_NONE = ServerSideAgent.NONE;
 const FC_IDENTITY_NUMBER_ZERO$1 = IDENTITY_NUMBER_ZERO;
-const FC_EXTRA_NONE$1 = EXTRA_NONE$1;
+const FC_EXTRA_NONE$1 = EXTRA_NONE;
 const FC_B_AIRPORT_NAME = B_AIRPORT_NAME;
 const FC_TECH_UNKNOWN = TECH_UNKNOWN;
-const FC_TECH_KNOWN = TECH_KNOWN$1;
+const FC_TECH_KNOWN = TECH_KNOWN;
 function showEl(id) {
   const el = document.getElementById(id);
   if (el) el.style.display = "";
@@ -7806,7 +10890,7 @@ function get_focus_unit_on_tile(ptile) {
   }
   return null;
 }
-function unit_is_in_focus$1(cunit) {
+function unit_is_in_focus(cunit) {
   const funits = get_units_in_focus();
   for (let i2 = 0; i2 < funits.length; i2++) {
     const punit = funits[i2];
@@ -7817,7 +10901,7 @@ function unit_is_in_focus$1(cunit) {
   return false;
 }
 function get_units_in_focus() {
-  return current_focus$1;
+  return current_focus;
 }
 function unit_focus_urgent(punit) {
   if (punit == null || punit["activity"] == null) {
@@ -7826,6 +10910,20 @@ function unit_focus_urgent(punit) {
     return;
   }
   urgent_focus_queue.push(punit);
+}
+function control_unit_killed(punit) {
+  if (urgent_focus_queue != null) {
+    setUrgentFocusQueue(unit_list_without(urgent_focus_queue, punit));
+  }
+  if (unit_is_in_focus(punit)) {
+    if (current_focus.length == 1) {
+      advance_unit_focus();
+    } else {
+      setCurrentFocus(unit_list_without(current_focus, punit));
+    }
+    update_active_units_dialog();
+    update_unit_order_commands();
+  }
 }
 function update_unit_focus() {
   if (active_city != null) return;
@@ -7854,7 +10952,7 @@ function advance_unit_focus() {
   let i2;
   if (clientIsObserver()) return;
   if (urgent_focus_queue.length > 0) {
-    const focus_tile = current_focus$1 != null && current_focus$1.length > 0 ? current_focus$1[0]["tile"] : -1;
+    const focus_tile = current_focus != null && current_focus.length > 0 ? current_focus[0]["tile"] : -1;
     for (i2 = 0; i2 < urgent_focus_queue.length; i2++) {
       const punit = store.units[urgent_focus_queue[i2]["id"]];
       if ((FC_ACTIVITY_IDLE != punit.activity || punit.has_orders) && !should_ask_server_for_actions(punit)) {
@@ -7923,12 +11021,12 @@ function update_unit_order_commands() {
     punit = funits[i2];
     ptype = unit_type(punit);
     ptile = indexToTile(punit["tile"]);
-    if (ptile == null) continue;
+    if (ptile == null || ptype == null) continue;
     pcity = tileCity(ptile);
-    if (utype_can_do_action$1(ptype, ACTION_FOUND_CITY) && pcity == null) {
+    if (utype_can_do_action(ptype, ACTION_FOUND_CITY) && pcity == null) {
       showEl("order_build_city");
       unit_actions["build"] = { name: "Build city (B)" };
-    } else if (utype_can_do_action$1(ptype, ACTION_JOIN_CITY) && pcity != null) {
+    } else if (utype_can_do_action(ptype, ACTION_JOIN_CITY) && pcity != null) {
       showEl("order_build_city");
       unit_actions["build"] = { name: "Join city (B)" };
     } else {
@@ -7946,7 +11044,7 @@ function update_unit_order_commands() {
     punit = funits[i2];
     ptype = unit_type(punit);
     ptile = indexToTile(punit["tile"]);
-    if (ptile == null) continue;
+    if (ptile == null || ptype == null) continue;
     pcity = tileCity(ptile);
     if (ptype["name"] == "Settlers" || ptype["name"] == "Workers" || ptype["name"] == "Engineers") {
       if (ptype["name"] == "Settlers") unit_actions["autoworkers"] = { name: "Auto settler (A)" };
@@ -8048,13 +11146,13 @@ function update_unit_order_commands() {
       unit_actions["fortify"] = { name: "Fortify (F)" };
     }
     unit_actions["action_selection"] = { name: "Do... (D)" };
-    if (utype_can_do_action$1(ptype, ACTION_TRANSFORM_TERRAIN)) {
+    if (utype_can_do_action(ptype, ACTION_TRANSFORM_TERRAIN)) {
       showEl("order_transform");
       unit_actions["transform"] = { name: "Transform terrain (O)" };
     } else {
       hideEl("order_transform");
     }
-    if (utype_can_do_action$1(ptype, ACTION_NUKE)) {
+    if (utype_can_do_action(ptype, ACTION_NUKE)) {
       showEl("order_nuke");
       unit_actions["nuke"] = { name: "Detonate Nuke At (Shift-N)" };
     } else {
@@ -8124,42 +11222,34 @@ function update_unit_order_commands() {
   document.querySelectorAll(".context-menu-list").forEach((el) => el.style.zIndex = "5000");
   return unit_actions;
 }
+let unitPanelDialog = null;
 function init_game_unit_panel() {
   if (store.observing) return;
   setUnitpanelActive(true);
-  const jq = window.$;
-  const $panel = jq("#game_unit_panel");
-  $panel.attr("title", "Units");
-  $panel.dialog({
-    bgiframe: true,
+  unitPanelDialog = new GameDialog("#game_unit_panel", {
+    title: "Units",
     modal: false,
-    width: "370px",
+    width: 370,
     height: "auto",
     resizable: false,
     closeOnEscape: false,
-    dialogClass: "unit_dialog  no-close",
-    position: { my: "right bottom", at: "right bottom", of: window, within: jq("#tabs-map") },
-    appendTo: "#tabs-map",
-    close: function(event, ui) {
+    closable: false,
+    minimizable: true,
+    dialogClass: "unit_dialog no-close",
+    position: { my: "right bottom", at: "right bottom", within: document.getElementById("tabs-map") || void 0 },
+    onClose: () => {
       setUnitpanelActive(false);
-    }
-  }).dialogExtend({
-    "minimizable": true,
-    "closable": false,
-    "minimize": function(evt, dlg) {
-      setGameUnitPanelState($panel.dialogExtend("state"));
     },
-    "restore": function(evt, dlg) {
-      setGameUnitPanelState($panel.dialogExtend("state"));
+    onMinimize: () => {
+      setGameUnitPanelState("minimized");
     },
-    "icons": {
-      "minimize": "ui-icon-circle-minus",
-      "restore": "ui-icon-bullet"
+    onRestore: () => {
+      setGameUnitPanelState("normal");
     }
   });
-  $panel.dialog("open");
-  $panel.parent().css("overflow", "hidden");
-  if (game_unit_panel_state == "minimized") $panel.dialogExtend("minimize");
+  unitPanelDialog.open();
+  unitPanelDialog.widget.parentElement.style.overflow = "hidden";
+  if (game_unit_panel_state === "minimized") unitPanelDialog.minimize();
 }
 function find_best_focus_candidate(accept_current) {
   let punit;
@@ -8176,7 +11266,7 @@ function find_best_focus_candidate(accept_current) {
   sorted_units.sort(unit_distance_compare);
   for (i2 = 0; i2 < sorted_units.length; i2++) {
     punit = sorted_units[i2];
-    if ((!unit_is_in_focus$1(punit) || accept_current) && clientPlaying() != null && punit["owner"] == clientPlaying().playerno && (punit["activity"] == FC_ACTIVITY_IDLE && !punit["done_moving"] && punit["movesleft"] > 0 || should_ask_server_for_actions(punit)) && punit["ssa_controller"] == FC_SSA_NONE && waiting_units_list.indexOf(punit["id"]) < 0 && !punit["transported"]) {
+    if ((!unit_is_in_focus(punit) || accept_current) && clientPlaying() != null && punit["owner"] == clientPlaying().playerno && (punit["activity"] == FC_ACTIVITY_IDLE && !punit["done_moving"] && punit["movesleft"] > 0 || should_ask_server_for_actions(punit)) && punit["ssa_controller"] == FC_SSA_NONE && waiting_units_list.indexOf(punit["id"]) < 0 && !punit["transported"]) {
       return punit;
     }
   }
@@ -8207,7 +11297,7 @@ function set_unit_focus(punit) {
   if (punit == null) {
     setCurrentFocus([]);
   } else {
-    current_focus$1[0] = punit;
+    current_focus[0] = punit;
     action_selection_next_in_focus(FC_IDENTITY_NUMBER_ZERO$1);
   }
   update_active_units_dialog();
@@ -8218,14 +11308,14 @@ function set_unit_focus_and_redraw(punit) {
   if (punit == null) {
     setCurrentFocus([]);
   } else {
-    current_focus$1[0] = punit;
+    current_focus[0] = punit;
     action_selection_next_in_focus(FC_IDENTITY_NUMBER_ZERO$1);
   }
   auto_center_on_focus_unit();
   update_active_units_dialog();
   update_unit_order_commands();
   const ordersDefault = document.getElementById("game_unit_orders_default");
-  if (current_focus$1.length > 0 && ordersDefault) ordersDefault.style.display = "";
+  if (current_focus.length > 0 && ordersDefault) ordersDefault.style.display = "";
 }
 function set_unit_focus_and_activate(punit) {
   set_unit_focus_and_redraw(punit);
@@ -8244,7 +11334,7 @@ function auto_center_on_focus_unit() {
   }
 }
 function find_a_focus_unit_tile_to_center_on() {
-  const funit = current_focus$1[0];
+  const funit = current_focus[0];
   if (funit == null) return null;
   return indexToTile(funit["tile"]);
 }
@@ -8278,7 +11368,7 @@ function find_visible_unit(ptile) {
 function get_drawable_unit(ptile, citymode) {
   const punit = find_visible_unit(ptile);
   if (punit == null) return null;
-  if (!unit_is_in_focus$1(punit) || current_focus$1.length > 0) {
+  if (!unit_is_in_focus(punit) || current_focus.length > 0) {
     return punit;
   } else {
     return null;
@@ -8290,37 +11380,38 @@ function update_active_units_dialog() {
   let punits = [];
   let width = 0;
   if (clientIsObserver() || !unitpanel_active) return;
-  if (current_focus$1.length == 1) {
-    ptile = indexToTile(current_focus$1[0]["tile"]);
-    punits.push(current_focus$1[0]);
+  if (current_focus.length == 1) {
+    ptile = indexToTile(current_focus[0]["tile"]);
+    punits.push(current_focus[0]);
     const tmpunits = tile_units(ptile) || [];
     for (let i2 = 0; i2 < tmpunits.length; i2++) {
       const kunit = tmpunits[i2];
-      if (kunit["id"] == current_focus$1[0]["id"]) continue;
+      if (kunit["id"] == current_focus[0]["id"]) continue;
       punits.push(kunit);
     }
-  } else if (current_focus$1.length > 1) {
-    punits = current_focus$1;
+  } else if (current_focus.length > 1) {
+    punits = current_focus;
   }
   for (let i2 = 0; i2 < punits.length; i2++) {
     const punit = punits[i2];
     const sprite = get_unit_image_sprite(punit);
-    const active = current_focus$1.length > 1 || current_focus$1[0]["id"] == punit["id"];
+    if (!sprite) continue;
+    const active = current_focus.length > 1 || current_focus[0]["id"] == punit["id"];
     unit_info_html += "<div id='unit_info_div' class='" + (active ? "current_focus_unit" : "") + "'><div id='unit_info_image' onclick='set_unit_focus_and_redraw(units[" + punit["id"] + "])'  style='background: transparent url(" + sprite["image-src"] + ");background-position:-" + sprite["tileset-x"] + "px -" + sprite["tileset-y"] + "px;  width: " + sprite["width"] + "px;height: " + sprite["height"] + "px;'></div></div>";
     width = sprite["width"];
   }
-  if (current_focus$1.length == 1) {
-    const aunit = current_focus$1[0];
+  if (current_focus.length == 1) {
+    const aunit = current_focus[0];
     const ptype = unit_type(aunit);
     unit_info_html += "<div id='active_unit_info' title='" + (ptype ? ptype["helptext"] : "") + "'>";
-    if (clientPlaying() != null && current_focus$1[0]["owner"] != clientPlaying().playerno) {
-      unit_info_html += "<b>" + store.nations[store.players[current_focus$1[0]["owner"]]["nation"]]["adjective"] + "</b> ";
+    if (clientPlaying() != null && current_focus[0]["owner"] != clientPlaying().playerno) {
+      unit_info_html += "<b>" + store.nations[store.players[current_focus[0]["owner"]]["nation"]]["adjective"] + "</b> ";
     }
     unit_info_html += "<b>" + (ptype ? ptype["name"] : "") + "</b>: ";
     if (get_unit_homecity_name(aunit) != null) {
       unit_info_html += " " + get_unit_homecity_name(aunit) + " ";
     }
-    if (clientPlaying() != null && current_focus$1[0]["owner"] == clientPlaying().playerno) {
+    if (clientPlaying() != null && current_focus[0]["owner"] == clientPlaying().playerno) {
       unit_info_html += "<span>" + get_unit_moves_left(aunit) + "</span> ";
     }
     unit_info_html += "<br><span title='Attack strength'>A:" + (ptype ? ptype["attack_strength"] : 0) + "</span> <span title='Defense strength'>D:" + (ptype ? ptype["defense_strength"] : 0) + "</span> <span title='Firepower'>F:" + (ptype ? ptype["firepower"] : 0) + "</span> <span title='Health points'>H:" + aunit["hp"] + "/" + (ptype ? ptype["hp"] : 0) + "</span>";
@@ -8331,16 +11422,16 @@ function update_active_units_dialog() {
       unit_info_html += " <span>Transport: " + ptype["transport_capacity"] + "</span>";
     }
     unit_info_html += "</div>";
-  } else if (current_focus$1.length >= 1 && clientPlaying() != null && current_focus$1[0]["owner"] != clientPlaying().playerno) {
-    unit_info_html += "<div id='active_unit_info'>" + current_focus$1.length + " foreign units  (" + store.nations[store.players[current_focus$1[0]["owner"]]["nation"]]["adjective"] + ")</div> ";
-  } else if (current_focus$1.length > 1) {
-    unit_info_html += "<div id='active_unit_info'>" + current_focus$1.length + " units selected.</div> ";
+  } else if (current_focus.length >= 1 && clientPlaying() != null && current_focus[0]["owner"] != clientPlaying().playerno) {
+    unit_info_html += "<div id='active_unit_info'>" + current_focus.length + " foreign units  (" + store.nations[store.players[current_focus[0]["owner"]]["nation"]]["adjective"] + ")</div> ";
+  } else if (current_focus.length > 1) {
+    unit_info_html += "<div id='active_unit_info'>" + current_focus.length + " units selected.</div> ";
   }
   const gameUnitInfo = document.getElementById("game_unit_info");
   if (gameUnitInfo) gameUnitInfo.innerHTML = unit_info_html;
   const panelEl = document.getElementById("game_unit_panel");
   const panelParent = panelEl?.parentElement;
-  if (current_focus$1.length > 0) {
+  if (current_focus.length > 0) {
     let newwidth = 32 + punits.length * (width + 10);
     if (newwidth < 140) newwidth = 140;
     const newheight = 75 + normal_tile_height;
@@ -8352,3233 +11443,43 @@ function update_active_units_dialog() {
       panelParent.style.top = window.innerHeight - newheight - 30 + "px";
       panelParent.style.background = "rgba(50,50,40,0.5)";
     }
-    if (game_unit_panel_state == "minimized") {
-      const jq = window.$;
-      if (jq) jq("#game_unit_panel").dialogExtend("minimize");
+    if (game_unit_panel_state === "minimized" && unitPanelDialog) {
+      unitPanelDialog.minimize();
     }
   } else {
     if (panelParent) panelParent.style.display = "none";
   }
   const activeUnitInfo = document.getElementById("active_unit_info");
   if (activeUnitInfo) {
-    const jq = window.$;
-    if (jq) jq(activeUnitInfo).tooltip();
-  }
-}
-const USSDT_QUEUE = UnitSSDataType.QUEUE;
-const ORDER_LAST = Order.LAST;
-const ORDER_MOVE = Order.MOVE;
-const ORDER_ACTION_MOVE = Order.ACTION_MOVE;
-const ORDER_FULL_MP = Order.FULL_MP;
-function order_wants_direction(order, act_id, ptile) {
-  const action = store.actions[act_id];
-  if (order == goto_last_order && action == null) {
-    console.log("Asked to put invalid action " + act_id + " in an order.");
-    return false;
-  }
-  switch (order) {
-    case ORDER_MOVE:
-    case ORDER_ACTION_MOVE:
-      return true;
-    case Order.PERFORM_ACTION:
-      if (action["min_distance"] > 0) {
-        return true;
-      }
-      if (action["max_distance"] < 1) {
-        return false;
-      }
-      if (tileCity(ptile) != null || tile_units(ptile).length != 0) {
-        return true;
-      }
-      return false;
-    default:
-      return false;
-  }
-}
-function do_unit_paradrop_to(punit, ptile) {
-  let act_id;
-  let paradrop_action = null;
-  const FC_ACTION_COUNT = ACTION_COUNT$1;
-  for (act_id = 0; act_id < FC_ACTION_COUNT; act_id++) {
-    const paction = actionByNumber(act_id);
-    if (!(actionHasResult(paction, ACTRES_PARADROP_CONQUER) || actionHasResult(paction, ACTRES_PARADROP))) {
-      continue;
-    }
-    if (utype_can_do_action$1(unit_type(punit), act_id)) {
-      if (paradrop_action == null) {
-        paradrop_action = paction;
-      } else {
-        sendUnitSscsSet(punit["id"], USSDT_QUEUE, ptile["index"]);
-        return;
-      }
-    }
-  }
-  if (paradrop_action != null) {
-    request_unit_do_action(
-      paradrop_action["id"],
-      punit["id"],
-      ptile["index"]
-    );
-  }
-}
-function do_map_click(ptile, qtype, first_time_called) {
-  let punit;
-  let packet;
-  let pcity;
-  if (ptile == null || clientIsObserver()) return;
-  if (current_focus$1.length > 0 && current_focus$1[0]["tile"] == ptile["index"]) {
-    if (goto_active && !isTouchDevice()) {
-      deactivate_goto(false);
-    }
-    if (store.renderer == RENDERER_2DCANVAS$1) {
-      document.getElementById("canvas")?.dispatchEvent(new Event("contextmenu"));
-    } else {
-      document.getElementById("canvas_div")?.dispatchEvent(new Event("contextmenu"));
-    }
-    return;
-  }
-  const sunits = tile_units(ptile);
-  pcity = tileCity(ptile);
-  if (goto_active) {
-    if (current_focus$1.length > 0) {
-      for (let s2 = 0; s2 < current_focus$1.length; s2++) {
-        punit = current_focus$1[s2];
-        const goto_path = goto_request_map[punit["id"] + "," + ptile["x"] + "," + ptile["y"]];
-        if (goto_path == null) {
-          continue;
-        }
-        const old_tile = indexToTile(punit["tile"]);
-        packet = {
-          "unit_id": punit["id"],
-          "src_tile": old_tile["index"],
-          "length": goto_path["length"],
-          "repeat": false,
-          "vigilant": false,
-          "dest_tile": ptile["index"]
-        };
-        const order = {
-          "order": ORDER_LAST,
-          "activity": ACTIVITY_LAST,
-          "target": 0,
-          "sub_target": 0,
-          "action": ACTION_COUNT$1,
-          "dir": -1
-        };
-        packet["orders"] = [];
-        for (let i2 = 0; i2 < goto_path["length"]; i2++) {
-          if (goto_path["dir"][i2] == -1) {
-            order["order"] = ORDER_FULL_MP;
-          } else if (i2 + 1 != goto_path["length"]) {
-            order["order"] = ORDER_MOVE;
-          } else {
-            order["order"] = ORDER_ACTION_MOVE;
-          }
-          order["dir"] = goto_path["dir"][i2];
-          order["activity"] = ACTIVITY_LAST;
-          order["target"] = 0;
-          order["sub_target"] = 0;
-          order["action"] = ACTION_COUNT$1;
-          packet["orders"][i2] = Object.assign({}, order);
-        }
-        if (goto_last_order != ORDER_LAST) {
-          let pos;
-          if (!order_wants_direction(
-            goto_last_order,
-            goto_last_action,
-            ptile
-          )) {
-            pos = packet["length"];
-            packet["length"] = packet["length"] + 1;
-            order["order"] = ORDER_LAST;
-            order["dir"] = -1;
-            order["activity"] = ACTIVITY_LAST;
-            order["target"] = 0;
-            order["sub_target"] = 0;
-            order["action"] = ACTION_COUNT$1;
-          } else {
-            pos = packet["length"] - 1;
-          }
-          order["order"] = goto_last_order;
-          order["action"] = goto_last_action;
-          order["target"] = ptile["index"];
-          packet["orders"][pos] = Object.assign({}, order);
-        }
-        setGotoLastOrder(ORDER_LAST);
-        setGotoLastAction(ACTION_COUNT$1);
-        if (punit["id"] != goto_path["unit_id"]) {
-          console.log("Error: Tried to order unit " + punit["id"] + " to move along a path made for unit " + goto_path["unit_id"]);
-          return;
-        }
-        sendUnitOrders(packet);
-        if (punit["movesleft"] > 0) {
-          unit_move_sound_play(punit);
-        } else if (!has_movesleft_warning_been_shown) {
-          setHasMovesleftWarningBeenShown(true);
-          const ptype = unit_type(punit);
-          message_log.update({
-            event: E_BAD_COMMAND,
-            message: (ptype ? ptype["name"] : "Unit") + " has no moves left. Press turn done for the next turn."
-          });
-        }
-      }
-      clearGotoTiles();
-    } else if (isTouchDevice()) {
-      if (current_focus$1.length > 0) {
-        request_goto_path(current_focus$1[0]["id"], ptile["x"], ptile["y"]);
-        if (first_time_called) {
-          setTimeout(function() {
-            do_map_click(ptile, qtype, false);
-          }, 250);
-        }
-        return;
-      }
-    }
-    deactivate_goto(true);
-    update_unit_focus();
-  } else if (paradrop_active && current_focus$1.length > 0) {
-    punit = current_focus$1[0];
-    do_unit_paradrop_to(punit, ptile);
-    setParadropActive(false);
-  } else if (airlift_active && current_focus$1.length > 0) {
-    punit = current_focus$1[0];
-    pcity = tileCity(ptile);
-    if (pcity != null) {
-      request_unit_do_action(ACTION_AIRLIFT, punit["id"], pcity["id"]);
-    }
-    setAirliftActive(false);
-  } else if (action_tgt_sel_active && current_focus$1.length > 0) {
-    request_unit_act_sel_vs(ptile);
-    setActionTgtSelActive(false);
-  } else {
-    if (pcity != null) {
-      if (clientPlaying() != null && pcity["owner"] == clientPlaying().playerno) {
-        if (sunits != null && sunits.length > 0 && sunits[0]["activity"] == ACTIVITY_IDLE) {
-          set_unit_focus_and_redraw(sunits[0]);
-          if (store.renderer == RENDERER_2DCANVAS$1) {
-            document.getElementById("canvas")?.dispatchEvent(new Event("contextmenu"));
-          } else {
-            document.getElementById("canvas_div")?.dispatchEvent(new Event("contextmenu"));
-          }
-        } else if (!goto_active) {
-          show_city_dialog(pcity);
-        }
-      }
-      return;
-    }
-    if (sunits != null && sunits.length == 0) {
-      set_unit_focus_and_redraw(null);
-    } else if (sunits != null && sunits.length > 0) {
-      if (clientPlaying() != null && sunits[0]["owner"] == clientPlaying().playerno) {
-        if (sunits.length == 1) {
-          const unit = sunits[0];
-          set_unit_focus_and_activate(unit);
-        } else {
-          set_unit_focus_and_redraw(sunits[0]);
-          update_active_units_dialog();
-        }
-        if (isTouchDevice()) {
-          if (store.renderer == RENDERER_2DCANVAS$1) {
-            document.getElementById("canvas")?.dispatchEvent(new Event("contextmenu"));
-          } else {
-            document.getElementById("canvas_div")?.dispatchEvent(new Event("contextmenu"));
-          }
-        }
-      } else if (pcity == null) {
-        setCurrentFocus(sunits);
-        const guod = document.getElementById("game_unit_orders_default");
-        if (guod) guod.style.display = "none";
-        update_active_units_dialog();
-      }
-    }
-  }
-  setParadropActive(false);
-  setAirliftActive(false);
-  setActionTgtSelActive(false);
-}
-function find_active_dialog() {
-  const permanent_widgets = ["game_overview_panel", "game_unit_panel", "game_chatbox_panel"];
-  const dialogs = document.querySelectorAll(".ui-dialog");
-  for (let i2 = 0; i2 < dialogs.length; i2++) {
-    const dialog = dialogs[i2];
-    if (dialog.style.display == "none") {
-      continue;
-    }
-    const children = dialog.children;
-    if (children.length >= 2 && permanent_widgets.indexOf(children[1].id) < 0) {
-      return dialog;
-    }
-  }
-  return null;
-}
-function activate_goto() {
-  clearGotoTiles();
-  activate_goto_last(ORDER_LAST, ACTION_COUNT$1);
-}
-function activate_goto_last(last_order, last_action) {
-  setGotoActive(true);
-  const canvasDiv = document.getElementById("canvas_div");
-  if (canvasDiv) canvasDiv.style.cursor = "crosshair";
-  setGotoLastOrder(last_order);
-  setGotoLastAction(last_action);
-  if (current_focus$1.length > 0) {
-    if (intro_click_description) {
-      if (isTouchDevice()) {
-        message_log.update({
-          event: E_BEGINNER_HELP,
-          message: "Carefully drag unit to the tile you want it to go to."
-        });
-      } else {
-        message_log.update({
-          event: E_BEGINNER_HELP,
-          message: "Click on the tile to send this unit to."
-        });
-      }
-      setIntroClickDescription(false);
-    }
-  } else {
-    message_log.update({
-      event: E_BEGINNER_HELP,
-      message: "First select a unit to move by clicking on it, then click on the goto button or the 'G' key, then click on the position to move to."
-    });
-    deactivate_goto(false);
-  }
-}
-function deactivate_goto(will_advance_unit_focus) {
-  setGotoActive(false);
-  const canvasDivEl = document.getElementById("canvas_div");
-  if (canvasDivEl) canvasDivEl.style.cursor = "default";
-  setGotoRequestMap({});
-  setGotoTurnsRequestMap({});
-  clearGotoTiles();
-  setGotoLastOrder(ORDER_LAST);
-  setGotoLastAction(ACTION_COUNT$1);
-  if (will_advance_unit_focus) setTimeout(update_unit_focus, 600);
-}
-function send_end_turn() {
-  if (store.gameInfo == null) return;
-  const turnDoneBtn = document.getElementById("turn_done_button");
-  if (turnDoneBtn) turnDoneBtn.disabled = true;
-  sendPlayerPhaseDone(store.gameInfo["turn"]);
-  if (isLongturn()) {
-    showDialogMessage(
-      "Turn done!",
-      "Your turn in this Freeciv-web: One Turn per Day game is now over. In this game one turn is played every day. To play your next turn in this game, go to " + window.location.host + " and click <b>Games</b> in the menu, then <b>Multiplayer</b> and there you will find this Freeciv-web: One Turn per Day game in the list. You can also bookmark this page.<br>See you again soon!"
-    );
-  }
-}
-function request_goto_path(unit_id, dst_x, dst_y) {
-  if (goto_request_map[unit_id + "," + dst_x + "," + dst_y] == null) {
-    goto_request_map[unit_id + "," + dst_x + "," + dst_y] = true;
-    sendGotoPathReq(unit_id, mapPosToTile(dst_x, dst_y)["index"]);
-    setCurrentGotoTurns(null);
-    const unitTextDetails = document.getElementById("unit_text_details");
-    if (unitTextDetails) unitTextDetails.innerHTML = "Choose unit goto";
-    setTimeout(update_mouse_cursor, 700);
-  } else {
-    update_goto_path(goto_request_map[unit_id + "," + dst_x + "," + dst_y]);
-  }
-}
-function check_request_goto_path() {
-  if (goto_active && current_focus$1.length > 0 && prev_mouse_x == mouse_x && prev_mouse_y == mouse_y) {
-    let ptile;
-    clearGotoTiles();
-    ptile = canvas_pos_to_tile(mouse_x, mouse_y);
-    if (ptile != null) {
-      for (let i2 = 0; i2 < current_focus$1.length; i2++) {
-        request_goto_path(current_focus$1[i2]["id"], ptile["x"], ptile["y"]);
-      }
-    }
-  }
-  setPrevMouseX(mouse_x);
-  setPrevMouseY(mouse_y);
-}
-function update_goto_path(goto_packet) {
-  const punit = store.units[goto_packet["unit_id"]];
-  if (punit == null) return;
-  const t0 = indexToTile(punit["tile"]);
-  let ptile = t0;
-  const goaltile = indexToTile(goto_packet["dest"]);
-  for (let i2 = 0; i2 < goto_packet["dir"].length; i2++) {
-    if (ptile == null) break;
-    const dir = goto_packet["dir"][i2];
-    if (dir == -1) {
-      continue;
-    }
-    ptile["goto_dir"] = dir;
-    ptile = mapstep(ptile, dir);
-  }
-  setCurrentGotoTurns(goto_packet["turns"]);
-  goto_request_map[goto_packet["unit_id"] + "," + goaltile["x"] + "," + goaltile["y"]] = goto_packet;
-  goto_turns_request_map[goto_packet["unit_id"] + "," + goaltile["x"] + "," + goaltile["y"]] = current_goto_turns;
-  if (current_goto_turns != void 0) {
-    const activeUnitInfo = document.getElementById("active_unit_info");
-    if (activeUnitInfo) activeUnitInfo.innerHTML = "Turns for goto: " + current_goto_turns;
-  }
-  update_mouse_cursor();
-}
-function center_tile_mapcanvas(ptile) {
-  if (ptile == null) return;
-  center_tile_mapcanvas_2d(ptile);
-}
-function popit() {
-  let ptile;
-  ptile = canvas_pos_to_tile(mouse_x, mouse_y);
-  if (ptile == null) return;
-  popit_req(ptile);
-}
-function popit_req(ptile) {
-  if (ptile == null) return;
-  if (tileGetKnown(ptile) == TILE_UNKNOWN) {
-    showDialogMessage("Tile info", "Location: x:" + ptile["x"] + " y:" + ptile["y"]);
-    return;
-  }
-  let punit_id = 0;
-  const punit = find_visible_unit(ptile);
-  if (punit != null) punit_id = punit["id"];
-  let focus_unit_id = 0;
-  if (current_focus$1.length > 0) {
-    focus_unit_id = current_focus$1[0]["id"];
-  }
-  sendInfoTextReq(punit_id, ptile["index"], focus_unit_id);
-}
-function center_on_any_city() {
-  for (const city_id in store.cities) {
-    const pcity = store.cities[city_id];
-    center_tile_mapcanvas(cityTile(pcity));
-    return;
-  }
-}
-function getDiplstates() {
-  return store.diplstates;
-}
-function getSelectedPlayer() {
-  return store.selectedPlayer;
-}
-function setSelectedPlayer(v2) {
-  store.selectedPlayer = v2;
-}
-function jqButtonEnable(id) {
-  const el = document.getElementById(id);
-  if (el) el.disabled = false;
-}
-function jqButtonDisable(id) {
-  const el = document.getElementById(id);
-  if (el) el.disabled = true;
-}
-function jqButtonLabel(id, label) {
-  const el = document.getElementById(id);
-  if (el) {
-    const inner = el.querySelector(".ui-button-text");
-    if (inner) inner.textContent = label;
-    else el.textContent = label;
-  }
-}
-const MAX_AI_LOVE = 1e3;
-function loveText(love) {
-  if (love <= -MAX_AI_LOVE * 90 / 100) {
-    return "Genocidal";
-  } else if (love <= -MAX_AI_LOVE * 70 / 100) {
-    return "Belligerent";
-  } else if (love <= -MAX_AI_LOVE * 50 / 100) {
-    return "Hostile";
-  } else if (love <= -MAX_AI_LOVE * 25 / 100) {
-    return "Uncooperative";
-  } else if (love <= -MAX_AI_LOVE * 10 / 100) {
-    return "Uneasy";
-  } else if (love <= MAX_AI_LOVE * 10 / 100) {
-    return "Neutral";
-  } else if (love <= MAX_AI_LOVE * 25 / 100) {
-    return "Respectful";
-  } else if (love <= MAX_AI_LOVE * 50 / 100) {
-    return "Helpful";
-  } else if (love <= MAX_AI_LOVE * 70 / 100) {
-    return "Enthusiastic";
-  } else if (love <= MAX_AI_LOVE * 90 / 100) {
-    return "Admiring";
-  } else {
-    return "Worshipful";
-  }
-}
-function getScoreText(player) {
-  if (player["score"] >= 0) {
-    return player["score"];
-  } else {
-    return "?";
-  }
-}
-function colLove(pplayer) {
-  if (clientIsObserver() || store.client?.conn?.playing == null || pplayer["playerno"] === clientPlaying()["playerno"] || pplayer["flags"].isSet(PlayerFlag.PLRF_AI) === false) {
-    return "-";
-  } else {
-    return loveText(pplayer["love"][clientPlaying()["playerno"]]);
-  }
-}
-function updateNationScreen() {
-  const diplstates = getDiplstates();
-  let total_players = 0;
-  let no_humans = 0;
-  let no_ais = 0;
-  let nation_list_html = "<table class='tablesorter' id='nation_table' width='95%' border=0 cellspacing=0 ><thead><tr><th>Flag</th><th>Color</th><th>Player Name:</th><th>Nation:</th><th class='nation_attitude'>Attitude</th><th>Score</th><th>AI/Human</th><th>Alive?</th><th>Diplomatic state</th><th>Embassy</th><th>Shared vision</th><th class='nation_team'>Team</th><th>State</th></tr></thead><tbody class='nation_table_body'>";
-  for (const player_id in store.players) {
-    const pplayer = store.players[player_id];
-    if (pplayer["nation"] === -1) continue;
-    if (isLongturn() && pplayer["name"].indexOf("New Available Player") !== -1) continue;
-    total_players++;
-    const flag_html = "<canvas id='nation_dlg_flags_" + player_id + "' width='29' height='20' class='nation_flags'></canvas>";
-    let plr_class = "";
-    if (!clientIsObserver() && clientPlaying() != null && Number(player_id) === clientPlaying()["playerno"]) {
-      plr_class = "nation_row_self";
-    }
-    if (!pplayer["is_alive"]) plr_class = "nation_row_dead";
-    if (!clientIsObserver() && diplstates[player_id] != null && diplstates[player_id] === DiplState.DS_WAR) {
-      plr_class = "nation_row_war";
-    }
-    nation_list_html += "<tr data-plrid='" + player_id + "' class='" + plr_class + "'><td>" + flag_html + "</td>";
-    nation_list_html += "<td><div style='background-color: " + store.nations[pplayer["nation"]]["color"] + "; margin: 5px; width: 25px; height: 25px;'></div></td>";
-    nation_list_html += "<td>" + pplayer["name"] + '</td><td title="' + store.nations[pplayer["nation"]]["legend"] + '">' + store.nations[pplayer["nation"]]["adjective"] + "</td><td class='nation_attitude'>" + colLove(pplayer) + "</td><td>" + getScoreText(pplayer) + "</td><td>" + (pplayer["flags"].isSet(PlayerFlag.PLRF_AI) ? get_ai_level_text(pplayer) + " AI" : "Human") + "</td><td>" + (pplayer["is_alive"] ? "Alive" : "Dead") + "</td>";
-    if (!clientIsObserver() && clientPlaying() != null && diplstates[player_id] != null && Number(player_id) !== clientPlaying()["playerno"]) {
-      nation_list_html += "<td>" + get_diplstate_text(diplstates[player_id]) + "</td>";
-    } else {
-      nation_list_html += "<td>-</td>";
-    }
-    nation_list_html += "<td>" + get_embassy_text(player_id) + "</td>";
-    nation_list_html += "<td>";
-    if (!clientIsObserver() && clientPlaying() != null) {
-      if (pplayer["gives_shared_vision"].isSet(clientPlaying()["playerno"]) && clientPlaying()["gives_shared_vision"].isSet(Number(player_id))) {
-        nation_list_html += "Both ways";
-      } else if (pplayer["gives_shared_vision"].isSet(clientPlaying()["playerno"])) {
-        nation_list_html += "To you";
-      } else if (clientPlaying()["gives_shared_vision"].isSet(Number(player_id))) {
-        nation_list_html += "To them";
-      } else {
-        nation_list_html += "None";
-      }
-    }
-    nation_list_html += "</td>";
-    nation_list_html += "<td class='nation_team'>" + (pplayer["team"] + 1) + "</td>";
-    let pstate = " ";
-    if (pplayer["phase_done"] && !pplayer["flags"].isSet(PlayerFlag.PLRF_AI)) {
-      pstate = "Done";
-    } else if (!pplayer["flags"].isSet(PlayerFlag.PLRF_AI) && pplayer["nturns_idle"] > 1) {
-      pstate += "Idle for " + pplayer["nturns_idle"] + " turns";
-    } else if (!pplayer["phase_done"] && !pplayer["flags"].isSet(PlayerFlag.PLRF_AI)) {
-      pstate = "Moving";
-    }
-    nation_list_html += "<td id='player_state_" + player_id + "'>" + pstate + "</td>";
-    nation_list_html += "</tr>";
-    if (!pplayer["flags"].isSet(PlayerFlag.PLRF_AI) && pplayer["is_alive"] && pplayer["nturns_idle"] <= 4) {
-      no_humans++;
-    }
-    if (pplayer["flags"].isSet(PlayerFlag.PLRF_AI) && pplayer["is_alive"]) no_ais++;
-  }
-  nation_list_html += "</tbody></table>";
-  const nationsListEl = document.getElementById("nations_list");
-  if (nationsListEl) nationsListEl.innerHTML = nation_list_html;
-  const nationsTitleEl = document.getElementById("nations_title");
-  if (nationsTitleEl) nationsTitleEl.innerHTML = "Nations of the World";
-  const nationsLabelEl = document.getElementById("nations_label");
-  if (nationsLabelEl) {
-    nationsLabelEl.innerHTML = "Human players: " + no_humans + ". AIs: " + no_ais + ". Inactive/dead: " + (total_players - no_humans - no_ais) + ".";
-  }
-  selectNoNation();
-  if (isLongturn()) {
-    const takeBtn = document.getElementById("take_player_button");
-    if (takeBtn) takeBtn.style.display = "none";
-    const toggleBtn = document.getElementById("toggle_ai_button");
-    if (toggleBtn) toggleBtn.style.display = "none";
-    const scoresBtn = document.getElementById("game_scores_button");
-    if (scoresBtn) scoresBtn.style.display = "none";
-  }
-  if (is_small_screen()) {
-    const takeBtn = document.getElementById("take_player_button");
-    if (takeBtn) takeBtn.style.display = "none";
-  }
-  for (const player_id in store.players) {
-    const pplayer = store.players[player_id];
-    const flag_canvas = document.getElementById("nation_dlg_flags_" + player_id);
-    if (flag_canvas) {
-      const flag_canvas_ctx = flag_canvas.getContext("2d");
-      const tag = "f." + store.nations[pplayer["nation"]]["graphic_str"];
-      if (flag_canvas_ctx != null && store.sprites[tag] != null) {
-        flag_canvas_ctx.drawImage(store.sprites[tag], 0, 0);
-      }
-    }
-  }
-  initTableSort("#nation_table", { sortList: [[2, 0]] });
-  if (is_small_screen()) {
-    const nationsEl = document.getElementById("nations");
-    if (nationsEl) {
-      nationsEl.style.height = (mapview$1["height"] ?? 600) - 150 + "px";
-      nationsEl.style.width = (mapview$1["width"] ?? 800) + "px";
-    }
-  }
-  const statusUrl = "/civsocket/" + (parseInt(store.civserverport) + 1e3) + "/status";
-  fetch(statusUrl, { cache: "no-store" }).then(function(response) {
-    return response.text();
-  }).then(function(data) {
-    const online_players = {};
-    const players_re = /username: <b>([^<]*)/g;
-    let found;
-    while ((found = players_re.exec(data)) !== null) {
-      if (found[1].length > 0) {
-        online_players[found[1].toLowerCase()] = true;
-      }
-    }
-    for (const player_id in store.players) {
-      const pplayer = store.players[player_id];
-      if (online_players[pplayer["username"].toLowerCase()]) {
-        const stateEl = document.getElementById("player_state_" + player_id);
-        if (stateEl) {
-          stateEl.innerHTML = "<span style='color: #00EE00;'><b>Online</b></span>";
-        }
-      }
-    }
-    const nationTable = document.getElementById("nation_table");
-    if (nationTable) nationTable.dispatchEvent(new Event("update"));
-  }).catch(function() {
-  });
-  if (isLongturn()) {
-    document.querySelectorAll(".nation_attitude").forEach(function(el) {
-      el.style.display = "none";
-    });
-    document.querySelectorAll(".nation_team").forEach(function(el) {
-      el.style.display = "none";
-    });
-  }
-}
-function handleNationTableSelect(ev) {
-  ev.stopPropagation();
-  const new_element = ev.currentTarget;
-  const new_player = parseFloat(new_element.dataset.plrid || "");
-  if (new_player === getSelectedPlayer()) {
-    new_element.classList.remove("ui-selected");
-    selectNoNation();
-  } else {
-    const parent = new_element.parentElement;
-    if (parent) {
-      Array.from(parent.children).forEach(function(sibling) {
-        if (sibling !== new_element) sibling.classList.remove("ui-selected");
-      });
-    }
-    new_element.classList.add("ui-selected");
-    setSelectedPlayer(new_player);
-    selectANation();
-  }
-}
-function selectANation() {
-  const diplstates = getDiplstates();
-  const player_id = getSelectedPlayer();
-  const pplayer = store.players[getSelectedPlayer()];
-  if (pplayer == null) return;
-  const selected_myself = clientPlaying() != null && player_id === clientPlaying()["playerno"];
-  const both_alive_and_different = clientPlaying() != null && player_id !== clientPlaying()["playerno"] && pplayer["is_alive"] && clientPlaying()["is_alive"];
-  if (pplayer["is_alive"] && (clientIsObserver() || selected_myself || diplstates[player_id] != null && diplstates[player_id] !== DiplState.DS_NO_CONTACT || clientState() === C_S_OVER)) {
-    jqButtonEnable("view_player_button");
-  } else {
-    jqButtonDisable("view_player_button");
-  }
-  if (!clientIsObserver() && both_alive_and_different && diplstates[player_id] != null && diplstates[player_id] !== DiplState.DS_NO_CONTACT) {
-    jqButtonEnable("meet_player_button");
-  } else {
-    jqButtonDisable("meet_player_button");
-  }
-  if (!pplayer["flags"].isSet(PlayerFlag.PLRF_AI) && diplstates[player_id] != null && diplstates[player_id] === DiplState.DS_NO_CONTACT) {
-    jqButtonDisable("meet_player_button");
-  }
-  if (pplayer["flags"].isSet(PlayerFlag.PLRF_AI) || selected_myself) {
-    jqButtonDisable("send_message_button");
-  } else {
-    jqButtonEnable("send_message_button");
-  }
-  if (!clientIsObserver() && both_alive_and_different && pplayer["team"] !== clientPlaying()["team"] && diplstates[player_id] != null && diplstates[player_id] !== DiplState.DS_WAR && diplstates[player_id] !== DiplState.DS_NO_CONTACT) {
-    jqButtonEnable("cancel_treaty_button");
-  } else {
-    jqButtonDisable("cancel_treaty_button");
-  }
-  if (canClientControl() && !selected_myself) {
-    if (diplstates[player_id] === DiplState.DS_CEASEFIRE || diplstates[player_id] === DiplState.DS_ARMISTICE || diplstates[player_id] === DiplState.DS_PEACE) {
-      jqButtonLabel("cancel_treaty_button", "Declare war");
-    } else {
-      jqButtonLabel("cancel_treaty_button", "Cancel treaty");
-    }
-  }
-  if (canClientControl() && both_alive_and_different && pplayer["team"] !== clientPlaying()["team"] && clientPlaying()["gives_shared_vision"].isSet(player_id)) {
-    jqButtonEnable("withdraw_vision_button");
-  } else {
-    jqButtonDisable("withdraw_vision_button");
-  }
-  if (clientIsObserver() || both_alive_and_different && diplstates[player_id] !== DiplState.DS_NO_CONTACT) {
-    jqButtonEnable("intelligence_report_button");
-  } else {
-    jqButtonDisable("intelligence_report_button");
-  }
-  if (clientIsObserver() && pplayer["flags"].isSet(PlayerFlag.PLRF_AI) && store.nations[pplayer["nation"]]["is_playable"] && getUrlVar("multi") === "true") {
-    jqButtonEnable("take_player_button");
-  } else {
-    jqButtonDisable("take_player_button");
-  }
-  jqButtonEnable("toggle_ai_button");
-}
-function selectNoNation() {
-  setSelectedPlayer(-1);
-  try {
-    const container = document.getElementById("nations_button_div");
-    if (container) {
-      const buttons = container.querySelectorAll("button");
-      buttons.forEach(function(btn) {
-        if (btn.id !== "game_scores_button") {
-          btn.disabled = true;
-        }
-      });
-    }
-  } catch (_e) {
-  }
-}
-function nationTableSelectPlayer(player_no) {
-  const playersTabLink = document.querySelector("#players_tab a");
-  if (playersTabLink) playersTabLink.click();
-  const row = document.querySelector('#nation_table tr[data-plrid="' + player_no + '"]');
-  if (row) {
-    row.click();
-    row.scrollIntoView();
-  }
-}
-function cancelTreatyClicked() {
-  if (getSelectedPlayer() === -1) return;
-  diplomacy_cancel_treaty(getSelectedPlayer());
-  setDefaultMapviewActive();
-}
-function withdrawVisionClicked() {
-  if (getSelectedPlayer() === -1) return;
-  sendDiplomacyCancelPact(getSelectedPlayer(), CLAUSE_VISION);
-  setDefaultMapviewActive();
-}
-function nationMeetClicked() {
-  if (getSelectedPlayer() === -1) return;
-  const pplayer = store.players[getSelectedPlayer()];
-  if (pplayer == null) return;
-  sendDiplomacyInitMeeting(pplayer["playerno"]);
-  setDefaultMapviewActive();
-}
-function takePlayerClicked() {
-  if (getSelectedPlayer() === -1) return;
-  const pplayer = store.players[getSelectedPlayer()];
-  takePlayer(pplayer["name"]);
-  setDefaultMapviewActive();
-}
-function toggleAiClicked() {
-  if (getSelectedPlayer() === -1) return;
-  const pplayer = store.players[getSelectedPlayer()];
-  aitogglePlayer(pplayer["name"]);
-  setDefaultMapviewActive();
-}
-function takePlayer(player_name) {
-  send_message("/take " + player_name);
-  store.observing = false;
-}
-function aitogglePlayer(player_name) {
-  send_message("/aitoggle " + player_name);
-  store.observing = false;
-}
-function centerOnPlayer() {
-  if (getSelectedPlayer() === -1) return;
-  for (const city_id in store.cities) {
-    const pcity = store.cities[city_id];
-    if (cityOwnerPlayerId(pcity) === getSelectedPlayer()) {
-      center_tile_mapcanvas(cityTile(pcity));
-      setDefaultMapviewActive();
-      return;
-    }
-  }
-}
-function sendPrivateMessage(other_player_name) {
-  const inputEl = document.getElementById("private_message_text");
-  const message = other_player_name + ": " + encode_message_text(inputEl ? inputEl.value : "");
-  sendChatMessage(message);
-  setKeyboardInput(true);
-  const dlg = document.getElementById("dialog");
-  if (dlg) dlg.remove();
-}
-function showSendPrivateMessageDialog() {
-  if (getSelectedPlayer() === -1) return;
-  const pplayer = store.players[getSelectedPlayer()];
-  if (pplayer == null) {
-    swal("Please select a player to send a private message to first.");
-    return;
-  }
-  const name = pplayer["name"];
-  setKeyboardInput(false);
-  const oldDialog = document.getElementById("dialog");
-  if (oldDialog) oldDialog.remove();
-  const gamePage = document.querySelector("div#game_page");
-  const dialogEl = document.createElement("div");
-  dialogEl.id = "dialog";
-  if (gamePage) gamePage.appendChild(dialogEl);
-  const intro_html = "Message: <input id='private_message_text' type='text' size='50' maxlength='80'>";
-  dialogEl.innerHTML = intro_html;
-  dialogEl.setAttribute("title", "Send private message to " + name);
-  dialogEl.style.cssText = "position:fixed;z-index:5000;background:#222;border:1px solid #555;padding:16px;top:30%;left:50%;transform:translateX(-50%);width:" + (is_small_screen() ? "80%" : "40%") + ";";
-  const sendBtn = document.createElement("button");
-  sendBtn.textContent = "Send";
-  sendBtn.style.cssText = "margin-top:8px;margin-right:8px;";
-  sendBtn.addEventListener("click", function() {
-    sendPrivateMessage(name);
-  });
-  const cancelBtn = document.createElement("button");
-  cancelBtn.textContent = "Cancel";
-  cancelBtn.style.cssText = "margin-top:8px;";
-  cancelBtn.addEventListener("click", function() {
-    dialogEl.remove();
-  });
-  dialogEl.appendChild(document.createElement("br"));
-  dialogEl.appendChild(sendBtn);
-  dialogEl.appendChild(cancelBtn);
-  dialogEl.addEventListener("keyup", function(e2) {
-    if (e2.keyCode === 13) {
-      sendPrivateMessage(name);
-    }
-  });
-}
-const FC_DS_ALLIANCE = DiplState.DS_ALLIANCE;
-const FC_PLRF_AI = PlayerFlag.PLRF_AI;
-function chat_context_change() {
-  const recipients = chat_context_get_recipients();
-  if (recipients.length < 4) {
-    chat_context_set_next(recipients);
-  } else {
-    chat_context_dialog_show(recipients);
-  }
-}
-function chat_context_get_recipients() {
-  let allies = false;
-  const pm = [];
-  pm.push({ id: null, flag: null, description: "Everybody" });
-  let self = -1;
-  if (clientPlaying() != null) {
-    self = clientPlaying()["playerno"];
-  }
-  for (const player_id_str in store.players) {
-    const player_id = parseInt(player_id_str);
-    if (player_id == self) continue;
-    const pplayer = store.players[player_id];
-    if (pplayer["flags"].isSet(FC_PLRF_AI)) continue;
-    if (!pplayer["is_alive"]) continue;
-    if (isLongturn() && pplayer["name"].indexOf("New Available Player") != -1) continue;
-    const nation = store.nations[pplayer["nation"]];
-    if (nation == null) continue;
-    pm.push({
-      id: player_id,
-      description: pplayer["name"] + " of the " + nation["adjective"],
-      flag: store.sprites["f." + nation["graphic_str"]]
-    });
-    if (getDiplstates()[player_id] == FC_DS_ALLIANCE) {
-      allies = true;
-    }
-  }
-  if (allies && self >= 0) {
-    pm.push({ id: self, flag: null, description: "Allies" });
-  }
-  pm.sort(function(a2, b2) {
-    if (a2.id == null) return -1;
-    if (b2.id == null) return 1;
-    if (a2.id == self) return -1;
-    if (b2.id == self) return 1;
-    if (a2.description < b2.description) return -1;
-    if (a2.description > b2.description) return 1;
-    return 0;
-  });
-  return pm;
-}
-function chat_context_set_next(recipients) {
-  let next = 0;
-  while (next < recipients.length && recipients[next].id != chat_send_to) {
-    next++;
-  }
-  next++;
-  if (next >= recipients.length) {
-    next = 0;
-  }
-  set_chat_direction(recipients[next].id);
-}
-function chat_context_dialog_show(recipients) {
-  const existingDlg = document.getElementById("chat_context_dialog");
-  if (existingDlg) existingDlg.remove();
-  const dlgDiv = document.createElement("div");
-  dlgDiv.id = "chat_context_dialog";
-  dlgDiv.title = "Choose chat recipient";
-  document.querySelector("div#game_page").appendChild(dlgDiv);
-  let self = -1;
-  if (clientPlaying() != null) {
-    self = clientPlaying()["playerno"];
-  }
-  const tbody_el = document.createElement("tbody");
-  const add_row = function(id, flag, description) {
-    let flag_canvas, ctx, row, cell;
-    row = document.createElement("tr");
-    cell = document.createElement("td");
-    flag_canvas = document.createElement("canvas");
-    flag_canvas.width = 29;
-    flag_canvas.height = 20;
-    ctx = flag_canvas.getContext("2d");
-    if (flag != null) {
-      ctx.drawImage(flag, 0, 0);
-    }
-    cell.appendChild(flag_canvas);
-    row.appendChild(cell);
-    cell = document.createElement("td");
-    cell.appendChild(document.createTextNode(description));
-    row.appendChild(cell);
-    if (id != null) {
-      row.dataset.chatSendTo = id;
-    }
-    tbody_el.appendChild(row);
-    return ctx;
-  };
-  for (let i2 = 0; i2 < recipients.length; i2++) {
-    if (recipients[i2].id != chat_send_to) {
-      const ctx = add_row(
-        recipients[i2].id,
-        recipients[i2].flag,
-        recipients[i2].description
-      );
-      if (recipients[i2].id == null || recipients[i2].id == self) {
-        ctx.font = "18px FontAwesome";
-        ctx.fillStyle = "rgba(32, 32, 32, 1)";
-        if (recipients[i2].id == null) {
-          ctx.fillText(CHAT_ICON_EVERYBODY, 5, 15);
-        } else {
-          ctx.fillText(CHAT_ICON_ALLIES, 8, 16);
-        }
-      }
-    }
-  }
-  const table = document.createElement("table");
-  table.appendChild(tbody_el);
-  table.addEventListener("click", function(ev) {
-    const row = ev.target.closest("tbody tr");
-    if (row) {
-      handle_chat_direction_chosen.call(row, ev);
-    }
-  });
-  document.getElementById("chat_context_dialog").appendChild(table);
-  const chatDlg = document.getElementById("chat_context_dialog");
-  chatDlg.style.cssText = "position:absolute;z-index:5000;background:#222;border:1px solid #555;padding:8px;max-height:" + Math.floor(0.9 * window.innerHeight) + "px;overflow-y:auto;";
-  chatDlg.style.display = "block";
-}
-function handle_chat_direction_chosen(ev) {
-  const new_send_to = this.dataset.chatSendTo;
-  const chatDlg = document.getElementById("chat_context_dialog");
-  if (chatDlg) chatDlg.remove();
-  if (new_send_to == null) {
-    set_chat_direction(null);
-  } else {
-    set_chat_direction(parseFloat(new_send_to));
-  }
-}
-function set_chat_direction(player_id) {
-  if (player_id == chat_send_to) return;
-  let player_name;
-  const iconEl = document.getElementById("chat_direction");
-  if (!iconEl) return;
-  const ctx = iconEl.getContext("2d");
-  if (!ctx) return;
-  if (player_id == null || player_id < 0) {
-    player_id = null;
-    ctx.clearRect(0, 0, 29, 20);
-    ctx.font = "18px FontAwesome";
-    ctx.fillStyle = "rgba(192, 192, 192, 1)";
-    ctx.fillText(CHAT_ICON_EVERYBODY, 7, 15);
-    player_name = "everybody";
-  } else if (clientPlaying() != null && player_id == clientPlaying()["playerno"]) {
-    ctx.clearRect(0, 0, 29, 20);
-    ctx.font = "18px FontAwesome";
-    ctx.fillStyle = "rgba(192, 192, 192, 1)";
-    ctx.fillText(CHAT_ICON_ALLIES, 10, 16);
-    player_name = "allies";
-  } else {
-    const pplayer = store.players[player_id];
-    if (pplayer == null) return;
-    player_name = pplayer["name"] + " of the " + store.nations[pplayer["nation"]]["adjective"];
-    ctx.clearRect(0, 0, 29, 20);
-    const flag = store.sprites["f." + store.nations[pplayer["nation"]]["graphic_str"]];
-    if (flag != null) {
-      ctx.drawImage(flag, 0, 0);
-    }
-  }
-  iconEl.title = "Sending messages to " + player_name;
-  setChatSendTo(player_id);
-  const textInput = document.getElementById("game_text_input");
-  if (textInput) textInput.focus();
-}
-function encode_message_text(message) {
-  message = message.replace(/^\s+|\s+$/g, "");
-  message = message.replace(/&/g, "&amp;");
-  message = message.replace(/'/g, "&apos;");
-  message = message.replace(/"/g, "&quot;");
-  message = message.replace(/</g, "&lt;");
-  message = message.replace(/>/g, "&gt;");
-  return encodeURIComponent(message);
-}
-function is_unprefixed_message(message) {
-  if (message === null) return false;
-  if (message.length === 0) return true;
-  const first = message.charAt(0);
-  if (first === "/" || first === "." || first === ":") return false;
-  let quoted_pos = -1;
-  if (first === '"' || first === "'") {
-    quoted_pos = message.indexOf(first, 1);
-  }
-  const private_mark = message.indexOf(":", quoted_pos);
-  if (private_mark < 0) return true;
-  const space_pos = message.indexOf(" ", quoted_pos);
-  return space_pos !== -1 && space_pos < private_mark;
-}
-function check_text_input(event, chatboxtextarea) {
-  if (event.keyCode == 13 && event.shiftKey == 0) {
-    let message = chatboxtextarea.value;
-    if (chat_send_to != null && chat_send_to >= 0 && is_unprefixed_message(message)) {
-      if (clientPlaying() != null && chat_send_to == clientPlaying()["playerno"]) {
-        message = ". " + encode_message_text(message);
-      } else {
-        const pplayer = store.players[chat_send_to];
-        if (pplayer == null) {
-          set_chat_direction(null);
-          return;
-        }
-        let player_name = pplayer["name"];
-        const badchars = [" ", '"', "'"];
-        for (const c2 of badchars) {
-          const i2 = player_name.indexOf(c2);
-          if (i2 > 0) {
-            player_name = player_name.substring(0, i2);
-          }
-        }
-        message = player_name + encode_message_text(": " + message);
-      }
-    } else {
-      message = encode_message_text(message);
-    }
-    chatboxtextarea.value = "";
-    if (!isTouchDevice()) chatboxtextarea.focus();
-    setKeyboardInput(true);
-    if (message.length >= 4 && message === message.toUpperCase()) {
-      return;
-    }
-    if (isLongturn() && C_S_RUNNING == clientState() && message != null && message.indexOf(encode_message_text("/set")) != -1) {
-      return;
-    }
-    if (message.length >= max_chat_message_length) {
-      message_log.update({
-        event: E_LOG_ERROR,
-        message: "Error! The message is too long. Limit: " + max_chat_message_length
-      });
-      return;
-    }
-    send_message(message);
-    return false;
-  }
-}
-const PAGE_MAIN = 0;
-const PAGE_START = 1;
-const PAGE_NETWORK = 4;
-const PAGE_GAME = 6;
-let old_page = -1;
-function set_client_page(page) {
-  if (old_page === page) return;
-  if (old_page === -1) {
-    document.getElementById("pregame_page")?.remove();
-  }
-  if (page === PAGE_GAME) {
-    const gamePage = document.getElementById("game_page");
-    if (gamePage) gamePage.style.display = "";
-    set_chat_direction(null);
-  }
-  old_page = page;
-}
-function get_client_page() {
-  return old_page;
-}
-const state$4 = c({
-  open: false,
-  title: "",
-  message: ""
-});
-let autoCloseTimer = null;
-function showMessageDialog(title, message) {
-  if (autoCloseTimer) {
-    clearTimeout(autoCloseTimer);
-    autoCloseTimer = null;
-  }
-  state$4.value = { open: true, title, message };
-  autoCloseTimer = setTimeout(() => {
-    closeMessageDialog();
-  }, 24e3);
-}
-function closeMessageDialog() {
-  if (autoCloseTimer) {
-    clearTimeout(autoCloseTimer);
-    autoCloseTimer = null;
-  }
-  state$4.value = { ...state$4.value, open: false };
-  const input = document.getElementById("game_text_input");
-  if (input) input.blur();
-}
-function MessageDialog() {
-  const { open, title, message } = state$4.value;
-  return /* @__PURE__ */ u(
-    Dialog,
-    {
-      title,
-      open,
-      onClose: closeMessageDialog,
-      width: window.innerWidth <= 600 ? "90%" : "50%",
-      modal: false,
-      children: [
-        /* @__PURE__ */ u(
-          "div",
-          {
-            style: { maxHeight: "450px", overflow: "auto" },
-            dangerouslySetInnerHTML: { __html: message }
-          }
-        ),
-        /* @__PURE__ */ u("div", { style: { marginTop: "12px", textAlign: "right" }, children: /* @__PURE__ */ u(Button, { onClick: closeMessageDialog, children: "Ok" }) })
-      ]
-    }
-  );
-}
-const _w$2 = window;
-if (_w$2.C_S_INITIAL === void 0) _w$2.C_S_INITIAL = 0;
-if (_w$2.C_S_PREPARING === void 0) _w$2.C_S_PREPARING = 1;
-if (_w$2.C_S_RUNNING === void 0) _w$2.C_S_RUNNING = 2;
-if (_w$2.C_S_OVER === void 0) _w$2.C_S_OVER = 3;
-if (_w$2.civclient_state === void 0) _w$2.civclient_state = C_S_INITIAL;
-if (_w$2.endgame_player_info === void 0) _w$2.endgame_player_info = [];
-if (_w$2.height_offset === void 0) _w$2.height_offset = 52;
-if (_w$2.width_offset === void 0) _w$2.width_offset = 10;
-function setClientState(newstate) {
-  if (store.civclientState === newstate) return;
-  store.civclientState = newstate;
-  _w$2.civclient_state = newstate;
-  switch (newstate) {
-    case C_S_RUNNING:
-      try {
-        clear_chatbox();
-        unblockUI();
-        showNewGameMessage();
-      } catch (e2) {
-        console.error("[set_client_state] Error in pre-page setup:", e2);
-      }
-      set_client_page(PAGE_GAME);
-      setupWindowSize();
-      if (typeof _w$2.update_metamessage_on_gamestart === "function") _w$2.update_metamessage_on_gamestart();
-      document.querySelectorAll(".context-menu-root").forEach((el) => el.remove());
-      center_on_any_city();
-      advance_unit_focus();
-      break;
-    case C_S_OVER:
-      setTimeout(function() {
-        showEndgameDialog();
-      }, 500);
-      break;
-  }
-}
-function setupWindowSize() {
-  const winWidth = window.innerWidth;
-  const winHeight = window.innerHeight;
-  const new_mapview_width = winWidth - _w$2.width_offset;
-  const new_mapview_height = winHeight - _w$2.height_offset;
-  if (_w$2.renderer === RENDERER_2DCANVAS$1 && _w$2.mapview_canvas) {
-    _w$2.mapview_canvas.width = new_mapview_width;
-    _w$2.mapview_canvas.height = new_mapview_height;
-    if (_w$2.buffer_canvas) {
-      _w$2.buffer_canvas.width = Math.floor(new_mapview_width * 1.5);
-      _w$2.buffer_canvas.height = Math.floor(new_mapview_height * 1.5);
-    }
-    mapview$1["width"] = new_mapview_width;
-    mapview$1["height"] = new_mapview_height;
-    mapview$1["store_width"] = new_mapview_width;
-    mapview$1["store_height"] = new_mapview_height;
-    if (_w$2.mapview_canvas_ctx) _w$2.mapview_canvas_ctx.font = _w$2.canvas_text_font;
-    if (_w$2.buffer_canvas_ctx) _w$2.buffer_canvas_ctx.font = _w$2.canvas_text_font;
-  }
-  const _el = (id) => document.getElementById(id);
-  const _setH = (id, h2) => {
-    const el = _el(id);
-    if (el) el.style.height = typeof h2 === "number" ? h2 + "px" : h2;
-  };
-  const _setW = (id, w2) => {
-    const el = _el(id);
-    if (el) el.style.width = typeof w2 === "number" ? w2 + "px" : w2;
-  };
-  const _show = (id) => {
-    const el = _el(id);
-    if (el) el.style.display = "";
-  };
-  const _hide = (id) => {
-    const el = _el(id);
-    if (el) el.style.display = "none";
-  };
-  _setH("nations", new_mapview_height - 100);
-  _setW("nations", new_mapview_width);
-  const tabs = _el("tabs");
-  if (tabs) tabs.style.height = winHeight + "px";
-  _setH("tabs-map", "auto");
-  _setH("city_viewport", new_mapview_height - 20);
-  _show("opt_tab");
-  _show("players_tab");
-  _show("freeciv_logo");
-  _hide("tabs-hel");
-  if (is_small_screen()) {
-    const setTabIcon = (id, emoji) => {
-      const el = _el(id);
-      if (el) {
-        const a2 = el.querySelector("a");
-        if (a2) a2.textContent = emoji;
-      }
-    };
-    setTabIcon("map_tab", "🌍");
-    setTabIcon("opt_tab", "⚙️");
-    setTabIcon("players_tab", "🏴");
-    setTabIcon("tech_tab", "🧪");
-    setTabIcon("hel_tab", "❓");
-    document.querySelectorAll(".ui-tabs-anchor").forEach((el) => el.style.padding = "7px");
-    document.querySelectorAll(".overview_dialog").forEach((el) => el.style.display = "none");
-    document.querySelectorAll(".ui-dialog-titlebar").forEach((el) => el.style.display = "none");
-    _hide("freeciv_logo");
-    setOverviewActive(false);
-    _w$2.overview_active = false;
-    _el("game_unit_orders_default")?.remove();
-    _el("game_unit_orders_settlers")?.remove();
-    const statusBottom = _el("game_status_panel_bottom");
-    if (statusBottom) statusBottom.style.fontSize = "0.8em";
-  }
-  if (overview_active) init_overview();
-  if (unitpanel_active) init_game_unit_panel();
-}
-function showNewGameMessage() {
-  clear_chatbox();
-}
-function showEndgameDialog() {
-  const title = "Final Report: The Greatest Civilizations in the world!";
-  let message = "";
-  for (let i2 = 0; i2 < _w$2.endgame_player_info.length; i2++) {
-    const pplayer = store.players[_w$2.endgame_player_info[i2]["player_id"]];
-    const nation_adj = store.nations[pplayer["nation"]]?.["adjective"] ?? "Unknown";
-    message += i2 + 1 + ": The " + nation_adj + " ruler " + pplayer["name"] + " scored " + _w$2.endgame_player_info[i2]["score"] + " points<br>";
-  }
-  showMessageDialog(title, message);
-}
-function setDefaultMapviewActive() {
-  if (_w$2.renderer === RENDERER_2DCANVAS$1 && _w$2.mapview_canvas) {
-    _w$2.mapview_canvas_ctx = _w$2.mapview_canvas.getContext("2d");
-    if (_w$2.mapview_canvas_ctx) _w$2.mapview_canvas_ctx.font = _w$2.canvas_text_font;
-  }
-  const active_tab = getActiveTab("#tabs");
-  if (active_tab === 4) return;
-  if (unitpanel_active) {
-    update_active_units_dialog();
-  }
-  if (chatbox_active) {
-    const chatPanel = document.getElementById("game_chatbox_panel");
-    if (chatPanel?.parentElement) chatPanel.parentElement.style.display = "";
-  }
-  setActiveTab("#tabs", 0);
-  const tabsMap = document.getElementById("tabs-map");
-  if (tabsMap) tabsMap.style.height = "auto";
-  setTechDialogActive(false);
-  _w$2.tech_dialog_active = false;
-  setAllowRightClick(false);
-  setKeyboardInput(true);
-  const scrollDiv = document.getElementById("freeciv_custom_scrollbar_div");
-  if (scrollDiv) scrollDiv.scrollTop = scrollDiv.scrollHeight;
-  if (!is_small_screen()) {
-    const overviewPanel = document.getElementById("game_overview_panel");
-    if (overviewPanel?.parentElement) overviewPanel.parentElement.style.display = "";
-  }
-  mark_all_dirty();
-}
-let citydlg_map_width = 384;
-let citydlg_map_height = 192;
-const tileset_width = 96;
-const tileset_height = 48;
-let cities$1 = {};
-let city_rules = {};
-let city_trade_routes = {};
-let active_city = null;
-let production_selection = [];
-let worklist_selection = [];
-const CITYO_DISBAND = 0;
-const FEELING_FINAL$1 = 5;
-const MAX_LEN_WORKLIST = 64;
-let city_tab_index = 0;
-let city_prod_clicks = 0;
-let _update_city_screen_fn = null;
-function set_city_screen_updater_fn(fn) {
-  _update_city_screen_fn = fn;
-}
-function _update_city_screen_proxy() {
-  if (_update_city_screen_fn) _update_city_screen_fn();
-}
-const city_screen_updater = new EventAggregator(
-  _update_city_screen_proxy,
-  250,
-  EventAggregator.DP_NONE,
-  250,
-  3,
-  250
-);
-let opt_show_unreachable_items = false;
-function set_citydlg_map_width(v2) {
-  citydlg_map_width = v2;
-}
-function set_citydlg_map_height(v2) {
-  citydlg_map_height = v2;
-}
-function set_active_city(v2) {
-  active_city = v2;
-}
-function set_production_selection(v2) {
-  production_selection = v2;
-}
-function set_worklist_selection(v2) {
-  worklist_selection = v2;
-}
-function set_city_prod_clicks(v2) {
-  city_prod_clicks = v2;
-}
-function set_opt_show_unreachable_items(v2) {
-  opt_show_unreachable_items = v2;
-}
-function byId$2(id) {
-  return document.getElementById(id);
-}
-function setHtml$2(id, html) {
-  const el = byId$2(id);
-  if (el) el.innerHTML = html;
-}
-function setHeight(id, px) {
-  const el = byId$2(id);
-  if (el) el.style.height = px + "px";
-}
-function setBtnEnabled(id, enabled) {
-  const el = byId$2(id);
-  if (el) el.disabled = !enabled;
-}
-function get_unit_type_image_sprite$1(unit_type2) {
-}
-function city_worklist_dialog(pcity) {
-  if (pcity == null) return;
-  const universals_list = [];
-  let kind;
-  let value;
-  if (pcity["worklist"] != null && pcity["worklist"].length != 0) {
-    const work_list = pcity["worklist"];
-    for (let i2 = 0; i2 < work_list.length; i2++) {
-      const work_item = work_list[i2];
-      kind = work_item["kind"];
-      value = work_item["value"];
-      if (kind == null || value == null || work_item.length == 0) continue;
-      if (kind == VUT_IMPROVEMENT) {
-        const pimpr = store.improvements[value];
-        let build_cost = pimpr["build_cost"];
-        if (pimpr["name"] == "Coinage") build_cost = "-";
-        universals_list.push({
-          "name": pimpr["name"],
-          "kind": kind,
-          "value": value,
-          "helptext": pimpr["helptext"],
-          "build_cost": build_cost,
-          "sprite": get_improvement_image_sprite(pimpr)
-        });
-      } else if (kind == VUT_UTYPE) {
-        const putype = store.unitTypes[value];
-        universals_list.push({
-          "name": putype["name"],
-          "kind": kind,
-          "value": value,
-          "helptext": putype["helptext"],
-          "build_cost": putype["build_cost"],
-          "sprite": get_unit_type_image_sprite$1()
-        });
-      } else {
-        console.log("unknown kind: " + kind);
-      }
-    }
-  }
-  let worklist_html = "<table class='worklist_table'><tr><td>Type</td><td>Name</td><td>Cost</td></tr>";
-  for (let j2 = 0; j2 < universals_list.length; j2++) {
-    const universal = universals_list[j2];
-    const sprite = universal["sprite"];
-    if (sprite == null) {
-      console.log("Missing sprite for " + universal["name"]);
-      continue;
-    }
-    worklist_html += "<tr class='prod_choice_list_item" + (canCityBuildNow(pcity, universal["kind"], universal["value"]) ? "" : " cannot_build_item") + "' data-wlitem='" + j2 + `'  title="` + universal["helptext"] + `"><td><div class='production_list_item_sub' style=' background: transparent url(` + sprite["image-src"] + ");background-position:-" + sprite["tileset-x"] + "px -" + sprite["tileset-y"] + "px;  width: " + sprite["width"] + "px;height: " + sprite["height"] + "px;'></div></td><td class='prod_choice_name'>" + universal["name"] + "</td><td class='prod_choice_cost'>" + universal["build_cost"] + "</td></tr>";
-  }
-  worklist_html += "</table>";
-  setHtml$2("city_current_worklist", worklist_html);
-  populate_worklist_production_choices(pcity);
-  const showUnreachable = byId$2("show_unreachable_items");
-  if (showUnreachable) {
-    const newEl = showUnreachable.cloneNode(true);
-    showUnreachable.parentNode?.replaceChild(newEl, showUnreachable);
-    newEl.addEventListener("click", function() {
-      set_opt_show_unreachable_items(!opt_show_unreachable_items);
-      newEl.checked = opt_show_unreachable_items;
-      if (production_selection.length !== 0) {
-        set_production_selection([]);
-        update_worklist_actions();
-      }
-      populate_worklist_production_choices(pcity);
-    });
-    newEl.checked = opt_show_unreachable_items;
-  }
-  const turns_to_complete = getCityProductionTime(pcity);
-  const prod_type = getCityProductionTypeSprite(pcity);
-  let prod_img_html = "";
-  if (prod_type != null) {
-    const sprite = prod_type["sprite"];
-    prod_img_html = "<div style='background: transparent url(" + sprite["image-src"] + ");background-position:-" + sprite["tileset-x"] + "px -" + sprite["tileset-y"] + "px;  width: " + sprite["width"] + "px;height: " + sprite["height"] + "px;float: left; '></div>";
-  }
-  let headline = prod_img_html + "<div id='prod_descr'>" + (isSmallScreen() ? " " : " Production: ") + (prod_type != null ? prod_type["type"]["name"] : "None");
-  if (turns_to_complete != FC_INFINITY) {
-    headline += ", turns: " + turns_to_complete;
-  }
-  setHtml$2("worklist_dialog_headline", headline + "</div>");
-  if (isTouchDevice()) {
-    setHtml$2("prod_buttons", "<x-small>Click to change production, next clicks will add to worklist on mobile.</x-small>");
-  }
-  const tabEl = byId$2("city_production_tab");
-  const tab_h = tabEl ? tabEl.offsetHeight : 400;
-  setHeight("city_current_worklist", tab_h - 150);
-  setHeight("worklist_production_choices", tab_h - 121);
-  const wlControl = byId$2("worklist_control");
-  if (wlControl) {
-    if (tab_h > 250) {
-      wlControl.style.height = tab_h - 148 + "px";
-      wlControl.style.paddingTop = "73px";
-    } else {
-      wlControl.style.height = tab_h - 77 + "px";
-    }
-  }
-  const worklistContainer = byId$2("city_current_worklist");
-  const worklist_items = worklistContainer ? Array.from(worklistContainer.querySelectorAll(".prod_choice_list_item")) : [];
-  const max_selection = Math.min(MAX_LEN_WORKLIST, worklist_items.length);
-  for (let k2 = 0; k2 < worklist_selection.length; k2++) {
-    if (worklist_selection[k2] >= max_selection) {
-      worklist_selection.splice(k2, worklist_selection.length - k2);
-      break;
-    }
-    worklist_items[worklist_selection[k2]]?.classList.add("ui-selected");
-  }
-  if (!isTouchDevice()) {
-    worklist_items.forEach((item) => {
-      item.addEventListener("click", function(e2) {
-        if (e2.ctrlKey || e2.metaKey) {
-          if (item.classList.contains("ui-selected")) {
-            item.classList.remove("ui-selected");
-            handle_current_worklist_unselect(e2, { unselected: item });
-          } else {
-            item.classList.add("ui-selected");
-            handle_current_worklist_select(e2, { selected: item });
-          }
-        } else {
-          worklist_items.forEach((el) => el.classList.remove("ui-selected"));
-          item.classList.add("ui-selected");
-          set_worklist_selection([]);
-          handle_current_worklist_select(e2, { selected: item });
-        }
-      });
-    });
-  } else {
-    worklist_items.forEach((item) => {
-      item.addEventListener("click", handle_current_worklist_click.bind(item));
-    });
-  }
-  worklist_items.forEach((item) => {
-    item.addEventListener("dblclick", handle_current_worklist_direct_remove.bind(item));
-  });
-  update_worklist_actions();
-}
-function populate_worklist_production_choices(pcity) {
-  const production_list = generateProductionList();
-  let production_html = "<table class='worklist_table'><tr><td>Type</td><td>Name</td><td title='Attack/Defense/Firepower'>Info</td><td>Cost</td></tr>";
-  for (let a2 = 0; a2 < production_list.length; a2++) {
-    const sprite = production_list[a2]["sprite"];
-    if (sprite == null) {
-      console.log("Missing sprite for " + production_list[a2]["value"]);
-      continue;
-    }
-    const kind = production_list[a2]["kind"];
-    const value = production_list[a2]["value"];
-    const can_build = canCityBuildNow(pcity, kind, value);
-    if (can_build || opt_show_unreachable_items) {
-      production_html += "<tr class='prod_choice_list_item kindvalue_item" + (can_build ? "" : " cannot_build_item") + "' data-value='" + value + "' data-kind='" + kind + `'><td><div class='production_list_item_sub' title="` + production_list[a2]["helptext"] + `" style=' background: transparent url(` + sprite["image-src"] + ");background-position:-" + sprite["tileset-x"] + "px -" + sprite["tileset-y"] + "px;  width: " + sprite["width"] + "px;height: " + sprite["height"] + "px;'></div></td><td class='prod_choice_name'>" + production_list[a2]["text"] + "</td><td class='prod_choice_name'>" + production_list[a2]["unit_details"] + "</td><td class='prod_choice_cost'>" + production_list[a2]["build_cost"] + "</td></tr>";
-    }
-  }
-  production_html += "</table>";
-  setHtml$2("worklist_production_choices", production_html);
-  const choicesContainer = byId$2("worklist_production_choices");
-  const kindValueItems = choicesContainer ? Array.from(choicesContainer.querySelectorAll(".kindvalue_item")) : [];
-  if (!isTouchDevice()) {
-    kindValueItems.forEach((item) => {
-      item.addEventListener("click", function(e2) {
-        if (e2.ctrlKey || e2.metaKey) {
-          if (item.classList.contains("ui-selected")) {
-            item.classList.remove("ui-selected");
-            handle_worklist_unselect(e2, { unselected: item });
-          } else {
-            item.classList.add("ui-selected");
-            handle_worklist_select(e2, { selected: item });
-          }
-        } else {
-          kindValueItems.forEach((el) => el.classList.remove("ui-selected"));
-          item.classList.add("ui-selected");
-          set_production_selection([]);
-          handle_worklist_select(e2, { selected: item });
-        }
-      });
-    });
-    if (production_selection.length > 0) {
-      production_selection.forEach(function(v2) {
-        const match = choicesContainer?.querySelector(
-          "[data-value='" + v2.value + "'][data-kind='" + v2.kind + "']"
-        );
-        match?.classList.add("ui-selected");
-      });
-    }
-    kindValueItems.forEach((item) => {
-      item.addEventListener("dblclick", function() {
-        const value = parseFloat(item.dataset.value || "0");
-        const kind = parseFloat(item.dataset.kind || "0");
-        send_city_worklist_add(pcity["id"], kind, value);
-      });
-    });
-  } else {
-    kindValueItems.forEach((item) => {
-      item.addEventListener("click", function() {
-        const value = parseFloat(item.dataset.value || "0");
-        const kind = parseFloat(item.dataset.kind || "0");
-        if (city_prod_clicks == 0) {
-          send_city_change(pcity["id"], kind, value);
-        } else {
-          send_city_worklist_add(pcity["id"], kind, value);
-        }
-        set_city_prod_clicks(city_prod_clicks + 1);
-      });
-    });
-  }
-}
-function extract_universal(element) {
-  const el = element;
-  return {
-    value: parseFloat(el.dataset.value || el.getAttribute("data-value") || "0"),
-    kind: parseFloat(el.dataset.kind || el.getAttribute("data-kind") || "0")
-  };
-}
-function find_universal_in_worklist(universal, worklist) {
-  for (let i2 = 0; i2 < worklist.length; i2++) {
-    if (worklist[i2].kind === universal.kind && worklist[i2].value === universal.value) {
-      return i2;
-    }
-  }
-  return -1;
-}
-function handle_worklist_select(event, ui) {
-  const selected = extract_universal(ui.selected);
-  const idx = find_universal_in_worklist(selected, production_selection);
-  if (idx < 0) {
-    production_selection.push(selected);
-    update_worklist_actions();
-  }
-}
-function handle_worklist_unselect(event, ui) {
-  const selected = extract_universal(ui.unselected);
-  const idx = find_universal_in_worklist(selected, production_selection);
-  if (idx >= 0) {
-    production_selection.splice(idx, 1);
-    update_worklist_actions();
-  }
-}
-function handle_current_worklist_select(event, ui) {
-  const idx = parseInt(ui.selected.dataset.wlitem || "0", 10);
-  let i2 = worklist_selection.length - 1;
-  while (i2 >= 0 && worklist_selection[i2] > idx)
-    i2--;
-  if (i2 < 0 || worklist_selection[i2] < idx) {
-    worklist_selection.splice(i2 + 1, 0, idx);
-    update_worklist_actions();
-  }
-}
-function handle_current_worklist_unselect(event, ui) {
-  const idx = parseInt(ui.unselected.dataset.wlitem || "0", 10);
-  let i2 = worklist_selection.length - 1;
-  while (i2 >= 0 && worklist_selection[i2] > idx)
-    i2--;
-  if (i2 >= 0 && worklist_selection[i2] === idx) {
-    worklist_selection.splice(i2, 1);
-    update_worklist_actions();
-  }
-}
-function handle_current_worklist_click(event) {
-  event.stopPropagation();
-  const element = this;
-  const item = parseInt(element.dataset.wlitem || "0", 10);
-  if (worklist_selection.length === 1 && worklist_selection[0] === item) {
-    element.classList.remove("ui-selected");
-    set_worklist_selection([]);
-  } else {
-    const parent = element.parentElement;
-    if (parent) {
-      parent.querySelectorAll(".ui-selected").forEach((el) => el.classList.remove("ui-selected"));
-    }
-    element.classList.add("ui-selected");
-    set_worklist_selection([item]);
-  }
-  update_worklist_actions();
-}
-function update_worklist_actions() {
-  if (worklist_selection.length > 0) {
-    setBtnEnabled("city_worklist_up_btn", true);
-    setBtnEnabled("city_worklist_remove_btn", true);
-    if (worklist_selection[worklist_selection.length - 1] === active_city["worklist"].length - 1) {
-      setBtnEnabled("city_worklist_down_btn", false);
-    } else {
-      setBtnEnabled("city_worklist_down_btn", true);
-    }
-  } else {
-    setBtnEnabled("city_worklist_up_btn", false);
-    setBtnEnabled("city_worklist_down_btn", false);
-    setBtnEnabled("city_worklist_exchange_btn", false);
-    setBtnEnabled("city_worklist_remove_btn", false);
-  }
-  if (production_selection.length > 0) {
-    setBtnEnabled("city_add_to_worklist_btn", true);
-    setBtnEnabled("city_worklist_insert_btn", true);
-    if (production_selection.length == worklist_selection.length || worklist_selection.length == 1) {
-      setBtnEnabled("city_worklist_exchange_btn", true);
-    } else {
-      setBtnEnabled("city_worklist_exchange_btn", false);
-    }
-  } else {
-    setBtnEnabled("city_add_to_worklist_btn", false);
-    setBtnEnabled("city_worklist_insert_btn", false);
-    setBtnEnabled("city_worklist_exchange_btn", false);
-  }
-  if (production_selection.length === 1) {
-    setBtnEnabled("city_change_production_btn", true);
-  } else {
-    setBtnEnabled("city_change_production_btn", false);
-  }
-}
-function send_city_worklist(city_id) {
-  const worklist = cities$1[city_id]["worklist"];
-  const overflow = worklist.length - MAX_LEN_WORKLIST;
-  if (overflow > 0) {
-    worklist.splice(MAX_LEN_WORKLIST, overflow);
-  }
-  send_request(JSON.stringify({
-    pid: packet_city_worklist,
-    city_id,
-    worklist
-  }));
-}
-function send_city_worklist_add(city_id, kind, value) {
-  const pcity = cities$1[city_id];
-  if (pcity["worklist"].length >= MAX_LEN_WORKLIST) {
-    return;
-  }
-  pcity["worklist"].push({ "kind": kind, "value": value });
-  send_city_worklist(city_id);
-}
-function city_change_production() {
-  if (clientIsObserver()) return;
-  if (production_selection.length === 1) {
-    send_city_change(
-      active_city["id"],
-      production_selection[0].kind,
-      production_selection[0].value
-    );
-  }
-}
-function city_add_to_worklist() {
-  if (production_selection.length > 0) {
-    active_city["worklist"] = active_city["worklist"].concat(production_selection);
-    send_city_worklist(active_city["id"]);
-  }
-}
-function handle_current_worklist_direct_remove() {
-  const idx = parseInt(this.dataset.wlitem || "0", 10);
-  active_city["worklist"].splice(idx, 1);
-  let i2 = worklist_selection.length - 1;
-  while (i2 >= 0 && worklist_selection[i2] > idx) {
-    worklist_selection[i2]--;
-    i2--;
-  }
-  if (i2 >= 0 && worklist_selection[i2] === idx) {
-    worklist_selection.splice(i2, 1);
-  }
-  send_city_worklist(active_city["id"]);
-}
-function city_insert_in_worklist() {
-  const count = Math.min(production_selection.length, MAX_LEN_WORKLIST);
-  if (count === 0) return;
-  let i2;
-  const wl = active_city["worklist"];
-  if (worklist_selection.length === 0) {
-    wl.splice(...[0, 0].concat(production_selection));
-    for (i2 = 0; i2 < count; i2++) {
-      worklist_selection.push(i2);
-    }
-  } else {
-    wl.splice(...[worklist_selection[0], 0].concat(production_selection));
-    for (i2 = 0; i2 < worklist_selection.length; i2++) {
-      worklist_selection[i2] += count;
-    }
-  }
-  send_city_worklist(active_city["id"]);
-}
-function city_worklist_task_up() {
-  let count = worklist_selection.length;
-  if (count === 0) return;
-  let swap;
-  const wl = active_city["worklist"];
-  if (worklist_selection[0] === 0) {
-    worklist_selection.shift();
-    if (wl[0].kind !== active_city["production_kind"] || wl[0].value !== active_city["production_value"]) {
-      swap = wl[0];
-      wl[0] = {
-        kind: active_city["production_kind"],
-        value: active_city["production_value"]
-      };
-      send_city_change(active_city["id"], swap.kind, swap.value);
-    }
-    count--;
-  }
-  for (let i2 = 0; i2 < count; i2++) {
-    const task_idx = worklist_selection[i2];
-    swap = wl[task_idx - 1];
-    wl[task_idx - 1] = wl[task_idx];
-    wl[task_idx] = swap;
-    worklist_selection[i2]--;
-  }
-  send_city_worklist(active_city["id"]);
-}
-function city_worklist_task_down() {
-  let count = worklist_selection.length;
-  if (count === 0) return;
-  let swap;
-  const wl = active_city["worklist"];
-  if (worklist_selection[--count] === wl.length - 1) return;
-  while (count >= 0) {
-    const task_idx = worklist_selection[count];
-    swap = wl[task_idx + 1];
-    wl[task_idx + 1] = wl[task_idx];
-    wl[task_idx] = swap;
-    worklist_selection[count]++;
-    count--;
-  }
-  send_city_worklist(active_city["id"]);
-}
-function city_exchange_worklist_task() {
-  let prod_l = production_selection.length;
-  if (prod_l === 0) return;
-  let i2;
-  let same = true;
-  const wl = active_city["worklist"];
-  const task_l = worklist_selection.length;
-  if (prod_l === task_l) {
-    for (i2 = 0; i2 < prod_l; i2++) {
-      if (same && (wl[worklist_selection[i2]].kind !== production_selection[i2].kind || wl[worklist_selection[i2]].value !== production_selection[i2].value)) {
-        same = false;
-      }
-      wl[worklist_selection[i2]] = production_selection[i2];
-    }
-  } else if (task_l === 1) {
-    i2 = worklist_selection[0];
-    wl.splice(...[i2, 1].concat(production_selection));
-    same = false;
-    while (--prod_l) {
-      worklist_selection.push(++i2);
-    }
-  }
-  if (!same) {
-    send_city_worklist(active_city["id"]);
-  }
-}
-function city_worklist_task_remove() {
-  let count = worklist_selection.length;
-  if (count === 0) return;
-  const wl = active_city["worklist"];
-  while (--count >= 0) {
-    wl.splice(worklist_selection[count], 1);
-  }
-  set_worklist_selection([]);
-  send_city_worklist(active_city["id"]);
-}
-function byId$1(id) {
-  return document.getElementById(id);
-}
-function setHtml$1(id, html) {
-  const el = byId$1(id);
-  if (el) el.innerHTML = html;
-}
-set_city_screen_updater_fn(update_city_screen);
-function show_city_dialog_by_id(pcity_id) {
-  show_city_dialog(cities$1[pcity_id]);
-}
-function show_city_dialog(pcity) {
-  let turns_to_complete;
-  let sprite;
-  let punit;
-  if (active_city != pcity || active_city == null) {
-    set_city_prod_clicks(0);
-    set_production_selection([]);
-    set_worklist_selection([]);
-  }
-  if (active_city != null) close_city_dialog();
-  set_active_city(pcity);
-  if (pcity == null) return;
-  byId$1("city_dialog")?.remove();
-  const dlg = document.createElement("div");
-  dlg.id = "city_dialog";
-  const dlgWidth = isSmallScreen() ? "98%" : "80%";
-  const dlgHeight = isSmallScreen() ? window.innerHeight + 10 : window.innerHeight - 80;
-  dlg.style.cssText = "position:fixed;z-index:4000;background:#222;border:1px solid #555;padding:0;left:50%;top:50%;transform:translate(-50%,-50%);width:" + dlgWidth + ";height:" + dlgHeight + "px;overflow:auto;color:#fff;";
-  document.getElementById("game_page")?.appendChild(dlg);
-  const city_data = {};
-  const titleBar = document.createElement("div");
-  titleBar.style.cssText = "background:#333;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #555;";
-  titleBar.innerHTML = '<span style="font-weight:bold;">' + decodeURIComponent(pcity["name"]) + " (" + pcity["size"] + ")</span>";
-  const btnRow = document.createElement("div");
-  btnRow.style.cssText = "display:flex;gap:6px;";
-  const buttonDefs = isSmallScreen() ? [["Next", next_city], ["Buy", request_city_buy], ["Close", close_city_dialog]] : [["Previous city", previous_city], ["Next city (N)", next_city], ["Buy (B)", request_city_buy], ["Rename", rename_city], ["Close", close_city_dialog]];
-  buttonDefs.forEach(([label, fn]) => {
-    const b2 = document.createElement("button");
-    b2.textContent = label;
-    b2.addEventListener("click", fn);
-    btnRow.appendChild(b2);
-  });
-  titleBar.appendChild(btnRow);
-  dlg.appendChild(titleBar);
-  const contentArea = document.createElement("div");
-  contentArea.style.cssText = "padding:8px;overflow:auto;height:calc(100% - 50px);";
-  contentArea.innerHTML = window.Handlebars.templates["city"](city_data);
-  dlg.appendChild(contentArea);
-  const cityCanvas = byId$1("city_canvas");
-  if (cityCanvas) cityCanvas.addEventListener("click", city_mapview_mouse_click);
-  dlg.addEventListener("keydown", function(e2) {
-    if (e2.key === "Escape") close_city_dialog();
-    else city_keyboard_listener(e2);
-  });
-  byId$1("game_text_input")?.blur();
-  if (!isSmallScreen()) {
-    byId$1("city_tabs-6")?.remove();
-    document.querySelectorAll(".extra_tabs_small").forEach((el) => el.remove());
-    byId$1("mobile_cma_checkbox")?.remove();
-  } else {
-    byId$1("city_tabs-5")?.remove();
-    document.querySelectorAll(".extra_tabs_big").forEach((el) => el.remove());
-    const cityStats = byId$1("city_stats");
-    if (cityStats) cityStats.style.display = "none";
-    const unitsElement = byId$1("city_improvements_panel");
-    const cityUnitsTab = byId$1("city_units_tab");
-    if (unitsElement && cityUnitsTab) {
-      cityUnitsTab.appendChild(unitsElement);
-    }
-  }
-  initTabs("#city_tabs", { active: city_tab_index });
-  const tabHeight = isSmallScreen() ? window.innerHeight - 110 : window.innerHeight - 225;
-  document.querySelectorAll(".citydlg_tabs").forEach((el) => {
-    el.style.height = tabHeight + "px";
-  });
-  city_worklist_dialog(pcity);
-  store.renderer;
-  set_citydlg_dimensions(pcity);
-  set_city_mapview_active();
-  center_tile_mapcanvas(cityTile(pcity));
-  update_map_canvas(0, 0, mapview$1["store_width"] ?? 0, mapview$1["store_height"] ?? 0);
-  let governor_text = "";
-  if (typeof pcity["cma_enabled"] !== "undefined") {
-    governor_text = "<br>" + (pcity["cma_enabled"] ? "Governor Enabled" : "Governor Disabled");
-  }
-  setHtml$1("city_size", "Population: " + numberWithCommas(cityPopulation(pcity) * 1e3) + "<br>Size: " + pcity["size"] + "<br>Granary: " + pcity["food_stock"] + "/" + pcity["granary_size"] + "<br>Change in: " + cityTurnsToGrowthText(pcity) + governor_text);
-  const prod_type = getCityProductionTypeSprite(pcity);
-  setHtml$1("city_production_overview", "Producing: " + (prod_type != null ? prod_type["type"]["name"] : "None"));
-  turns_to_complete = getCityProductionTime(pcity);
-  if (turns_to_complete != FC_INFINITY) {
-    setHtml$1("city_production_turns_overview", turns_to_complete + " turns &nbsp;&nbsp;(" + getProductionProgress(pcity) + ")");
-  } else {
-    setHtml$1("city_production_turns_overview", "-");
-  }
-  let improvements_html = "";
-  for (let z2 = 0; z2 < (store.rulesControl?.num_impr_types ?? 0); z2++) {
-    if (pcity["improvements"] != null && pcity["improvements"].isSet(z2)) {
-      sprite = get_improvement_image_sprite(store.improvements[z2]);
-      if (sprite == null) {
-        console.log("Missing sprite for improvement " + z2);
-        continue;
-      }
-      improvements_html = improvements_html + "<div id='city_improvement_element'><div style='background: transparent url(" + sprite["image-src"] + ");background-position:-" + sprite["tileset-x"] + "px -" + sprite["tileset-y"] + "px;  width: " + sprite["width"] + "px;height: " + sprite["height"] + `px;float:left; 'title="` + store.improvements[z2]["helptext"] + `" onclick='city_sell_improvement(` + z2 + ");'></div>" + store.improvements[z2]["name"] + "</div>";
-    }
-  }
-  setHtml$1("city_improvements_list", improvements_html);
-  const punits = tile_units(cityTile(pcity));
-  if (punits != null) {
-    let present_units_html = "";
-    for (let r2 = 0; r2 < punits.length; r2++) {
-      punit = punits[r2];
-      sprite = get_unit_image_sprite(punit);
-      if (sprite == null) {
-        console.log("Missing sprite for " + punit);
-        continue;
-      }
-      present_units_html = present_units_html + "<div class='game_unit_list_item' title='" + get_unit_city_info(punit) + "' style='cursor:pointer;cursor:hand; background: transparent url(" + sprite["image-src"] + ");background-position:-" + sprite["tileset-x"] + "px -" + sprite["tileset-y"] + "px;  width: " + sprite["width"] + "px;height: " + sprite["height"] + "px;float:left; ' onclick='city_dialog_activate_unit(units[" + punit["id"] + "]);'></div>";
-    }
-    setHtml$1("city_present_units_list", present_units_html);
-  }
-  const sunits = get_supported_units(pcity);
-  if (sunits != null) {
-    let supported_units_html = "";
-    for (let t2 = 0; t2 < sunits.length; t2++) {
-      punit = sunits[t2];
-      sprite = get_unit_image_sprite(punit);
-      if (sprite == null) {
-        console.log("Missing sprite for " + punit);
-        continue;
-      }
-      supported_units_html = supported_units_html + "<div class='game_unit_list_item' title='" + get_unit_city_info(punit) + "' style='cursor:pointer;cursor:hand; background: transparent url(" + sprite["image-src"] + ");background-position:-" + sprite["tileset-x"] + "px -" + sprite["tileset-y"] + "px;  width: " + sprite["width"] + "px;height: " + sprite["height"] + "px;float:left; ' onclick='city_dialog_activate_unit(units[" + punit["id"] + "]);'></div>";
-    }
-    setHtml$1("city_supported_units_list", supported_units_html);
-  }
-  if ("prod" in pcity && "surplus" in pcity) {
-    let food_txt = pcity["prod"][O_FOOD$1] + " ( ";
-    if (pcity["surplus"][O_FOOD$1] > 0) food_txt += "+";
-    food_txt += pcity["surplus"][O_FOOD$1] + ")";
-    let shield_txt = pcity["prod"][O_SHIELD$1] + " ( ";
-    if (pcity["surplus"][O_SHIELD$1] > 0) shield_txt += "+";
-    shield_txt += pcity["surplus"][O_SHIELD$1] + ")";
-    let trade_txt = pcity["prod"][O_TRADE] + " ( ";
-    if (pcity["surplus"][O_TRADE] > 0) trade_txt += "+";
-    trade_txt += pcity["surplus"][O_TRADE] + ")";
-    let gold_txt = pcity["prod"][O_GOLD$1] + " ( ";
-    if (pcity["surplus"][O_GOLD$1] > 0) gold_txt += "+";
-    gold_txt += pcity["surplus"][O_GOLD$1] + ")";
-    const luxury_txt = pcity["prod"][O_LUXURY];
-    const science_txt = pcity["prod"][O_SCIENCE];
-    setHtml$1("city_food", food_txt);
-    setHtml$1("city_prod", shield_txt);
-    setHtml$1("city_trade", trade_txt);
-    setHtml$1("city_gold", gold_txt);
-    setHtml$1("city_luxury", luxury_txt);
-    setHtml$1("city_science", science_txt);
-    setHtml$1("city_corruption", pcity["waste"][O_TRADE]);
-    setHtml$1("city_waste", pcity["waste"][O_SHIELD$1]);
-    setHtml$1("city_pollution", pcity["pollution"]);
-    setHtml$1("city_steal", pcity["steal"]);
-    setHtml$1("city_culture", pcity["culture"]);
-  }
-  let specialist_html = "";
-  const citizen_types = ["angry", "unhappy", "content", "happy"];
-  for (let s2 = 0; s2 < citizen_types.length; s2++) {
-    if (pcity["ppl_" + citizen_types[s2]] == null) continue;
-    for (let i2 = 0; i2 < pcity["ppl_" + citizen_types[s2]][FEELING_FINAL$1]; i2++) {
-      sprite = get_specialist_image_sprite();
-      specialist_html = specialist_html + "<div class='specialist_item' style='background: transparent url(" + sprite["image-src"] + ");background-position:-" + sprite["tileset-x"] + "px -" + sprite["tileset-y"] + "px;  width: " + sprite["width"] + "px;height: " + sprite["height"] + "px;float:left; ' title='One " + citizen_types[s2] + " citizen'></div>";
-    }
-  }
-  for (let u2 = 0; u2 < pcity["specialists_size"]; u2++) {
-    const spec_type_name = store.specialists[u2]["plural_name"];
-    "specialist." + store.specialists[u2]["rule_name"] + "_0";
-    for (let j2 = 0; j2 < pcity["specialists"][u2]; j2++) {
-      sprite = get_specialist_image_sprite();
-      specialist_html = specialist_html + "<div class='specialist_item' style='cursor:pointer;cursor:hand; background: transparent url(" + sprite["image-src"] + ");background-position:-" + sprite["tileset-x"] + "px -" + sprite["tileset-y"] + "px;  width: " + sprite["width"] + "px;height: " + sprite["height"] + "px;float:left; ' onclick='city_change_specialist(" + pcity["id"] + "," + store.specialists[u2]["id"] + ");' title='" + spec_type_name + " (click to change)'></div>";
-    }
-  }
-  specialist_html += "<div style='clear: both;'></div>";
-  setHtml$1("specialist_panel", specialist_html);
-  const disbandEl = byId$1("disbandable_city");
-  if (disbandEl) {
-    const newDisband = disbandEl.cloneNode(true);
-    disbandEl.parentNode?.replaceChild(newDisband, disbandEl);
-    newDisband.checked = pcity["city_options"] != null && pcity["city_options"].isSet(CITYO_DISBAND);
-    newDisband.addEventListener("click", function() {
-      const options = pcity["city_options"];
-      const packet = {
-        "pid": packet_city_options_req,
-        "city_id": active_city["id"],
-        "options": options.raw
-      };
-      if (newDisband.checked) {
-        options.set(CITYO_DISBAND);
-      } else {
-        options.unset(CITYO_DISBAND);
-      }
-      send_request(JSON.stringify(packet));
-    });
-  }
-  if (isSmallScreen()) {
-    document.querySelectorAll(".ui-tabs-anchor").forEach((el) => {
-      el.style.padding = "2px";
-    });
-  }
-}
-function request_city_buy() {
-  if (clientIsObserver()) return;
-  const pcity = active_city;
-  const pplayer = clientPlaying();
-  byId$1("dialog")?.remove();
-  let buy_question_string = "";
-  if (pcity["production_kind"] == VUT_UTYPE) {
-    const punit_type = store.unitTypes[pcity["production_value"]];
-    if (punit_type != null) {
-      punit_type["name"] + " costs " + pcity["buy_cost"] + " gold.";
-      buy_question_string = "Buy " + punit_type["name"] + " for " + pcity["buy_cost"] + " gold?";
-    }
-  } else {
-    const improvement = store.improvements[pcity["production_value"]];
-    if (improvement != null) {
-      improvement["name"] + " costs " + pcity["buy_cost"] + " gold.";
-      buy_question_string = "Buy " + improvement["name"] + " for " + pcity["buy_cost"] + " gold?";
-    }
-  }
-  const treasury_text = "<br>Treasury contains " + pplayer["gold"] + " gold.";
-  if (pcity["buy_cost"] > pplayer["gold"]) {
-    return;
-  }
-  const buyDlg = document.createElement("div");
-  buyDlg.id = "dialog";
-  buyDlg.style.cssText = "position:fixed;z-index:5000;background:#222;border:1px solid #555;padding:16px;top:30%;left:50%;transform:translateX(-50%);width:" + (isSmallScreen() ? "95%" : "50%") + ";color:#fff;";
-  buyDlg.innerHTML = '<div style="font-weight:bold;margin-bottom:8px;">Buy It!</div>' + buy_question_string + treasury_text + '<div style="margin-top:12px;display:flex;gap:8px;"><button id="buy_yes_btn">Yes</button><button id="buy_no_btn">No</button></div>';
-  document.getElementById("game_page")?.appendChild(buyDlg);
-  byId$1("buy_yes_btn")?.addEventListener("click", function() {
-    send_city_buy();
-    buyDlg.remove();
-  });
-  byId$1("buy_no_btn")?.addEventListener("click", function() {
-    buyDlg.remove();
-  });
-}
-function send_city_buy() {
-  if (clientIsObserver()) return;
-  if (active_city != null) {
-    const packet = { "pid": packet_city_buy, "city_id": active_city["id"] };
-    send_request(JSON.stringify(packet));
-  }
-}
-function send_city_change(city_id, kind, value) {
-  const packet = {
-    "pid": packet_city_change,
-    "city_id": city_id,
-    "production_kind": kind,
-    "production_value": value
-  };
-  send_request(JSON.stringify(packet));
-}
-function close_city_dialog() {
-  byId$1("city_dialog")?.remove();
-  city_dialog_close_handler();
-}
-function city_dialog_close_handler() {
-  setDefaultMapviewActive();
-  if (active_city != null) {
-    setupWindowSize();
-    center_tile_mapcanvas(cityTile(active_city));
-    set_active_city(null);
-    if (store.renderer == RENDERER_2DCANVAS$1) {
-      update_map_canvas_full();
-    }
-  }
-}
-function city_name_dialog(suggested_name, unit_id) {
-  byId$1("city_name_dialog")?.remove();
-  const nameDlg = document.createElement("div");
-  nameDlg.id = "city_name_dialog";
-  nameDlg.style.cssText = "position:fixed;z-index:5000;background:#222;border:1px solid #555;padding:16px;top:30%;left:50%;transform:translateX(-50%);width:300px;color:#fff;";
-  nameDlg.innerHTML = '<div style="font-weight:bold;margin-bottom:8px;">Build New City</div><div>What should we call our new city?</div><input id="city_name_req" type="text" style="width:100%;margin:8px 0;"><div style="display:flex;gap:8px;"><button id="city_name_ok">Ok</button><button id="city_name_cancel">Cancel</button></div>';
-  document.getElementById("game_page")?.appendChild(nameDlg);
-  const nameInput = byId$1("city_name_req");
-  if (nameInput) {
-    nameInput.value = suggested_name;
-    nameInput.maxLength = MAX_LEN_NAME;
-  }
-  function submitName() {
-    const name = nameInput?.value || "";
-    if (name.length == 0 || name.length >= MAX_LEN_CITYNAME - 6 || encodeURIComponent(name).length >= MAX_LEN_CITYNAME - 6) {
-      swal("City name is invalid. Please try a different shorter name.");
-      return;
-    }
-    const actor_unit = game_find_unit_by_number(unit_id);
-    request_unit_do_action(
-      ACTION_FOUND_CITY,
-      unit_id,
-      actor_unit["tile"],
-      0,
-      encodeURIComponent(name)
-    );
-    nameDlg.remove();
-    act_sel_queue_done(unit_id);
-  }
-  function cancelName() {
-    nameDlg.remove();
-    act_sel_queue_done(unit_id);
-  }
-  byId$1("city_name_ok")?.addEventListener("click", submitName);
-  byId$1("city_name_cancel")?.addEventListener("click", cancelName);
-  nameDlg.addEventListener("keyup", function(e2) {
-    if (e2.key === "Enter") submitName();
-  });
-  blur_input_on_touchdevice();
-}
-function next_city() {
-  if (!clientPlaying()) return;
-  city_screen_updater.fireNow();
-  const currentRow = byId$1("cities_list_" + active_city["id"]);
-  let nextRow = currentRow?.nextElementSibling;
-  if (!nextRow) {
-    nextRow = document.querySelector("#city_table tbody tr");
-  }
-  if (nextRow?.id) {
-    show_city_dialog(cities$1[nextRow.id.substr(12)]);
-  }
-}
-function previous_city() {
-  if (!clientPlaying()) return;
-  city_screen_updater.fireNow();
-  const currentRow = byId$1("cities_list_" + active_city["id"]);
-  let prevRow = currentRow?.previousElementSibling;
-  if (!prevRow) {
-    const rows = document.querySelectorAll("#city_table tbody tr");
-    prevRow = rows.length > 0 ? rows[rows.length - 1] : null;
-  }
-  if (prevRow?.id) {
-    show_city_dialog(cities$1[prevRow.id.substr(12)]);
-  }
-}
-function city_sell_improvement(improvement_id) {
-  if (clientIsObserver()) return;
-  if ("confirm" in window) {
-    const agree = confirm("Are you sure you want to sell this building?");
-    if (agree) {
-      const packet = {
-        "pid": packet_city_sell,
-        "city_id": active_city["id"],
-        "build_id": improvement_id
-      };
-      send_request(JSON.stringify(packet));
-    }
-  } else {
-    const packet = {
-      "pid": packet_city_sell,
-      "city_id": active_city["id"],
-      "build_id": improvement_id
-    };
-    send_request(JSON.stringify(packet));
-  }
-}
-function city_change_specialist(city_id, from_specialist_id) {
-  if (clientIsObserver()) return;
-  const city_message = {
-    "pid": packet_city_change_specialist,
-    "city_id": city_id,
-    "from": from_specialist_id,
-    "to": (from_specialist_id + 1) % 3
-  };
-  send_request(JSON.stringify(city_message));
-}
-function rename_city() {
-  if (clientIsObserver() || active_city == null) return;
-  byId$1("city_name_dialog")?.remove();
-  const renameDlg = document.createElement("div");
-  renameDlg.id = "city_name_dialog";
-  renameDlg.style.cssText = "position:fixed;z-index:5000;background:#222;border:1px solid #555;padding:16px;top:30%;left:50%;transform:translateX(-50%);width:300px;color:#fff;";
-  renameDlg.innerHTML = '<div style="font-weight:bold;margin-bottom:8px;">Rename City</div><div>What should we call this city?</div><input id="city_name_req" type="text" style="width:100%;margin:8px 0;"><div style="display:flex;gap:8px;"><button id="rename_ok">Ok</button><button id="rename_cancel">Cancel</button></div>';
-  document.getElementById("game_page")?.appendChild(renameDlg);
-  const nameInput = byId$1("city_name_req");
-  if (nameInput) {
-    nameInput.value = active_city["name"];
-    nameInput.maxLength = MAX_LEN_NAME;
-  }
-  function submitRename() {
-    const name = nameInput?.value || "";
-    if (name.length == 0 || name.length >= MAX_LEN_NAME - 4 || encodeURIComponent(name).length >= MAX_LEN_NAME - 4) {
-      swal("City name is invalid");
-      return;
-    }
-    const packet = { "pid": packet_city_rename, "name": encodeURIComponent(name), "city_id": active_city["id"] };
-    send_request(JSON.stringify(packet));
-    renameDlg.remove();
-  }
-  byId$1("rename_ok")?.addEventListener("click", submitRename);
-  byId$1("rename_cancel")?.addEventListener("click", function() {
-    renameDlg.remove();
-  });
-  renameDlg.addEventListener("keyup", function(e2) {
-    if (e2.key === "Enter") submitRename();
-  });
-}
-function update_city_screen() {
-  if (store.observing) return;
-  const sortList = [];
-  document.querySelectorAll("#city_table thead th").forEach((th) => {
-    const el = th;
-    if (el.classList.contains("tablesorter-headerAsc")) sortList.push([el.cellIndex, 0]);
-    else if (el.classList.contains("tablesorter-headerDesc")) sortList.push([el.cellIndex, 1]);
-  });
-  let city_list_html = "<table class='tablesorter' id='city_table' border=0 cellspacing=0><thead><tr><th>Name</th><th>Population</th><th>Size</th><th>State</th><th>Granary</th><th>Grows In</th><th>Producing</th><th>Surplus<br>Food/Prod/Trade</th><th>Economy<br>Gold/Luxury/Science</th></tr></thead><tbody>";
-  let count = 0;
-  for (const city_id in cities$1) {
-    const pcity = cities$1[city_id];
-    if (clientPlaying() != null && cityOwner(pcity) != null && cityOwner(pcity).playerno == clientPlaying().playerno) {
-      count++;
-      const prod_type = getCityProductionType(pcity);
-      let turns_to_complete_str;
-      if (getCityProductionTime(pcity) == FC_INFINITY) {
-        turns_to_complete_str = "-";
-      } else {
-        turns_to_complete_str = getCityProductionTime(pcity) + " turns";
-      }
-      city_list_html += "<tr class='cities_row' id='cities_list_" + pcity["id"] + "' onclick='javascript:show_city_dialog_by_id(" + pcity["id"] + ");'><td>" + pcity["name"] + "</td><td>" + numberWithCommas(cityPopulation(pcity) * 1e3) + "</td><td>" + pcity["size"] + "</td><td>" + get_city_state(pcity) + "</td><td>" + pcity["food_stock"] + "/" + pcity["granary_size"] + "</td><td>" + cityTurnsToGrowthText(pcity) + "</td><td>" + prod_type["name"] + " (" + turns_to_complete_str + ")</td><td>" + pcity["surplus"][O_FOOD$1] + "/" + pcity["surplus"][O_SHIELD$1] + "/" + pcity["surplus"][O_TRADE] + "</td><td>" + pcity["prod"][O_GOLD$1] + "/" + pcity["prod"][O_LUXURY] + "/" + pcity["prod"][O_SCIENCE] + "<td>";
-      city_list_html += "</tr>";
-    }
-  }
-  city_list_html += "</tbody></table>";
-  setHtml$1("cities_list", city_list_html);
-  if (count == 0) {
-    setHtml$1("city_table", "You have no cities. Build new cities with the Settlers unit.");
-  }
-  const citiesScroll = byId$1("cities_scroll");
-  if (citiesScroll) citiesScroll.style.height = window.innerHeight - 200 + "px";
-  initTableSort("#city_table", { sortList });
-}
-function get_city_state(pcity) {
-  if (pcity == null) return;
-  if (pcity["was_happy"] && pcity["size"] >= 3) {
-    return "Celebrating";
-  } else if (pcity["unhappy"]) {
-    return "Disorder";
-  } else {
-    return "Peace";
-  }
-}
-function city_keyboard_listener(ev) {
-  if (document.querySelector("input:focus") || !keyboard_input) return;
-  if (C_S_RUNNING != clientState()) return;
-  if (!ev) ev = window.event;
-  const keyboard_key = String.fromCharCode(ev.keyCode);
-  if (active_city != null) {
-    switch (keyboard_key) {
-      case "N":
-        next_city();
-        ev.stopPropagation();
-        break;
-      case "B":
-        request_city_buy();
-        ev.stopPropagation();
-        break;
-    }
-  }
-}
-function set_citydlg_dimensions(pcity) {
-  const city_radius = pcity.city_radius_sq;
-  const radius_tiles = Math.ceil(Math.sqrt(city_radius));
-  set_citydlg_map_width(tileset_width + radius_tiles * tileset_width);
-  set_citydlg_map_height(tileset_height + radius_tiles * tileset_height);
-  const canvasDiv = byId$1("city_canvas_div");
-  if (canvasDiv) {
-    canvasDiv.style.width = citydlg_map_width + "px";
-    canvasDiv.style.height = citydlg_map_height + "px";
-  }
-  const canvas = byId$1("city_canvas");
-  if (canvas) {
-    canvas.width = citydlg_map_width;
-    canvas.height = citydlg_map_height;
-  }
-}
-function get_specialist_image_sprite(key) {
-}
-function city_mapview_mouse_click() {
-}
-const _w$1 = window;
-function get_unit_image_sprite(punit) {
-  const from_type = get_unit_type_image_sprite(unit_type(punit));
-  from_type["height"] = from_type["height"] - 2;
-  return from_type;
-}
-function get_unit_type_image_sprite(punittype) {
-  const tag = tileset_unit_type_graphic_tag(punittype);
-  if (tag == null) return null;
-  const tileset_x = _w$1.tileset[tag][0];
-  const tileset_y = _w$1.tileset[tag][1];
-  const width = _w$1.tileset[tag][2];
-  const height = _w$1.tileset[tag][3];
-  const i2 = _w$1.tileset[tag][4];
-  return {
-    "tag": tag,
-    "image-src": "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i2 + getTilesetFileExtension() + "?ts=" + _w$1.ts,
-    "tileset-x": tileset_x,
-    "tileset-y": tileset_y,
-    "width": width,
-    "height": height
-  };
-}
-function get_improvement_image_sprite(pimprovement) {
-  const tag = tileset_building_graphic_tag(pimprovement);
-  if (tag == null) return null;
-  const tileset_x = _w$1.tileset[tag][0];
-  const tileset_y = _w$1.tileset[tag][1];
-  const width = _w$1.tileset[tag][2];
-  const height = _w$1.tileset[tag][3];
-  const i2 = _w$1.tileset[tag][4];
-  return {
-    "tag": tag,
-    "image-src": "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i2 + getTilesetFileExtension() + "?ts=" + _w$1.ts,
-    "tileset-x": tileset_x,
-    "tileset-y": tileset_y,
-    "width": width,
-    "height": height
-  };
-}
-function get_technology_image_sprite(ptech) {
-  const tag = tileset_tech_graphic_tag(ptech);
-  if (tag == null) return null;
-  const tileset_x = _w$1.tileset[tag][0];
-  const tileset_y = _w$1.tileset[tag][1];
-  const width = _w$1.tileset[tag][2];
-  const height = _w$1.tileset[tag][3];
-  const i2 = _w$1.tileset[tag][4];
-  return {
-    "tag": tag,
-    "image-src": "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i2 + getTilesetFileExtension() + "?ts=" + _w$1.ts,
-    "tileset-x": tileset_x,
-    "tileset-y": tileset_y,
-    "width": width,
-    "height": height
-  };
-}
-function get_treaty_agree_thumb_up() {
-  const tag = "treaty.agree_thumb_up";
-  const tileset_x = _w$1.tileset[tag][0];
-  const tileset_y = _w$1.tileset[tag][1];
-  const width = _w$1.tileset[tag][2];
-  const height = _w$1.tileset[tag][3];
-  const i2 = _w$1.tileset[tag][4];
-  return {
-    "tag": tag,
-    "image-src": "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i2 + getTilesetFileExtension() + "?ts=" + _w$1.ts,
-    "tileset-x": tileset_x,
-    "tileset-y": tileset_y,
-    "width": width,
-    "height": height
-  };
-}
-function get_treaty_disagree_thumb_down() {
-  const tag = "treaty.disagree_thumb_down";
-  const tileset_x = _w$1.tileset[tag][0];
-  const tileset_y = _w$1.tileset[tag][1];
-  const width = _w$1.tileset[tag][2];
-  const height = _w$1.tileset[tag][3];
-  const i2 = _w$1.tileset[tag][4];
-  return {
-    "tag": tag,
-    "image-src": "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i2 + getTilesetFileExtension() + "?ts=" + _w$1.ts,
-    "tileset-x": tileset_x,
-    "tileset-y": tileset_y,
-    "width": width,
-    "height": height
-  };
-}
-const SSA_NONE = ServerSideAgent.NONE;
-const SSA_AUTOWORKER = ServerSideAgent.AUTOWORKER;
-const SSA_AUTOEXPLORE = ServerSideAgent.AUTOEXPLORE;
-const DIR8_NORTHWEST = 0;
-const DIR8_NORTH = 1;
-const DIR8_NORTHEAST = 2;
-const DIR8_WEST = 3;
-const DIR8_EAST = 4;
-const DIR8_SOUTHWEST = 5;
-const DIR8_SOUTH = 6;
-const DIR8_SOUTHEAST = 7;
-const _w = window;
-let num_cardinal_tileset_dirs = 4;
-let cardinal_tileset_dirs = [DIR8_NORTH, DIR8_EAST, DIR8_SOUTH, DIR8_WEST];
-let NUM_CORNER_DIRS = 4;
-let DIR4_TO_DIR8 = [DIR8_NORTH, DIR8_SOUTH, DIR8_EAST, DIR8_WEST];
-let current_select_sprite = 0;
-let max_select_sprite = 4;
-let explosion_anim_map = {};
-const LAYER_TERRAIN1 = 0;
-const LAYER_TERRAIN2 = 1;
-const LAYER_TERRAIN3 = 2;
-const LAYER_ROADS = 3;
-const LAYER_SPECIAL1 = 4;
-const LAYER_CITY1 = 5;
-const LAYER_SPECIAL2 = 6;
-const LAYER_UNIT = 7;
-const LAYER_FOG = 8;
-const LAYER_SPECIAL3 = 9;
-const LAYER_TILELABEL = 10;
-const LAYER_CITYBAR = 11;
-const LAYER_GOTO = 12;
-const LAYER_COUNT = 13;
-const MATCH_NONE = 0;
-const MATCH_SAME = 1;
-const MATCH_PAIR = 2;
-const MATCH_FULL = 3;
-const CELL_WHOLE = 0;
-const CELL_CORNER = 1;
-function tileset_has_tag(tagname) {
-  return _w.sprites[tagname] != null;
-}
-function tileset_ruleset_entity_tag_str_or_alt(entity, kind_name) {
-  if (entity == null) {
-    console.log("No " + kind_name + " to return tag for.");
-    return null;
-  }
-  if (tileset_has_tag(entity["graphic_str"])) {
-    return entity["graphic_str"];
-  }
-  if (tileset_has_tag(entity["graphic_alt"])) {
-    return entity["graphic_alt"];
-  }
-  console.log("No graphic for " + kind_name + " " + entity["name"]);
-  return null;
-}
-function tileset_extra_graphic_tag(extra) {
-  return tileset_ruleset_entity_tag_str_or_alt(extra, "extra");
-}
-function tileset_unit_type_graphic_tag(utype) {
-  if (tileset_has_tag(utype["graphic_str"] + "_Idle")) {
-    return utype["graphic_str"] + "_Idle";
-  }
-  if (tileset_has_tag(utype["graphic_alt"] + "_Idle")) {
-    return utype["graphic_alt"] + "_Idle";
-  }
-  console.log("No graphic for unit " + utype["name"]);
-  return null;
-}
-function tileset_unit_graphic_tag(punit) {
-  return tileset_unit_type_graphic_tag(unit_type(punit));
-}
-function tileset_building_graphic_tag(pimprovement) {
-  return tileset_ruleset_entity_tag_str_or_alt(pimprovement, "building");
-}
-function tileset_tech_graphic_tag(ptech) {
-  return tileset_ruleset_entity_tag_str_or_alt(ptech, "tech");
-}
-function tileset_extra_id_graphic_tag(extra_id) {
-  return tileset_extra_graphic_tag(store.extras[extra_id]);
-}
-function tileset_extra_activity_graphic_tag(extra) {
-  if (extra == null) {
-    console.log("No extra to return tag for.");
-    return null;
-  }
-  if (tileset_has_tag(extra["activity_gfx"])) {
-    return extra["activity_gfx"];
-  }
-  if (tileset_has_tag(extra["act_gfx_alt"])) {
-    return extra["act_gfx_alt"];
-  }
-  if (tileset_has_tag(extra["act_gfx_alt2"])) {
-    return extra["act_gfx_alt2"];
-  }
-  console.log("No activity graphic for extra " + extra["name"]);
-  return null;
-}
-function tileset_extra_id_activity_graphic_tag(extra_id) {
-  return tileset_extra_activity_graphic_tag(store.extras[extra_id]);
-}
-function tileset_extra_rmactivity_graphic_tag(extra) {
-  if (extra == null) {
-    console.log("No extra to return tag for.");
-    return null;
-  }
-  if (tileset_has_tag(extra["rmact_gfx"])) {
-    return extra["rmact_gfx"];
-  }
-  if (tileset_has_tag(extra["rmact_gfx_alt"])) {
-    return extra["rmact_gfx_alt"];
-  }
-  if (tileset_has_tag(extra["rmact_gfx_alt2"])) {
-    return extra["rmact_gfx_alt2"];
-  }
-  console.log("No removal activity graphic for extra " + extra["name"]);
-  return null;
-}
-function tileset_extra_id_rmactivity_graphic_tag(extra_id) {
-  return tileset_extra_rmactivity_graphic_tag(store.extras[extra_id]);
-}
-function fill_sprite_array(layer, ptile, pedge, pcorner, punit, pcity, citymode) {
-  let sprite_array = [];
-  switch (layer) {
-    case LAYER_TERRAIN1:
-      if (ptile != null) {
-        const tterrain_near = tileTerrainNear(ptile);
-        const pterrain = tileTerrain(ptile);
-        sprite_array = sprite_array.concat(fill_terrain_sprite_layer(0, ptile, pterrain, tterrain_near));
-      }
-      break;
-    case LAYER_TERRAIN2:
-      if (ptile != null) {
-        const tterrain_near = tileTerrainNear(ptile);
-        const pterrain = tileTerrain(ptile);
-        sprite_array = sprite_array.concat(fill_terrain_sprite_layer(1, ptile, pterrain, tterrain_near));
-      }
-      break;
-    case LAYER_TERRAIN3:
-      if (ptile != null) {
-        const tterrain_near = tileTerrainNear(ptile);
-        const pterrain = tileTerrain(ptile);
-        sprite_array = sprite_array.concat(fill_terrain_sprite_layer(2, ptile, pterrain, tterrain_near));
-      }
-      break;
-    case LAYER_ROADS:
-      if (ptile != null) {
-        sprite_array = sprite_array.concat(fill_path_sprite_array(ptile));
-      }
-      break;
-    case LAYER_SPECIAL1:
-      if (ptile != null) {
-        const river_sprite = get_tile_river_sprite(ptile);
-        if (river_sprite != null) sprite_array.push(river_sprite);
-        const spec_sprite = get_tile_specials_sprite(ptile);
-        if (spec_sprite != null) sprite_array.push(spec_sprite);
-        if (tileHasExtra(ptile, _w.EXTRA_MINE)) {
-          sprite_array.push({
-            "key": tileset_extra_id_graphic_tag(_w.EXTRA_MINE)
-          });
-        }
-        if (tileHasExtra(ptile, _w.EXTRA_OIL_WELL)) {
-          sprite_array.push({
-            "key": tileset_extra_id_graphic_tag(_w.EXTRA_OIL_WELL)
-          });
-        }
-        sprite_array = sprite_array.concat(fill_layer1_sprite_array(ptile, pcity));
-        if (tileHasExtra(ptile, _w.EXTRA_HUT)) {
-          sprite_array.push({
-            "key": tileset_extra_id_graphic_tag(_w.EXTRA_HUT)
-          });
-        }
-        if (tileHasExtra(ptile, _w.EXTRA_POLLUTION)) {
-          sprite_array.push({
-            "key": tileset_extra_id_graphic_tag(_w.EXTRA_POLLUTION)
-          });
-        }
-        if (tileHasExtra(ptile, _w.EXTRA_FALLOUT)) {
-          sprite_array.push({
-            "key": tileset_extra_id_graphic_tag(_w.EXTRA_FALLOUT)
-          });
-        }
-        sprite_array = sprite_array.concat(get_border_line_sprites(ptile));
-      }
-      break;
-    case LAYER_CITY1:
-      if (pcity != null) {
-        sprite_array.push(get_city_sprite(pcity));
-        if (pcity["unhappy"]) {
-          sprite_array.push({ "key": "city.disorder" });
-        }
-      }
-      break;
-    case LAYER_SPECIAL2:
-      if (ptile != null) {
-        sprite_array = sprite_array.concat(fill_layer2_sprite_array(ptile, pcity));
-      }
-      break;
-    case LAYER_UNIT:
-      const do_draw_unit = punit != null && draw_units;
-      if (do_draw_unit && active_city == null) {
-        const stacked = ptile["units"] != null && ptile["units"].length > 1;
-        if (unit_is_in_focus$1(punit)) {
-          sprite_array.push(get_select_sprite());
-        }
-        sprite_array = sprite_array.concat(fill_unit_sprite_array(punit, stacked));
-      }
-      if (ptile != null && explosion_anim_map[ptile["index"]] != null) {
-        let explode_step = explosion_anim_map[ptile["index"]];
-        explosion_anim_map[ptile["index"]] = explode_step - 1;
-        if (explode_step > 20) {
-          sprite_array.push({
-            "key": "explode.unit_0",
-            "offset_x": unit_offset_x,
-            "offset_y": unit_offset_y
-          });
-        } else if (explode_step > 15) {
-          sprite_array.push({
-            "key": "explode.unit_1",
-            "offset_x": unit_offset_x,
-            "offset_y": unit_offset_y
-          });
-        } else if (explode_step > 10) {
-          sprite_array.push({
-            "key": "explode.unit_2",
-            "offset_x": unit_offset_x,
-            "offset_y": unit_offset_y
-          });
-        } else if (explode_step > 5) {
-          sprite_array.push({
-            "key": "explode.unit_3",
-            "offset_x": unit_offset_x,
-            "offset_y": unit_offset_y
-          });
-        } else if (explode_step > 0) {
-          sprite_array.push({
-            "key": "explode.unit_4",
-            "offset_x": unit_offset_x,
-            "offset_y": unit_offset_y
-          });
-        } else {
-          delete explosion_anim_map[ptile["index"]];
-        }
-      }
-      break;
-    case LAYER_FOG:
-      sprite_array = sprite_array.concat(fill_fog_sprite_array(ptile, pedge, pcorner));
-      break;
-    case LAYER_SPECIAL3:
-      if (ptile != null) {
-        sprite_array = sprite_array.concat(fill_layer3_sprite_array(ptile, pcity));
-      }
-      break;
-    case LAYER_TILELABEL:
-      if (ptile != null && ptile["label"] != null && ptile["label"].length > 0) {
-        sprite_array.push(get_tile_label_text(ptile));
-      }
-      break;
-    case LAYER_CITYBAR:
-      if (pcity != null && show_citybar) {
-        sprite_array.push(get_city_info_text(pcity));
-      }
-      if (active_city != null && ptile != null && ptile["worked"] != null && active_city["id"] == ptile["worked"] && active_city["output_food"] != null) {
-        const ctile = cityTile(active_city);
-        const d2 = mapDistanceVector(ctile, ptile);
-        const idx = getCityDxyToIndex(d2[0], d2[1], active_city);
-        let food_output = active_city["output_food"][idx];
-        let shield_output = active_city["output_shield"][idx];
-        let trade_output = active_city["output_trade"][idx];
-        const gran = store.gameInfo?.granularity ?? 1;
-        food_output = Math.floor(food_output / gran);
-        shield_output = Math.floor(shield_output / gran);
-        trade_output = Math.floor(trade_output / gran);
-        sprite_array.push(get_city_food_output_sprite(food_output));
-        sprite_array.push(get_city_shields_output_sprite(shield_output));
-        sprite_array.push(get_city_trade_output_sprite(trade_output));
-      } else if (active_city != null && ptile != null && ptile["worked"] != 0) {
-        sprite_array.push(get_city_invalid_worked_sprite());
-      }
-      break;
-    case LAYER_GOTO:
-      if (ptile != null && ptile["goto_dir"] != null) {
-        sprite_array = sprite_array.concat(fill_goto_line_sprite_array(ptile));
-      }
-      if (ptile != null && ptile["nuke"] > 0) {
-        ptile["nuke"] = ptile["nuke"] - 1;
-        sprite_array.push({
-          "key": "explode.nuke",
-          "offset_x": -45,
-          "offset_y": -45
-        });
-      }
-      break;
-  }
-  return sprite_array;
-}
-function fill_terrain_sprite_layer(layer_num, ptile, pterrain, tterrain_near) {
-  return fill_terrain_sprite_array(layer_num, ptile, pterrain, tterrain_near);
-}
-function fill_terrain_sprite_array(l2, ptile, pterrain, tterrain_near) {
-  if (pterrain == null) return [];
-  if (tile_types_setup["l" + l2 + "." + pterrain["graphic_str"]] == null) {
-    return [];
-  }
-  const dlp = tile_types_setup["l" + l2 + "." + pterrain["graphic_str"]];
-  switch (dlp["sprite_type"]) {
-    case CELL_WHOLE: {
-      switch (dlp["match_style"]) {
-        case MATCH_NONE: {
-          const result_sprites = [];
-          if (dlp["dither"] == true) {
-            for (let i2 = 0; i2 < num_cardinal_tileset_dirs; i2++) {
-              if (ts_tiles[tterrain_near[DIR4_TO_DIR8[i2]]["graphic_str"]] == null) continue;
-              const near_dlp = tile_types_setup["l" + l2 + "." + tterrain_near[DIR4_TO_DIR8[i2]]["graphic_str"]];
-              const terrain_near = near_dlp["dither"] == true ? tterrain_near[DIR4_TO_DIR8[i2]]["graphic_str"] : pterrain["graphic_str"];
-              const dither_tile = i2 + pterrain["graphic_str"] + "_" + terrain_near;
-              const x2 = dither_offset_x[i2];
-              const y2 = dither_offset_y[i2];
-              result_sprites.push({ "key": dither_tile, "offset_x": x2, "offset_y": y2 });
-            }
-            return result_sprites;
-          } else {
-            return [{ "key": "t.l" + l2 + "." + pterrain["graphic_str"] + 1 }];
-          }
-        }
-        case MATCH_SAME: {
-          let tileno = 0;
-          const this_match_type = ts_tiles[pterrain["graphic_str"]]["layer" + l2 + "_match_type"];
-          for (let i2 = 0; i2 < num_cardinal_tileset_dirs; i2++) {
-            if (ts_tiles[tterrain_near[i2]["graphic_str"]] == null) continue;
-            const that = ts_tiles[tterrain_near[i2]["graphic_str"]]["layer" + l2 + "_match_type"];
-            if (that == this_match_type) {
-              tileno |= 1 << i2;
-            }
-          }
-          const gfx_key = "t.l" + l2 + "." + pterrain["graphic_str"] + "_" + cardinal_index_str(tileno);
-          const y2 = tileset_tile_height - _w.tileset[gfx_key][3];
-          return [{ "key": gfx_key, "offset_x": 0, "offset_y": y2 }];
-        }
-      }
-      break;
-    }
-    case CELL_CORNER: {
-      const W = normal_tile_width;
-      const H2 = normal_tile_height;
-      const iso_offsets = [[W / 4, 0], [W / 4, H2 / 2], [W / 2, H2 / 4], [0, H2 / 4]];
-      const this_match_index = "l" + l2 + "." + pterrain["graphic_str"] in tile_types_setup ? tile_types_setup["l" + l2 + "." + pterrain["graphic_str"]]["match_index"][0] : -1;
-      const result_sprites = [];
-      for (let i2 = 0; i2 < NUM_CORNER_DIRS; i2++) {
-        const count = dlp["match_indices"];
-        let array_index = 0;
-        const dir = dirCCW(DIR4_TO_DIR8[i2]);
-        const x2 = iso_offsets[i2][0];
-        const y2 = iso_offsets[i2][1];
-        const m2 = [
-          "l" + l2 + "." + tterrain_near[dirCCW(dir)]["graphic_str"] in tile_types_setup ? tile_types_setup["l" + l2 + "." + tterrain_near[dirCCW(dir)]["graphic_str"]]["match_index"][0] : -1,
-          "l" + l2 + "." + tterrain_near[dir]["graphic_str"] in tile_types_setup ? tile_types_setup["l" + l2 + "." + tterrain_near[dir]["graphic_str"]]["match_index"][0] : -1,
-          "l" + l2 + "." + tterrain_near[dirCW(dir)]["graphic_str"] in tile_types_setup ? tile_types_setup["l" + l2 + "." + tterrain_near[dirCW(dir)]["graphic_str"]]["match_index"][0] : -1
-        ];
-        switch (dlp["match_style"]) {
-          case MATCH_NONE:
-            break;
-          case MATCH_SAME:
-            const b1 = m2[2] != this_match_index ? 1 : 0;
-            const b2 = m2[1] != this_match_index ? 1 : 0;
-            const b3 = m2[0] != this_match_index ? 1 : 0;
-            array_index = array_index * 2 + b1;
-            array_index = array_index * 2 + b2;
-            array_index = array_index * 2 + b3;
-            break;
-          case MATCH_PAIR:
-            return [];
-          case MATCH_FULL:
-            {
-              const n2 = [];
-              let j2 = 0;
-              for (; j2 < 3; j2++) {
-                let k2 = 0;
-                for (; k2 < count; k2++) {
-                  n2[j2] = k2;
-                  if (m2[j2] == dlp["match_index"][k2]) {
-                    break;
-                  }
-                }
-              }
-              array_index = array_index * count + n2[2];
-              array_index = array_index * count + n2[1];
-              array_index = array_index * count + n2[0];
-            }
-            break;
-        }
-        array_index = array_index * NUM_CORNER_DIRS + i2;
-        result_sprites.push({ "key": cellgroup_map[pterrain["graphic_str"] + "." + array_index] + "." + i2, "offset_x": x2, "offset_y": y2 });
-      }
-      return result_sprites;
-    }
-  }
-  return [];
-}
-function fill_unit_sprite_array(punit, stacked, backdrop) {
-  const unit_offset = get_unit_anim_offset(punit);
-  const result = [
-    get_unit_nation_flag_sprite(punit),
-    {
-      "key": tileset_unit_graphic_tag(punit),
-      "offset_x": unit_offset["x"] + unit_offset_x,
-      "offset_y": unit_offset["y"] - unit_offset_y
-    }
-  ];
-  const activities = get_unit_activity_sprite(punit);
-  if (activities != null) {
-    activities["offset_x"] = activities["offset_x"] + unit_offset["x"];
-    activities["offset_y"] = activities["offset_y"] + unit_offset["y"];
-    result.push(activities);
-  }
-  const agent = get_unit_agent_sprite(punit);
-  if (agent != null) {
-    agent["offset_x"] = agent["offset_x"] + unit_offset["x"];
-    agent["offset_y"] = agent["offset_y"] + unit_offset["y"];
-    result.push(agent);
-  }
-  if (should_ask_server_for_actions(punit)) {
-    result.push({
-      "key": "unit.action_decision_want",
-      "offset_x": unit_activity_offset_x + unit_offset["x"],
-      "offset_y": -25 + unit_offset["y"]
-    });
-  }
-  result.push(get_unit_hp_sprite(punit));
-  if (stacked) result.push(get_unit_stack_sprite());
-  if (punit["veteran"] > 0) result.push(get_unit_veteran_sprite(punit));
-  return result;
-}
-function dir_get_tileset_name(dir) {
-  switch (dir) {
-    case DIR8_NORTH:
-      return "n";
-    case DIR8_NORTHEAST:
-      return "ne";
-    case DIR8_EAST:
-      return "e";
-    case DIR8_SOUTHEAST:
-      return "se";
-    case DIR8_SOUTH:
-      return "s";
-    case DIR8_SOUTHWEST:
-      return "sw";
-    case DIR8_WEST:
-      return "w";
-    case DIR8_NORTHWEST:
-      return "nw";
-  }
-  return "";
-}
-function cardinal_index_str(idx) {
-  let c2 = "";
-  for (let i2 = 0; i2 < num_cardinal_tileset_dirs; i2++) {
-    const value = idx >> i2 & 1;
-    c2 += dir_get_tileset_name(cardinal_tileset_dirs[i2]) + value;
-  }
-  return c2;
-}
-function get_city_flag_sprite(pcity) {
-  const owner_id = pcity["owner"];
-  if (owner_id == null) return {};
-  const owner = store.players[owner_id];
-  if (owner == null) return {};
-  const nation_id = owner["nation"];
-  if (nation_id == null) return {};
-  const nation = store.nations[nation_id];
-  if (nation == null) return {};
-  return {
-    "key": "f." + nation["graphic_str"],
-    "offset_x": city_flag_offset_x,
-    "offset_y": -9
-  };
-}
-function get_base_flag_sprite(ptile) {
-  const owner_id = ptile["extras_owner"];
-  if (owner_id == null) return {};
-  const owner = store.players[owner_id];
-  if (owner == null) return {};
-  const nation_id = owner["nation"];
-  if (nation_id == null) return {};
-  const nation = store.nations[nation_id];
-  if (nation == null) return {};
-  return {
-    "key": "f." + nation["graphic_str"],
-    "offset_x": city_flag_offset_x,
-    "offset_y": -9
-  };
-}
-function get_city_occupied_sprite(pcity) {
-  const owner_id = pcity["owner"];
-  const ptile = cityTile(pcity);
-  const punits = tile_units(ptile);
-  if (!store.observing && clientPlaying() != null && owner_id != clientPlaying().playerno && pcity["occupied"]) {
-    return "citybar.occupied";
-  } else if (punits != null && punits.length == 1) {
-    return "citybar.occupancy_1";
-  } else if (punits != null && punits.length == 2) {
-    return "citybar.occupancy_2";
-  } else if (punits != null && punits.length >= 3) {
-    return "citybar.occupancy_3";
-  } else {
-    return "citybar.occupancy_0";
-  }
-}
-function get_city_food_output_sprite(num) {
-  return {
-    "key": "city.t_food_" + num,
-    "offset_x": normal_tile_width / 4,
-    "offset_y": -normal_tile_height / 4
-  };
-}
-function get_city_shields_output_sprite(num) {
-  return {
-    "key": "city.t_shields_" + num,
-    "offset_x": normal_tile_width / 4,
-    "offset_y": -normal_tile_height / 4
-  };
-}
-function get_city_trade_output_sprite(num) {
-  return {
-    "key": "city.t_trade_" + num,
-    "offset_x": normal_tile_width / 4,
-    "offset_y": -normal_tile_height / 4
-  };
-}
-function get_city_invalid_worked_sprite() {
-  return {
-    "key": "grid.unavailable",
-    "offset_x": 0,
-    "offset_y": 0
-  };
-}
-function fill_goto_line_sprite_array(ptile) {
-  return { "key": "goto_line", "goto_dir": ptile["goto_dir"] };
-}
-function get_border_line_sprites(ptile) {
-  const result = [];
-  for (let i2 = 0; i2 < num_cardinal_tileset_dirs; i2++) {
-    const dir = cardinal_tileset_dirs[i2];
-    const checktile = mapstep(ptile, dir);
-    if (checktile != null && checktile["owner"] != null && ptile["owner"] != null && ptile["owner"] != checktile["owner"] && ptile["owner"] != 255 && store.players[ptile["owner"]] != null) {
-      const pnation = store.nations[store.players[ptile["owner"]]["nation"]];
-      result.push({
-        "key": "border",
-        "dir": dir,
-        "color": pnation["color"]
-      });
-    }
-  }
-  return result;
-}
-function get_unit_nation_flag_sprite(punit) {
-  const owner_id = punit["owner"];
-  if (unit_type(punit)?.["flags"]?.isSet?.(UTYF_FLAGLESS) && clientPlaying() != null && owner_id != clientPlaying().playerno) {
-    return [];
-  } else {
-    const owner = store.players[owner_id];
-    const nation_id = owner["nation"];
-    const nation = store.nations[nation_id];
-    const unit_offset = get_unit_anim_offset(punit);
-    return {
-      "key": "f.shield." + nation["graphic_str"],
-      "offset_x": unit_flag_offset_x + unit_offset["x"],
-      "offset_y": -16 + unit_offset["y"]
-    };
-  }
-}
-function get_unit_stack_sprite(punit) {
-  return {
-    "key": "unit.stack",
-    "offset_x": unit_flag_offset_x + -25,
-    "offset_y": -16 - 15
-  };
-}
-function get_unit_hp_sprite(punit) {
-  const hp = punit["hp"];
-  const utype = unit_type(punit);
-  const max_hp = utype?.["hp"] ?? 1;
-  const healthpercent = 10 * Math.floor(10 * hp / max_hp);
-  const unit_offset = get_unit_anim_offset(punit);
-  return {
-    "key": "unit.hp_" + healthpercent,
-    "offset_x": unit_flag_offset_x + -25 + unit_offset["x"],
-    "offset_y": -16 - 15 + unit_offset["y"]
-  };
-}
-function get_unit_veteran_sprite(punit) {
-  return {
-    "key": "unit.vet_" + punit["veteran"],
-    "offset_x": unit_activity_offset_x - 20,
-    "offset_y": -25 - 10
-  };
-}
-function get_unit_activity_sprite(punit) {
-  if (punit["ssa_controller"] == SSA_AUTOEXPLORE) {
-    return null;
-  }
-  const activity = punit["activity"];
-  const act_tgt = punit["activity_tgt"];
-  switch (activity) {
-    case ACTIVITY_CLEAN:
-      return {
-        "key": -1 == act_tgt ? "unit.pollution" : tileset_extra_id_rmactivity_graphic_tag(act_tgt),
-        "offset_x": unit_activity_offset_x,
-        "offset_y": -25
-      };
-    case ACTIVITY_MINE:
-      return {
-        "key": -1 == act_tgt ? "unit.plant" : tileset_extra_id_activity_graphic_tag(act_tgt),
-        "offset_x": unit_activity_offset_x,
-        "offset_y": -25
-      };
-    case ACTIVITY_PLANT:
-      return {
-        "key": "unit.plant",
-        "offset_x": unit_activity_offset_x,
-        "offset_y": -25
-      };
-    case ACTIVITY_IRRIGATE:
-      return {
-        "key": -1 == act_tgt ? "unit.irrigate" : tileset_extra_id_activity_graphic_tag(act_tgt),
-        "offset_x": unit_activity_offset_x,
-        "offset_y": -25
-      };
-    case ACTIVITY_CULTIVATE:
-      return {
-        "key": "unit.cultivate",
-        "offset_x": unit_activity_offset_x,
-        "offset_y": -25
-      };
-    case ACTIVITY_FORTIFIED:
-      return {
-        "key": "unit.fortified",
-        "offset_x": unit_activity_offset_x,
-        "offset_y": -25
-      };
-    case ACTIVITY_BASE:
-      return {
-        "key": tileset_extra_id_activity_graphic_tag(act_tgt),
-        "offset_x": unit_activity_offset_x,
-        "offset_y": -25
-      };
-    case ACTIVITY_SENTRY:
-      return {
-        "key": "unit.sentry",
-        "offset_x": unit_activity_offset_x,
-        "offset_y": -25
-      };
-    case ACTIVITY_PILLAGE$1:
-      return {
-        "key": "unit.pillage",
-        "offset_x": unit_activity_offset_x,
-        "offset_y": -25
-      };
-    case ACTIVITY_GOTO:
-      return {
-        "key": "unit.goto",
-        "offset_x": unit_activity_offset_x,
-        "offset_y": -25
-      };
-    case ACTIVITY_TRANSFORM:
-      return {
-        "key": "unit.transform",
-        "offset_x": unit_activity_offset_x,
-        "offset_y": -25
-      };
-    case ACTIVITY_FORTIFYING:
-      return {
-        "key": "unit.fortifying",
-        "offset_x": unit_activity_offset_x,
-        "offset_y": -25
-      };
-    case ACTIVITY_GEN_ROAD:
-      return {
-        "key": tileset_extra_id_activity_graphic_tag(act_tgt),
-        "offset_x": unit_activity_offset_x,
-        "offset_y": -25
-      };
-    case ACTIVITY_CONVERT:
-      return {
-        "key": "unit.convert",
-        "offset_x": unit_activity_offset_x,
-        "offset_y": -25
-      };
-  }
-  if (unit_has_goto(punit)) {
-    return {
-      "key": "unit.goto",
-      "offset_x": unit_activity_offset_x,
-      "offset_y": -25
-    };
-  }
-  return null;
-}
-function get_unit_agent_sprite(punit) {
-  switch (punit["ssa_controller"]) {
-    case SSA_NONE:
-      break;
-    case SSA_AUTOWORKER:
-      return {
-        "key": "unit.auto_worker",
-        "offset_x": 0,
-        "offset_y": 0
-      };
-    case SSA_AUTOEXPLORE:
-      return {
-        "key": "unit.auto_explore",
-        "offset_x": unit_activity_offset_x,
-        "offset_y": -25
-      };
-  }
-  return null;
-}
-function get_city_sprite(pcity) {
-  let style_id = pcity["style"];
-  if (style_id == -1) style_id = 0;
-  const city_rule = city_rules[style_id];
-  let size = 0;
-  if (pcity["size"] >= 4 && pcity["size"] <= 7) {
-    size = 1;
-  } else if (pcity["size"] >= 8 && pcity["size"] <= 11) {
-    size = 2;
-  } else if (pcity["size"] >= 12 && pcity["size"] <= 15) {
-    size = 3;
-  } else if (pcity["size"] >= 16) {
-    size = 4;
-  }
-  const city_walls = pcity["walls"] ? "wall" : "city";
-  let tag = city_rule["graphic"] + "_" + city_walls + "_" + size;
-  if (_w.sprites[tag] == null) {
-    tag = city_rule["graphic_alt"] + "_" + city_walls + "_" + size;
-  }
-  return { "key": tag, "offset_x": 0, "offset_y": -unit_offset_y };
-}
-function fill_fog_sprite_array(ptile, pedge, pcorner) {
-  let i2, tileno = 0;
-  if (pcorner == null) return [];
-  for (i2 = 3; i2 >= 0; i2--) {
-    const unknown = 0, fogged = 1, known = 2;
-    let value = -1;
-    if (pcorner["tile"][i2] == null) {
-      value = unknown;
-    } else {
-      switch (tileGetKnown(pcorner["tile"][i2])) {
-        case TILE_KNOWN_SEEN:
-          value = known;
-          break;
-        case TILE_KNOWN_UNSEEN:
-          value = fogged;
-          break;
-        case TILE_UNKNOWN:
-          value = unknown;
-          break;
-      }
-    }
-    tileno = tileno * 3 + value;
-  }
-  if (tileno >= 80) return [];
-  return [{ "key": _w.fullfog[tileno] }];
-}
-function get_select_sprite() {
-  current_select_sprite = Math.floor((/* @__PURE__ */ new Date()).getTime() * 6 / 1e3) % max_select_sprite;
-  return { "key": "unit.select" + current_select_sprite };
-}
-function get_city_info_text(pcity) {
-  return {
-    "key": "city_text",
-    "city": pcity,
-    "offset_x": citybar_offset_x,
-    "offset_y": citybar_offset_y
-  };
-}
-function get_tile_label_text(ptile) {
-  return {
-    "key": "tile_label",
-    "tile": ptile,
-    "offset_x": tilelabel_offset_x,
-    "offset_y": tilelabel_offset_y
-  };
-}
-function get_tile_specials_sprite(ptile) {
-  const extra_id = tileResource(ptile);
-  if (extra_id !== null) {
-    const extra = store.extras[extra_id];
-    if (extra != null) {
-      return { "key": extra["graphic_str"] };
-    }
-  }
-  return null;
-}
-function get_tile_river_sprite(ptile) {
-  if (ptile == null) {
-    return null;
-  }
-  if (tileHasExtra(ptile, _w.EXTRA_RIVER)) {
-    let river_str = "";
-    for (let i2 = 0; i2 < num_cardinal_tileset_dirs; i2++) {
-      const dir = cardinal_tileset_dirs[i2];
-      const checktile = mapstep(ptile, dir);
-      if (checktile && (tileHasExtra(checktile, _w.EXTRA_RIVER) || isOceanTile(checktile))) {
-        river_str = river_str + dir_get_tileset_name(dir) + "1";
-      } else {
-        river_str = river_str + dir_get_tileset_name(dir) + "0";
-      }
-    }
-    return { "key": "road.river_s_" + river_str };
-  }
-  const pterrain = tileTerrain(ptile);
-  if (pterrain != null && pterrain["graphic_str"] == "coast") {
-    for (let i2 = 0; i2 < num_cardinal_tileset_dirs; i2++) {
-      const dir = cardinal_tileset_dirs[i2];
-      const checktile = mapstep(ptile, dir);
-      if (checktile != null && tileHasExtra(checktile, _w.EXTRA_RIVER)) {
-        return { "key": "road.river_outlet_" + dir_get_tileset_name(dir) };
-      }
-    }
-  }
-  return null;
-}
-function fill_path_sprite_array(ptile, pcity) {
-  const rs_maglev = typeof _w.EXTRA_MAGLEV !== "undefined";
-  tileHasExtra(ptile, _w.EXTRA_ROAD);
-  tileHasExtra(ptile, _w.EXTRA_RAIL);
-  rs_maglev && tileHasExtra(ptile, _w.EXTRA_MAGLEV);
-  const result_sprites = [];
-  for (let dir = 0; dir < 8; dir++) {
-    const tile1 = mapstep(ptile, dir);
-    if (tile1 != null && tileGetKnown(tile1) != TILE_UNKNOWN) {
-      tileHasExtra(tile1, _w.EXTRA_ROAD);
-      tileHasExtra(tile1, _w.EXTRA_RAIL);
-      rs_maglev && tileHasExtra(tile1, _w.EXTRA_MAGLEV);
-    }
-  }
-  return result_sprites;
-}
-function fill_layer1_sprite_array(ptile, pcity) {
-  const result_sprites = [];
-  if (pcity == null) {
-    if (tileHasExtra(ptile, _w.EXTRA_FORTRESS)) {
-      result_sprites.push({
-        "key": "base.fortress_bg",
-        "offset_y": -normal_tile_height / 2
-      });
-    }
-  }
-  return result_sprites;
-}
-function fill_layer2_sprite_array(ptile, pcity) {
-  const result_sprites = [];
-  if (pcity == null) {
-    if (tileHasExtra(ptile, _w.EXTRA_AIRBASE)) {
-      result_sprites.push({
-        "key": "base.airbase_mg",
-        "offset_y": -normal_tile_height / 2
-      });
-    }
-    if (tileHasExtra(ptile, _w.EXTRA_BUOY)) {
-      result_sprites.push(get_base_flag_sprite(ptile));
-      result_sprites.push({
-        "key": "base.buoy_mg",
-        "offset_y": -normal_tile_height / 2
-      });
-    }
-    if (tileHasExtra(ptile, _w.EXTRA_RUINS)) {
-      result_sprites.push({
-        "key": "extra.ruins_mg",
-        "offset_y": -normal_tile_height / 2
-      });
-    }
-  }
-  return result_sprites;
-}
-function fill_layer3_sprite_array(ptile, pcity) {
-  const result_sprites = [];
-  if (pcity == null) {
-    if (tileHasExtra(ptile, _w.EXTRA_FORTRESS)) {
-      result_sprites.push({
-        "key": "base.fortress_fg",
-        "offset_y": -normal_tile_height / 2
-      });
-    }
-  }
-  return result_sprites;
-}
+    activeUnitInfo.title = activeUnitInfo.dataset.tooltip || "";
+  }
+}
+const unitFocus = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+  __proto__: null,
+  advance_unit_focus,
+  auto_center_on_focus_unit,
+  city_dialog_activate_unit,
+  control_unit_killed,
+  find_a_focus_unit_tile_to_center_on,
+  find_best_focus_candidate,
+  find_visible_unit,
+  get_drawable_unit,
+  get_focus_unit_on_tile,
+  get_units_in_focus,
+  init_game_unit_panel,
+  set_unit_focus,
+  set_unit_focus_and_activate,
+  set_unit_focus_and_redraw,
+  unit_distance_compare,
+  unit_focus_urgent,
+  unit_is_in_focus,
+  update_active_units_dialog,
+  update_unit_focus,
+  update_unit_order_commands
+}, Symbol.toStringTag, { value: "Module" }));
 const MAP_TO_NATIVE_POS = mapToNativePos;
 const NATIVE_TO_MAP_POS = nativeToMapPos;
-let mapview$1 = { width: 0, height: 0, gui_x0: 0, gui_y0: 0, store_width: 0, store_height: 0 };
+let mapview = { width: 0, height: 0, gui_x0: 0, gui_y0: 0, store_width: 0, store_height: 0 };
 let last_redraw_time = 0;
 const MAPVIEW_REFRESH_INTERVAL = 10;
 let dirty_tiles = {};
@@ -11615,11 +11516,11 @@ function mapdeco_init() {
   setKeyboardInput(true);
 }
 function center_tile_mapcanvas_2d(ptile) {
-  const r2 = map_to_gui_pos$1(ptile["x"], ptile["y"]);
+  const r2 = map_to_gui_pos(ptile["x"], ptile["y"]);
   let gui_x = r2["gui_dx"];
   let gui_y = r2["gui_dy"];
-  gui_x -= mapview$1["width"] - tileset_tile_width >> 1;
-  gui_y -= mapview$1["height"] - tileset_tile_height >> 1;
+  gui_x -= mapview["width"] - tileset_tile_width >> 1;
+  gui_y -= mapview["height"] - tileset_tile_height >> 1;
   set_mapview_origin(gui_x, gui_y);
 }
 function center_tile_id(ptile_id) {
@@ -11641,8 +11542,8 @@ function base_set_mapview_origin(gui_x0, gui_y0) {
   const g2 = normalize_gui_pos(gui_x0, gui_y0);
   gui_x0 = g2["gui_x"];
   gui_y0 = g2["gui_y"];
-  mapview$1["gui_x0"] = gui_x0;
-  mapview$1["gui_y0"] = gui_y0;
+  mapview["gui_x0"] = gui_x0;
+  mapview["gui_y0"] = gui_y0;
   dirty_all = true;
 }
 function normalize_gui_pos(gui_x, gui_y) {
@@ -11650,7 +11551,7 @@ function normalize_gui_pos(gui_x, gui_y) {
   const r2 = gui_to_map_pos(gui_x, gui_y);
   map_x = r2["map_x"];
   map_y = r2["map_y"];
-  const s2 = map_to_gui_pos$1(map_x, map_y);
+  const s2 = map_to_gui_pos(map_x, map_y);
   gui_x0_temp = s2["gui_dx"];
   gui_y0_temp = s2["gui_dy"];
   diff_x = gui_x - gui_x0_temp;
@@ -11667,7 +11568,7 @@ function normalize_gui_pos(gui_x, gui_y) {
   const u2 = NATIVE_TO_MAP_POS(nat_x, nat_y);
   map_x = u2["map_x"];
   map_y = u2["map_y"];
-  const v2 = map_to_gui_pos$1(map_x, map_y);
+  const v2 = map_to_gui_pos(map_x, map_y);
   gui_x = v2["gui_dx"];
   gui_y = v2["gui_dy"];
   gui_x += diff_x;
@@ -11682,17 +11583,17 @@ function gui_to_map_pos(gui_x, gui_y) {
   const map_y = DIVIDE(gui_y * W - gui_x * H2, W * H2);
   return { "map_x": map_x, "map_y": map_y };
 }
-function map_to_gui_pos$1(map_x, map_y) {
+function map_to_gui_pos(map_x, map_y) {
   return map_to_gui_vector(map_x, map_y);
 }
 function update_map_canvas(canvas_x, canvas_y, width, height) {
   let gui_x0, gui_y0;
-  gui_x0 = mapview$1["gui_x0"] + canvas_x;
-  gui_y0 = mapview$1["gui_y0"] + canvas_y;
+  gui_x0 = mapview["gui_x0"] + canvas_x;
+  gui_y0 = mapview["gui_y0"] + canvas_y;
   const r2 = base_canvas_to_map_pos(0, 0);
-  const s2 = base_canvas_to_map_pos(mapview$1["width"], 0);
-  const t2 = base_canvas_to_map_pos(0, mapview$1["height"]);
-  const u2 = base_canvas_to_map_pos(mapview$1["width"], mapview$1["height"]);
+  const s2 = base_canvas_to_map_pos(mapview["width"], 0);
+  const t2 = base_canvas_to_map_pos(0, mapview["height"]);
+  const u2 = base_canvas_to_map_pos(mapview["width"], mapview["height"]);
   if (r2["map_x"] < 0 || r2["map_x"] > store.mapInfo["xsize"] || r2["map_y"] < 0 || r2["map_y"] > store.mapInfo["ysize"] || s2["map_x"] < 0 || s2["map_x"] > store.mapInfo["xsize"] || s2["map_y"] < 0 || s2["map_y"] > store.mapInfo["ysize"] || t2["map_x"] < 0 || t2["map_x"] > store.mapInfo["xsize"] || t2["map_y"] < 0 || t2["map_y"] > store.mapInfo["ysize"] || u2["map_x"] < 0 || u2["map_x"] > store.mapInfo["xsize"] || u2["map_y"] < 0 || u2["map_y"] > store.mapInfo["ysize"]) {
     canvas_put_rectangle(store.mapviewCanvasCtx, "rgb(0,0,0)", canvas_x, canvas_y, width, height);
   }
@@ -11756,8 +11657,8 @@ function update_map_canvas(canvas_x, canvas_y, width, height) {
         }
         gui_x = Math.floor(ptile_xi * ptile_w / ptile_r2 - ptile_w / 2);
         gui_y = Math.floor(ptile_yi * ptile_h / ptile_r2 - ptile_h / 2);
-        const cx = gui_x - mapview$1["gui_x0"];
-        const cy = gui_y - mapview$1["gui_y0"];
+        const cx = gui_x - mapview["gui_x0"];
+        const cy = gui_y - mapview["gui_y0"];
         if (ptile != null) {
           put_one_tile(store.mapviewCanvasCtx, layer, ptile, cx, cy);
         } else if (pcorner != null) {
@@ -11830,8 +11731,8 @@ function put_drawn_sprites(pcanvas, canvas_x, canvas_y, pdrawn, fog) {
 }
 function base_canvas_to_map_pos(canvas_x, canvas_y) {
   return gui_to_map_pos(
-    canvas_x + mapview$1.gui_x0,
-    canvas_y + mapview$1.gui_y0
+    canvas_x + mapview.gui_x0,
+    canvas_y + mapview.gui_y0
   );
 }
 function canvas_pos_to_tile(canvas_x, canvas_y) {
@@ -11848,7 +11749,7 @@ function update_map_canvas_full() {
     if (mapview_slide["active"]) {
       update_map_slide();
     } else {
-      update_map_canvas(0, 0, mapview$1["store_width"], mapview$1["store_height"]);
+      update_map_canvas(0, 0, mapview["store_width"], mapview["store_height"]);
       check_request_goto_path();
     }
     clear_dirty();
@@ -11873,10 +11774,10 @@ function update_map_canvas_dirty() {
     const tid = parseInt(tid_str, 10);
     const ptile = store.tiles[tid];
     if (ptile == null) continue;
-    const r2 = map_to_gui_pos$1(ptile["x"], ptile["y"]);
-    const cx = r2["gui_dx"] - mapview$1["gui_x0"];
-    const cy = r2["gui_dy"] - mapview$1["gui_y0"];
-    if (cx + tw < 0 || cy + th < 0 || cx > mapview$1["store_width"] || cy > mapview$1["store_height"]) {
+    const r2 = map_to_gui_pos(ptile["x"], ptile["y"]);
+    const cx = r2["gui_dx"] - mapview["gui_x0"];
+    const cy = r2["gui_dy"] - mapview["gui_y0"];
+    if (cx + tw < 0 || cy + th < 0 || cx > mapview["store_width"] || cy > mapview["store_height"]) {
       continue;
     }
     const pad = tw;
@@ -11887,8 +11788,8 @@ function update_map_canvas_dirty() {
     update_map_canvas(
       Math.max(0, rx),
       Math.max(0, ry),
-      Math.min(rw, mapview$1["store_width"] - rx),
-      Math.min(rh, mapview$1["store_height"] - ry)
+      Math.min(rw, mapview["store_width"] - rx),
+      Math.min(rh, mapview["store_height"] - ry)
     );
   }
   clear_dirty();
@@ -11896,7 +11797,7 @@ function update_map_canvas_dirty() {
 }
 function update_map_canvas_check() {
   const time = (/* @__PURE__ */ new Date()).getTime() - last_redraw_time;
-  if (time > MAPVIEW_REFRESH_INTERVAL && store.renderer == RENDERER_2DCANVAS$1) {
+  if (time > MAPVIEW_REFRESH_INTERVAL && store.renderer == RENDERER_2DCANVAS) {
     if (dirty_all || dirty_count > DIRTY_FULL_THRESHOLD) {
       update_map_canvas_full();
     } else if (dirty_count > 0) {
@@ -11906,9 +11807,9 @@ function update_map_canvas_check() {
     }
   }
   try {
-    if (store.renderer == RENDERER_2DCANVAS$1 && window.requestAnimationFrame != null) requestAnimationFrame(update_map_canvas_check);
+    if (store.renderer == RENDERER_2DCANVAS && window.requestAnimationFrame != null) requestAnimationFrame(update_map_canvas_check);
   } catch (e2) {
-    if (e2.name == "NS_ERROR_NOT_AVAILABLE") {
+    if (e2 instanceof Error && e2.name == "NS_ERROR_NOT_AVAILABLE") {
       setTimeout(update_map_canvas_check, 100);
     } else {
       throw e2;
@@ -11943,12 +11844,12 @@ function update_map_slide() {
     store.bufferCanvas,
     sx,
     sy,
-    mapview$1["width"],
-    mapview$1["height"],
+    mapview["width"],
+    mapview["height"],
     0,
     0,
-    mapview$1["width"],
-    mapview$1["height"]
+    mapview["width"],
+    mapview["height"]
   );
 }
 const map_pos_to_tile = mapPosToTile;
@@ -11958,9 +11859,11 @@ const tile_terrain = tileTerrain;
 const city_owner_player_id = cityOwnerPlayerId;
 const wrap_has_flag = wrapHasFlag;
 let OVERVIEW_TILE_SIZE = 1;
+let overviewTimerId = -1;
 let min_overview_width = 200;
 let max_overview_width = 300;
 let max_overview_height = 300;
+let OVERVIEW_REFRESH;
 let palette = [];
 let palette_color_offset = 0;
 let palette_terrain_offset = 0;
@@ -11977,8 +11880,9 @@ const COLOR_OVERVIEW_ALLIED_UNIT = 5;
 const COLOR_OVERVIEW_ENEMY_UNIT = 6;
 const COLOR_OVERVIEW_VIEWRECT = 7;
 let overview_hash = -1;
+let overview_current_state = null;
 function init_overview() {
-  while (min_overview_width > OVERVIEW_TILE_SIZE * store.mapInfo["xsize"]) {
+  while (min_overview_width > OVERVIEW_TILE_SIZE * store.mapInfo.xsize) {
     OVERVIEW_TILE_SIZE++;
   }
   overview_active = true;
@@ -11989,9 +11893,9 @@ function init_overview() {
   }
   palette = generate_palette();
   redraw_overview();
-  let new_width = OVERVIEW_TILE_SIZE * store.mapInfo["xsize"];
+  let new_width = OVERVIEW_TILE_SIZE * store.mapInfo.xsize;
   if (new_width > max_overview_width) new_width = max_overview_width;
-  let new_height = OVERVIEW_TILE_SIZE * store.mapInfo["ysize"];
+  let new_height = OVERVIEW_TILE_SIZE * store.mapInfo.ysize;
   if (new_height > max_overview_height) new_height = max_overview_height;
   const overviewMap = document.getElementById("overview_map");
   if (overviewMap) {
@@ -12001,11 +11905,11 @@ function init_overview() {
   }
 }
 function redraw_overview() {
-  if (!overview_active || mapview_slide["active"] || C_S_RUNNING > clientState() || store.mapInfo["xsize"] == null || store.mapInfo["ysize"] == null || !document.getElementById("overview_map")) return;
-  const hash = generate_overview_hash(store.mapInfo["xsize"], store.mapInfo["ysize"]);
+  if (!overview_active || mapview_slide["active"] || C_S_RUNNING > clientState() || store.mapInfo.xsize == null || store.mapInfo.ysize == null || !document.getElementById("overview_map")) return;
+  const hash = generate_overview_hash(store.mapInfo.xsize, store.mapInfo.ysize);
   if (hash != overview_hash) {
     renderOverviewToCanvas(
-      generate_overview_grid(store.mapInfo["xsize"], store.mapInfo["ysize"]),
+      generate_overview_grid(store.mapInfo.xsize, store.mapInfo.ysize),
       palette
     );
     overview_hash = hash;
@@ -12073,14 +11977,14 @@ function generate_overview_hash(cols, rows) {
 function render_viewrect() {
   if (C_S_RUNNING != clientState() && C_S_OVER != clientState()) return;
   const path = [];
-  if (mapview$1["gui_x0"] != 0 && mapview$1["gui_y0"] != 0) {
+  if (mapview["gui_x0"] != 0 && mapview["gui_y0"] != 0) {
     let point = base_canvas_to_map_pos(0, 0);
     path.push([point.map_x, point.map_y]);
-    point = base_canvas_to_map_pos(mapview$1["width"] ?? 0, 0);
+    point = base_canvas_to_map_pos(mapview["width"] ?? 0, 0);
     path.push([point.map_x, point.map_y]);
-    point = base_canvas_to_map_pos(mapview$1["width"] ?? 0, mapview$1["height"] ?? 0);
+    point = base_canvas_to_map_pos(mapview["width"] ?? 0, mapview["height"] ?? 0);
     path.push([point.map_x, point.map_y]);
-    point = base_canvas_to_map_pos(0, mapview$1["height"] ?? 0);
+    point = base_canvas_to_map_pos(0, mapview["height"] ?? 0);
     path.push([point.map_x, point.map_y]);
   }
   const viewrect_canvas = document.getElementById("overview_viewrect");
@@ -12133,7 +12037,7 @@ function add_closed_path(ctx, path) {
   ctx.lineTo(path[0][0], path[0][1]);
 }
 function render_multipixel(grid, x2, y2, ocolor) {
-  if (x2 >= 0 && y2 >= 0 && x2 < store.mapInfo["ysize"] && y2 < store.mapInfo["xsize"]) {
+  if (x2 >= 0 && y2 >= 0 && x2 < store.mapInfo.ysize && y2 < store.mapInfo.xsize) {
     for (let px = 0; px < OVERVIEW_TILE_SIZE; px++) {
       for (let py = 0; py < OVERVIEW_TILE_SIZE; py++) {
         grid[OVERVIEW_TILE_SIZE * x2 + px][OVERVIEW_TILE_SIZE * y2 + py] = ocolor;
@@ -12153,7 +12057,7 @@ function generate_palette() {
   palette2[COLOR_OVERVIEW_VIEWRECT] = [200, 200, 255];
   palette_terrain_offset = palette2.length;
   for (const terrain_id in store.terrains) {
-    const terrain = store.terrains[terrain_id];
+    const terrain = store.terrains[Number(terrain_id)];
     palette2.push([terrain["color_red"], terrain["color_green"], terrain["color_blue"]]);
   }
   palette_color_offset = palette2.length;
@@ -12161,10 +12065,10 @@ function generate_palette() {
   for (const player_id_str in store.players) {
     const player_id = Number(player_id_str);
     const pplayer = store.players[player_id];
-    if (pplayer["nation"] == -1) {
+    if (pplayer.nation == -1) {
       palette2[palette_color_offset + player_id % player_count] = [0, 0, 0];
     } else {
-      const pcolor = store.nations[pplayer["nation"]]["color"];
+      const pcolor = store.nations[pplayer.nation]?.["color"];
       if (pcolor != null) {
         palette2[palette_color_offset + player_id % player_count] = color_rbg_to_list(pcolor) ?? [];
       } else {
@@ -12176,7 +12080,7 @@ function generate_palette() {
 }
 function overview_tile_color(map_x, map_y) {
   const ptile = map_pos_to_tile(map_x, map_y);
-  const pcity = tile_city(ptile);
+  const pcity = tile_city(ptile ?? null);
   if (pcity != null) {
     if (clientPlaying() == null) {
       return COLOR_OVERVIEW_ENEMY_CITY;
@@ -12186,21 +12090,21 @@ function overview_tile_color(map_x, map_y) {
       return COLOR_OVERVIEW_ENEMY_CITY;
     }
   }
-  const punit = find_visible_unit(ptile);
+  const punit = find_visible_unit(ptile ?? null);
   if (punit != null) {
     if (clientPlaying() == null) {
       return COLOR_OVERVIEW_ENEMY_UNIT;
-    } else if (punit["owner"] == clientPlaying()["id"]) {
+    } else if (punit.owner == clientPlaying()["id"]) {
       return COLOR_OVERVIEW_MY_UNIT;
-    } else if (punit["owner"] != null && punit["owner"] != 255) {
-      return palette_color_offset + punit["owner"];
+    } else if (punit.owner != null && punit.owner != 255) {
+      return palette_color_offset + punit.owner;
     } else {
       return COLOR_OVERVIEW_ENEMY_UNIT;
     }
   }
-  if (tile_get_known(ptile) != TILE_UNKNOWN) {
-    if (ptile["owner"] != null && ptile["owner"] != 255) {
-      return palette_color_offset + ptile["owner"];
+  if (ptile != null && tile_get_known(ptile) != TILE_UNKNOWN) {
+    if (ptile.owner != null && ptile.owner != 255) {
+      return palette_color_offset + ptile.owner;
     } else {
       return palette_terrain_offset + tile_terrain(ptile)["id"];
     }
@@ -12211,14 +12115,60 @@ function overview_clicked(x2, y2) {
   const overviewMap = document.getElementById("overview_map");
   const width = overviewMap?.offsetWidth ?? 200;
   const height = overviewMap?.offsetHeight ?? 200;
-  const x1 = Math.floor(x2 * store.mapInfo["xsize"] / width);
-  const y1 = Math.floor(y2 * store.mapInfo["ysize"] / height);
+  const x1 = Math.floor(x2 * store.mapInfo.xsize / width);
+  const y1 = Math.floor(y2 * store.mapInfo.ysize / height);
   const ptile = map_pos_to_tile(x1, y1);
   if (ptile != null) {
     center_tile_mapcanvas(ptile);
   }
   redraw_overview();
 }
+const overview = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+  __proto__: null,
+  COLOR_OVERVIEW_ALLIED_CITY,
+  COLOR_OVERVIEW_ALLIED_UNIT,
+  COLOR_OVERVIEW_ENEMY_CITY,
+  COLOR_OVERVIEW_ENEMY_UNIT,
+  COLOR_OVERVIEW_MY_CITY,
+  COLOR_OVERVIEW_MY_UNIT,
+  COLOR_OVERVIEW_UNKNOWN,
+  COLOR_OVERVIEW_VIEWRECT,
+  OVERVIEW_REFRESH,
+  get OVERVIEW_TILE_SIZE() {
+    return OVERVIEW_TILE_SIZE;
+  },
+  add_closed_path,
+  generate_overview_grid,
+  generate_overview_hash,
+  generate_palette,
+  init_overview,
+  max_overview_height,
+  max_overview_width,
+  min_overview_width,
+  overviewTimerId,
+  get overview_active() {
+    return overview_active;
+  },
+  overview_clicked,
+  overview_current_state,
+  get overview_hash() {
+    return overview_hash;
+  },
+  overview_tile_color,
+  get palette() {
+    return palette;
+  },
+  get palette_color_offset() {
+    return palette_color_offset;
+  },
+  get palette_terrain_offset() {
+    return palette_terrain_offset;
+  },
+  redraw_overview,
+  render_multipixel,
+  render_viewrect,
+  setOverviewActive
+}, Symbol.toStringTag, { value: "Module" }));
 const state$3 = c({
   open: false,
   message: ""
@@ -12350,11 +12300,7 @@ function IntroDialog() {
     }
   );
 }
-store.renderer = RENDERER_2DCANVAS$1;
-window.renderer = RENDERER_2DCANVAS$1;
-if (window.fc_seedrandom === void 0) window.fc_seedrandom = null;
-if (window.audio === void 0) window.audio = null;
-if (window.audio_enabled === void 0) window.audio_enabled = false;
+store.renderer = RENDERER_2DCANVAS;
 if (!window.music_list) {
   window.music_list = [
     "battle-epic",
@@ -12373,7 +12319,7 @@ function civClientInit() {
   for (const id of ["civ_tab", "cities_tab", "opt_tab", "hel_tab", "pregame_buttons", "game_unit_orders_default", "civ_dialog", "game_unit_panel", "tabs-cities", "tabs-opt", "tabs-hel", "tabs-civ"]) {
     document.getElementById(id)?.remove();
   }
-  window.fc_seedrandom = new (window.Math.seedrandom || window.seedrandom)("xbworld");
+  window.fc_seedrandom = seedrandom("xbworld");
   if (window.requestAnimationFrame == null) {
     swal("Please upgrade your browser.");
     return;
@@ -12436,22 +12382,28 @@ function showDialogMessage(title, message) {
 function showAuthDialog(packet) {
   showAuthDialog$1(packet);
 }
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", () => {
+if (!globalThis.__VITEST__) {
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => {
+      if (!store.civclientState) {
+        civClientInit();
+      }
+    });
+  } else {
     if (!store.civclientState) {
       civClientInit();
     }
-  });
-} else {
-  if (!store.civclientState) {
-    civClientInit();
   }
 }
 function getMessageLog() {
   return message_log;
 }
-const jsSHA = window.jsSHA;
-const win$3 = window;
+async function sha512hex(text) {
+  const data = new TextEncoder().encode(text);
+  const hash = await crypto.subtle.digest("SHA-512", data);
+  return Array.from(new Uint8Array(hash)).map((b2) => b2.toString(16).padStart(2, "0")).join("");
+}
+const win$2 = window;
 let clinet_last_send = 0;
 let debug_client_speed_list = [];
 const freeciv_version = "+Freeciv.Web.Devel-3.3";
@@ -12552,14 +12504,12 @@ function websocket_init() {
     console.error("WebSocket error:", evt);
   };
 }
-function check_websocket_ready() {
+async function check_websocket_ready() {
   if (ws != null && ws.readyState === 1) {
     let sha_password = null;
     const stored_password = localStorage.getItem("password") ?? "";
     if (stored_password != null && stored_password !== "") {
-      const shaObj = new jsSHA("SHA-512", "TEXT");
-      shaObj.update(stored_password);
-      sha_password = encodeURIComponent(shaObj.getHash("HEX"));
+      sha_password = encodeURIComponent(await sha512hex(stored_password));
     }
     const login_message = {
       pid: 4,
@@ -12617,21 +12567,21 @@ function send_message_delayed(message, delay) {
 function send_message(message) {
   sendChatMessage(message);
 }
-Object.defineProperty(win$3, "ws", {
+Object.defineProperty(win$2, "ws", {
   get: () => ws,
   set: (v2) => {
     ws = v2;
   },
   configurable: true
 });
-Object.defineProperty(win$3, "civserverport", {
+Object.defineProperty(win$2, "civserverport", {
   get: () => civserverport,
   set: (v2) => {
     civserverport = v2;
   },
   configurable: true
 });
-Object.defineProperty(win$3, "ping_last", {
+Object.defineProperty(win$2, "ping_last", {
   get: () => ping_last,
   set: (v2) => {
     ping_last = v2;
@@ -12663,14 +12613,17 @@ function sendCityNameSuggestionReq(unitId) {
 function sendPlayerPhaseDone(turn) {
   send({ pid: packet_player_phase_done, turn });
 }
+function sendPlayerChangeGovernment(govtId) {
+  send({ pid: packet_player_change_government, government: govtId });
+}
 function sendPlayerResearch(techId) {
   send({ pid: packet_player_research, tech: techId });
 }
 function sendPlayerTechGoal(techId) {
   send({ pid: packet_player_tech_goal, tech: techId });
 }
-function sendPlayerRates(tax2, luxury, science) {
-  send({ pid: packet_player_rates, tax: tax2, luxury, science });
+function sendPlayerRates(tax, luxury, science) {
+  send({ pid: packet_player_rates, tax, luxury, science });
 }
 function sendUnitSscsSet(unitId, type, value) {
   send({ pid: packet_unit_sscs_set, unit_id: unitId, type, value });
@@ -12739,7 +12692,7 @@ const FC_ACT_DEC_ACTIVE = ACT_DEC_ACTIVE;
 const FC_ACT_DEC_PASSIVE = ACT_DEC_PASSIVE;
 const FC_ACT_DEC_NOTHING = ACT_DEC_NOTHING;
 const FC_IDENTITY_NUMBER_ZERO = IDENTITY_NUMBER_ZERO;
-const FC_EXTRA_NONE = EXTRA_NONE$1;
+const FC_EXTRA_NONE = EXTRA_NONE;
 const USSDT_UNQUEUE = UnitSSDataType.UNQUEUE;
 const REQEST_PLAYER_INITIATED = 0;
 function should_ask_server_for_actions(punit) {
@@ -12760,12 +12713,13 @@ function ask_server_for_actions(punit) {
     );
   }
   setActionSelectionInProgressFor(punit.id);
-  const ptile = indexToTile(punit["action_decision_tile"]);
+  const decTile = punit["action_decision_tile"] ?? 0;
+  const ptile = indexToTile(decTile);
   if (ptile != null) {
     sendUnitGetActions(
       punit["id"],
       FC_IDENTITY_NUMBER_ZERO,
-      punit["action_decision_tile"],
+      decTile,
       FC_EXTRA_NONE,
       REQEST_PLAYER_INITIATED
     );
@@ -12790,8 +12744,8 @@ function action_decision_clear_want(old_actor_id) {
   }
 }
 function action_selection_next_in_focus(old_actor_id) {
-  for (let i2 = 0; i2 < current_focus$1.length; i2++) {
-    const funit = current_focus$1[i2];
+  for (let i2 = 0; i2 < current_focus.length; i2++) {
+    const funit = current_focus[i2];
     if (old_actor_id != funit["id"] && should_ask_server_for_actions(funit)) {
       ask_server_for_actions(funit);
       return;
@@ -12803,15 +12757,15 @@ function action_decision_request(actor_unit) {
     console.log("action_decision_request(): No actor unit");
     return;
   }
-  if (!unit_is_in_focus$1(actor_unit)) {
+  if (!unit_is_in_focus(actor_unit)) {
     unit_focus_urgent(actor_unit);
   } else if (canClientIssueOrders() && can_ask_server_for_actions()) {
     ask_server_for_actions(actor_unit);
   }
 }
-const win$2 = window;
+const win$1 = window;
 function showDebugInfo() {
-  console.log("XBWorld version: " + (win$2.freeciv_version ?? "unknown"));
+  console.log("XBWorld version: " + (win$1.freeciv_version ?? "unknown"));
   console.log("Browser useragent: " + navigator.userAgent);
   console.log("jQuery version: " + $().jquery);
   console.log("jQuery UI version: " + $.ui?.version);
@@ -12819,14 +12773,14 @@ function showDebugInfo() {
     "simpleStorage version: N/A (replaced with native localStorage)"
   );
   console.log(
-    "Touch device: " + (typeof win$2.is_touch_device === "function" ? win$2.is_touch_device() : "unknown")
+    "Touch device: " + (typeof win$1.is_touch_device === "function" ? win$1.is_touch_device() : "unknown")
   );
   console.log("HTTP protocol: " + document.location.protocol);
-  if (win$2.ws != null && win$2.ws.url != null) {
-    console.log("WebSocket URL: " + win$2.ws.url);
+  if (win$1.ws != null && win$1.ws.url != null) {
+    console.log("WebSocket URL: " + win$1.ws.url);
   }
-  win$2.debug_active = true;
-  const pingList = win$2.debug_ping_list ?? [];
+  win$1.debug_active = true;
+  const pingList = win$1.debug_ping_list ?? [];
   if (pingList.length > 0) {
     let sum = 0;
     let max = 0;
@@ -12838,7 +12792,7 @@ function showDebugInfo() {
       "Network PING average (server): " + sum / pingList.length + " ms. (Max: " + max + "ms.)"
     );
   }
-  const clientSpeedList = win$2.debug_client_speed_list ?? [];
+  const clientSpeedList = win$1.debug_client_speed_list ?? [];
   if (clientSpeedList.length > 0) {
     let sum = 0;
     let max = 0;
@@ -12862,7 +12816,7 @@ function global_keyboard_listener(ev) {
     }
   }
   civclient_handle_key(keyboard_key, ev.keyCode, ev["ctrlKey"], ev["altKey"], ev["shiftKey"]);
-  if (store.renderer == RENDERER_2DCANVAS$1) {
+  if (store.renderer == RENDERER_2DCANVAS) {
     const canvasEl = document.getElementById("canvas");
     canvasEl?.contextMenu?.("hide");
   }
@@ -12889,7 +12843,7 @@ function map_handle_key(keyboard_key, key_code, ctrl, alt, shift, the_event) {
       request_unit_build_city();
       break;
     case "G":
-      if (current_focus$1.length > 0) {
+      if (current_focus.length > 0) {
         activate_goto();
       }
       break;
@@ -12972,7 +12926,7 @@ function map_handle_key(keyboard_key, key_code, ctrl, alt, shift, the_event) {
     case "C":
       if (ctrl) {
         setShowCitybar(!show_citybar);
-      } else if (current_focus$1.length > 0) {
+      } else if (current_focus.length > 0) {
         auto_center_on_focus_unit();
       }
       break;
@@ -13036,7 +12990,7 @@ function map_handle_key(keyboard_key, key_code, ctrl, alt, shift, the_event) {
       setMapSelectCheck(false);
       setMapviewMouseMovement(false);
       setContextMenuActive(true);
-      if (store.renderer == RENDERER_2DCANVAS$1) {
+      if (store.renderer == RENDERER_2DCANVAS) {
         const canvasEl = document.getElementById("canvas");
         canvasEl?.contextMenu?.(true);
       } else {
@@ -13157,7 +13111,8 @@ function handle_context_menu_callback(key) {
     case "show_city":
       const stile = find_a_focus_unit_tile_to_center_on();
       if (stile != null) {
-        show_city_dialog(tileCity(stile));
+        const scity = tileCity(stile);
+        if (scity) show_city_dialog(scity);
       }
       break;
   }
@@ -13165,7 +13120,26 @@ function handle_context_menu_callback(key) {
     deactivate_goto(false);
   }
 }
-let governments = {};
+const state$1 = c({
+  open: false,
+  selectedGovId: -1
+});
+function closeDialog() {
+  state$1.value = { ...state$1.value, open: false };
+}
+function selectGov(govId) {
+  state$1.value = { ...state$1.value, selectedGovId: govId };
+}
+function startRevolution() {
+  const { selectedGovId } = state$1.value;
+  if (selectedGovId !== -1) {
+    sendPlayerChangeGovernment(selectedGovId);
+  }
+  closeDialog();
+}
+function set_req_government(gov_id) {
+  selectGov(gov_id);
+}
 function init_civ_dialog() {
   if (!clientIsObserver() && clientPlaying() != null) {
     const pplayer = clientPlaying();
@@ -13173,9 +13147,9 @@ function init_civ_dialog() {
     const tag = pnation["graphic_str"];
     let civ_description = "";
     if (!pnation["customized"]) {
-      civ_description += "<img src='/images/flags/" + tag + "-web" + get_tileset_file_extention() + "' width='180'>";
+      civ_description += `<img src='/images/flags/${tag}-web${getTilesetFileExtension()}' width='180'>`;
     }
-    civ_description += "<br><div>" + pplayer["name"] + " rules the " + store.nations[pplayer["nation"]]["adjective"] + " with the form of government: " + store.governments[clientPlaying()["government"]]["name"] + "</div><br>";
+    civ_description += `<br><div>${pplayer["name"]} rules the ${store.nations[pplayer["nation"]]["adjective"]} with the form of government: ${store.governments[clientPlaying()["government"]]["name"]}</div><br>`;
     const nationTitleEl = document.getElementById("nation_title");
     if (nationTitleEl) nationTitleEl.innerHTML = "The " + store.nations[pplayer["nation"]]["adjective"] + " nation";
     const civTextEl = document.getElementById("civ_dialog_text");
@@ -13185,33 +13159,59 @@ function init_civ_dialog() {
     if (civTextEl) civTextEl.innerHTML = "This dialog isn't available as observer.";
   }
 }
-function update_govt_dialog() {
-  let govt;
-  let govt_id;
-  if (clientIsObserver()) return;
-  let governments_list_html = "";
-  for (govt_id in governments) {
-    govt = store.governments[govt_id];
-    governments_list_html += "<button class='govt_button' id='govt_id_" + govt["id"] + "' onclick='set_req_government(" + govt["id"] + ");' title='" + govt["helptext"] + "'>" + govt["name"] + "</button>";
+function GovernmentDialog() {
+  const { open, selectedGovId } = state$1.value;
+  if (clientIsObserver()) return null;
+  const player = clientPlaying();
+  if (!player) return null;
+  const currentGovName = store.governments?.[player["government"]]?.name ?? "";
+  const govEntries = [];
+  for (const govId in store.governments) {
+    const govt = store.governments?.[govId];
+    if (!govt) continue;
+    govEntries.push({
+      id: govt["id"],
+      name: govt["name"],
+      helptext: String(govt["helptext"] || ""),
+      canGet: canPlayerGetGov(),
+      isCurrent: player["government"] === Number(govId)
+    });
   }
-  const govListEl = document.getElementById("governments_list");
-  if (govListEl) govListEl.innerHTML = governments_list_html;
-  for (govt_id in governments) {
-    govt = store.governments[govt_id];
-    const btn = document.getElementById("govt_id_" + govt["id"]);
-    if (!btn) continue;
-    btn.textContent = govt["name"];
-    btn.title = govt["helptext"] || "";
+  return /* @__PURE__ */ u(
+    Dialog,
     {
-      btn.disabled = true;
+      title: "Revolution",
+      open,
+      onClose: closeDialog,
+      width: isSmallScreen() ? "95%" : 450,
+      modal: false,
+      children: [
+        /* @__PURE__ */ u("p", { style: { marginBottom: "8px" }, children: [
+          "Current form of government: ",
+          currentGovName
+        ] }),
+        /* @__PURE__ */ u("p", { style: { marginBottom: "12px" }, children: "To start a revolution, select the new form of government:" }),
+        /* @__PURE__ */ u("div", { style: { display: "flex", flexDirection: "column", gap: "6px", marginBottom: "12px" }, children: govEntries.map((g2) => /* @__PURE__ */ u(
+          Button,
+          {
+            disabled: !g2.canGet,
+            variant: selectedGovId === g2.id ? "primary" : g2.isCurrent ? "secondary" : "secondary",
+            onClick: () => selectGov(g2.id),
+            children: [
+              g2.name,
+              g2.isCurrent ? " (current)" : "",
+              selectedGovId === g2.id ? " ✓" : ""
+            ]
+          },
+          g2.id
+        )) }),
+        /* @__PURE__ */ u("div", { style: { display: "flex", gap: "8px", justifyContent: "flex-end" }, children: [
+          /* @__PURE__ */ u(Button, { onClick: startRevolution, disabled: selectedGovId === -1, children: "Start revolution!" }),
+          /* @__PURE__ */ u(Button, { variant: "secondary", onClick: closeDialog, children: "Cancel" })
+        ] })
+      ]
     }
-  }
-}
-function set_req_government(gov_id) {
-  update_govt_dialog();
-}
-function get_tileset_file_extention() {
-  return "";
+  );
 }
 function get_helpdata_order() {
   return store.helpdata_order || [];
@@ -13349,6 +13349,7 @@ function generate_help_menu(key) {
   }
 }
 function render_sprite(sprite) {
+  if (!sprite) return "";
   return "<div class='help_unit_image' style=' background: transparent url(" + sprite["image-src"] + ");background-position:-" + sprite["tileset-x"] + "px -" + sprite["tileset-y"] + "px;  width: " + sprite["width"] + "px;height: " + sprite["height"] + "px;'></div>";
 }
 function generate_help_toplevel(key) {
@@ -13464,7 +13465,7 @@ function generate_help_text(key) {
     }
     obsolete_by = store.unitTypes[punit_type["obsoleted_by"]];
     msg += "<div id='utype_fact_obsolete'>Obsolete by: ";
-    if (obsolete_by === U_NOT_OBSOLETED) {
+    if (obsolete_by === U_NOT_OBSOLETED || obsolete_by == null) {
       msg += "None";
     } else {
       msg += obsolete_by["name"];
@@ -13523,21 +13524,21 @@ function helpdata_tag_to_title(tag) {
   const result = tag.replace("_of_the_world", "").replace("help_", "").replace("gen_", "").replace("misc_", "").replace(/_/g, " ");
   return toTitleCase(result);
 }
-const state$1 = c({
+const state = c({
   open: false,
   title: "",
   html: ""
 });
 function showIntelDialog(title, html) {
-  state$1.value = { open: true, title, html };
+  state.value = { open: true, title, html };
 }
 function closeIntelDialog() {
-  state$1.value = { ...state$1.value, open: false };
+  state.value = { ...state.value, open: false };
   const input = document.getElementById("game_text_input");
   if (input) input.blur();
 }
 function IntelDialog() {
-  const { open, title, html } = state$1.value;
+  const { open, title, html } = state.value;
   return /* @__PURE__ */ u(
     Dialog,
     {
@@ -13572,7 +13573,7 @@ function show_intelligence_report_dialog() {
 function show_intelligence_report_hearsay(pplayer) {
   let msg = "Ruler " + pplayer["name"] + "<br>";
   if (pplayer["government"] > 0) {
-    msg += "Government: " + governments[pplayer["government"]]["name"] + "<br>";
+    msg += "Government: " + store.governments[pplayer["government"]]["name"] + "<br>";
   }
   if (pplayer["gold"] > 0) {
     msg += "Gold: " + pplayer["gold"] + "<br>";
@@ -13588,7 +13589,7 @@ function show_intelligence_report_hearsay(pplayer) {
 }
 function show_intelligence_report_embassy(pplayer) {
   const capital = player_capital(pplayer);
-  const gov = governments[pplayer["government"]];
+  const gov = store.governments[pplayer["government"]];
   const govName = gov ? gov["name"] : "(Unknown)";
   const capitalName = capital ? capital.name : "(capital unknown)";
   let html = '<table style="width:100%;border-collapse:collapse;">';
@@ -13603,15 +13604,16 @@ function show_intelligence_report_embassy(pplayer) {
   const research = research_get(pplayer);
   let researchText = "(Unknown)";
   const techNames = [];
-  if (research !== void 0) {
+  if (research != null) {
     const researching = store.techs[research["researching"]];
     if (researching !== void 0) {
       researchText = `${researching["name"]} (${research["bulbs_researched"]}/${research["researching_cost"]})`;
     } else {
       researchText = "(Nothing)";
     }
+    const inventions = research["inventions"];
     for (const tech_id in store.techs) {
-      if (research["inventions"][tech_id] === TECH_KNOWN$1) {
+      if (inventions?.[tech_id] === TECH_KNOWN) {
         techNames.push(store.techs[tech_id]["name"]);
       }
     }
@@ -13792,271 +13794,1218 @@ function control_init() {
     if (row) handleNationTableSelect.call(row, e2);
   });
 }
-function DIVIDE(n2, d2) {
-  return Math.floor(n2 / d2);
-}
-function FC_WRAP(value, range) {
-  if (value < 0) {
-    const mod = value % range;
-    return mod !== 0 ? mod + range : 0;
-  }
-  return value >= range ? value % range : value;
-}
-function numberWithCommas(x2) {
-  return x2.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-}
-function toTitleCase(str) {
-  return str.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.slice(1).toLowerCase());
-}
-function stringUnqualify(str) {
-  if (str.charAt(0) === "?" && str.includes(":")) {
-    return str.slice(str.indexOf(":") + 1);
-  }
-  return str;
-}
-function getUrlVar(name) {
-  const params = new URLSearchParams(window.location.search);
-  return params.get(name) ?? void 0;
-}
-function isSmallScreen() {
-  return window.innerWidth <= 600 || window.innerHeight <= 600;
-}
-function isTouchDevice() {
-  return "ontouchstart" in window || "onmsgesturechange" in window || globalThis.DocumentTouch != null && document instanceof globalThis.DocumentTouch ? true : false;
-}
-function getTilesetFileExtension() {
-  return ".png";
-}
-function isRightMouseSelectionSupported() {
-  if (isTouchDevice()) return false;
-  const ua = navigator.userAgent;
-  if (ua.includes("Mac OS X") || ua.includes("CrOS")) {
-    return false;
-  }
-  return true;
-}
-let benchmark_start = 0;
-function civclient_benchmark(frame) {
-  if (frame === 0) benchmark_start = Date.now();
-  const ptile = mapPosToTile(frame + 5, frame + 5);
-  center_tile_mapcanvas(ptile);
-  if (frame < 30) {
-    setTimeout(() => civclient_benchmark(frame + 1), 10);
-  } else {
-    const time = (Date.now() - benchmark_start) / 25;
-    swal("Redraw time: " + time);
-  }
-}
-Object.defineProperty(window, "benchmark_start", {
-  get: () => benchmark_start,
-  set: (v2) => {
-    benchmark_start = v2;
+const control = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+  __proto__: null,
+  CHAT_ICON_ALLIES,
+  CHAT_ICON_EVERYBODY,
+  SELECT_POPUP,
+  action_decision_clear_want,
+  action_decision_request,
+  get action_selection_in_progress_for() {
+    return action_selection_in_progress_for;
   },
-  configurable: true,
-  enumerable: true
-});
-function blur_input_on_touchdevice() {
-  if (document.activeElement?.blur) {
-    document.activeElement.blur();
+  action_selection_next_in_focus,
+  action_selection_no_longer_in_progress,
+  get action_tgt_sel_active() {
+    return action_tgt_sel_active;
+  },
+  activate_goto,
+  activate_goto_last,
+  advance_unit_focus,
+  get airlift_active() {
+    return airlift_active;
+  },
+  get allow_right_click() {
+    return allow_right_click;
+  },
+  ask_server_for_actions,
+  auto_center_on_focus_unit,
+  bases: bases$1,
+  can_ask_server_for_actions,
+  center_on_any_city,
+  center_tile_mapcanvas,
+  chat_context_change,
+  chat_context_dialog_show,
+  chat_context_get_recipients,
+  chat_context_set_next,
+  get chat_send_to() {
+    return chat_send_to;
+  },
+  check_mouse_drag_unit,
+  check_request_goto_path,
+  check_text_input,
+  city_dialog_activate_unit,
+  civclient_handle_key,
+  get context_menu_active() {
+    return context_menu_active;
+  },
+  control_init,
+  control_unit_killed,
+  get current_focus() {
+    return current_focus;
+  },
+  get current_goto_turns() {
+    return current_goto_turns;
+  },
+  deactivate_goto,
+  do_map_click,
+  do_unit_paradrop_to,
+  encode_message_text,
+  get end_turn_info_message_shown() {
+    return end_turn_info_message_shown;
+  },
+  find_a_focus_unit_tile_to_center_on,
+  find_active_dialog,
+  find_best_focus_candidate,
+  find_visible_unit,
+  get game_unit_panel_state() {
+    return game_unit_panel_state;
+  },
+  get_drawable_unit,
+  get_focus_unit_on_tile,
+  get_units_in_focus,
+  global_keyboard_listener,
+  get goto_active() {
+    return goto_active;
+  },
+  get goto_last_action() {
+    return goto_last_action;
+  },
+  get goto_last_order() {
+    return goto_last_order;
+  },
+  get goto_request_map() {
+    return goto_request_map;
+  },
+  get goto_turns_request_map() {
+    return goto_turns_request_map;
+  },
+  handle_chat_direction_chosen,
+  handle_context_menu_callback,
+  get has_movesleft_warning_been_shown() {
+    return has_movesleft_warning_been_shown;
+  },
+  init_game_unit_panel,
+  get intro_click_description() {
+    return intro_click_description;
+  },
+  get is_more_user_input_needed() {
+    return is_more_user_input_needed;
+  },
+  is_unprefixed_message,
+  key_unit_action_select,
+  key_unit_airbase,
+  key_unit_airlift,
+  key_unit_auto_explore,
+  key_unit_auto_work,
+  key_unit_clean,
+  key_unit_cultivate,
+  key_unit_disband,
+  key_unit_fortify,
+  key_unit_fortress,
+  key_unit_homecity,
+  key_unit_idle,
+  key_unit_irrigate,
+  key_unit_load,
+  key_unit_mine,
+  key_unit_move,
+  key_unit_noorders,
+  key_unit_nuke,
+  key_unit_paradrop,
+  key_unit_pillage,
+  key_unit_plant,
+  key_unit_road,
+  key_unit_sentry,
+  key_unit_show_cargo,
+  key_unit_transform,
+  key_unit_unload,
+  key_unit_upgrade,
+  key_unit_wait,
+  get keyboard_input() {
+    return keyboard_input;
+  },
+  map_handle_key,
+  get mapview_mouse_movement() {
+    return mapview_mouse_movement;
+  },
+  mouse_moved_cb,
+  get mouse_touch_started_on_unit() {
+    return mouse_touch_started_on_unit;
+  },
+  get mouse_x() {
+    return mouse_x;
+  },
+  get mouse_y() {
+    return mouse_y;
+  },
+  order_wants_direction,
+  get paradrop_active() {
+    return paradrop_active;
+  },
+  popit,
+  popit_req,
+  get prev_mouse_x() {
+    return prev_mouse_x;
+  },
+  get prev_mouse_y() {
+    return prev_mouse_y;
+  },
+  request_goto_path,
+  request_new_unit_activity,
+  request_unit_act_sel_vs,
+  request_unit_act_sel_vs_own_tile,
+  request_unit_autoworkers,
+  request_unit_build_city,
+  request_unit_cancel_orders,
+  request_unit_do_action,
+  request_unit_ssa_set,
+  get resize_enabled() {
+    return resize_enabled;
+  },
+  roads: roads$1,
+  send_end_turn,
+  setActionSelectionInProgressFor,
+  setActionTgtSelActive,
+  setAirliftActive,
+  setAllowRightClick,
+  setChatSendTo,
+  setContextMenuActive,
+  setCurrentFocus,
+  setCurrentGotoTurns,
+  setEndTurnInfoMessageShown,
+  setGameUnitPanelState,
+  setGotoActive,
+  setGotoLastAction,
+  setGotoLastOrder,
+  setGotoRequestMap,
+  setGotoTurnsRequestMap,
+  setHasMovesleftWarningBeenShown,
+  setIntroClickDescription,
+  setIsMoreUserInputNeeded,
+  setKeyboardInput,
+  setMapviewMouseMovement,
+  setMouseTouchStartedOnUnit,
+  setMouseX,
+  setMouseY,
+  setParadropActive,
+  setPrevMouseX,
+  setPrevMouseY,
+  setResizeEnabled,
+  setShowCitybar,
+  setUnitpanelActive,
+  setUrgentFocusQueue,
+  setWaitingUnitsList,
+  set_chat_direction,
+  set_is_more_user_input_needed,
+  set_mouse_touch_started_on_unit,
+  set_unit_focus,
+  set_unit_focus_and_activate,
+  set_unit_focus_and_redraw,
+  should_ask_server_for_actions,
+  get show_citybar() {
+    return show_citybar;
+  },
+  unit_distance_compare,
+  unit_focus_urgent,
+  unit_is_in_focus,
+  get unitpanel_active() {
+    return unitpanel_active;
+  },
+  update_active_units_dialog,
+  update_goto_path,
+  update_mouse_cursor,
+  update_unit_focus,
+  update_unit_order_commands,
+  get urgent_focus_queue() {
+    return urgent_focus_queue;
+  },
+  get waiting_units_list() {
+    return waiting_units_list;
   }
+}, Symbol.toStringTag, { value: "Module" }));
+const _ts = Date.now();
+function get_unit_image_sprite(punit) {
+  const utype = unit_type(punit);
+  if (utype == null) return null;
+  const from_type = get_unit_type_image_sprite(utype);
+  if (from_type == null) return null;
+  from_type["height"] = from_type["height"] - 2;
+  return from_type;
 }
-const WRAP_X = 1;
-const WRAP_Y = 2;
-const TF_ISO = 1;
-const TF_HEX = 2;
-const T_UNKNOWN = 0;
-const DIR_DX = [-1, 0, 1, -1, 1, -1, 0, 1];
-const DIR_DY = [-1, -1, -1, 0, 0, 1, 1, 1];
-const win$1 = window;
-function getMapInfo() {
-  const m2 = win$1.map;
-  if (m2 && typeof m2.xsize === "number") return m2;
+function get_unit_type_image_sprite(punittype) {
+  const tag = tileset_unit_type_graphic_tag(punittype);
+  if (tag == null) return null;
+  const tileset_x = store.tileset[tag][0];
+  const tileset_y = store.tileset[tag][1];
+  const width = store.tileset[tag][2];
+  const height = store.tileset[tag][3];
+  const i2 = store.tileset[tag][4];
+  return {
+    "tag": tag,
+    "image-src": "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i2 + getTilesetFileExtension() + "?ts=" + _ts,
+    "tileset-x": tileset_x,
+    "tileset-y": tileset_y,
+    "width": width,
+    "height": height
+  };
+}
+function get_improvement_image_sprite(pimprovement) {
+  const tag = tileset_building_graphic_tag(pimprovement);
+  if (tag == null) return null;
+  const tileset_x = store.tileset[tag][0];
+  const tileset_y = store.tileset[tag][1];
+  const width = store.tileset[tag][2];
+  const height = store.tileset[tag][3];
+  const i2 = store.tileset[tag][4];
+  return {
+    "tag": tag,
+    "image-src": "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i2 + getTilesetFileExtension() + "?ts=" + _ts,
+    "tileset-x": tileset_x,
+    "tileset-y": tileset_y,
+    "width": width,
+    "height": height
+  };
+}
+function get_technology_image_sprite(ptech) {
+  const tag = tileset_tech_graphic_tag(ptech);
+  if (tag == null) return null;
+  const tileset_x = store.tileset[tag][0];
+  const tileset_y = store.tileset[tag][1];
+  const width = store.tileset[tag][2];
+  const height = store.tileset[tag][3];
+  const i2 = store.tileset[tag][4];
+  return {
+    "tag": tag,
+    "image-src": "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i2 + getTilesetFileExtension() + "?ts=" + _ts,
+    "tileset-x": tileset_x,
+    "tileset-y": tileset_y,
+    "width": width,
+    "height": height
+  };
+}
+function get_treaty_agree_thumb_up() {
+  const tag = "treaty.agree_thumb_up";
+  const tileset_x = store.tileset[tag][0];
+  const tileset_y = store.tileset[tag][1];
+  const width = store.tileset[tag][2];
+  const height = store.tileset[tag][3];
+  const i2 = store.tileset[tag][4];
+  return {
+    "tag": tag,
+    "image-src": "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i2 + getTilesetFileExtension() + "?ts=" + _ts,
+    "tileset-x": tileset_x,
+    "tileset-y": tileset_y,
+    "width": width,
+    "height": height
+  };
+}
+function get_treaty_disagree_thumb_down() {
+  const tag = "treaty.disagree_thumb_down";
+  const tileset_x = store.tileset[tag][0];
+  const tileset_y = store.tileset[tag][1];
+  const width = store.tileset[tag][2];
+  const height = store.tileset[tag][3];
+  const i2 = store.tileset[tag][4];
+  return {
+    "tag": tag,
+    "image-src": "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i2 + getTilesetFileExtension() + "?ts=" + _ts,
+    "tileset-x": tileset_x,
+    "tileset-y": tileset_y,
+    "width": width,
+    "height": height
+  };
+}
+const SSA_NONE = ServerSideAgent.NONE;
+const SSA_AUTOWORKER = ServerSideAgent.AUTOWORKER;
+const SSA_AUTOEXPLORE = ServerSideAgent.AUTOEXPLORE;
+const DIR8_NORTHWEST = 0;
+const DIR8_NORTH = 1;
+const DIR8_NORTHEAST = 2;
+const DIR8_WEST = 3;
+const DIR8_EAST = 4;
+const DIR8_SOUTHWEST = 5;
+const DIR8_SOUTH = 6;
+const DIR8_SOUTHEAST = 7;
+let num_cardinal_tileset_dirs = 4;
+let cardinal_tileset_dirs = [DIR8_NORTH, DIR8_EAST, DIR8_SOUTH, DIR8_WEST];
+let NUM_CORNER_DIRS = 4;
+let DIR4_TO_DIR8 = [DIR8_NORTH, DIR8_SOUTH, DIR8_EAST, DIR8_WEST];
+let current_select_sprite = 0;
+let max_select_sprite = 4;
+let explosion_anim_map = {};
+const LAYER_TERRAIN1 = 0;
+const LAYER_TERRAIN2 = 1;
+const LAYER_TERRAIN3 = 2;
+const LAYER_ROADS = 3;
+const LAYER_SPECIAL1 = 4;
+const LAYER_CITY1 = 5;
+const LAYER_SPECIAL2 = 6;
+const LAYER_UNIT = 7;
+const LAYER_FOG = 8;
+const LAYER_SPECIAL3 = 9;
+const LAYER_TILELABEL = 10;
+const LAYER_CITYBAR = 11;
+const LAYER_GOTO = 12;
+const LAYER_COUNT = 13;
+const MATCH_NONE = 0;
+const MATCH_SAME = 1;
+const MATCH_PAIR = 2;
+const MATCH_FULL = 3;
+const CELL_WHOLE = 0;
+const CELL_CORNER = 1;
+function tileset_has_tag(tagname) {
+  return store.sprites[tagname] != null;
+}
+function tileset_ruleset_entity_tag_str_or_alt(entity, kind_name) {
+  if (entity == null) {
+    console.log("No " + kind_name + " to return tag for.");
+    return null;
+  }
+  if (tileset_has_tag(entity["graphic_str"])) {
+    return entity["graphic_str"];
+  }
+  if (tileset_has_tag(entity["graphic_alt"])) {
+    return entity["graphic_alt"];
+  }
+  console.log("No graphic for " + kind_name + " " + entity["name"]);
   return null;
 }
-function getTiles() {
-  return win$1.tiles || {};
+function tileset_extra_graphic_tag(extra) {
+  return tileset_ruleset_entity_tag_str_or_alt(extra, "extra");
 }
-function topoHasFlag(flag) {
-  return ((getMapInfo()?.topology_id ?? 0) & flag) !== 0;
-}
-function wrapHasFlag(flag) {
-  return ((getMapInfo()?.wrap_id ?? 0) & flag) !== 0;
-}
-function tileInit(tile) {
-  tile["known"] = null;
-  tile["seen"] = {};
-  tile["specials"] = [];
-  tile["terrain"] = T_UNKNOWN;
-  tile["units"] = [];
-  tile["owner"] = null;
-  tile["claimer"] = null;
-  tile["worked"] = null;
-  tile["spec_sprite"] = null;
-  tile["goto_dir"] = null;
-  tile["nuke"] = 0;
-  return tile;
-}
-function mapAllocate() {
-  const mi = getMapInfo();
-  if (!mi) return;
-  const newTiles = {};
-  for (let x2 = 0; x2 < mi.xsize; x2++) {
-    for (let y2 = 0; y2 < mi.ysize; y2++) {
-      const index = x2 + y2 * mi.xsize;
-      let tile = {
-        index,
-        x: x2,
-        y: y2,
-        height: 0
-      };
-      tile = tileInit(tile);
-      newTiles[index] = tile;
-    }
+function tileset_unit_type_graphic_tag(utype) {
+  if (tileset_has_tag(utype["graphic_str"] + "_Idle")) {
+    return utype["graphic_str"] + "_Idle";
   }
-  win$1.tiles = newTiles;
-  store.tiles = newTiles;
-  if (win$1.map) win$1.map["startpos_table"] = {};
-  init_overview();
-}
-function mapInitTopology(_setSizes) {
-  const m2 = win$1.map;
-  if (!m2) return;
-  m2.valid_dirs = {};
-  m2.cardinal_dirs = {};
-  m2.num_valid_dirs = 0;
-  m2.num_cardinal_dirs = 0;
-  for (let dir = 0; dir < 8; dir++) {
-    if (isValidDir(dir)) {
-      m2.valid_dirs[m2.num_valid_dirs] = dir;
-      m2.num_valid_dirs++;
-    }
-    if (isCardinalDir(dir)) {
-      m2.cardinal_dirs[m2.num_cardinal_dirs] = dir;
-      m2.num_cardinal_dirs++;
-    }
+  if (tileset_has_tag(utype["graphic_alt"] + "_Idle")) {
+    return utype["graphic_alt"] + "_Idle";
   }
+  console.log("No graphic for unit " + utype["name"]);
+  return null;
 }
-function isValidDir(dir) {
-  switch (dir) {
-    case 7:
-    case 0:
-      return !(topoHasFlag(TF_HEX) && !topoHasFlag(TF_ISO));
-    case 2:
-    case 5:
-      return !(topoHasFlag(TF_HEX) && topoHasFlag(TF_ISO));
-    case 1:
-    case 4:
-    case 6:
-    case 3:
-      return true;
-    default:
-      return false;
+function tileset_unit_graphic_tag(punit) {
+  const utype = unit_type(punit);
+  if (utype == null) return null;
+  return tileset_unit_type_graphic_tag(utype);
+}
+function tileset_building_graphic_tag(pimprovement) {
+  return tileset_ruleset_entity_tag_str_or_alt(pimprovement, "building");
+}
+function tileset_tech_graphic_tag(ptech) {
+  return tileset_ruleset_entity_tag_str_or_alt(ptech, "tech");
+}
+function tileset_extra_id_graphic_tag(extra_id) {
+  return tileset_extra_graphic_tag(store.extras[extra_id]);
+}
+function tileset_extra_activity_graphic_tag(extra) {
+  if (extra == null) {
+    console.log("No extra to return tag for.");
+    return null;
   }
-}
-function isCardinalDir(dir) {
-  switch (dir) {
-    case 1:
-    case 6:
-    case 4:
-    case 3:
-      return true;
-    case 7:
-    case 0:
-      return topoHasFlag(TF_HEX) && topoHasFlag(TF_ISO);
-    case 2:
-    case 5:
-      return topoHasFlag(TF_HEX) && !topoHasFlag(TF_ISO);
-    default:
-      return false;
+  if (tileset_has_tag(extra["activity_gfx"])) {
+    return extra["activity_gfx"];
   }
-}
-function mapPosToTile(x2, y2) {
-  const mi = getMapInfo();
-  if (!mi) return void 0;
-  const t2 = getTiles();
-  if (x2 >= mi.xsize) y2 -= 1;
-  else if (x2 < 0) y2 += 1;
-  return t2[x2 + y2 * mi.xsize];
-}
-function indexToTile(index) {
-  return getTiles()[index];
-}
-function mapstep(ptile, dir) {
-  if (!isValidDir(dir)) return void 0;
-  return mapPosToTile(DIR_DX[dir] + ptile.x, DIR_DY[dir] + ptile.y);
-}
-function nativeToMapPos(natX, natY) {
-  const mi = getMapInfo();
-  if (!mi) return { map_x: 0, map_y: 0 };
-  const pmap_x = Math.floor((natY + (natY & 1)) / 2 + natX);
-  const pmap_y = Math.floor(natY - pmap_x + mi.xsize);
-  return { map_x: pmap_x, map_y: pmap_y };
-}
-function mapToNativePos(mapX, mapY) {
-  const mi = getMapInfo();
-  if (!mi) return { nat_x: 0, nat_y: 0 };
-  const pnat_y = Math.floor(mapX + mapY - mi.xsize);
-  const pnat_x = Math.floor((2 * mapX - pnat_y - (pnat_y & 1)) / 2);
-  return { nat_x: pnat_x, nat_y: pnat_y };
-}
-function mapDistanceVector(tile0, tile1) {
-  const mi = getMapInfo();
-  if (!mi) return [0, 0];
-  let dx = tile1.x - tile0.x;
-  let dy = tile1.y - tile0.y;
-  if (wrapHasFlag(WRAP_X)) {
-    const half = Math.floor(mi.xsize / 2);
-    dx = FC_WRAP(dx + half, mi.xsize) - half;
+  if (tileset_has_tag(extra["act_gfx_alt"])) {
+    return extra["act_gfx_alt"];
   }
-  if (wrapHasFlag(WRAP_Y)) {
-    const half = Math.floor(mi.ysize / 2);
-    dy = FC_WRAP(dy + half, mi.ysize) - half;
+  if (tileset_has_tag(extra["act_gfx_alt2"])) {
+    return extra["act_gfx_alt2"];
   }
-  return [dx, dy];
+  console.log("No activity graphic for extra " + extra["name"]);
+  return null;
 }
-function mapVectorToSqDistance(dx, dy) {
-  if (topoHasFlag(TF_HEX)) {
-    const d2 = mapVectorToDistance(dx, dy);
-    return d2 * d2;
+function tileset_extra_id_activity_graphic_tag(extra_id) {
+  return tileset_extra_activity_graphic_tag(store.extras[extra_id]);
+}
+function tileset_extra_rmactivity_graphic_tag(extra) {
+  if (extra == null) {
+    console.log("No extra to return tag for.");
+    return null;
   }
-  return dx * dx + dy * dy;
+  if (tileset_has_tag(extra["rmact_gfx"])) {
+    return extra["rmact_gfx"];
+  }
+  if (tileset_has_tag(extra["rmact_gfx_alt"])) {
+    return extra["rmact_gfx_alt"];
+  }
+  if (tileset_has_tag(extra["rmact_gfx_alt2"])) {
+    return extra["rmact_gfx_alt2"];
+  }
+  console.log("No removal activity graphic for extra " + extra["name"]);
+  return null;
 }
-function mapVectorToDistance(dx, dy) {
-  if (topoHasFlag(TF_HEX)) {
-    if (topoHasFlag(TF_ISO)) {
-      if (dx < 0 && dy > 0 || dx > 0 && dy < 0) {
-        return Math.abs(dx) + Math.abs(dy);
+function tileset_extra_id_rmactivity_graphic_tag(extra_id) {
+  return tileset_extra_rmactivity_graphic_tag(store.extras[extra_id]);
+}
+function fill_sprite_array(layer, ptile, pedge, pcorner, punit, pcity, citymode) {
+  let sprite_array = [];
+  switch (layer) {
+    case LAYER_TERRAIN1:
+      if (ptile != null) {
+        const tterrain_near = tileTerrainNear(ptile);
+        const pterrain = tileTerrain(ptile);
+        sprite_array = sprite_array.concat(fill_terrain_sprite_layer(0, ptile, pterrain, tterrain_near));
       }
-      return Math.max(Math.abs(dx), Math.abs(dy));
-    }
-    if (dx > 0 && dy > 0 || dx < 0 && dy < 0) {
-      return Math.abs(dx) + Math.abs(dy);
-    }
-    return Math.max(Math.abs(dx), Math.abs(dy));
+      break;
+    case LAYER_TERRAIN2:
+      if (ptile != null) {
+        const tterrain_near = tileTerrainNear(ptile);
+        const pterrain = tileTerrain(ptile);
+        sprite_array = sprite_array.concat(fill_terrain_sprite_layer(1, ptile, pterrain, tterrain_near));
+      }
+      break;
+    case LAYER_TERRAIN3:
+      if (ptile != null) {
+        const tterrain_near = tileTerrainNear(ptile);
+        const pterrain = tileTerrain(ptile);
+        sprite_array = sprite_array.concat(fill_terrain_sprite_layer(2, ptile, pterrain, tterrain_near));
+      }
+      break;
+    case LAYER_ROADS:
+      if (ptile != null) {
+        sprite_array = sprite_array.concat(fill_path_sprite_array(ptile));
+      }
+      break;
+    case LAYER_SPECIAL1:
+      if (ptile != null) {
+        const river_sprite = get_tile_river_sprite(ptile);
+        if (river_sprite != null) sprite_array.push(river_sprite);
+        const spec_sprite = get_tile_specials_sprite(ptile);
+        if (spec_sprite != null) sprite_array.push(spec_sprite);
+        if (tileHasExtra(ptile, store.extraIds["EXTRA_MINE"])) {
+          sprite_array.push({
+            "key": tileset_extra_id_graphic_tag(store.extraIds["EXTRA_MINE"])
+          });
+        }
+        if (tileHasExtra(ptile, store.extraIds["EXTRA_OIL_WELL"])) {
+          sprite_array.push({
+            "key": tileset_extra_id_graphic_tag(store.extraIds["EXTRA_OIL_WELL"])
+          });
+        }
+        sprite_array = sprite_array.concat(fill_layer1_sprite_array(ptile, pcity));
+        if (tileHasExtra(ptile, store.extraIds["EXTRA_HUT"])) {
+          sprite_array.push({
+            "key": tileset_extra_id_graphic_tag(store.extraIds["EXTRA_HUT"])
+          });
+        }
+        if (tileHasExtra(ptile, store.extraIds["EXTRA_POLLUTION"])) {
+          sprite_array.push({
+            "key": tileset_extra_id_graphic_tag(store.extraIds["EXTRA_POLLUTION"])
+          });
+        }
+        if (tileHasExtra(ptile, store.extraIds["EXTRA_FALLOUT"])) {
+          sprite_array.push({
+            "key": tileset_extra_id_graphic_tag(store.extraIds["EXTRA_FALLOUT"])
+          });
+        }
+        sprite_array = sprite_array.concat(get_border_line_sprites(ptile));
+      }
+      break;
+    case LAYER_CITY1:
+      if (pcity != null) {
+        sprite_array.push(get_city_sprite(pcity));
+        if (pcity["unhappy"]) {
+          sprite_array.push({ "key": "city.disorder" });
+        }
+      }
+      break;
+    case LAYER_SPECIAL2:
+      if (ptile != null) {
+        sprite_array = sprite_array.concat(fill_layer2_sprite_array(ptile, pcity));
+      }
+      break;
+    case LAYER_UNIT:
+      const do_draw_unit = punit != null && draw_units;
+      if (do_draw_unit && active_city == null) {
+        const punits = ptile != null ? tile_units(ptile) : null;
+        const stacked = punits != null && punits.length > 1;
+        if (unit_is_in_focus(punit)) {
+          sprite_array.push(get_select_sprite());
+        }
+        sprite_array = sprite_array.concat(fill_unit_sprite_array(punit, stacked));
+      }
+      if (ptile != null && explosion_anim_map[ptile["index"]] != null) {
+        let explode_step = explosion_anim_map[ptile["index"]];
+        explosion_anim_map[ptile["index"]] = explode_step - 1;
+        if (explode_step > 20) {
+          sprite_array.push({
+            "key": "explode.unit_0",
+            "offset_x": unit_offset_x,
+            "offset_y": unit_offset_y
+          });
+        } else if (explode_step > 15) {
+          sprite_array.push({
+            "key": "explode.unit_1",
+            "offset_x": unit_offset_x,
+            "offset_y": unit_offset_y
+          });
+        } else if (explode_step > 10) {
+          sprite_array.push({
+            "key": "explode.unit_2",
+            "offset_x": unit_offset_x,
+            "offset_y": unit_offset_y
+          });
+        } else if (explode_step > 5) {
+          sprite_array.push({
+            "key": "explode.unit_3",
+            "offset_x": unit_offset_x,
+            "offset_y": unit_offset_y
+          });
+        } else if (explode_step > 0) {
+          sprite_array.push({
+            "key": "explode.unit_4",
+            "offset_x": unit_offset_x,
+            "offset_y": unit_offset_y
+          });
+        } else {
+          delete explosion_anim_map[ptile["index"]];
+        }
+      }
+      break;
+    case LAYER_FOG:
+      sprite_array = sprite_array.concat(fill_fog_sprite_array(ptile, pedge, pcorner));
+      break;
+    case LAYER_SPECIAL3:
+      if (ptile != null) {
+        sprite_array = sprite_array.concat(fill_layer3_sprite_array(ptile, pcity));
+      }
+      break;
+    case LAYER_TILELABEL:
+      if (ptile != null && ptile["label"] != null && ptile["label"].length > 0) {
+        sprite_array.push(get_tile_label_text(ptile));
+      }
+      break;
+    case LAYER_CITYBAR:
+      if (pcity != null && show_citybar) {
+        sprite_array.push(get_city_info_text(pcity));
+      }
+      if (active_city != null && ptile != null && ptile["worked"] != null && active_city["id"] == ptile["worked"] && active_city["output_food"] != null) {
+        const ctile = cityTile(active_city);
+        const d2 = mapDistanceVector(ctile, ptile);
+        const idx = getCityDxyToIndex(d2[0], d2[1], active_city);
+        let food_output = active_city["output_food"][idx];
+        let shield_output = active_city["output_shield"][idx];
+        let trade_output = active_city["output_trade"][idx];
+        const gran = store.gameInfo?.granularity ?? 1;
+        food_output = Math.floor(food_output / gran);
+        shield_output = Math.floor(shield_output / gran);
+        trade_output = Math.floor(trade_output / gran);
+        sprite_array.push(get_city_food_output_sprite(food_output));
+        sprite_array.push(get_city_shields_output_sprite(shield_output));
+        sprite_array.push(get_city_trade_output_sprite(trade_output));
+      } else if (active_city != null && ptile != null && ptile["worked"] != 0) {
+        sprite_array.push(get_city_invalid_worked_sprite());
+      }
+      break;
+    case LAYER_GOTO:
+      if (ptile != null && ptile["goto_dir"] != null) {
+        sprite_array = sprite_array.concat(fill_goto_line_sprite_array(ptile));
+      }
+      if (ptile != null && ptile["nuke"] > 0) {
+        ptile["nuke"] = ptile["nuke"] - 1;
+        sprite_array.push({
+          "key": "explode.nuke",
+          "offset_x": -45,
+          "offset_y": -45
+        });
+      }
+      break;
   }
-  return Math.max(Math.abs(dx), Math.abs(dy));
+  return sprite_array;
 }
-function dirCW(dir) {
-  return (dir + 1) % 8;
+function fill_terrain_sprite_layer(layer_num, ptile, pterrain, tterrain_near) {
+  return fill_terrain_sprite_array(layer_num, ptile, pterrain, tterrain_near);
 }
-function dirCCW(dir) {
-  return (dir + 7) % 8;
-}
-function clearGotoTiles() {
-  const mi = getMapInfo();
-  if (!mi) return;
-  const t2 = getTiles();
-  for (let x2 = 0; x2 < mi.xsize; x2++) {
-    for (let y2 = 0; y2 < mi.ysize; y2++) {
-      const tile = t2[x2 + y2 * mi.xsize];
-      if (tile) tile.goto_dir = null;
+function fill_terrain_sprite_array(l2, ptile, pterrain, tterrain_near) {
+  if (pterrain == null) return [];
+  if (tile_types_setup["l" + l2 + "." + pterrain["graphic_str"]] == null) {
+    return [];
+  }
+  const dlp = tile_types_setup["l" + l2 + "." + pterrain["graphic_str"]];
+  switch (dlp["sprite_type"]) {
+    case CELL_WHOLE: {
+      switch (dlp["match_style"]) {
+        case MATCH_NONE: {
+          const result_sprites = [];
+          if (dlp["dither"] == true) {
+            for (let i2 = 0; i2 < num_cardinal_tileset_dirs; i2++) {
+              const near_t = tterrain_near[DIR4_TO_DIR8[i2]];
+              if (near_t == null || ts_tiles[near_t["graphic_str"]] == null) continue;
+              const near_dlp = tile_types_setup["l" + l2 + "." + near_t["graphic_str"]];
+              const terrain_near = near_dlp["dither"] == true ? near_t["graphic_str"] : pterrain["graphic_str"];
+              const dither_tile = i2 + pterrain["graphic_str"] + "_" + terrain_near;
+              const x2 = dither_offset_x[i2];
+              const y2 = dither_offset_y[i2];
+              result_sprites.push({ "key": dither_tile, "offset_x": x2, "offset_y": y2 });
+            }
+            return result_sprites;
+          } else {
+            return [{ "key": "t.l" + l2 + "." + pterrain["graphic_str"] + 1 }];
+          }
+        }
+        case MATCH_SAME: {
+          let tileno = 0;
+          const this_match_type = ts_tiles[pterrain["graphic_str"]]["layer" + l2 + "_match_type"];
+          for (let i2 = 0; i2 < num_cardinal_tileset_dirs; i2++) {
+            const near_t = tterrain_near[i2];
+            if (near_t == null || ts_tiles[near_t["graphic_str"]] == null) continue;
+            const that = ts_tiles[near_t["graphic_str"]]["layer" + l2 + "_match_type"];
+            if (that == this_match_type) {
+              tileno |= 1 << i2;
+            }
+          }
+          const gfx_key = "t.l" + l2 + "." + pterrain["graphic_str"] + "_" + cardinal_index_str(tileno);
+          const y2 = tileset_tile_height - store.tileset[gfx_key][3];
+          return [{ "key": gfx_key, "offset_x": 0, "offset_y": y2 }];
+        }
+      }
+      break;
+    }
+    case CELL_CORNER: {
+      const W = normal_tile_width;
+      const H2 = normal_tile_height;
+      const iso_offsets = [[W / 4, 0], [W / 4, H2 / 2], [W / 2, H2 / 4], [0, H2 / 4]];
+      const this_match_index = "l" + l2 + "." + pterrain["graphic_str"] in tile_types_setup ? tile_types_setup["l" + l2 + "." + pterrain["graphic_str"]]["match_index"][0] : -1;
+      const result_sprites = [];
+      for (let i2 = 0; i2 < NUM_CORNER_DIRS; i2++) {
+        const count = dlp["match_indices"];
+        let array_index = 0;
+        const dir = dirCCW(DIR4_TO_DIR8[i2]);
+        const x2 = iso_offsets[i2][0];
+        const y2 = iso_offsets[i2][1];
+        const m2 = [
+          "l" + l2 + "." + tterrain_near[dirCCW(dir)]["graphic_str"] in tile_types_setup ? tile_types_setup["l" + l2 + "." + tterrain_near[dirCCW(dir)]["graphic_str"]]["match_index"][0] : -1,
+          "l" + l2 + "." + tterrain_near[dir]["graphic_str"] in tile_types_setup ? tile_types_setup["l" + l2 + "." + tterrain_near[dir]["graphic_str"]]["match_index"][0] : -1,
+          "l" + l2 + "." + tterrain_near[dirCW(dir)]["graphic_str"] in tile_types_setup ? tile_types_setup["l" + l2 + "." + tterrain_near[dirCW(dir)]["graphic_str"]]["match_index"][0] : -1
+        ];
+        switch (dlp["match_style"]) {
+          case MATCH_NONE:
+            break;
+          case MATCH_SAME:
+            const b1 = m2[2] != this_match_index ? 1 : 0;
+            const b2 = m2[1] != this_match_index ? 1 : 0;
+            const b3 = m2[0] != this_match_index ? 1 : 0;
+            array_index = array_index * 2 + b1;
+            array_index = array_index * 2 + b2;
+            array_index = array_index * 2 + b3;
+            break;
+          case MATCH_PAIR:
+            return [];
+          case MATCH_FULL:
+            {
+              const n2 = [];
+              let j2 = 0;
+              for (; j2 < 3; j2++) {
+                let k2 = 0;
+                for (; k2 < count; k2++) {
+                  n2[j2] = k2;
+                  if (m2[j2] == dlp["match_index"][k2]) {
+                    break;
+                  }
+                }
+              }
+              array_index = array_index * count + n2[2];
+              array_index = array_index * count + n2[1];
+              array_index = array_index * count + n2[0];
+            }
+            break;
+        }
+        array_index = array_index * NUM_CORNER_DIRS + i2;
+        result_sprites.push({ "key": cellgroup_map[pterrain["graphic_str"] + "." + array_index] + "." + i2, "offset_x": x2, "offset_y": y2 });
+      }
+      return result_sprites;
     }
   }
+  return [];
 }
-win$1["map_init_topology"] = mapInitTopology;
-win$1["map_allocate"] = mapAllocate;
-function universalBuildShieldCost(_pcity, target) {
-  return target["build_cost"];
+function fill_unit_sprite_array(punit, stacked, backdrop) {
+  const unit_offset = get_unit_anim_offset(punit);
+  const result = [
+    get_unit_nation_flag_sprite(punit),
+    {
+      "key": tileset_unit_graphic_tag(punit),
+      "offset_x": unit_offset["x"] + unit_offset_x,
+      "offset_y": unit_offset["y"] - unit_offset_y
+    }
+  ];
+  const activities = get_unit_activity_sprite(punit);
+  if (activities != null) {
+    activities["offset_x"] = activities["offset_x"] + unit_offset["x"];
+    activities["offset_y"] = activities["offset_y"] + unit_offset["y"];
+    result.push(activities);
+  }
+  const agent = get_unit_agent_sprite(punit);
+  if (agent != null) {
+    agent["offset_x"] = agent["offset_x"] + unit_offset["x"];
+    agent["offset_y"] = agent["offset_y"] + unit_offset["y"];
+    result.push(agent);
+  }
+  if (should_ask_server_for_actions(punit)) {
+    result.push({
+      "key": "unit.action_decision_want",
+      "offset_x": unit_activity_offset_x + unit_offset["x"],
+      "offset_y": -25 + unit_offset["y"]
+    });
+  }
+  result.push(get_unit_hp_sprite(punit));
+  if (stacked) result.push(get_unit_stack_sprite());
+  if (punit["veteran"] > 0) result.push(get_unit_veteran_sprite(punit));
+  return result;
+}
+function dir_get_tileset_name(dir) {
+  switch (dir) {
+    case DIR8_NORTH:
+      return "n";
+    case DIR8_NORTHEAST:
+      return "ne";
+    case DIR8_EAST:
+      return "e";
+    case DIR8_SOUTHEAST:
+      return "se";
+    case DIR8_SOUTH:
+      return "s";
+    case DIR8_SOUTHWEST:
+      return "sw";
+    case DIR8_WEST:
+      return "w";
+    case DIR8_NORTHWEST:
+      return "nw";
+  }
+  return "";
+}
+function cardinal_index_str(idx) {
+  let c2 = "";
+  for (let i2 = 0; i2 < num_cardinal_tileset_dirs; i2++) {
+    const value = idx >> i2 & 1;
+    c2 += dir_get_tileset_name(cardinal_tileset_dirs[i2]) + value;
+  }
+  return c2;
+}
+function get_city_flag_sprite(pcity) {
+  const owner_id = pcity["owner"];
+  if (owner_id == null) return { "key": "" };
+  const owner = store.players[owner_id];
+  if (owner == null) return { "key": "" };
+  const nation_id = owner["nation"];
+  if (nation_id == null) return { "key": "" };
+  const nation = store.nations[nation_id];
+  if (nation == null) return { "key": "" };
+  return {
+    "key": "f." + nation["graphic_str"],
+    "offset_x": city_flag_offset_x,
+    "offset_y": -9
+  };
+}
+function get_base_flag_sprite(ptile) {
+  const owner_id = ptile["extras_owner"];
+  if (owner_id == null) return { "key": "" };
+  const owner = store.players[owner_id];
+  if (owner == null) return { "key": "" };
+  const nation_id = owner["nation"];
+  if (nation_id == null) return { "key": "" };
+  const nation = store.nations[nation_id];
+  if (nation == null) return { "key": "" };
+  return {
+    "key": "f." + nation["graphic_str"],
+    "offset_x": city_flag_offset_x,
+    "offset_y": -9
+  };
+}
+function get_city_occupied_sprite(pcity) {
+  const owner_id = pcity["owner"];
+  const ptile = cityTile(pcity);
+  const punits = tile_units(ptile);
+  if (!store.observing && clientPlaying() != null && owner_id != clientPlaying().playerno && pcity["occupied"]) {
+    return "citybar.occupied";
+  } else if (punits != null && punits.length == 1) {
+    return "citybar.occupancy_1";
+  } else if (punits != null && punits.length == 2) {
+    return "citybar.occupancy_2";
+  } else if (punits != null && punits.length >= 3) {
+    return "citybar.occupancy_3";
+  } else {
+    return "citybar.occupancy_0";
+  }
+}
+function get_city_food_output_sprite(num) {
+  return {
+    "key": "city.t_food_" + num,
+    "offset_x": normal_tile_width / 4,
+    "offset_y": -normal_tile_height / 4
+  };
+}
+function get_city_shields_output_sprite(num) {
+  return {
+    "key": "city.t_shields_" + num,
+    "offset_x": normal_tile_width / 4,
+    "offset_y": -normal_tile_height / 4
+  };
+}
+function get_city_trade_output_sprite(num) {
+  return {
+    "key": "city.t_trade_" + num,
+    "offset_x": normal_tile_width / 4,
+    "offset_y": -normal_tile_height / 4
+  };
+}
+function get_city_invalid_worked_sprite() {
+  return {
+    "key": "grid.unavailable",
+    "offset_x": 0,
+    "offset_y": 0
+  };
+}
+function fill_goto_line_sprite_array(ptile) {
+  return { "key": "goto_line", "goto_dir": ptile["goto_dir"] };
+}
+function get_border_line_sprites(ptile) {
+  const result = [];
+  for (let i2 = 0; i2 < num_cardinal_tileset_dirs; i2++) {
+    const dir = cardinal_tileset_dirs[i2];
+    const checktile = mapstep(ptile, dir);
+    if (checktile != null && checktile["owner"] != null && ptile["owner"] != null && ptile["owner"] != checktile["owner"] && ptile["owner"] != 255 && store.players[ptile["owner"]] != null) {
+      const pnation = store.nations[store.players[ptile["owner"]]["nation"]];
+      result.push({
+        "key": "border",
+        "dir": dir,
+        "color": pnation["color"]
+      });
+    }
+  }
+  return result;
+}
+function get_unit_nation_flag_sprite(punit) {
+  const owner_id = punit["owner"];
+  if (unit_type(punit)?.["flags"]?.isSet?.(UTYF_FLAGLESS) && clientPlaying() != null && owner_id != clientPlaying().playerno) {
+    return { "key": "" };
+  } else {
+    const owner = store.players[owner_id];
+    const nation_id = owner["nation"];
+    const nation = store.nations[nation_id];
+    const unit_offset = get_unit_anim_offset(punit);
+    return {
+      "key": "f.shield." + nation["graphic_str"],
+      "offset_x": unit_flag_offset_x + unit_offset["x"],
+      "offset_y": -16 + unit_offset["y"]
+    };
+  }
+}
+function get_unit_stack_sprite(punit) {
+  return {
+    "key": "unit.stack",
+    "offset_x": unit_flag_offset_x + -25,
+    "offset_y": -16 - 15
+  };
+}
+function get_unit_hp_sprite(punit) {
+  const hp = punit["hp"];
+  const utype = unit_type(punit);
+  const max_hp = utype?.["hp"] ?? 1;
+  const healthpercent = 10 * Math.floor(10 * hp / max_hp);
+  const unit_offset = get_unit_anim_offset(punit);
+  return {
+    "key": "unit.hp_" + healthpercent,
+    "offset_x": unit_flag_offset_x + -25 + unit_offset["x"],
+    "offset_y": -16 - 15 + unit_offset["y"]
+  };
+}
+function get_unit_veteran_sprite(punit) {
+  return {
+    "key": "unit.vet_" + punit["veteran"],
+    "offset_x": unit_activity_offset_x - 20,
+    "offset_y": -25 - 10
+  };
+}
+function get_unit_activity_sprite(punit) {
+  if (punit["ssa_controller"] == SSA_AUTOEXPLORE) {
+    return null;
+  }
+  const activity = punit["activity"];
+  const act_tgt = punit["activity_tgt"];
+  switch (activity) {
+    case ACTIVITY_CLEAN:
+      return {
+        "key": -1 == act_tgt ? "unit.pollution" : tileset_extra_id_rmactivity_graphic_tag(act_tgt),
+        "offset_x": unit_activity_offset_x,
+        "offset_y": -25
+      };
+    case ACTIVITY_MINE:
+      return {
+        "key": -1 == act_tgt ? "unit.plant" : tileset_extra_id_activity_graphic_tag(act_tgt),
+        "offset_x": unit_activity_offset_x,
+        "offset_y": -25
+      };
+    case ACTIVITY_PLANT:
+      return {
+        "key": "unit.plant",
+        "offset_x": unit_activity_offset_x,
+        "offset_y": -25
+      };
+    case ACTIVITY_IRRIGATE:
+      return {
+        "key": -1 == act_tgt ? "unit.irrigate" : tileset_extra_id_activity_graphic_tag(act_tgt),
+        "offset_x": unit_activity_offset_x,
+        "offset_y": -25
+      };
+    case ACTIVITY_CULTIVATE:
+      return {
+        "key": "unit.cultivate",
+        "offset_x": unit_activity_offset_x,
+        "offset_y": -25
+      };
+    case ACTIVITY_FORTIFIED:
+      return {
+        "key": "unit.fortified",
+        "offset_x": unit_activity_offset_x,
+        "offset_y": -25
+      };
+    case ACTIVITY_BASE:
+      return {
+        "key": tileset_extra_id_activity_graphic_tag(act_tgt),
+        "offset_x": unit_activity_offset_x,
+        "offset_y": -25
+      };
+    case ACTIVITY_SENTRY:
+      return {
+        "key": "unit.sentry",
+        "offset_x": unit_activity_offset_x,
+        "offset_y": -25
+      };
+    case ACTIVITY_PILLAGE:
+      return {
+        "key": "unit.pillage",
+        "offset_x": unit_activity_offset_x,
+        "offset_y": -25
+      };
+    case ACTIVITY_GOTO:
+      return {
+        "key": "unit.goto",
+        "offset_x": unit_activity_offset_x,
+        "offset_y": -25
+      };
+    case ACTIVITY_TRANSFORM:
+      return {
+        "key": "unit.transform",
+        "offset_x": unit_activity_offset_x,
+        "offset_y": -25
+      };
+    case ACTIVITY_FORTIFYING:
+      return {
+        "key": "unit.fortifying",
+        "offset_x": unit_activity_offset_x,
+        "offset_y": -25
+      };
+    case ACTIVITY_GEN_ROAD:
+      return {
+        "key": tileset_extra_id_activity_graphic_tag(act_tgt),
+        "offset_x": unit_activity_offset_x,
+        "offset_y": -25
+      };
+    case ACTIVITY_CONVERT:
+      return {
+        "key": "unit.convert",
+        "offset_x": unit_activity_offset_x,
+        "offset_y": -25
+      };
+  }
+  if (unit_has_goto(punit)) {
+    return {
+      "key": "unit.goto",
+      "offset_x": unit_activity_offset_x,
+      "offset_y": -25
+    };
+  }
+  return null;
+}
+function get_unit_agent_sprite(punit) {
+  switch (punit["ssa_controller"]) {
+    case SSA_NONE:
+      break;
+    case SSA_AUTOWORKER:
+      return {
+        "key": "unit.auto_worker",
+        "offset_x": 0,
+        "offset_y": 0
+      };
+    case SSA_AUTOEXPLORE:
+      return {
+        "key": "unit.auto_explore",
+        "offset_x": unit_activity_offset_x,
+        "offset_y": -25
+      };
+  }
+  return null;
+}
+function get_city_sprite(pcity) {
+  let style_id = pcity["style"];
+  if (style_id == -1) style_id = 0;
+  const city_rule = city_rules[style_id];
+  let size = 0;
+  if (pcity["size"] >= 4 && pcity["size"] <= 7) {
+    size = 1;
+  } else if (pcity["size"] >= 8 && pcity["size"] <= 11) {
+    size = 2;
+  } else if (pcity["size"] >= 12 && pcity["size"] <= 15) {
+    size = 3;
+  } else if (pcity["size"] >= 16) {
+    size = 4;
+  }
+  const city_walls = pcity["walls"] ? "wall" : "city";
+  let tag = city_rule["graphic"] + "_" + city_walls + "_" + size;
+  if (store.sprites[tag] == null) {
+    tag = city_rule["graphic_alt"] + "_" + city_walls + "_" + size;
+  }
+  return { "key": tag, "offset_x": 0, "offset_y": -unit_offset_y };
+}
+function fill_fog_sprite_array(ptile, pedge, pcorner) {
+  let i2, tileno = 0;
+  if (pcorner == null) return [];
+  for (i2 = 3; i2 >= 0; i2--) {
+    const unknown = 0, fogged = 1, known = 2;
+    let value = -1;
+    if (pcorner["tile"][i2] == null) {
+      value = unknown;
+    } else {
+      switch (tileGetKnown(pcorner["tile"][i2])) {
+        case TILE_KNOWN_SEEN:
+          value = known;
+          break;
+        case TILE_KNOWN_UNSEEN:
+          value = fogged;
+          break;
+        case TILE_UNKNOWN:
+          value = unknown;
+          break;
+      }
+    }
+    tileno = tileno * 3 + value;
+  }
+  if (tileno >= 80) return [];
+  return [{ "key": store.fullfog[tileno] }];
+}
+function get_select_sprite() {
+  current_select_sprite = Math.floor((/* @__PURE__ */ new Date()).getTime() * 6 / 1e3) % max_select_sprite;
+  return { "key": "unit.select" + current_select_sprite };
+}
+function get_city_info_text(pcity) {
+  return {
+    "key": "city_text",
+    "city": pcity,
+    "offset_x": citybar_offset_x,
+    "offset_y": citybar_offset_y
+  };
+}
+function get_tile_label_text(ptile) {
+  return {
+    "key": "tile_label",
+    "tile": ptile,
+    "offset_x": tilelabel_offset_x,
+    "offset_y": tilelabel_offset_y
+  };
+}
+function get_tile_specials_sprite(ptile) {
+  const extra_id = tileResource(ptile);
+  if (extra_id !== null) {
+    const extra = store.extras[extra_id];
+    if (extra != null) {
+      return { "key": extra["graphic_str"] };
+    }
+  }
+  return null;
+}
+function get_tile_river_sprite(ptile) {
+  if (ptile == null) {
+    return null;
+  }
+  if (tileHasExtra(ptile, store.extraIds["EXTRA_RIVER"])) {
+    let river_str = "";
+    for (let i2 = 0; i2 < num_cardinal_tileset_dirs; i2++) {
+      const dir = cardinal_tileset_dirs[i2];
+      const checktile = mapstep(ptile, dir);
+      if (checktile && (tileHasExtra(checktile, store.extraIds["EXTRA_RIVER"]) || isOceanTile(checktile))) {
+        river_str = river_str + dir_get_tileset_name(dir) + "1";
+      } else {
+        river_str = river_str + dir_get_tileset_name(dir) + "0";
+      }
+    }
+    return { "key": "road.river_s_" + river_str };
+  }
+  const pterrain = tileTerrain(ptile);
+  if (pterrain != null && pterrain["graphic_str"] == "coast") {
+    for (let i2 = 0; i2 < num_cardinal_tileset_dirs; i2++) {
+      const dir = cardinal_tileset_dirs[i2];
+      const checktile = mapstep(ptile, dir);
+      if (checktile != null && tileHasExtra(checktile, store.extraIds["EXTRA_RIVER"])) {
+        return { "key": "road.river_outlet_" + dir_get_tileset_name(dir) };
+      }
+    }
+  }
+  return null;
+}
+function fill_path_sprite_array(ptile, pcity) {
+  const rs_maglev = typeof store.extraIds["EXTRA_MAGLEV"] !== "undefined";
+  tileHasExtra(ptile, store.extraIds["EXTRA_ROAD"]);
+  tileHasExtra(ptile, store.extraIds["EXTRA_RAIL"]);
+  rs_maglev && tileHasExtra(ptile, store.extraIds["EXTRA_MAGLEV"]);
+  const result_sprites = [];
+  for (let dir = 0; dir < 8; dir++) {
+    const tile1 = mapstep(ptile, dir);
+    if (tile1 != null && tileGetKnown(tile1) != TILE_UNKNOWN) {
+      tileHasExtra(tile1, store.extraIds["EXTRA_ROAD"]);
+      tileHasExtra(tile1, store.extraIds["EXTRA_RAIL"]);
+      rs_maglev && tileHasExtra(tile1, store.extraIds["EXTRA_MAGLEV"]);
+    }
+  }
+  return result_sprites;
+}
+function fill_layer1_sprite_array(ptile, pcity) {
+  const result_sprites = [];
+  if (pcity == null) {
+    if (tileHasExtra(ptile, store.extraIds["EXTRA_FORTRESS"])) {
+      result_sprites.push({
+        "key": "base.fortress_bg",
+        "offset_y": -normal_tile_height / 2
+      });
+    }
+  }
+  return result_sprites;
+}
+function fill_layer2_sprite_array(ptile, pcity) {
+  const result_sprites = [];
+  if (pcity == null) {
+    if (tileHasExtra(ptile, store.extraIds["EXTRA_AIRBASE"])) {
+      result_sprites.push({
+        "key": "base.airbase_mg",
+        "offset_y": -normal_tile_height / 2
+      });
+    }
+    if (tileHasExtra(ptile, store.extraIds["EXTRA_BUOY"])) {
+      result_sprites.push(get_base_flag_sprite(ptile));
+      result_sprites.push({
+        "key": "base.buoy_mg",
+        "offset_y": -normal_tile_height / 2
+      });
+    }
+    if (tileHasExtra(ptile, store.extraIds["EXTRA_RUINS"])) {
+      result_sprites.push({
+        "key": "extra.ruins_mg",
+        "offset_y": -normal_tile_height / 2
+      });
+    }
+  }
+  return result_sprites;
+}
+function fill_layer3_sprite_array(ptile, pcity) {
+  const result_sprites = [];
+  if (pcity == null) {
+    if (tileHasExtra(ptile, store.extraIds["EXTRA_FORTRESS"])) {
+      result_sprites.push({
+        "key": "base.fortress_fg",
+        "offset_y": -normal_tile_height / 2
+      });
+    }
+  }
+  return result_sprites;
 }
 const FEELING_FINAL = 5;
 const INCITE_IMPOSSIBLE_COST = 1e3 * 1e3 * 1e3;
@@ -14080,8 +15029,9 @@ function removeCity(pcityId) {
   cityTile(store.cities[pcityId]);
   delete store.cities[pcityId];
   if (update) {
-    city_screen_updater?.update();
-    bulbs_output_updater?.update();
+    globalEvents.emit("city:removed", pcityId);
+    globalEvents.emit("city:screenUpdate");
+    globalEvents.emit("tech:bulbsUpdate");
   }
 }
 function getCityProductionTypeSprite(pcity) {
@@ -14113,12 +15063,12 @@ function getCityProductionType(pcity) {
   return null;
 }
 function cityTurnsToBuild(pcity, target, includeShieldStock) {
-  const citySurplus = pcity["surplus"][O_SHIELD$1];
+  const citySurplus = pcity["surplus"][O_SHIELD];
   const cityStock = pcity["shield_stock"];
   const cost = universalBuildShieldCost(pcity, target);
   if (pcity["shield_stock"] >= cost) {
     return 1;
-  } else if (pcity["surplus"][O_SHIELD$1] > 0) {
+  } else if (pcity["surplus"][O_SHIELD] > 0) {
     return Math.floor((cost - cityStock - 1) / citySurplus + 1);
   } else {
     return FC_INFINITY;
@@ -14231,9 +15181,9 @@ function dxyToCenterIndex(dx, dy, r2) {
   return (dx + r2) * (2 * r2 + 1) + dy + r2;
 }
 function getCityDxyToIndex(dx, dy, pcity) {
-  buildCityTileMap(pcity.city_radius_sq);
+  buildCityTileMap(pcity["city_radius_sq"]);
   const cityTileMapIndex = dxyToCenterIndex(dx, dy, cityTileMap.radius);
-  const ctile = cityTile(active_city);
+  const ctile = cityTile(pcity);
   return getCityTileMapForPos(ctile.x, ctile.y)[cityTileMapIndex];
 }
 function buildCityTileMap(radiusSq) {
@@ -14368,18 +15318,18 @@ function update_game_status_panel() {
   let status_html = "";
   if (clientPlaying() != null) {
     const pplayer = clientPlaying();
-    const tax2 = clientPlaying()["tax"];
-    const lux2 = clientPlaying()["luxury"];
-    const sci2 = clientPlaying()["science"];
+    const tax = clientPlaying()["tax"];
+    const lux = clientPlaying()["luxury"];
+    const sci = clientPlaying()["science"];
     let net_income = pplayer["expected_income"];
     if (pplayer["expected_income"] > 0) {
       net_income = "+" + pplayer["expected_income"];
     }
-    if (!is_small_screen())
+    if (!isSmallScreen())
       status_html += "<b>" + store.nations[pplayer["nation"]]["adjective"] + "</b> &nbsp;&nbsp; <span title='Population'>👤</span>: ";
-    if (!is_small_screen())
+    if (!isSmallScreen())
       status_html += "<b>" + civ_population(clientPlaying().playerno) + "</b>  &nbsp;&nbsp;";
-    if (!is_small_screen())
+    if (!isSmallScreen())
       status_html += "<span title='Year (turn)'>🕐</span>: <b>" + get_year_string() + "</b> &nbsp;&nbsp;";
     status_html += "<span title='Gold (net income)'>💰</span>: ";
     if (pplayer["expected_income"] >= 0) {
@@ -14388,9 +15338,9 @@ function update_game_status_panel() {
       status_html += "<b class='negative_net_income' title='Gold (net income)'>";
     }
     status_html += pplayer["gold"] + " (" + net_income + ")</b>  &nbsp;&nbsp;";
-    status_html += "<span style='cursor:pointer;' onclick='javascript:show_tax_rates_dialog();'><span title='Tax rate'>📊</span>: <b>" + tax2 + "</b>% ";
-    status_html += "<span title='Luxury rate'>🎵</span>: <b>" + lux2 + "</b>% ";
-    status_html += "<span title='Science rate'>🧪</span>: <b>" + sci2 + "</b>%</span> ";
+    status_html += "<span style='cursor:pointer;' onclick='javascript:show_tax_rates_dialog();'><span title='Tax rate'>📊</span>: <b>" + tax + "</b>% ";
+    status_html += "<span title='Luxury rate'>🎵</span>: <b>" + lux + "</b>% ";
+    status_html += "<span title='Science rate'>🧪</span>: <b>" + sci + "</b>%</span> ";
   } else if (store.serverSettings != null && store.serverSettings["metamessage"] != null) {
     status_html += store.serverSettings["metamessage"]["val"] + " Observing - ";
     status_html += "Turn: <b>" + store.gameInfo["turn"] + "</b>  ";
@@ -14428,7 +15378,7 @@ function get_year_string() {
   } else if (store.gameInfo["year"] >= 0) {
     year_string = store.gameInfo["year"] + store.calendarInfo["positive_year_label"] + " ";
   }
-  if (is_small_screen()) {
+  if (isSmallScreen()) {
     year_string += "(T:" + store.gameInfo["turn"] + ")";
   } else {
     year_string += "(Turn:" + store.gameInfo["turn"] + ")";
@@ -14447,140 +15397,6 @@ function sum_width() {
   }
   return sum;
 }
-const _$ = window.jQuery;
-if (!_$) throw new Error("jqueryUiShim requires jQuery");
-const dialogStore = /* @__PURE__ */ new WeakMap();
-function createDialogWrapper(el, options) {
-  const wrapper = document.createElement("div");
-  wrapper.className = "ui-dialog ui-widget ui-widget-content ui-corner-all ui-front";
-  wrapper.style.cssText = "position:fixed;z-index:10001;display:none;";
-  const w2 = options.width || 300;
-  wrapper.style.width = typeof w2 === "number" ? w2 + "px" : w2;
-  if (options.height && options.height !== "auto") {
-    wrapper.style.height = typeof options.height === "number" ? options.height + "px" : options.height;
-  }
-  if (options.maxHeight) {
-    wrapper.style.maxHeight = options.maxHeight + "px";
-  }
-  const titleBar = document.createElement("div");
-  titleBar.className = "ui-dialog-titlebar ui-widget-header ui-corner-all ui-helper-clearfix";
-  titleBar.style.cssText = "display:flex;align-items:center;justify-content:space-between;padding:4px 8px;cursor:move;user-select:none;";
-  const titleSpan = document.createElement("span");
-  titleSpan.className = "ui-dialog-title";
-  titleSpan.textContent = el.getAttribute("title") || el.title || "";
-  titleBar.appendChild(titleSpan);
-  const closeBtn = document.createElement("button");
-  closeBtn.className = "ui-dialog-titlebar-close";
-  closeBtn.textContent = "×";
-  closeBtn.style.cssText = "background:none;border:none;color:#ccc;font-size:18px;cursor:pointer;padding:0 4px;";
-  closeBtn.addEventListener("click", () => dialogAction(el, "close"));
-  titleBar.appendChild(closeBtn);
-  let dragging = false;
-  let dragOff = { x: 0, y: 0 };
-  titleBar.addEventListener("pointerdown", (e2) => {
-    dragging = true;
-    dragOff = { x: e2.clientX - wrapper.offsetLeft, y: e2.clientY - wrapper.offsetTop };
-    titleBar.setPointerCapture(e2.pointerId);
-  });
-  titleBar.addEventListener("pointermove", (e2) => {
-    if (!dragging) return;
-    wrapper.style.left = e2.clientX - dragOff.x + "px";
-    wrapper.style.top = e2.clientY - dragOff.y + "px";
-  });
-  titleBar.addEventListener("pointerup", () => {
-    dragging = false;
-  });
-  const content = document.createElement("div");
-  content.className = "ui-dialog-content ui-widget-content";
-  content.style.cssText = "overflow:auto;padding:8px;";
-  content.appendChild(el);
-  const buttonPane = document.createElement("div");
-  buttonPane.className = "ui-dialog-buttonpane ui-widget-content ui-helper-clearfix";
-  buttonPane.style.cssText = "padding:4px 8px;text-align:right;";
-  if (options.buttons) {
-    const btns = Array.isArray(options.buttons) ? options.buttons : Object.entries(options.buttons).map(([text, click]) => ({ text, click }));
-    for (const btn of btns) {
-      const b2 = document.createElement("button");
-      b2.className = "ui-button ui-widget";
-      b2.textContent = btn.text || "";
-      b2.addEventListener("click", btn.click);
-      b2.style.cssText = "margin-left:4px;padding:4px 12px;cursor:pointer;";
-      buttonPane.appendChild(b2);
-    }
-  }
-  wrapper.appendChild(titleBar);
-  wrapper.appendChild(content);
-  wrapper.appendChild(buttonPane);
-  document.body.appendChild(wrapper);
-  const data = { wrapper, titleBar, buttonPane, options };
-  dialogStore.set(el, data);
-  return data;
-}
-function dialogAction(el, action) {
-  const data = dialogStore.get(el);
-  if (!data) return;
-  if (action === "open") {
-    data.wrapper.style.display = "";
-    const rect = data.wrapper.getBoundingClientRect();
-    data.wrapper.style.left = Math.max(0, (window.innerWidth - rect.width) / 2) + "px";
-    data.wrapper.style.top = Math.max(0, (window.innerHeight - rect.height) / 3) + "px";
-    if (data.options.modal) {
-      let overlay = document.getElementById("xb-ui-dialog-overlay");
-      if (!overlay) {
-        overlay = document.createElement("div");
-        overlay.id = "xb-ui-dialog-overlay";
-        overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:10000;";
-        document.body.appendChild(overlay);
-      }
-      overlay.style.display = "";
-    }
-  } else if (action === "close") {
-    data.wrapper.style.display = "none";
-    const overlay = document.getElementById("xb-ui-dialog-overlay");
-    if (overlay) overlay.style.display = "none";
-    if (data.options.close) data.options.close();
-  }
-}
-_$.fn.dialog = function(optionsOrAction, ...args) {
-  return this.each(function() {
-    if (typeof optionsOrAction === "string") {
-      dialogAction(this, optionsOrAction);
-    } else {
-      let data = dialogStore.get(this);
-      if (data) {
-        data.wrapper.remove();
-        dialogStore.delete(this);
-      }
-      data = createDialogWrapper(this, optionsOrAction || {});
-      if (optionsOrAction?.autoOpen !== false) {
-        dialogAction(this, "open");
-      }
-    }
-  });
-};
-_$.fn.dialogExtend = function() {
-  return this;
-};
-_$.fn.tooltip = function() {
-  return this;
-};
-_$.fn.button = function(opts) {
-  if (!opts || typeof opts !== "object") return this;
-  return this.each(function() {
-    if (opts.label) this.textContent = opts.label;
-    if (opts.disabled === true) this.disabled = true;
-    else if (opts.disabled === false) this.disabled = false;
-  });
-};
-_$.fn.menu = function() {
-  return this;
-};
-_$.fn.selectable = function() {
-  return this;
-};
-_$.fn.tabs = function() {
-  return this;
-};
 let gotoActive = false;
 let focusedUnitId = null;
 const HOTKEYS = {
@@ -14750,45 +15566,6 @@ w["send_player_research"] = send_player_research;
 w["set_unit_focus_and_redraw"] = set_unit_focus_and_redraw;
 w["network_init"] = network_init;
 w["swal"] = swal;
-const state = c({
-  open: false,
-  unitId: -1,
-  unitTypeName: "",
-  targets: []
-});
-function closePillageDialog() {
-  state.value = { ...state.value, open: false };
-}
-function selectTarget(extraId) {
-  const { unitId } = state.value;
-  const punit = store.units?.[unitId];
-  request_unit_do_action(ACTION_PILLAGE$1, unitId, punit?.tile, extraId);
-  closePillageDialog();
-}
-function PillageDialog() {
-  const { open, unitTypeName, targets } = state.value;
-  return /* @__PURE__ */ u(
-    Dialog,
-    {
-      title: "Choose Your Target",
-      open,
-      onClose: closePillageDialog,
-      width: 390,
-      modal: false,
-      children: [
-        /* @__PURE__ */ u("p", { style: { marginBottom: "12px" }, children: [
-          "Your ",
-          unitTypeName,
-          " is waiting for you to select what to pillage."
-        ] }),
-        /* @__PURE__ */ u("div", { style: { display: "flex", flexDirection: "column", gap: "6px" }, children: [
-          targets.map((t2) => /* @__PURE__ */ u(Button, { onClick: () => selectTarget(t2.id), children: t2.name }, t2.id)),
-          /* @__PURE__ */ u(Button, { variant: "secondary", onClick: closePillageDialog, children: "Cancel" })
-        ] })
-      ]
-    }
-  );
-}
 function App() {
   return /* @__PURE__ */ u("div", { id: "xb-preact-root", children: [
     /* @__PURE__ */ u(PillageDialog, {}),
@@ -14796,7 +15573,9 @@ function App() {
     /* @__PURE__ */ u(AuthDialog, {}),
     /* @__PURE__ */ u(IntroDialog, {}),
     /* @__PURE__ */ u(IntelDialog, {}),
-    /* @__PURE__ */ u(SwalDialog, {})
+    /* @__PURE__ */ u(SwalDialog, {}),
+    /* @__PURE__ */ u(GovernmentDialog, {}),
+    /* @__PURE__ */ u(RatesDialog, {})
   ] });
 }
 let mounted = false;

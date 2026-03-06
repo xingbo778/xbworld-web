@@ -163,7 +163,8 @@ check_url "http://localhost:$PORT/javascript/control.js" "control.js (Legacy sou
 # Phase 5: packhand.js and packhand_glue.js REMOVED — migrated to TS
 # check_url "http://localhost:$PORT/javascript/packhand.js" "packhand.js (Packet handlers)"
 # check_url "http://localhost:$PORT/javascript/packhand_glue.js" "packhand_glue.js (Dispatch table)"
-check_url "http://localhost:$PORT/javascript/hbs-templates.js" "hbs-templates.js (Handlebars)"
+# Phase 2C: hbs-templates.js REMOVED — Handlebars templates replaced with inline TS
+# check_url "http://localhost:$PORT/javascript/hbs-templates.js" "hbs-templates.js (Handlebars)"
 check_url "http://localhost:$PORT/javascript/ts-bundle/main.js" "ts-bundle/main.js (TS bundle)"
 
 # =============================================================================

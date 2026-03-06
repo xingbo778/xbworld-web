@@ -35,8 +35,10 @@ export const CLAUSE_EMBASSY = 9;
 export const CLAUSE_SHARED_TILES = 10;
 export const SPECENUM_COUNT = 11;
 
-export let clause_infos: any = {}; // TODO: Type clause_infos
-export let diplomacy_clause_map: any = {}; // TODO: Type diplomacy_clause_map
+interface ClauseInfo { enabled: boolean; [key: string]: unknown; }
+interface DiplomacyClause { counterpart: number; giver: number; type: number; value: number; }
+export let clause_infos: Record<number, ClauseInfo> = {};
+export let diplomacy_clause_map: Record<number, DiplomacyClause[]> = {};
 
 /**************************************************************************
  ...
@@ -53,7 +55,7 @@ export function diplomacy_init_meeting_req(counterpart: number): void {
 **************************************************************************/
 export function show_diplomacy_dialog(counterpart: number): void {
   const pplayer = store.players[counterpart];
-  create_diplomacy_dialog(pplayer, (window as any).Handlebars.templates['diplomacy_meeting']);
+  create_diplomacy_dialog(pplayer);
 }
 
 /**************************************************************************
@@ -202,7 +204,7 @@ export function remove_clause_req(counterpart_id: number, clause_no: number): vo
 /**************************************************************************
  ...
 **************************************************************************/
-export function remove_clause(remove_clause_obj: any): void {
+export function remove_clause(remove_clause_obj: DiplomacyClause): void {
   const counterpart_id = remove_clause_obj['counterpart'];
   const clause_list = diplomacy_clause_map[counterpart_id];
   for (let i = 0; i < clause_list.length; i++) {
@@ -292,19 +294,17 @@ export function diplomacy_cancel_treaty(player_id: number): void {
 /**************************************************************************
  ...
 **************************************************************************/
-export function create_diplomacy_dialog(counterpart: Player, template: any): void {
+export function create_diplomacy_dialog(counterpart: Player): void {
   const pplayer = clientPlaying();
   const counterpart_id = counterpart['playerno'];
 
   // reset diplomacy_dialog div.
-  // TODO: check whether this is still needed
   cleanup_diplomacy_dialog(counterpart_id);
   const gamePage = byId('game_page');
   if (gamePage) {
-    gamePage.insertAdjacentHTML('beforeend', template({
-      self: meeting_template_data(pplayer, counterpart),
-      counterpart: meeting_template_data(counterpart, pplayer)
-    }));
+    const selfData = meeting_template_data(pplayer, counterpart);
+    const counterpartData = meeting_template_data(counterpart, pplayer);
+    gamePage.insertAdjacentHTML('beforeend', renderDiplomacyMeetingHtml(selfData, counterpartData));
   }
 
   const title = "Diplomacy: " + counterpart['name']
@@ -459,24 +459,35 @@ export function meeting_gold_change_req(counterpart_id: number, giver: number, g
   }
 }
 
+interface ClauseItem { type: number; value: number | string; name: string; }
+interface ClauseGroup { title: string; clauses: ClauseItem[]; }
+interface MeetingPlayerData {
+  flag?: string;
+  adjective: string;
+  name: string;
+  pid: number;
+  clauses: (ClauseItem | ClauseGroup)[];
+}
+
 /**************************************************************************
  Build data object for the dialog template.
 **************************************************************************/
-export function meeting_template_data(giver: any, taker: any): any {
-  const data: any = {};
+export function meeting_template_data(giver: Player, taker: Player): MeetingPlayerData {
   const nation = store.nations[giver['nation']];
+  const data: MeetingPlayerData = {
+    adjective: nation['adjective'] as string,
+    name: giver['name'],
+    pid: giver['playerno'],
+    clauses: [],
+  };
 
   if (!nation['customized']) {
     data.flag = nation['graphic_str'] + "-web" + get_tileset_file_extention();
   }
 
-  data.adjective = nation['adjective'];
-  data.name = giver['name'];
-  data.pid = giver['playerno'];
+  const all_clauses: (ClauseItem | ClauseGroup)[] = [];
 
-  const all_clauses = [];
-
-  let clauses = [];
+  let clauses: ClauseItem[] = [];
   if (clause_infos[CLAUSE_MAP]['enabled']) {
     clauses.push({ type: CLAUSE_MAP, value: 1, name: 'World-map' });
   }
@@ -496,7 +507,7 @@ export function meeting_template_data(giver: any, taker: any): any {
         clauses.push({
           type: CLAUSE_ADVANCE,
           value: tech_id,
-          name: store.techs[tech_id]['name']
+          name: store.techs[tech_id]['name'] as string
         });
       }
     }
@@ -510,7 +521,7 @@ export function meeting_template_data(giver: any, taker: any): any {
     clauses = [];
     for (const city_id in store.cities) {
       const pcity = store.cities[city_id];
-      if (city_owner(pcity) === giver
+      if (city_owner(pcity) === giver['playerno']
         && !does_city_have_improvement(pcity, "Palace")) {
         clauses.push({
           type: CLAUSE_CITY,
@@ -553,4 +564,67 @@ export function meeting_template_data(giver: any, taker: any): any {
   data.clauses = all_clauses;
 
   return data;
+}
+
+/**************************************************************************
+ Render a player box for the diplomacy dialog.
+ Previously generated by Handlebars partial 'diplomacy_player_box'.
+**************************************************************************/
+function renderPlayerBox(player: MeetingPlayerData, box: string, counterpartPid: number): string {
+  let html = "<div class='diplomacy_player_box'>\n";
+
+  if (player.flag) {
+    html += "  <img src='/images/flags/" + player.flag + "' class='flag_" + box
+      + "' id='flag_" + box + "_" + counterpartPid + "'>\n";
+  } else {
+    html += "  <canvas class='flag_" + box + "' id='flag_" + box + "_" + counterpartPid
+      + "' width='58' height='40'></canvas>\n";
+  }
+
+  html += "  <div class='agree_" + box + "' id='agree_" + box + "_" + counterpartPid + "'></div>\n";
+  html += "  <h3>" + player.adjective + " " + player.name + "</h3>\n";
+  html += "  <div class='dipl_div' >\n";
+  html += "    <div id='hierarchy_" + box + "_" + counterpartPid + "'>";
+  html += "<a tabindex='0' class='menu-button-activator ui-button ui-widget ui-state-default ui-corner-all'>"
+    + "<span class='ui-icon ui-icon-triangle-1-s'></span>Add Clause...</a>\n";
+  html += "      <ul class='dipl_add'>";
+
+  for (const entry of player.clauses) {
+    if ('title' in entry) {
+      const group = entry as ClauseGroup;
+      html += "<li><div>" + group.title + "</div>\n          <ul>";
+      for (const clause of group.clauses) {
+        html += "<li><div><a href='#' onclick='create_clause_req(" + counterpartPid
+          + ", " + player.pid + ", " + clause.type + ", " + clause.value + ");'>"
+          + clause.name + "</a></div></li>\n";
+      }
+      html += "</ul>\n          </li>\n";
+    } else {
+      const clause = entry as ClauseItem;
+      html += "<li><div><a href='#' onclick='create_clause_req(" + counterpartPid
+        + ", " + player.pid + ", " + clause.type + ", " + clause.value + ");'>"
+        + clause.name + "</a></div></li>\n";
+    }
+  }
+
+  html += "</ul>\n    </div>\n";
+  html += "    <span class='diplomacy_gold'>Gold:<input id='" + box + "_gold_" + counterpartPid
+    + "' type='number' step='1' size='3' value='0'></span>\n";
+  html += "  </div>\n</div>\n";
+
+  return html;
+}
+
+/**************************************************************************
+ Render the full diplomacy meeting dialog HTML.
+ Previously generated by Handlebars template 'diplomacy_meeting'.
+**************************************************************************/
+function renderDiplomacyMeetingHtml(self: MeetingPlayerData, counterpart: MeetingPlayerData): string {
+  let html = "\n<div id='diplomacy_dialog_" + counterpart.pid + "'>\n  <div>\n";
+  html += "    Treaty clauses:<br>\n";
+  html += "    <div class='diplomacy_messages' id='diplomacy_messages_" + counterpart.pid + "'></div>\n";
+  html += renderPlayerBox(self, 'self', counterpart.pid);
+  html += renderPlayerBox(counterpart, 'counterpart', counterpart.pid);
+  html += "  </div>\n</div>\n";
+  return html;
 }

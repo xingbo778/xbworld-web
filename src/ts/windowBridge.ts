@@ -2,14 +2,14 @@
  * Window Bridge — Minimal window registration for inline HTML onclick handlers.
  *
  * Only registers functions that are called from:
- * 1. hbs-templates.js onclick handlers
- * 2. TS-generated innerHTML onclick strings
+ * 1. TS-generated innerHTML onclick strings (city dialog, diplomacy, etc.)
+ * 2. CMA governor checkbox onclick handlers
  *
  * This replaces globalRegistry.ts (2,543 lines → ~60 lines).
  */
 const w = window as any;
 
-// --- From hbs-templates.js onclick handlers ---
+// --- From city dialog / CMA governor onclick handlers ---
 import { button_pushed_toggle_cma } from './ui/cma';
 w['button_pushed_toggle_cma'] = button_pushed_toggle_cma;
 
