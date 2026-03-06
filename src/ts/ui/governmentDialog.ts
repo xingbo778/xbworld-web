@@ -17,8 +17,6 @@
 
 ***********************************************************************/
 
-declare const $: any;
-
 import { store } from '../data/store';
 import { canPlayerGetGov as can_player_get_gov } from "../data/government";
 import { sendPlayerChangeGovernment, sendReportReq } from "../net/commands";
@@ -39,34 +37,32 @@ export const REPORT_ACHIEVEMENTS: number = 4;
 **************************************************************************/
 
 export function show_revolution_dialog(): void {
-  const id = "#revolution_dialog";
-  $(id).remove();
-  $("<div id='revolution_dialog'></div>").appendTo("div#game_page");
+  document.getElementById('revolution_dialog')?.remove();
 
   if (clientPlaying() == null) return;
 
-  const dhtml: string = "Current form of government: " + store.governments[clientPlaying()['government']]['name']
+  const dlg = document.createElement('div');
+  dlg.id = 'revolution_dialog';
+  dlg.style.cssText = 'position:fixed;z-index:5000;background:#222;border:1px solid #555;padding:16px;top:10%;left:50%;transform:translateX(-50%);width:' + (is_small_screen() ? '99%' : '450px') + ';max-height:' + (is_small_screen() ? (window.innerHeight - 40) + 'px' : '600px') + ';overflow-y:auto;color:#fff;';
+
+  dlg.innerHTML = "Current form of government: " + store.governments[clientPlaying()['government']]['name']
     + "<br>To start a revolution, select the new form of government:"
-    + "<p><div id='governments' >"
-    + "<div id='governments_list'>"
-    + "</div></div><br> ";
+    + "<p><div id='governments'>"
+    + "<div id='governments_list'></div></div><br>";
 
-  $(id).html(dhtml);
+  const btnContainer = document.createElement('div');
+  btnContainer.style.cssText = 'margin-top:8px;display:flex;gap:8px;';
+  const startBtn = document.createElement('button');
+  startBtn.textContent = 'Start revolution!';
+  startBtn.addEventListener('click', function() { start_revolution(); dlg.remove(); });
+  const cancelBtn = document.createElement('button');
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.addEventListener('click', function() { dlg.remove(); });
+  btnContainer.appendChild(startBtn);
+  btnContainer.appendChild(cancelBtn);
+  dlg.appendChild(btnContainer);
 
-  $(id).attr("title", "Start a Revolution!");
-  $(id).dialog({
-    bgiframe: true,
-    modal: true,
-    width: is_small_screen() ? "99%" : "450",
-    height: is_small_screen() ? $(window).height() - 40 : 600,
-    buttons: {
-      "Start revolution!": function () {
-        start_revolution();
-        $("#revolution_dialog").dialog('close');
-      }
-    }
-  });
-
+  document.getElementById('game_page')?.appendChild(dlg);
   update_govt_dialog();
 }
 
@@ -85,11 +81,14 @@ export function init_civ_dialog(): void {
     civ_description += "<br><div>" + pplayer['name'] + " rules the " + store.nations[pplayer['nation']]['adjective']
       + " with the form of government: " + store.governments[clientPlaying()['government']]['name']
       + "</div><br>";
-    $("#nation_title").html("The " + store.nations[pplayer['nation']]['adjective'] + " nation");
-    $("#civ_dialog_text").html(civ_description);
+    const nationTitleEl = document.getElementById('nation_title');
+    if (nationTitleEl) nationTitleEl.innerHTML = "The " + store.nations[pplayer['nation']]['adjective'] + " nation";
+    const civTextEl = document.getElementById('civ_dialog_text');
+    if (civTextEl) civTextEl.innerHTML = civ_description;
 
   } else {
-    $("#civ_dialog_text").html("This dialog isn't available as observer.");
+    const civTextEl = document.getElementById('civ_dialog_text');
+    if (civTextEl) civTextEl.innerHTML = "This dialog isn't available as observer.";
   }
 }
 
@@ -107,21 +106,24 @@ export function update_govt_dialog(): void {
       + "title='" + govt['helptext'] + "'>" + govt['name'] + "</button>";
   }
 
-  $("#governments_list").html(governments_list_html);
+  const govListEl = document.getElementById('governments_list');
+  if (govListEl) govListEl.innerHTML = governments_list_html;
 
   for (govt_id in governments) {
     govt = (store.governments as any)[govt_id];
+    const btn = document.getElementById('govt_id_' + govt['id']) as HTMLButtonElement | null;
+    if (!btn) continue;
+    btn.textContent = govt['name'];
+    btn.title = govt['helptext'] || '';
     if (!can_player_get_gov(Number(govt_id))) {
-      $("#govt_id_" + govt['id']).button({ disabled: true, label: govt['name'], icons: { primary: govt['rule_name'] } });
+      btn.disabled = true;
     } else if (requested_gov == Number(govt_id)) {
-      $("#govt_id_" + govt['id']).button({ label: govt['name'], icons: { primary: govt['rule_name'] } }).css("background", "green");
+      btn.style.background = 'green';
     } else if (clientPlaying()?.['government'] == Number(govt_id)) {
-      $("#govt_id_" + govt['id']).button({ label: govt['name'], icons: { primary: govt['rule_name'] } }).css("background", "#BBBBFF").css("font-weight", "bolder");
-    } else {
-      $("#govt_id_" + govt['id']).button({ label: govt['name'], icons: { primary: govt['rule_name'] } });
+      btn.style.background = '#BBBBFF';
+      btn.style.fontWeight = 'bolder';
     }
   }
-  $(".govt_button").tooltip();
 }
 
 export function start_revolution(): void {

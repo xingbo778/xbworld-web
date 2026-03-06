@@ -18,7 +18,8 @@ import { isSmallScreen as is_small_screen, getTilesetFileExtension as get_tilese
 import { get_treaty_agree_thumb_up, get_treaty_disagree_thumb_down } from '../renderer/tilespec';
 import { DiplState } from '../data/player';
 
-declare const $: any;
+// jQuery partially removed — native DOM where possible
+const _$ = (window as any).$;
 
 export const CLAUSE_ADVANCE = 0;
 export const CLAUSE_GOLD = 1;
@@ -92,17 +93,11 @@ export function accept_treaty(counterpart: any, I_accepted: boolean, other_accep
       + "px;  width: " + disagree_sprite['width'] + "px;height: "
       + disagree_sprite['height'] + "px; margin: 5px; '>"
       + "</div>";
-    if (I_accepted === true) {
-      $("#agree_self_" + counterpart).html(agree_html);
-    } else {
-      $("#agree_self_" + counterpart).html(disagree_html);
-    }
+    const selfEl = document.getElementById("agree_self_" + counterpart);
+    if (selfEl) selfEl.innerHTML = I_accepted ? agree_html : disagree_html;
 
-    if (other_accepted) {
-      $("#agree_counterpart_" + counterpart).html(agree_html);
-    } else {
-      $("#agree_counterpart_" + counterpart).html(disagree_html);
-    }
+    const otherEl = document.getElementById("agree_counterpart_" + counterpart);
+    if (otherEl) otherEl.innerHTML = other_accepted ? agree_html : disagree_html;
   }
 }
 
@@ -152,7 +147,7 @@ export function cancel_meeting(counterpart: any): void {
  Remove diplomacy dialog.
 **************************************************************************/
 export function cleanup_diplomacy_dialog(counterpart_id: any): void {
-  $("#diplomacy_dialog_" + counterpart_id).remove();
+  document.getElementById("diplomacy_dialog_" + counterpart_id)?.remove();
 }
 
 /**************************************************************************
@@ -182,7 +177,8 @@ export function show_diplomacy_clauses(counterpart_id: any): void {
 
   }
 
-  $("#diplomacy_messages_" + counterpart_id).html(diplo_html);
+  const msgEl = document.getElementById("diplomacy_messages_" + counterpart_id);
+  if (msgEl) msgEl.innerHTML = diplo_html;
 }
 
 /**************************************************************************
@@ -243,9 +239,11 @@ export function client_diplomacy_clause_string(counterpart: any, giver: any, typ
       }
     case CLAUSE_GOLD:
       if (giver === clientPlaying()['playerno']) {
-        $("#self_gold_" + counterpart).val(value);
+        const el = document.getElementById("self_gold_" + counterpart) as HTMLInputElement | null;
+        if (el) el.value = String(value);
       } else {
-        $("#counterpart_gold_" + counterpart).val(value);
+        const el = document.getElementById("counterpart_gold_" + counterpart) as HTMLInputElement | null;
+        if (el) el.value = String(value);
       }
       return "The " + nation + " give " + value + " gold";
     case CLAUSE_MAP:
@@ -300,7 +298,7 @@ export function create_diplomacy_dialog(counterpart: any, template: any): void {
   // reset diplomacy_dialog div.
   // TODO: check whether this is still needed
   cleanup_diplomacy_dialog(counterpart_id);
-  $("#game_page").append(template({
+  _$("#game_page").append(template({
     self: meeting_template_data(pplayer, counterpart),
     counterpart: meeting_template_data(counterpart, pplayer)
   }));
@@ -308,7 +306,7 @@ export function create_diplomacy_dialog(counterpart: any, template: any): void {
   const title = "Diplomacy: " + counterpart['name']
     + " of the " + store.nations[counterpart['nation']]['adjective'];
 
-  const diplomacy_dialog = $("#diplomacy_dialog_" + counterpart_id);
+  const diplomacy_dialog = _$("#diplomacy_dialog_" + counterpart_id);
   diplomacy_dialog.attr("title", title);
   diplomacy_dialog.dialog({
     bgiframe: true,
@@ -346,40 +344,37 @@ export function create_diplomacy_dialog(counterpart: any, template: any): void {
     meeting_paint_custom_flag(nation, document.getElementById('flag_counterpart_' + counterpart_id) as HTMLCanvasElement);
   }
 
-  create_clauses_menu($('#hierarchy_self_' + counterpart_id));
-  create_clauses_menu($('#hierarchy_counterpart_' + counterpart_id));
+  create_clauses_menu(_$('#hierarchy_self_' + counterpart_id));
+  create_clauses_menu(_$('#hierarchy_counterpart_' + counterpart_id));
 
   if (store.gameInfo!.trading_gold && clause_infos[CLAUSE_GOLD]['enabled']) {
-    $("#self_gold_" + counterpart_id).attr({
-      "max": pplayer['gold'],
-      "min": 0
-    });
-
-    $("#counterpart_gold_" + counterpart_id).attr({
-      "max": counterpart['gold'],
-      "min": 0
-    });
+    const selfGold = document.getElementById("self_gold_" + counterpart_id) as HTMLInputElement | null;
+    const counterGold = document.getElementById("counterpart_gold_" + counterpart_id) as HTMLInputElement | null;
+    if (selfGold) { selfGold.max = String(pplayer['gold']); selfGold.min = '0'; }
+    if (counterGold) { counterGold.max = String(counterpart['gold']); counterGold.min = '0'; }
 
     let wto: number;
-    $("#counterpart_gold_" + counterpart_id).change(function () {
+    counterGold?.addEventListener('change', function () {
       clearTimeout(wto);
       wto = window.setTimeout(function () {
         meeting_gold_change_req(counterpart_id, counterpart_id,
-          parseFloat($("#counterpart_gold_" + counterpart_id).val()));
+          parseFloat(counterGold!.value));
       }, 500);
     });
 
-    $("#self_gold_" + counterpart_id).change(function () {
+    selfGold?.addEventListener('change', function () {
       clearTimeout(wto);
       wto = window.setTimeout(function () {
         meeting_gold_change_req(counterpart_id, pplayer['playerno'],
-          parseFloat($("#self_gold_" + counterpart_id).val()));
+          parseFloat(selfGold!.value));
       }, 500);
     });
 
   } else {
-    $("#self_gold_" + counterpart_id).prop("disabled", true).parent().hide();
-    $("#counterpart_gold_" + counterpart_id).prop("disabled", true).parent().hide();
+    const selfGold = document.getElementById("self_gold_" + counterpart_id) as HTMLInputElement | null;
+    const counterGold = document.getElementById("counterpart_gold_" + counterpart_id) as HTMLInputElement | null;
+    if (selfGold) { selfGold.disabled = true; if (selfGold.parentElement) selfGold.parentElement.style.display = 'none'; }
+    if (counterGold) { counterGold.disabled = true; if (counterGold.parentElement) counterGold.parentElement.style.display = 'none'; }
   }
 
   diplomacy_dialog.css("overflow", "visible");

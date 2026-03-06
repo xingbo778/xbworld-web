@@ -17,8 +17,6 @@
 
 ***********************************************************************/
 
-declare const $: any;
-
 /** Helper: get the playing player object (null-safe). */
 function playing(): any {
   return store.client?.conn?.playing;
@@ -38,6 +36,11 @@ import { isSmallScreen as is_small_screen } from "../utils/helpers"; // TODO: ad
 import { clientIsObserver as client_is_observer } from '../client/clientState';
 import { getCurrentBulbsOutput as get_current_bulbs_output } from '../data/tech';
 
+function setInnerHtml(id: string, html: string | number): void {
+  const el = document.getElementById(id);
+  if (el) el.innerHTML = String(html);
+}
+
 export let s_tax: any = null;
 export let s_lux: any = null;
 export let s_sci: any = null;
@@ -52,11 +55,13 @@ export let government_list: any;
 export let current_government: any;
 
 export function show_tax_rates_dialog(): void {
-  const id = "#rates_dialog";
-  $(id).remove();
-  $("<div id='rates_dialog'></div>").appendTo("div#game_page");
+  document.getElementById('rates_dialog')?.remove();
 
-  const dhtml = "<h2>Select tax, luxury and science rates</h2>"
+  const dlg = document.createElement('div');
+  dlg.id = 'rates_dialog';
+  dlg.style.cssText = 'position:fixed;z-index:5000;background:#222;border:1px solid #555;padding:16px;top:20%;left:50%;transform:translateX(-50%);width:' + (is_small_screen() ? '90%' : '40%') + ';color:#fff;';
+
+  dlg.innerHTML = "<h2>Select tax, luxury and science rates</h2>"
     + "<form name='rates'><table border='0' style='color: #ffffff;'>"
     + "<tr> <td><span>Tax:</td> <td> <div class='slider' id='slider-tax' tabIndex='1'></div>"
     + "</td><td>"
@@ -74,20 +79,13 @@ export function show_tax_rates_dialog(): void {
     + "Net income: <span id='income_info'></span><br>"
     + "Research: <span id='bulbs_info'></span></div>";
 
-  $(id).html(dhtml);
+  const closeBtn = document.createElement('button');
+  closeBtn.textContent = 'Close';
+  closeBtn.style.cssText = 'margin-top:8px;';
+  closeBtn.addEventListener('click', function() { dlg.remove(); });
+  dlg.appendChild(closeBtn);
 
-  $(id).attr("title", "Change your tax rates!");
-  $(id).dialog({
-    bgiframe: true,
-    modal: true,
-    width: is_small_screen() ? "90%" : "40%",
-    buttons: {
-      "Close": function() {
-        $("#rates_dialog").dialog('close');
-      }
-    }
-  });
-
+  document.getElementById('game_page')?.appendChild(dlg);
   update_rates_dialog();
 }
 
@@ -96,9 +94,10 @@ export function update_rates_dialog(): void {
 
   maxrate = government_max_rate(playing()['government']);
 
-  $("#slider-tax").html("<input class='slider-input' id='slider-tax-input' name='slider-tax-input'/>");
-  $("#slider-lux").html("<input class='slider-input' id='slider-lux-input' name='slider-lux-input'/>");
-  $("#slider-sci").html("<input class='slider-input' id='slider-sci-input' name='slider-sci-input'/>");
+  const setHtml = (id: string, html: string) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
+  setHtml("slider-tax", "<input class='slider-input' id='slider-tax-input' name='slider-tax-input'/>");
+  setHtml("slider-lux", "<input class='slider-input' id='slider-lux-input' name='slider-lux-input'/>");
+  setHtml("slider-sci", "<input class='slider-input' id='slider-sci-input' name='slider-sci-input'/>");
 
   create_rates_dialog(playing()['tax'],
                       playing()['luxury'],
@@ -106,7 +105,8 @@ export function update_rates_dialog(): void {
 
   const govt = store.governments[playing()['government']];
 
-  $("#max_tax_rate").html("<i>" + govt['name'] + " max rate: " + maxrate + "</i>");
+  const maxRateEl = document.getElementById("max_tax_rate");
+  if (maxRateEl) maxRateEl.innerHTML = "<i>" + govt['name'] + " max rate: " + maxrate + "</i>";
   update_net_income();
   update_net_bulbs();
 }
@@ -116,7 +116,7 @@ export function update_net_income(): void {
   if (playing()['expected_income'] > 0) {
     net_income = "+" + playing()['expected_income'];
   }
-  $("#income_info").html(net_income);
+  setInnerHtml("income_info", net_income);
 }
 
 export function update_net_bulbs(bulbs?: number): void {
@@ -125,7 +125,7 @@ export function update_net_bulbs(bulbs?: number): void {
     bulbs = cbo.self_bulbs - cbo.self_upkeep;
   }
   const bulbsStr: string = bulbs > 0 ? "+" + bulbs : String(bulbs);
-  $("#bulbs_info").html(bulbsStr);
+  setInnerHtml("bulbs_info", bulbsStr);
 }
 
 export function create_rates_dialog(taxVal: number, luxVal: number, sciVal: number, max: number): void {
@@ -166,9 +166,9 @@ export function update_rates_labels(): void {
   lux = s_lux.getValue();
   sci = s_sci.getValue();
 
-  $("#tax_result").html(tax + "%");
-  $("#lux_result").html(lux + "%");
-  $("#sci_result").html(sci + "%");
+  setInnerHtml("tax_result", tax + "%");
+  setInnerHtml("lux_result", lux + "%");
+  setInnerHtml("sci_result", sci + "%");
 }
 
 export function update_tax_rates(): void {
@@ -203,9 +203,9 @@ export function update_tax_rates(): void {
   s_lux.setValue(lux);
   s_sci.setValue(sci);
 
-  $("#tax_result").html(tax + "%");
-  $("#lux_result").html(lux + "%");
-  $("#sci_result").html(sci + "%");
+  setInnerHtml("tax_result", tax + "%");
+  setInnerHtml("lux_result", lux + "%");
+  setInnerHtml("sci_result", sci + "%");
 
   freeze = false;
   submit_player_rates();
@@ -243,9 +243,9 @@ export function update_lux_rates(): void {
   s_lux.setValue(lux);
   s_sci.setValue(sci);
 
-  $("#tax_result").html(tax + "%");
-  $("#lux_result").html(lux + "%");
-  $("#sci_result").html(sci + "%");
+  setInnerHtml("tax_result", tax + "%");
+  setInnerHtml("lux_result", lux + "%");
+  setInnerHtml("sci_result", sci + "%");
 
   freeze = false;
   submit_player_rates();
@@ -283,9 +283,9 @@ export function update_sci_rates(): void {
   s_lux.setValue(lux);
   s_sci.setValue(sci);
 
-  $("#tax_result").html(tax + "%");
-  $("#lux_result").html(lux + "%");
-  $("#sci_result").html(sci + "%");
+  setInnerHtml("tax_result", tax + "%");
+  setInnerHtml("lux_result", lux + "%");
+  setInnerHtml("sci_result", sci + "%");
 
   freeze = false;
   submit_player_rates();

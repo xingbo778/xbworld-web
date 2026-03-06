@@ -13,7 +13,7 @@ import { popup_action_selection } from './actionDialogPopup';
 
 const TILE_INDEX_NONE = -1;
 
-declare const $: any; // Declare jQuery
+// jQuery removed — using native DOM
 
 export let action_selection_restart: boolean = false;
 export let did_not_decide: boolean = false;
@@ -87,13 +87,11 @@ export function action_selection_actor_unit(): number {
   is open or no city target is present in the action selection dialog.
 **************************************************************************/
 export function action_selection_target_city(): number {
-  const id = "#act_sel_dialog_" + action_selection_in_progress_for;
-
   if (action_selection_in_progress_for == IDENTITY_NUMBER_ZERO) {
     return IDENTITY_NUMBER_ZERO;
   }
-
-  return $(id).attr("target_city");
+  const el = document.getElementById("act_sel_dialog_" + action_selection_in_progress_for);
+  return el ? Number(el.getAttribute("target_city")) : IDENTITY_NUMBER_ZERO;
 }
 
 /**********************************************************************//**
@@ -103,13 +101,11 @@ export function action_selection_target_city(): number {
   is open or no unit target is present in the action selection dialog.
 **************************************************************************/
 export function action_selection_target_unit(): number {
-  const id = "#act_sel_dialog_" + action_selection_in_progress_for;
-
   if (action_selection_in_progress_for == IDENTITY_NUMBER_ZERO) {
     return IDENTITY_NUMBER_ZERO;
   }
-
-  return $(id).attr("target_unit");
+  const el = document.getElementById("act_sel_dialog_" + action_selection_in_progress_for);
+  return el ? Number(el.getAttribute("target_unit")) : IDENTITY_NUMBER_ZERO;
 }
 
 /**********************************************************************//**
@@ -119,13 +115,11 @@ export function action_selection_target_unit(): number {
   open.
 **************************************************************************/
 export function action_selection_target_tile(): number {
-  const id = "#act_sel_dialog_" + action_selection_in_progress_for;
-
   if (action_selection_in_progress_for == IDENTITY_NUMBER_ZERO) {
     return TILE_INDEX_NONE;
   }
-
-  return $(id).attr("target_tile");
+  const el = document.getElementById("act_sel_dialog_" + action_selection_in_progress_for);
+  return el ? Number(el.getAttribute("target_tile")) : TILE_INDEX_NONE;
 }
 
 /**********************************************************************//**
@@ -135,13 +129,11 @@ export function action_selection_target_tile(): number {
   or no extra target is present in the action selection dialog.
 **************************************************************************/
 export function action_selection_target_extra(): number {
-  const id = "#act_sel_dialog_" + action_selection_in_progress_for;
-
   if (action_selection_in_progress_for == IDENTITY_NUMBER_ZERO) {
     return EXTRA_NONE;
   }
-
-  return $(id).attr("target_extra");
+  const el = document.getElementById("act_sel_dialog_" + action_selection_in_progress_for);
+  return el ? Number(el.getAttribute("target_extra")) : EXTRA_NONE;
 }
 
 /**********************************************************************//**
@@ -153,8 +145,7 @@ export function action_selection_refresh(actor_unit: any,
   act_probs: any): void {
   let id: string;
 
-  id = "#act_sel_dialog_" + actor_unit['id'];
-  $(id).remove();
+  document.getElementById("act_sel_dialog_" + actor_unit['id'])?.remove();
 
   popup_action_selection(actor_unit, act_probs,
     target_tile, target_extra,
@@ -165,35 +156,22 @@ export function action_selection_refresh(actor_unit: any,
   Closes the action selection dialog
 ***************************************************************************/
 export function action_selection_close(): void {
-  let id: string;
   const actor_unit_id = action_selection_in_progress_for;
 
-  id = "#act_sel_dialog_" + actor_unit_id;
-  $(id).remove();
-
-  id = "#bribe_unit_dialog_" + actor_unit_id;
-  $(id).remove();
-
-  id = "#incite_city_dialog_" + actor_unit_id;
-  $(id).remove();
-
-  id = "#upgrade_unit_dialog_" + actor_unit_id;
-  $(id).remove();
-
-  id = "stealtech_dialog_" + actor_unit_id;
-  $(id).remove();
-
-  id = "sabotage_impr_dialog_" + actor_unit_id;
-  $(id).remove();
-
-  id = "#" + "sel_tgt_unit_dialog_" + actor_unit_id;
-  $(id).remove();
-
-  id = "#" + "sel_tgt_extra_dialog_" + actor_unit_id;
-  $(id).remove();
-
-  id = $("#city_name_dialog");
-  $(id).remove();
+  const ids = [
+    "act_sel_dialog_" + actor_unit_id,
+    "bribe_unit_dialog_" + actor_unit_id,
+    "incite_city_dialog_" + actor_unit_id,
+    "upgrade_unit_dialog_" + actor_unit_id,
+    "stealtech_dialog_" + actor_unit_id,
+    "sabotage_impr_dialog_" + actor_unit_id,
+    "sel_tgt_unit_dialog_" + actor_unit_id,
+    "sel_tgt_extra_dialog_" + actor_unit_id,
+    "city_name_dialog",
+  ];
+  for (const id of ids) {
+    document.getElementById(id)?.remove();
+  }
 
   act_sel_queue_done(actor_unit_id);
 }

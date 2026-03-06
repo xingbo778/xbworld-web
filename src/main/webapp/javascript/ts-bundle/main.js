@@ -4287,6 +4287,10 @@ function ratesForm() {
   return document.rates;
 }
 const Slider = window.Slider;
+function setInnerHtml(id, html) {
+  const el = document.getElementById(id);
+  if (el) el.innerHTML = String(html);
+}
 let s_tax = null;
 let s_lux = null;
 let s_sci = null;
@@ -4296,30 +4300,31 @@ let lux;
 let maxrate = 80;
 let freeze = false;
 function show_tax_rates_dialog() {
-  const id = "#rates_dialog";
-  $(id).remove();
-  $("<div id='rates_dialog'></div>").appendTo("div#game_page");
-  const dhtml = "<h2>Select tax, luxury and science rates</h2><form name='rates'><table border='0' style='color: #ffffff;'><tr> <td><span>Tax:</td> <td> <div class='slider' id='slider-tax' tabIndex='1'></div></td><td><div id='tax_result' style='float:left;'></div></td><td> <INPUT TYPE='CHECKBOX' NAME='lock'>Lock</td></tr><tr><td>Luxury:</td><td><div class='slider' id='slider-lux' tabIndex='1'></div></td><td> <div id='lux_result' style='float:left;'></div></td><td><INPUT TYPE='CHECKBOX' NAME='lock'>Lock</td></tr><tr><td>Science:</td><td><div class='slider' id='slider-sci' tabIndex='1'></div></td><td><div id='sci_result' style='float:left;'></div></td><td><INPUT TYPE='CHECKBOX' NAME='lock'>Lock</td></tr></table></form><div id='max_tax_rate' style='margin:10px;'></div><div style='margin:10px;'>Net income: <span id='income_info'></span><br>Research: <span id='bulbs_info'></span></div>";
-  $(id).html(dhtml);
-  $(id).attr("title", "Change your tax rates!");
-  $(id).dialog({
-    bgiframe: true,
-    modal: true,
-    width: isSmallScreen() ? "90%" : "40%",
-    buttons: {
-      "Close": function() {
-        $("#rates_dialog").dialog("close");
-      }
-    }
+  document.getElementById("rates_dialog")?.remove();
+  const dlg = document.createElement("div");
+  dlg.id = "rates_dialog";
+  dlg.style.cssText = "position:fixed;z-index:5000;background:#222;border:1px solid #555;padding:16px;top:20%;left:50%;transform:translateX(-50%);width:" + (isSmallScreen() ? "90%" : "40%") + ";color:#fff;";
+  dlg.innerHTML = "<h2>Select tax, luxury and science rates</h2><form name='rates'><table border='0' style='color: #ffffff;'><tr> <td><span>Tax:</td> <td> <div class='slider' id='slider-tax' tabIndex='1'></div></td><td><div id='tax_result' style='float:left;'></div></td><td> <INPUT TYPE='CHECKBOX' NAME='lock'>Lock</td></tr><tr><td>Luxury:</td><td><div class='slider' id='slider-lux' tabIndex='1'></div></td><td> <div id='lux_result' style='float:left;'></div></td><td><INPUT TYPE='CHECKBOX' NAME='lock'>Lock</td></tr><tr><td>Science:</td><td><div class='slider' id='slider-sci' tabIndex='1'></div></td><td><div id='sci_result' style='float:left;'></div></td><td><INPUT TYPE='CHECKBOX' NAME='lock'>Lock</td></tr></table></form><div id='max_tax_rate' style='margin:10px;'></div><div style='margin:10px;'>Net income: <span id='income_info'></span><br>Research: <span id='bulbs_info'></span></div>";
+  const closeBtn = document.createElement("button");
+  closeBtn.textContent = "Close";
+  closeBtn.style.cssText = "margin-top:8px;";
+  closeBtn.addEventListener("click", function() {
+    dlg.remove();
   });
+  dlg.appendChild(closeBtn);
+  document.getElementById("game_page")?.appendChild(dlg);
   update_rates_dialog();
 }
 function update_rates_dialog() {
   if (clientIsObserver()) return;
   maxrate = governmentMaxRate(playing()["government"]);
-  $("#slider-tax").html("<input class='slider-input' id='slider-tax-input' name='slider-tax-input'/>");
-  $("#slider-lux").html("<input class='slider-input' id='slider-lux-input' name='slider-lux-input'/>");
-  $("#slider-sci").html("<input class='slider-input' id='slider-sci-input' name='slider-sci-input'/>");
+  const setHtml = (id, html) => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = html;
+  };
+  setHtml("slider-tax", "<input class='slider-input' id='slider-tax-input' name='slider-tax-input'/>");
+  setHtml("slider-lux", "<input class='slider-input' id='slider-lux-input' name='slider-lux-input'/>");
+  setHtml("slider-sci", "<input class='slider-input' id='slider-sci-input' name='slider-sci-input'/>");
   create_rates_dialog(
     playing()["tax"],
     playing()["luxury"],
@@ -4327,7 +4332,8 @@ function update_rates_dialog() {
     maxrate
   );
   const govt = store.governments[playing()["government"]];
-  $("#max_tax_rate").html("<i>" + govt["name"] + " max rate: " + maxrate + "</i>");
+  const maxRateEl = document.getElementById("max_tax_rate");
+  if (maxRateEl) maxRateEl.innerHTML = "<i>" + govt["name"] + " max rate: " + maxrate + "</i>";
   update_net_income();
   update_net_bulbs();
 }
@@ -4336,7 +4342,7 @@ function update_net_income() {
   if (playing()["expected_income"] > 0) {
     net_income = "+" + playing()["expected_income"];
   }
-  $("#income_info").html(net_income);
+  setInnerHtml("income_info", net_income);
 }
 function update_net_bulbs(bulbs) {
   if (bulbs === void 0) {
@@ -4344,7 +4350,7 @@ function update_net_bulbs(bulbs) {
     bulbs = cbo.self_bulbs - cbo.self_upkeep;
   }
   const bulbsStr = bulbs > 0 ? "+" + bulbs : String(bulbs);
-  $("#bulbs_info").html(bulbsStr);
+  setInnerHtml("bulbs_info", bulbsStr);
 }
 function create_rates_dialog(taxVal, luxVal, sciVal, max) {
   s_tax = new Slider(
@@ -4384,9 +4390,9 @@ function update_rates_labels() {
   tax = s_tax.getValue();
   lux = s_lux.getValue();
   sci = s_sci.getValue();
-  $("#tax_result").html(tax + "%");
-  $("#lux_result").html(lux + "%");
-  $("#sci_result").html(sci + "%");
+  setInnerHtml("tax_result", tax + "%");
+  setInnerHtml("lux_result", lux + "%");
+  setInnerHtml("sci_result", sci + "%");
 }
 function update_tax_rates() {
   if (freeze) return;
@@ -4413,9 +4419,9 @@ function update_tax_rates() {
   s_tax.setValue(tax);
   s_lux.setValue(lux);
   s_sci.setValue(sci);
-  $("#tax_result").html(tax + "%");
-  $("#lux_result").html(lux + "%");
-  $("#sci_result").html(sci + "%");
+  setInnerHtml("tax_result", tax + "%");
+  setInnerHtml("lux_result", lux + "%");
+  setInnerHtml("sci_result", sci + "%");
   freeze = false;
   submit_player_rates();
 }
@@ -4444,9 +4450,9 @@ function update_lux_rates() {
   s_tax.setValue(tax);
   s_lux.setValue(lux);
   s_sci.setValue(sci);
-  $("#tax_result").html(tax + "%");
-  $("#lux_result").html(lux + "%");
-  $("#sci_result").html(sci + "%");
+  setInnerHtml("tax_result", tax + "%");
+  setInnerHtml("lux_result", lux + "%");
+  setInnerHtml("sci_result", sci + "%");
   freeze = false;
   submit_player_rates();
 }
@@ -4475,9 +4481,9 @@ function update_sci_rates() {
   s_tax.setValue(tax);
   s_lux.setValue(lux);
   s_sci.setValue(sci);
-  $("#tax_result").html(tax + "%");
-  $("#lux_result").html(lux + "%");
-  $("#sci_result").html(sci + "%");
+  setInnerHtml("tax_result", tax + "%");
+  setInnerHtml("lux_result", lux + "%");
+  setInnerHtml("sci_result", sci + "%");
   freeze = false;
   submit_player_rates();
 }
@@ -5852,6 +5858,7 @@ function handle_end_turn(_packet) {
     if (btn) btn.disabled = true;
   }
 }
+const _$$1 = window.$;
 const CLAUSE_ADVANCE = 0;
 const CLAUSE_GOLD = 1;
 const CLAUSE_MAP = 2;
@@ -5883,16 +5890,10 @@ function accept_treaty(counterpart, I_accepted, other_accepted) {
     const disagree_sprite = get_treaty_disagree_thumb_down();
     const agree_html = "<div style='float:left; background: transparent url(" + agree_sprite["image-src"] + "); background-position:-" + agree_sprite["tileset-x"] + "px -" + agree_sprite["tileset-y"] + "px;  width: " + agree_sprite["width"] + "px;height: " + agree_sprite["height"] + "px; margin: 5px; '></div>";
     const disagree_html = "<div style='float:left; background: transparent url(" + disagree_sprite["image-src"] + "); background-position:-" + disagree_sprite["tileset-x"] + "px -" + disagree_sprite["tileset-y"] + "px;  width: " + disagree_sprite["width"] + "px;height: " + disagree_sprite["height"] + "px; margin: 5px; '></div>";
-    if (I_accepted === true) {
-      $("#agree_self_" + counterpart).html(agree_html);
-    } else {
-      $("#agree_self_" + counterpart).html(disagree_html);
-    }
-    if (other_accepted) {
-      $("#agree_counterpart_" + counterpart).html(agree_html);
-    } else {
-      $("#agree_counterpart_" + counterpart).html(disagree_html);
-    }
+    const selfEl = document.getElementById("agree_self_" + counterpart);
+    if (selfEl) selfEl.innerHTML = I_accepted ? agree_html : disagree_html;
+    const otherEl = document.getElementById("agree_counterpart_" + counterpart);
+    if (otherEl) otherEl.innerHTML = other_accepted ? agree_html : disagree_html;
   }
 }
 function cancel_meeting_req(counterpart_id) {
@@ -5923,7 +5924,7 @@ function cancel_meeting(counterpart) {
   cleanup_diplomacy_dialog(counterpart);
 }
 function cleanup_diplomacy_dialog(counterpart_id) {
-  $("#diplomacy_dialog_" + counterpart_id).remove();
+  document.getElementById("diplomacy_dialog_" + counterpart_id)?.remove();
 }
 function discard_diplomacy_dialogs() {
   for (const counterpart in diplomacy_clause_map) {
@@ -5944,7 +5945,8 @@ function show_diplomacy_clauses(counterpart_id) {
     );
     diplo_html += "<a href='#' onclick='remove_clause_req(" + counterpart_id + ", " + i2 + ");'>" + diplo_str + "</a><br>";
   }
-  $("#diplomacy_messages_" + counterpart_id).html(diplo_html);
+  const msgEl = document.getElementById("diplomacy_messages_" + counterpart_id);
+  if (msgEl) msgEl.innerHTML = diplo_html;
 }
 function remove_clause_req(counterpart_id, clause_no) {
   const clauses = diplomacy_clause_map[counterpart_id];
@@ -5986,9 +5988,11 @@ function client_diplomacy_clause_string(counterpart, giver, type, value) {
       }
     case CLAUSE_GOLD:
       if (giver === clientPlaying()["playerno"]) {
-        $("#self_gold_" + counterpart).val(value);
+        const el = document.getElementById("self_gold_" + counterpart);
+        if (el) el.value = String(value);
       } else {
-        $("#counterpart_gold_" + counterpart).val(value);
+        const el = document.getElementById("counterpart_gold_" + counterpart);
+        if (el) el.value = String(value);
       }
       return "The " + nation + " give " + value + " gold";
     case CLAUSE_MAP:
@@ -6025,12 +6029,12 @@ function create_diplomacy_dialog(counterpart, template) {
   const pplayer = clientPlaying();
   const counterpart_id = counterpart["playerno"];
   cleanup_diplomacy_dialog(counterpart_id);
-  $("#game_page").append(template({
+  _$$1("#game_page").append(template({
     self: meeting_template_data(pplayer, counterpart),
     counterpart: meeting_template_data(counterpart, pplayer)
   }));
   const title = "Diplomacy: " + counterpart["name"] + " of the " + store.nations[counterpart["nation"]]["adjective"];
-  const diplomacy_dialog = $("#diplomacy_dialog_" + counterpart_id);
+  const diplomacy_dialog = _$$1("#diplomacy_dialog_" + counterpart_id);
   diplomacy_dialog.attr("title", title);
   diplomacy_dialog.dialog({
     bgiframe: true,
@@ -6065,41 +6069,51 @@ function create_diplomacy_dialog(counterpart, template) {
   if (nation["customized"]) {
     meeting_paint_custom_flag(nation, document.getElementById("flag_counterpart_" + counterpart_id));
   }
-  create_clauses_menu($("#hierarchy_self_" + counterpart_id));
-  create_clauses_menu($("#hierarchy_counterpart_" + counterpart_id));
+  create_clauses_menu(_$$1("#hierarchy_self_" + counterpart_id));
+  create_clauses_menu(_$$1("#hierarchy_counterpart_" + counterpart_id));
   if (store.gameInfo.trading_gold && clause_infos[CLAUSE_GOLD]["enabled"]) {
-    $("#self_gold_" + counterpart_id).attr({
-      "max": pplayer["gold"],
-      "min": 0
-    });
-    $("#counterpart_gold_" + counterpart_id).attr({
-      "max": counterpart["gold"],
-      "min": 0
-    });
+    const selfGold = document.getElementById("self_gold_" + counterpart_id);
+    const counterGold = document.getElementById("counterpart_gold_" + counterpart_id);
+    if (selfGold) {
+      selfGold.max = String(pplayer["gold"]);
+      selfGold.min = "0";
+    }
+    if (counterGold) {
+      counterGold.max = String(counterpart["gold"]);
+      counterGold.min = "0";
+    }
     let wto;
-    $("#counterpart_gold_" + counterpart_id).change(function() {
+    counterGold?.addEventListener("change", function() {
       clearTimeout(wto);
       wto = window.setTimeout(function() {
         meeting_gold_change_req(
           counterpart_id,
           counterpart_id,
-          parseFloat($("#counterpart_gold_" + counterpart_id).val())
+          parseFloat(counterGold.value)
         );
       }, 500);
     });
-    $("#self_gold_" + counterpart_id).change(function() {
+    selfGold?.addEventListener("change", function() {
       clearTimeout(wto);
       wto = window.setTimeout(function() {
         meeting_gold_change_req(
           counterpart_id,
           pplayer["playerno"],
-          parseFloat($("#self_gold_" + counterpart_id).val())
+          parseFloat(selfGold.value)
         );
       }, 500);
     });
   } else {
-    $("#self_gold_" + counterpart_id).prop("disabled", true).parent().hide();
-    $("#counterpart_gold_" + counterpart_id).prop("disabled", true).parent().hide();
+    const selfGold = document.getElementById("self_gold_" + counterpart_id);
+    const counterGold = document.getElementById("counterpart_gold_" + counterpart_id);
+    if (selfGold) {
+      selfGold.disabled = true;
+      if (selfGold.parentElement) selfGold.parentElement.style.display = "none";
+    }
+    if (counterGold) {
+      counterGold.disabled = true;
+      if (counterGold.parentElement) counterGold.parentElement.style.display = "none";
+    }
   }
   diplomacy_dialog.css("overflow", "visible");
   diplomacy_dialog.parent().css("z-index", 1e3);
@@ -6446,37 +6460,35 @@ function action_selection_actor_unit() {
   return action_selection_in_progress_for;
 }
 function action_selection_target_city() {
-  const id = "#act_sel_dialog_" + action_selection_in_progress_for;
   if (action_selection_in_progress_for == IDENTITY_NUMBER_ZERO) {
     return IDENTITY_NUMBER_ZERO;
   }
-  return $(id).attr("target_city");
+  const el = document.getElementById("act_sel_dialog_" + action_selection_in_progress_for);
+  return el ? Number(el.getAttribute("target_city")) : IDENTITY_NUMBER_ZERO;
 }
 function action_selection_target_unit() {
-  const id = "#act_sel_dialog_" + action_selection_in_progress_for;
   if (action_selection_in_progress_for == IDENTITY_NUMBER_ZERO) {
     return IDENTITY_NUMBER_ZERO;
   }
-  return $(id).attr("target_unit");
+  const el = document.getElementById("act_sel_dialog_" + action_selection_in_progress_for);
+  return el ? Number(el.getAttribute("target_unit")) : IDENTITY_NUMBER_ZERO;
 }
 function action_selection_target_tile() {
-  const id = "#act_sel_dialog_" + action_selection_in_progress_for;
   if (action_selection_in_progress_for == IDENTITY_NUMBER_ZERO) {
     return TILE_INDEX_NONE$1;
   }
-  return $(id).attr("target_tile");
+  const el = document.getElementById("act_sel_dialog_" + action_selection_in_progress_for);
+  return el ? Number(el.getAttribute("target_tile")) : TILE_INDEX_NONE$1;
 }
 function action_selection_target_extra() {
-  const id = "#act_sel_dialog_" + action_selection_in_progress_for;
   if (action_selection_in_progress_for == IDENTITY_NUMBER_ZERO) {
     return EXTRA_NONE$1;
   }
-  return $(id).attr("target_extra");
+  const el = document.getElementById("act_sel_dialog_" + action_selection_in_progress_for);
+  return el ? Number(el.getAttribute("target_extra")) : EXTRA_NONE$1;
 }
 function action_selection_refresh(actor_unit, target_city, target_unit, target_tile, target_extra, act_probs) {
-  let id;
-  id = "#act_sel_dialog_" + actor_unit["id"];
-  $(id).remove();
+  document.getElementById("act_sel_dialog_" + actor_unit["id"])?.remove();
   popup_action_selection(
     actor_unit,
     act_probs,
@@ -6487,26 +6499,21 @@ function action_selection_refresh(actor_unit, target_city, target_unit, target_t
   );
 }
 function action_selection_close() {
-  let id;
   const actor_unit_id = action_selection_in_progress_for;
-  id = "#act_sel_dialog_" + actor_unit_id;
-  $(id).remove();
-  id = "#bribe_unit_dialog_" + actor_unit_id;
-  $(id).remove();
-  id = "#incite_city_dialog_" + actor_unit_id;
-  $(id).remove();
-  id = "#upgrade_unit_dialog_" + actor_unit_id;
-  $(id).remove();
-  id = "stealtech_dialog_" + actor_unit_id;
-  $(id).remove();
-  id = "sabotage_impr_dialog_" + actor_unit_id;
-  $(id).remove();
-  id = "#sel_tgt_unit_dialog_" + actor_unit_id;
-  $(id).remove();
-  id = "#sel_tgt_extra_dialog_" + actor_unit_id;
-  $(id).remove();
-  id = $("#city_name_dialog");
-  $(id).remove();
+  const ids = [
+    "act_sel_dialog_" + actor_unit_id,
+    "bribe_unit_dialog_" + actor_unit_id,
+    "incite_city_dialog_" + actor_unit_id,
+    "upgrade_unit_dialog_" + actor_unit_id,
+    "stealtech_dialog_" + actor_unit_id,
+    "sabotage_impr_dialog_" + actor_unit_id,
+    "sel_tgt_unit_dialog_" + actor_unit_id,
+    "sel_tgt_extra_dialog_" + actor_unit_id,
+    "city_name_dialog"
+  ];
+  for (const id of ids) {
+    document.getElementById(id)?.remove();
+  }
   act_sel_queue_done(actor_unit_id);
 }
 function list_potential_target_extras(act_unit, target_tile) {
@@ -13154,10 +13161,13 @@ function init_civ_dialog() {
       civ_description += "<img src='/images/flags/" + tag + "-web" + get_tileset_file_extention() + "' width='180'>";
     }
     civ_description += "<br><div>" + pplayer["name"] + " rules the " + store.nations[pplayer["nation"]]["adjective"] + " with the form of government: " + store.governments[clientPlaying()["government"]]["name"] + "</div><br>";
-    $("#nation_title").html("The " + store.nations[pplayer["nation"]]["adjective"] + " nation");
-    $("#civ_dialog_text").html(civ_description);
+    const nationTitleEl = document.getElementById("nation_title");
+    if (nationTitleEl) nationTitleEl.innerHTML = "The " + store.nations[pplayer["nation"]]["adjective"] + " nation";
+    const civTextEl = document.getElementById("civ_dialog_text");
+    if (civTextEl) civTextEl.innerHTML = civ_description;
   } else {
-    $("#civ_dialog_text").html("This dialog isn't available as observer.");
+    const civTextEl = document.getElementById("civ_dialog_text");
+    if (civTextEl) civTextEl.innerHTML = "This dialog isn't available as observer.";
   }
 }
 function update_govt_dialog() {
@@ -13169,20 +13179,23 @@ function update_govt_dialog() {
     govt = store.governments[govt_id];
     governments_list_html += "<button class='govt_button' id='govt_id_" + govt["id"] + "' onclick='set_req_government(" + govt["id"] + ");' title='" + govt["helptext"] + "'>" + govt["name"] + "</button>";
   }
-  $("#governments_list").html(governments_list_html);
+  const govListEl = document.getElementById("governments_list");
+  if (govListEl) govListEl.innerHTML = governments_list_html;
   for (govt_id in governments) {
     govt = store.governments[govt_id];
+    const btn = document.getElementById("govt_id_" + govt["id"]);
+    if (!btn) continue;
+    btn.textContent = govt["name"];
+    btn.title = govt["helptext"] || "";
     if (!canPlayerGetGov(Number(govt_id))) {
-      $("#govt_id_" + govt["id"]).button({ disabled: true, label: govt["name"], icons: { primary: govt["rule_name"] } });
+      btn.disabled = true;
     } else if (requested_gov == Number(govt_id)) {
-      $("#govt_id_" + govt["id"]).button({ label: govt["name"], icons: { primary: govt["rule_name"] } }).css("background", "green");
+      btn.style.background = "green";
     } else if (clientPlaying()?.["government"] == Number(govt_id)) {
-      $("#govt_id_" + govt["id"]).button({ label: govt["name"], icons: { primary: govt["rule_name"] } }).css("background", "#BBBBFF").css("font-weight", "bolder");
-    } else {
-      $("#govt_id_" + govt["id"]).button({ label: govt["name"], icons: { primary: govt["rule_name"] } });
+      btn.style.background = "#BBBBFF";
+      btn.style.fontWeight = "bolder";
     }
   }
-  $(".govt_button").tooltip();
 }
 function set_req_government(gov_id) {
   requested_gov = gov_id;
