@@ -17,7 +17,7 @@
 
 ***********************************************************************/
 
-import { active_city } from './cityDialog';
+import { active_city } from './cityDialogState';
 import { clientIsObserver as client_is_observer, clientPlaying } from '../client/clientState';
 import { cityOwnerPlayerId as city_owner_player_id } from '../data/city';
 

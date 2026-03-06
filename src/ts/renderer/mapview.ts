@@ -7,7 +7,7 @@ import { orientation_changed } from '../utils/mobile';
 import { mapview, mapview_slide, mark_all_dirty, update_map_canvas_full, update_map_canvas, map_to_gui_pos, update_map_canvas_check } from './mapviewCommon';
 import { tileset_tile_width, tileset_tile_height, normal_tile_width, tileset_image_count, tileset_name } from './tilesetConfig';
 import { RENDERER_2DCANVAS } from '../core/constants';
-import { active_city, citydlg_map_width, citydlg_map_height } from '../ui/cityDialog';
+import { active_city, citydlg_map_width, citydlg_map_height } from '../ui/cityDialogState';
 import { resize_enabled } from '../core/control/controlState';
 import { overview_active } from '../core/overview';
 import { chatbox_active } from '../core/messages';

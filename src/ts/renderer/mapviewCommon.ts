@@ -15,7 +15,7 @@ import { draw_fog_of_war } from '../ui/options';
 import { check_request_goto_path } from '../core/control/mapClick';
 import { init_chatbox } from '../core/messages';
 import { setKeyboardInput } from '../core/control/controlState';
-import { active_city } from '../ui/cityDialog';
+import { active_city } from '../ui/cityDialogState';
 import {
   map_select_active,
   map_select_setting_enabled,

@@ -31,7 +31,7 @@ import {
 } from './tilesetConfig';
 import { draw_units, draw_focus_unit } from '../ui/options';
 import { show_citybar } from '../core/control/controlState';
-import { active_city, city_rules } from '../ui/cityDialog';
+import { active_city, city_rules } from '../ui/cityDialogState';
 import { getTilesetFileExtension } from '../utils/helpers';
 
 // Re-export extracted modules for backwards compatibility
