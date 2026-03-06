@@ -15,8 +15,9 @@ import { E_LOG_ERROR } from '../data/eventConstants';
 import { swal } from '../components/Dialogs/SwalDialog';
 
 import { message_log } from '../core/messages';
+import { EventAggregator } from '../utils/EventAggregator';
 import { sendChatMessage } from './commands';
-function getMessageLog(): any {
+function getMessageLog(): EventAggregator {
   return message_log;
 }
 
