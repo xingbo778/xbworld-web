@@ -13,6 +13,7 @@ import { tileCity } from '../../data/tile';
 import { actionProbPossible } from '../../data/actions';
 import { EXTRA_NONE } from '../../data/extra';
 import { IDENTITY_NUMBER_ZERO } from '../../core/constants';
+import { setClientState } from '../../client/clientMain';
 import { indexToTile } from '../../data/map';
 import { extraByNumber } from '../../data/extra';
 import {
@@ -127,7 +128,6 @@ export function action_decision_maybe_auto(
 }
 
 export function update_client_state(value: any): void {
-  const { setClientState } = require('../../client/clientMain');
   setClientState(value);
 }
 

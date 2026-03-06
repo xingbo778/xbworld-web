@@ -12,7 +12,7 @@ import { valid_player_by_number } from '../../data/player';
 import { freelog } from '../../core/log';
 import { showAuthDialog } from '../../client/civClient';
 import { discard_diplomacy_dialogs } from '../../ui/diplomacy';
-import { wait_for_text } from '../../core/messages';
+import { wait_for_text, add_chatbox_text } from '../../core/messages';
 import { update_player_info_pregame, update_game_info_pregame } from '../../core/pregame';
 
 // Connection management
@@ -107,7 +107,6 @@ export function handle_authentication_req(packet: any): void {
 export function handle_server_shutdown(_packet: any): void { /* TODO */ }
 
 export function handle_connect_msg(packet: any): void {
-  const { add_chatbox_text } = require('../../core/messages');
   add_chatbox_text(packet);
 }
 

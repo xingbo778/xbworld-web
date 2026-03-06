@@ -35,6 +35,7 @@ import { store } from '../data/store';
 // ---------------------------------------------------------------------------
 // Initialize store defaults (renderer, etc.)
 store.renderer = RENDERER_2DCANVAS;
+(window as any).renderer = RENDERER_2DCANVAS;  // clientMain.ts reads _w.renderer
 
 // Legacy window globals that are still needed by external JS / audio
 if ((window as any).fc_seedrandom === undefined)          (window as any).fc_seedrandom = null;

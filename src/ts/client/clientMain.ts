@@ -55,7 +55,8 @@ if (_w.width_offset === undefined)   _w.width_offset   = 10;
  * Mirrors the logic in client_main.js set_client_state().
  */
 export function setClientState(newstate: number): void {
-  if (_w.civclient_state === newstate) return;
+  if (store.civclientState === newstate) return;
+  store.civclientState = newstate;
   _w.civclient_state = newstate;
 
   switch (newstate) {

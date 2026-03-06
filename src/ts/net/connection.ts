@@ -14,6 +14,7 @@ import { E_LOG_ERROR } from '../data/eventConstants';
 import { swal } from '../components/Dialogs/SwalDialog';
 
 import { message_log } from '../core/messages';
+import { sendChatMessage } from './commands';
 function getMessageLog(): any {
   return message_log;
 }
@@ -261,7 +262,6 @@ export function send_message_delayed(message: string, delay: number): void {
  * Sends a chat message to the server.
  */
 export function send_message(message: string): void {
-  const { sendChatMessage } = require('./commands');
   sendChatMessage(message);
 }
 

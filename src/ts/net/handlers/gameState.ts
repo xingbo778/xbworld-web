@@ -15,6 +15,8 @@ import { mark_all_dirty } from '../../renderer/mapviewCommon';
 import { setWaitingUnitsList } from '../../core/control/controlState';
 import { get_units_in_focus, update_unit_focus, update_active_units_dialog } from '../../core/control/unitFocus';
 import { auto_center_on_focus_unit } from '../../core/control/unitFocus';
+import { update_game_info_pregame } from '../../core/pregame';
+import { reset_unit_anim_list } from '../../data/unit';
 
 export function handle_game_info(packet: any): void {
   store.gameInfo = packet;
@@ -90,7 +92,6 @@ export function handle_scenario_info(packet: any): void {
 
 export function handle_scenario_description(packet: any): void {
   store.scenarioInfo['description'] = packet['description'];
-  const { update_game_info_pregame } = require('../../core/pregame');
   update_game_info_pregame();
 }
 
@@ -156,7 +157,6 @@ export function handle_begin_turn(_packet: any): void {
 }
 
 export function handle_end_turn(_packet: any): void {
-  const { reset_unit_anim_list } = require('../../data/unit');
   reset_unit_anim_list();
   if (!store.observing) {
     const btn = document.getElementById('turn_done_button') as HTMLButtonElement | null;

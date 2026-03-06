@@ -1994,6 +1994,13 @@ function get_unit_anim_offset(punit) {
   }
   return offset;
 }
+function reset_unit_anim_list() {
+  for (const unit_id in units) {
+    const punit = units[unit_id];
+    punit["anim_list"] = [];
+  }
+  anim_units_count = 0;
+}
 function get_unit_homecity_name(punit) {
   if (punit.homecity !== 0 && cities[punit.homecity] != null) {
     return decodeURIComponent(cities[punit.homecity]["name"]);
@@ -6345,6 +6352,98 @@ function handle_ruleset_control(packet) {
   bases = [];
   store.clauseInfos = {};
 }
+store.client;
+let update_player_info_pregame_queued = false;
+function update_game_info_pregame() {
+  if (C_S_PREPARING != clientState()) return;
+  let game_info_html = "";
+  if (store.scenarioInfo != null && store.scenarioInfo["is_scenario"]) {
+    game_info_html += "<p>";
+    game_info_html += store.scenarioInfo["description"].replace(/\n/g, "<br>");
+    game_info_html += "</p>";
+    if (store.scenarioInfo["authors"]) {
+      game_info_html += "<p>Scenario by ";
+      game_info_html += store.scenarioInfo["authors"].replace(/\n/g, "<br>");
+      game_info_html += "</p>";
+    }
+    if (store.scenarioInfo["prevent_new_cities"]) {
+      game_info_html += "<p>";
+      game_info_html += store.scenarioInfo["name"] + " forbids the founding of new cities.";
+      game_info_html += "</p>";
+    }
+  }
+  const pregameGameInfo = document.getElementById("pregame_game_info");
+  if (pregameGameInfo) pregameGameInfo.innerHTML = game_info_html;
+  setupWindowSize();
+}
+function update_player_info_pregame() {
+  if (update_player_info_pregame_queued) return;
+  setTimeout(update_player_info_pregame_real, 1e3);
+  update_player_info_pregame_queued = true;
+}
+function update_player_info_pregame_real() {
+  if (C_S_PREPARING != clientState()) {
+    update_player_info_pregame_queued = false;
+    return;
+  }
+  let player_html = "";
+  for (const id in store.players) {
+    const player = store.players[id];
+    if (player != null) {
+      const isAI = player["name"].indexOf("AI") !== -1;
+      const iconId = isAI ? "pregame_ai_icon" : "pregame_player_icon";
+      player_html += "<div id='pregame_plr_" + id + "' class='pregame_player_name'><div id='" + iconId + "'></div><b>" + player["name"] + "</b></div>";
+    }
+  }
+  const pregamePlayerList = document.getElementById("pregame_player_list");
+  if (pregamePlayerList) pregamePlayerList.innerHTML = player_html;
+  for (const id in store.players) {
+    const player = store.players[id];
+    let nation_text = "";
+    const plrEl = document.getElementById("pregame_plr_" + id);
+    if (player["nation"] in store.nations) {
+      nation_text = " - " + store.nations[player["nation"]]["adjective"];
+      const flag_canvas = document.createElement("canvas");
+      flag_canvas.id = "pregame_nation_flags_" + id;
+      flag_canvas.width = 29;
+      flag_canvas.height = 20;
+      flag_canvas.className = "pregame_flags";
+      if (plrEl) plrEl.prepend(flag_canvas);
+      const flag_canvas_ctx = flag_canvas.getContext("2d");
+      const tag = "f." + store.nations[player["nation"]]["graphic_str"];
+      if (store.sprites[tag] != null && flag_canvas_ctx != null) {
+        flag_canvas_ctx.drawImage(store.sprites[tag], 0, 0);
+      }
+    }
+    if (!plrEl) continue;
+    if (player["is_ready"] === true) {
+      plrEl.classList.add("pregame_player_ready");
+      plrEl.title = "Player ready" + nation_text;
+    } else if (player["name"].indexOf("AI") === -1) {
+      plrEl.title = "Player not ready" + nation_text;
+    } else {
+      plrEl.title = "AI Player (random nation)";
+    }
+    plrEl.setAttribute("name", player["name"]);
+    plrEl.setAttribute("playerid", String(player["playerno"]));
+  }
+  update_player_info_pregame_queued = false;
+}
+function ruledir_from_ruleset_name(ruleset_name, fall_back_dir) {
+  switch (ruleset_name) {
+    case "Classic ruleset":
+      return "classic";
+    case "Civ2Civ3 ruleset":
+      return "civ2civ3";
+    case "Multiplayer ruleset":
+      return "multiplayer";
+    case "Webperimental":
+      return "webperimental";
+    default:
+      console.log(`Don't know the ruleset dir of "` + ruleset_name + '". Guessing "' + fall_back_dir + '".');
+      return fall_back_dir;
+  }
+}
 function handle_game_info(packet) {
   store.gameInfo = packet;
   if (packet.turn > 0 && typeof clientState === "function" && clientState() !== C_S_RUNNING) {
@@ -6401,7 +6500,6 @@ function handle_scenario_info(packet) {
 }
 function handle_scenario_description(packet) {
   store.scenarioInfo["description"] = packet["description"];
-  const { update_game_info_pregame } = require("../../core/pregame");
   update_game_info_pregame();
 }
 function handle_research_info(packet) {
@@ -6454,7 +6552,6 @@ function handle_begin_turn(_packet) {
   if (is_tech_tree_init && tech_dialog_active) update_tech_screen();
 }
 function handle_end_turn(_packet) {
-  const { reset_unit_anim_list } = require("../../data/unit");
   reset_unit_anim_list();
   if (!store.observing) {
     const btn = document.getElementById("turn_done_button");
@@ -6937,8 +7034,7 @@ function handle_authentication_req(packet) {
 function handle_server_shutdown(_packet) {
 }
 function handle_connect_msg(packet) {
-  const { add_chatbox_text: add_chatbox_text2 } = require("../../core/messages");
-  add_chatbox_text2(packet);
+  add_chatbox_text(packet);
 }
 function handle_server_info(packet) {
   if (packet["emerg_version"] > 0) {
@@ -7138,76 +7234,6 @@ function color_rbg_to_list(pcolor) {
   const color_rgb = pcolor.match(/\d+/g);
   if (!color_rgb) return null;
   return [parseFloat(color_rgb[0]), parseFloat(color_rgb[1]), parseFloat(color_rgb[2])];
-}
-store.client;
-let update_player_info_pregame_queued = false;
-function update_player_info_pregame() {
-  if (update_player_info_pregame_queued) return;
-  setTimeout(update_player_info_pregame_real, 1e3);
-  update_player_info_pregame_queued = true;
-}
-function update_player_info_pregame_real() {
-  if (C_S_PREPARING != clientState()) {
-    update_player_info_pregame_queued = false;
-    return;
-  }
-  let player_html = "";
-  for (const id in store.players) {
-    const player = store.players[id];
-    if (player != null) {
-      const isAI = player["name"].indexOf("AI") !== -1;
-      const iconId = isAI ? "pregame_ai_icon" : "pregame_player_icon";
-      player_html += "<div id='pregame_plr_" + id + "' class='pregame_player_name'><div id='" + iconId + "'></div><b>" + player["name"] + "</b></div>";
-    }
-  }
-  const pregamePlayerList = document.getElementById("pregame_player_list");
-  if (pregamePlayerList) pregamePlayerList.innerHTML = player_html;
-  for (const id in store.players) {
-    const player = store.players[id];
-    let nation_text = "";
-    const plrEl = document.getElementById("pregame_plr_" + id);
-    if (player["nation"] in store.nations) {
-      nation_text = " - " + store.nations[player["nation"]]["adjective"];
-      const flag_canvas = document.createElement("canvas");
-      flag_canvas.id = "pregame_nation_flags_" + id;
-      flag_canvas.width = 29;
-      flag_canvas.height = 20;
-      flag_canvas.className = "pregame_flags";
-      if (plrEl) plrEl.prepend(flag_canvas);
-      const flag_canvas_ctx = flag_canvas.getContext("2d");
-      const tag = "f." + store.nations[player["nation"]]["graphic_str"];
-      if (store.sprites[tag] != null && flag_canvas_ctx != null) {
-        flag_canvas_ctx.drawImage(store.sprites[tag], 0, 0);
-      }
-    }
-    if (!plrEl) continue;
-    if (player["is_ready"] === true) {
-      plrEl.classList.add("pregame_player_ready");
-      plrEl.title = "Player ready" + nation_text;
-    } else if (player["name"].indexOf("AI") === -1) {
-      plrEl.title = "Player not ready" + nation_text;
-    } else {
-      plrEl.title = "AI Player (random nation)";
-    }
-    plrEl.setAttribute("name", player["name"]);
-    plrEl.setAttribute("playerid", String(player["playerno"]));
-  }
-  update_player_info_pregame_queued = false;
-}
-function ruledir_from_ruleset_name(ruleset_name, fall_back_dir) {
-  switch (ruleset_name) {
-    case "Classic ruleset":
-      return "classic";
-    case "Civ2Civ3 ruleset":
-      return "civ2civ3";
-    case "Multiplayer ruleset":
-      return "multiplayer";
-    case "Webperimental":
-      return "webperimental";
-    default:
-      console.log(`Don't know the ruleset dir of "` + ruleset_name + '". Guessing "' + fall_back_dir + '".');
-      return fall_back_dir;
-  }
 }
 const REQEST_BACKGROUND_REFRESH$1 = 1;
 function handle_player_info(packet) {
@@ -9474,7 +9500,8 @@ if (_w$2.endgame_player_info === void 0) _w$2.endgame_player_info = [];
 if (_w$2.height_offset === void 0) _w$2.height_offset = 52;
 if (_w$2.width_offset === void 0) _w$2.width_offset = 10;
 function setClientState(newstate) {
-  if (_w$2.civclient_state === newstate) return;
+  if (store.civclientState === newstate) return;
+  store.civclientState = newstate;
   _w$2.civclient_state = newstate;
   switch (newstate) {
     case C_S_RUNNING:
@@ -12356,6 +12383,7 @@ function IntroDialog() {
   );
 }
 store.renderer = RENDERER_2DCANVAS$1;
+window.renderer = RENDERER_2DCANVAS$1;
 if (window.fc_seedrandom === void 0) window.fc_seedrandom = null;
 if (window.audio === void 0) window.audio = null;
 if (window.audio_enabled === void 0) window.audio_enabled = false;
@@ -12628,8 +12656,7 @@ function send_message_delayed(message, delay) {
   }, delay);
 }
 function send_message(message) {
-  const { sendChatMessage: sendChatMessage2 } = require("./commands");
-  sendChatMessage2(message);
+  sendChatMessage(message);
 }
 Object.defineProperty(win$3, "ws", {
   get: () => ws,
