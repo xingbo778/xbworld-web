@@ -123,17 +123,17 @@ export interface Player {
   expected_income: number;
   team: number;
   embassy_txt: string;
-  flags: any;
-  gives_shared_vision: any;
-  love: any;
-  nturns_idle: number;
-  phase_done: boolean;
-  government: number;
-  tech_upkeep: number;
-  researching: number;
-  researching_cost: number;
-  bulbs_researched: number;
-  tech_goal: number;
+  flags?: any;
+  gives_shared_vision?: any;
+  love?: any;
+  nturns_idle?: number;
+  phase_done?: boolean;
+  government?: number;
+  tech_upkeep?: number;
+  researching?: number;
+  researching_cost?: number;
+  bulbs_researched?: number;
+  tech_goal?: number;
   [key: string]: unknown;
 }
 

@@ -28,7 +28,7 @@ import { current_focus, goto_active, goto_request_map, request_goto_path, contex
 import { mouse_moved_cb } from '../core/control/mouse';
 import { setMapviewMouseMovement } from '../core/control/controlState';
 import { player_by_full_username, get_player_connection_status } from '../data/player';
-import { clientIsObserver as client_is_observer, canClientChangeView as can_client_change_view } from '../client/clientState';
+import { clientIsObserver as client_is_observer, clientPlaying, canClientChangeView as can_client_change_view } from '../client/clientState';
 import { isTouchDevice as is_touch_device, isRightMouseSelectionSupported as is_right_mouse_selection_supported } from '../utils/helpers';
 import { showDialogMessage as show_dialog_message } from '../client/civClient';
 import { do_city_map_click } from '../ui/cityDialog';
@@ -191,7 +191,7 @@ export function mapview_touch_move(e: any): void {
     mapview['gui_y0'] = (mapview['gui_y0'] ?? 0) + diff_y;
   }
 
-  if (store.client.conn.playing == null) return;
+  if (clientPlaying() == null) return;
 
   /* Request preview goto path */
   // goto_preview_active is only used locally, just set a local flag
@@ -287,7 +287,7 @@ export function map_select_units(canvas_x: number, canvas_y: number): void {
     if (cunits == null) continue;
     for (let i = 0; i < cunits.length; i++) {
       const aunit = cunits[i];
-      if (aunit['owner'] == store.client.conn.playing.playerno) {
+      if (aunit['owner'] == clientPlaying().playerno) {
         selected_units.push(aunit);
       }
     }
@@ -321,7 +321,7 @@ export function recenter_button_pressed(canvas_x: number, canvas_y: number): voi
   if (can_client_change_view() && ptile != null && orig_tile != null) {
     const sunit = find_visible_unit(orig_tile);
     if (!client_is_observer() && sunit != null
-        && sunit['owner'] == store.client.conn.playing.playerno) {
+        && sunit['owner'] == clientPlaying().playerno) {
       /* the user right-clicked on own unit, show context menu instead of recenter. */
       if (current_focus.length <= 1) set_unit_focus(sunit);
       const canvasEl = document.getElementById('canvas')!;
@@ -367,7 +367,7 @@ export function handle_web_info_text_message(packet: any): void {
         pplayer = player_by_full_username(split_txt[2]);
       }
       if (pplayer != null && split_txt != null &&
-          (store.client.conn.playing == null || pplayer != store.client.conn.playing)) {
+          (clientPlaying() == null || pplayer != clientPlaying())) {
         lines[i] = split_txt[1]
                  + "<a href='#' onclick='javascript:nation_table_select_player("
                  + pplayer['playerno']

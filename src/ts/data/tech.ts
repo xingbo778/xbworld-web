@@ -129,14 +129,14 @@ export function getCurrentBulbsOutput(): {
         selfBulbs += city.prod[O_SCIENCE];
       }
     }
-    selfUpkeep = store.client.conn.playing.tech_upkeep;
+    selfUpkeep = store.client.conn.playing.tech_upkeep ?? 0;
 
     if (store.gameInfo?.['team_pooled_research']) {
       const team = store.client.conn.playing.team;
       for (const playerId in store.players) {
         const player = store.players[playerId];
         if (player.team === team && player.is_alive) {
-          teamUpkeep += player.tech_upkeep;
+          teamUpkeep += player.tech_upkeep ?? 0;
           if (player.playerno !== cplayer) {
             pooled = true;
           }

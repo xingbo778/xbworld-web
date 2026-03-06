@@ -118,7 +118,7 @@ export function update_player_info_pregame_real(): void {
       plrEl.title = "AI Player (random nation)";
     }
     plrEl.setAttribute("name", player['name']);
-    plrEl.setAttribute("playerid", player['playerno']);
+    plrEl.setAttribute("playerid", String(player['playerno']));
   }
   (window as any).$(".pregame_player_name").tooltip();
 

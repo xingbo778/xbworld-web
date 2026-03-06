@@ -505,9 +505,10 @@ export function fill_sprite_array(layer: number, ptile: any, pedge: any, pcorner
 
         /* The ruleset may use large values scaled down to get greater
          * granularity. */
-        food_output = Math.floor(food_output / store.gameInfo.granularity);
-        shield_output = Math.floor(shield_output / store.gameInfo.granularity);
-        trade_output = Math.floor(trade_output / store.gameInfo.granularity);
+        const gran = (store.gameInfo as any)?.granularity ?? 1;
+        food_output = Math.floor(food_output / gran);
+        shield_output = Math.floor(shield_output / gran);
+        trade_output = Math.floor(trade_output / gran);
 
         sprite_array.push(get_city_food_output_sprite(food_output));
         sprite_array.push(get_city_shields_output_sprite(shield_output));

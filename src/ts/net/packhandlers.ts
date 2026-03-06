@@ -340,7 +340,7 @@ export function handle_ruleset_government_ruler_title(_packet: any): void { /* T
 
 export function handle_ruleset_base(packet: any): void {
   if (!store.rulesControl) return;
-  for (let i = 0; i < store.rulesControl['num_extra_types']; i++) {
+  for (let i = 0; i < (store.rulesControl as any)['num_extra_types']; i++) {
     if (isExtraCausedBy(store.extras[i], EC_BASE)
         && store.extras[i]['base'] == null) {
       store.extras[i]['base'] = packet;
@@ -354,7 +354,7 @@ export function handle_ruleset_base(packet: any): void {
 
 export function handle_ruleset_road(packet: any): void {
   if (!store.rulesControl) return;
-  for (let i = 0; i < store.rulesControl['num_extra_types']; i++) {
+  for (let i = 0; i < (store.rulesControl as any)['num_extra_types']; i++) {
     if (isExtraCausedBy(store.extras[i], EC_ROAD)
         && store.extras[i]['road'] == null) {
       store.extras[i]['road'] = packet;
@@ -824,7 +824,7 @@ export function update_client_state(value: any): void {
 
 export function handle_unit_packet_common(packet_unit: any): void {
   const punit = player_find_unit_by_id(
-    unit_owner(packet_unit), packet_unit['id']
+    unit_owner(packet_unit) as any, packet_unit['id']
   );
 
   // Clear old tile reference before updating
@@ -1168,7 +1168,7 @@ export function handle_player_diplstate(packet: any): void {
   if (store.client == null || store.client.conn.playing == null) return;
 
   if (packet['plr2'] === store.client.conn.playing['playerno']) {
-    const ds = store.players[packet['plr1']].diplstates;
+    const ds: any = store.players[packet['plr1']].diplstates;
     if (ds != undefined && ds[packet['plr2']] != undefined
         && ds[packet['plr2']]['state'] !== packet['type']) {
       need_players_dialog_update = true;
@@ -1189,10 +1189,10 @@ export function handle_player_diplstate(packet: any): void {
     (window as any).diplstates[packet['plr1']] = packet['type'];
   }
 
-  if (store.players[packet['plr1']].diplstates === undefined) {
-    store.players[packet['plr1']].diplstates = [];
+  if ((store.players[packet['plr1']] as any).diplstates === undefined) {
+    (store.players[packet['plr1']] as any).diplstates = [];
   }
-  store.players[packet['plr1']].diplstates[packet['plr2']] = {
+  (store.players[packet['plr1']] as any).diplstates[packet['plr2']] = {
     state: packet['type'],
     turns_left: packet['turns_left'],
     contact_turns_left: packet['contact_turns_left']
@@ -1239,7 +1239,7 @@ export function handle_research_info(packet: any): void {
 
   (window as any).research_data[packet['id']] = packet;
 
-  if (store.gameInfo['team_pooled_research']) {
+  if ((store.gameInfo as any)?.['team_pooled_research']) {
     for (const player_id in store.players) {
       const pplayer = store.players[player_id];
       if (pplayer['team'] === packet['id']) {

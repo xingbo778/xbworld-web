@@ -210,7 +210,7 @@ export function show_city_dialog(pcity: any): void {
   }
 
   let improvements_html: string = "";
-  for (let z = 0; z < store.rulesControl.num_impr_types; z ++) {
+  for (let z = 0; z < ((store.rulesControl as any)?.num_impr_types ?? 0); z ++) {
     if (pcity['improvements'] != null && pcity['improvements'].isSet(z)) {
        sprite = get_improvement_image_sprite(store.improvements[z]);
        if (sprite == null) {
@@ -1209,8 +1209,8 @@ export function update_city_screen(): void {
   const sortList: number[][] = [];
   document.querySelectorAll('#city_table thead th').forEach((th: Element) => {
     const el = th as HTMLElement;
-    if (el.classList.contains('tablesorter-headerAsc')) sortList.push([el.cellIndex, 0]);
-    else if (el.classList.contains('tablesorter-headerDesc')) sortList.push([el.cellIndex, 1]);
+    if (el.classList.contains('tablesorter-headerAsc')) sortList.push([(el as HTMLTableCellElement).cellIndex, 0]);
+    else if (el.classList.contains('tablesorter-headerDesc')) sortList.push([(el as HTMLTableCellElement).cellIndex, 1]);
   });
 
   let city_list_html: string = "<table class='tablesorter' id='city_table' border=0 cellspacing=0>"

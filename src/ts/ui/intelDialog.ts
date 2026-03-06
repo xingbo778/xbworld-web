@@ -22,7 +22,7 @@ declare const $: any;
 import { store } from '../data/store';
 import { player_capital, get_diplstate_text, research_get, DiplState } from '../data/player';
 import { TECH_KNOWN } from '../data/tech';
-import { clientIsObserver as client_is_observer } from '../client/clientState';
+import { clientIsObserver as client_is_observer, clientPlaying } from '../client/clientState';
 import { showDialogMessage as show_dialog_message } from '../client/civClient';
 import { governments } from '../ui/governmentDialog';
 import { showIntelDialog } from '../components/Dialogs/IntelDialog';
@@ -33,7 +33,7 @@ export function show_intelligence_report_dialog(): void {
   const pplayer: any = store.players[selected_player];
 
   if (client_is_observer()
-      || store.client.conn.playing!['real_embassy'].isSet(selected_player)) {
+      || clientPlaying()?.['real_embassy']?.isSet(selected_player)) {
     show_intelligence_report_embassy(pplayer);
   } else {
     show_intelligence_report_hearsay(pplayer);

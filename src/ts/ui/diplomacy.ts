@@ -12,7 +12,7 @@ import {
   packet_diplomacy_remove_clause_req,
   packet_diplomacy_cancel_pact,
 } from '../net/packetConstants';
-import { clientState as client_state, clientIsObserver } from '../client/clientState';
+import { clientState as client_state, clientIsObserver, clientPlaying } from '../client/clientState';
 import { updateNationScreen as update_nation_screen } from '../data/nation';
 import { isSmallScreen as is_small_screen, getTilesetFileExtension as get_tileset_file_extention } from '../utils/helpers';
 import { get_treaty_agree_thumb_up, get_treaty_disagree_thumb_down } from '../renderer/tilespec';
@@ -242,7 +242,7 @@ export function client_diplomacy_clause_string(counterpart: any, giver: any, typ
         return "The " + nation + " give unknown city.";
       }
     case CLAUSE_GOLD:
-      if (giver === store.client.conn.playing['playerno']) {
+      if (giver === clientPlaying()['playerno']) {
         $("#self_gold_" + counterpart).val(value);
       } else {
         $("#counterpart_gold_" + counterpart).val(value);
@@ -294,7 +294,7 @@ export function diplomacy_cancel_treaty(player_id: any): void {
  ...
 **************************************************************************/
 export function create_diplomacy_dialog(counterpart: any, template: any): void {
-  const pplayer = store.client.conn.playing;
+  const pplayer = clientPlaying();
   const counterpart_id = counterpart['playerno'];
 
   // reset diplomacy_dialog div.
@@ -535,7 +535,7 @@ export function meeting_template_data(giver: any, taker: any): any {
     all_clauses.push({ type: CLAUSE_SHARED_TILES, value: 1, name: 'Share tiles' });
   }
 
-  if (giver === store.client.conn.playing) {
+  if (giver === clientPlaying()) {
     clauses = [];
     if (clause_infos[CLAUSE_CEASEFIRE]['enabled']) {
       clauses.push({ type: CLAUSE_CEASEFIRE, value: 1, name: 'Cease-fire' });

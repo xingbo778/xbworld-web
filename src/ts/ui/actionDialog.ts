@@ -797,7 +797,7 @@ export function popup_sabotage_dialog(actor_unit: any, target_city: any, city_im
 
   /* List the alternatives */
   for (let i = 0; i < ((store.rulesControl as any)?.['num_impr_types'] ?? 0); i++) {
-    const improvement = store.improvements[i];
+    const improvement: any = store.improvements[i];
 
     if (city_imprs.isSet(i)
       && improvement['sabotage'] > 0) {

@@ -93,10 +93,11 @@ export function play_sound(sound_file: string): void {
 
 export function sound_error_handler(err: any): void {
   (window as any).sounds_enabled = false;
-  if (window.trackJs) {
-    window.trackJs.console.log(err);
-    window.trackJs.track("Sound problem");
+  const trackJs = (window as any).trackJs;
+  if (trackJs) {
+    trackJs.console.log(err);
+    trackJs.track("Sound problem");
   } else {
-    console.log(err);
+    console.error(err);
   }
 }

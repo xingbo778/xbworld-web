@@ -23,7 +23,7 @@ import { store } from '../data/store';
 import { canPlayerGetGov as can_player_get_gov } from "../data/government";
 import { send_request } from "../net/connection";
 import { packet_player_change_government, packet_report_req } from "../net/packetConstants";
-import { clientIsObserver as client_is_observer } from "../client/clientState";
+import { clientIsObserver as client_is_observer, clientPlaying } from "../client/clientState";
 import { isSmallScreen as is_small_screen } from "../utils/helpers";
 
 export let governments: any = {};
@@ -44,9 +44,9 @@ export function show_revolution_dialog(): void {
   $(id).remove();
   $("<div id='revolution_dialog'></div>").appendTo("div#game_page");
 
-  if (store.client.conn.playing == null) return;
+  if (clientPlaying() == null) return;
 
-  const dhtml: string = "Current form of government: " + store.governments[store.client.conn.playing['government']]['name']
+  const dhtml: string = "Current form of government: " + store.governments[clientPlaying()['government']]['name']
     + "<br>To start a revolution, select the new form of government:"
     + "<p><div id='governments' >"
     + "<div id='governments_list'>"
@@ -72,9 +72,9 @@ export function show_revolution_dialog(): void {
 }
 
 export function init_civ_dialog(): void {
-  if (!client_is_observer() && store.client.conn.playing != null) {
+  if (!client_is_observer() && clientPlaying() != null) {
 
-    const pplayer: any = store.client.conn.playing;
+    const pplayer: any = clientPlaying();
     const pnation: any = store.nations[pplayer['nation']];
     const tag: string = pnation['graphic_str'];
 
@@ -84,7 +84,7 @@ export function init_civ_dialog(): void {
     }
 
     civ_description += "<br><div>" + pplayer['name'] + " rules the " + store.nations[pplayer['nation']]['adjective']
-      + " with the form of government: " + store.governments[store.client.conn.playing['government']]['name']
+      + " with the form of government: " + store.governments[clientPlaying()['government']]['name']
       + "</div><br>";
     $("#nation_title").html("The " + store.nations[pplayer['nation']]['adjective'] + " nation");
     $("#civ_dialog_text").html(civ_description);
@@ -102,7 +102,7 @@ export function update_govt_dialog(): void {
   let governments_list_html: string = "";
 
   for (govt_id in governments) {
-    govt = store.governments[govt_id];
+    govt = (store.governments as any)[govt_id];
     governments_list_html += "<button class='govt_button' id='govt_id_" + govt['id'] + "' "
       + "onclick='set_req_government(" + govt['id'] + ");' "
       + "title='" + govt['helptext'] + "'>" + govt['name'] + "</button>";
@@ -111,12 +111,12 @@ export function update_govt_dialog(): void {
   $("#governments_list").html(governments_list_html);
 
   for (govt_id in governments) {
-    govt = store.governments[govt_id];
+    govt = (store.governments as any)[govt_id];
     if (!can_player_get_gov(Number(govt_id))) {
       $("#govt_id_" + govt['id']).button({ disabled: true, label: govt['name'], icons: { primary: govt['rule_name'] } });
     } else if (requested_gov == Number(govt_id)) {
       $("#govt_id_" + govt['id']).button({ label: govt['name'], icons: { primary: govt['rule_name'] } }).css("background", "green");
-    } else if (store.client.conn.playing['government'] == govt_id) {
+    } else if (clientPlaying()?.['government'] == Number(govt_id)) {
       $("#govt_id_" + govt['id']).button({ label: govt['name'], icons: { primary: govt['rule_name'] } }).css("background", "#BBBBFF").css("font-weight", "bolder");
     } else {
       $("#govt_id_" + govt['id']).button({ label: govt['name'], icons: { primary: govt['rule_name'] } });

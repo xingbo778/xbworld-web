@@ -123,7 +123,7 @@ export function generate_help_menu(key: string): void {
     const unit_ids = unittype_ids_alphabetic();
     for (let i = 0; i < unit_ids.length; i++) {
       const unit_id = unit_ids[i];
-      const punit_type = store.unitTypes[unit_id];
+      const punit_type: any = (store.unitTypes as any)[unit_id];
 
       $("<li data-helptag='" + key + "_" + punit_type["id"] + "'>" + punit_type["name"] + "</li>").appendTo("#help_units_ul");
     }
@@ -311,7 +311,7 @@ export function generate_help_text(key: string): void {
     msg += wiki_on_item_button(improvement["name"]);
   } else if (key.indexOf("help_gen_units") !== -1) {
     let obsolete_by: any;
-    const punit_type = store.unitTypes[parseInt(key.replace("help_gen_units_", ""))];
+    const punit_type: any = store.unitTypes[parseInt(key.replace("help_gen_units_", ""))];
 
     msg = "<h1>" + punit_type["name"] + "</h1>";
     msg += render_sprite(get_unit_type_image_sprite(punit_type));
