@@ -9,6 +9,8 @@
  */
 
 import { store } from './store';
+import { player_has_wonder } from './player';
+import { RPT_CERTAIN } from './fcTypes';
 
 // ---------------------------------------------------------------------------
 // Functions
@@ -44,15 +46,12 @@ export function governmentMaxRate(govtId: number): number {
 export function canPlayerGetGov(govtId: number): boolean {
   const client = store.client;
   const governments = store.governments as Record<number, any>;
-  const playerHasWonder = (window as any).player_has_wonder as
-    (playerno: number, wonderId: number) => boolean;
   const areReqsActive = (window as any).are_reqs_active as (
     ...args: any[]
   ) => boolean;
-  const RPT_CERTAIN = (window as any).RPT_CERTAIN as number;
 
   return (
-    playerHasWonder(client.conn.playing!.playerno, 63) || // hack for Statue of Liberty
+    player_has_wonder(client.conn.playing!.playerno, 63) || // hack for Statue of Liberty
     areReqsActive(
       client.conn.playing!,
       null,

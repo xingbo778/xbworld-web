@@ -49,9 +49,9 @@ export function handle_new_year(packet: any): void {
 }
 
 export function handle_timeout_info(packet: any): void {
-  (window as any).last_turn_change_time = Math.ceil(packet['last_turn_change_time']);
-  (window as any).seconds_to_phasedone = Math.floor(packet['seconds_to_phasedone']);
-  (window as any).seconds_to_phasedone_sync = new Date().getTime();
+  store.lastTurnChangeTime = Math.ceil(packet['last_turn_change_time']);
+  store.secondsToPhasedone = Math.floor(packet['seconds_to_phasedone']);
+  store.secondsToPhasedoneSync = new Date().getTime();
 }
 
 export function handle_trade_route_info(packet: any): void {
@@ -62,7 +62,8 @@ export function handle_trade_route_info(packet: any): void {
 }
 
 export function handle_endgame_player(packet: any): void {
-  (window as any).endgame_player_info.push(packet);
+  store.endgamePlayerInfo.push(packet);
+  (window as any).endgame_player_info = store.endgamePlayerInfo;  // clientMain.ts reads _w
 }
 
 export function handle_unknown_research(packet: any): void {
@@ -76,7 +77,7 @@ export function handle_end_phase(_packet: any): void {
 export function handle_start_phase(_packet: any): void {
   set_client_state(C_S_RUNNING);
   setPhaseStart();
-  (window as any).saved_this_turn = false;
+  store.savedThisTurn = false;
 }
 
 export function handle_endgame_report(_packet: any): void {

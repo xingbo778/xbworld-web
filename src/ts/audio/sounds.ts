@@ -17,11 +17,12 @@
 
 ***********************************************************************/
 
-import { unit_type } from '../data/unit';
+import { unit_type, is_unit_visible as _is_unit_visible } from '../data/unit';
+import { store } from '../data/store';
 
-const sounds_enabled_get = (): boolean => (window as any).sounds_enabled ?? false;
+const sounds_enabled_get = (): boolean => store.soundsEnabled;
 const soundset_get = (): Record<string, any> => (window as any).soundset ?? {};
-const is_unit_visible = (punit: any): boolean => (window as any).is_unit_visible?.(punit) ?? false;
+const is_unit_visible = (punit: any): boolean => _is_unit_visible(punit);
 
 export let sound_path: string = "/sounds/";
 
@@ -94,7 +95,7 @@ export function play_sound(sound_file: string): void {
 }
 
 export function sound_error_handler(err: any): void {
-  (window as any).sounds_enabled = false;
+  store.soundsEnabled = false;
   const trackJs = (window as any).trackJs;
   if (trackJs) {
     trackJs.console.log(err);

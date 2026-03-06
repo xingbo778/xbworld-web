@@ -4,6 +4,7 @@
  * Extracted from core/control.ts
  */
 
+import { store } from '../../data/store';
 import { ACT_DEC_ACTIVE, ACT_DEC_PASSIVE, ACT_DEC_NOTHING } from '../../data/fcTypes';
 import { EXTRA_NONE } from '../../data/extra';
 import { IDENTITY_NUMBER_ZERO } from '../../core/constants';
@@ -41,7 +42,7 @@ export function can_ask_server_for_actions(): boolean {
 }
 
 export function ask_server_for_actions(punit: any): boolean {
-  if ((window as any).observing || punit == null) {
+  if (store.observing || punit == null) {
     return false;
   }
 

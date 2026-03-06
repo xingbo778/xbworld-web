@@ -40,10 +40,6 @@ store.renderer = RENDERER_2DCANVAS;
 if ((window as any).fc_seedrandom === undefined)          (window as any).fc_seedrandom = null;
 if ((window as any).audio === undefined)                  (window as any).audio = null;
 if ((window as any).audio_enabled === undefined)          (window as any).audio_enabled = false;
-if ((window as any).last_turn_change_time === undefined)  (window as any).last_turn_change_time = 0;
-if ((window as any).turn_change_elapsed === undefined)    (window as any).turn_change_elapsed = 0;
-if ((window as any).seconds_to_phasedone === undefined)   (window as any).seconds_to_phasedone = 0;
-if ((window as any).seconds_to_phasedone_sync === undefined) (window as any).seconds_to_phasedone_sync = 0;
 if ((window as any).dialog_close_trigger === undefined)   (window as any).dialog_close_trigger = '';
 if ((window as any).dialog_message_close_task === undefined) (window as any).dialog_message_close_task = undefined;
 if (!(window as any).music_list) {
@@ -63,9 +59,7 @@ if (!(window as any).music_list) {
 export function civClientInit(): void {
   // Always observer mode
   store.observing = true;
-  (window as any).observing = true;
   store.gameType = 'observe';
-  (window as any).game_type = 'observe';
   // Remove observer-irrelevant UI elements (both tab buttons and their panels)
   for (const id of ['civ_tab', 'cities_tab', 'opt_tab', 'hel_tab', 'pregame_buttons', 'game_unit_orders_default', 'civ_dialog', 'game_unit_panel', 'tabs-cities', 'tabs-opt', 'tabs-hel', 'tabs-civ']) {
     document.getElementById(id)?.remove();
@@ -110,9 +104,11 @@ export function civClientInit(): void {
   }
   // jQuery UI .button() styling no longer needed — CSS handles it
 
-  (window as any).sounds_enabled = JSON.parse(localStorage.getItem('sndFX') ?? 'null');
-  if ((window as any).sounds_enabled == null) {
-    (window as any).sounds_enabled = navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome') ? false : true;
+  const savedSounds = JSON.parse(localStorage.getItem('sndFX') ?? 'null');
+  if (savedSounds != null) {
+    store.soundsEnabled = savedSounds;
+  } else {
+    store.soundsEnabled = !(navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome'));
   }
 
   /* Initialise audio.js music player */
@@ -148,7 +144,6 @@ export function initCommonIntroDialog(): void {
   // Set default username and auto-connect
   const saved = localStorage.getItem('username');
   store.username = saved || 'Observer';
-  (window as any).username = store.username;
   // Show intro dialog (non-blocking)
   showIntroDialog('Welcome to XBWorld', 'You are joining the game as an observer. Please enter your name:');
   // Auto-connect immediately (dialog can still update username).
@@ -220,13 +215,13 @@ export function switchRenderer(): void {
 // Auto-init on DOMContentLoaded (replaces jQuery $(document).ready)
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
-    if (!(window as any).civclient_state || (window as any).civclient_state === 0) {
+    if (!store.civclientState) {
       civClientInit();
     }
   });
 } else {
   // DOM already loaded (module scripts are deferred)
-  if (!(window as any).civclient_state || (window as any).civclient_state === 0) {
+  if (!store.civclientState) {
     civClientInit();
   }
 }

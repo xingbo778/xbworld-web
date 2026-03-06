@@ -1032,6 +1032,31 @@ class GameStore {
   diplstates = {};
   civserverport = "";
   freecivWikiDocs = {};
+  // Canvas/map rendering state
+  mapviewCanvasCtx = null;
+  bufferCanvas = null;
+  mapviewCanvas = null;
+  dashedSupport = false;
+  fullfog = [];
+  // UI interaction state
+  contextMenuActive = false;
+  keyboardInput = true;
+  mapviewMouseMovement = false;
+  currentFocus = [];
+  soundsEnabled = false;
+  // Timer/network state
+  lastTurnChangeTime = 0;
+  turnChangeElapsed = 0;
+  secondsToPhasedone = 0;
+  secondsToPhasedoneSync = 0;
+  pingLast = 0;
+  connPingInfo = null;
+  debugPingList = [];
+  savedThisTurn = false;
+  endgamePlayerInfo = [];
+  benchmarkStart = 0;
+  autoAttack = false;
+  cityTileMap = null;
   client = {
     conn: { id: 0, playing: null }
   };
@@ -1043,6 +1068,8 @@ class GameStore {
   phaseStartTime = 0;
   debugActive = false;
   autostart = false;
+  civclientState = 0;
+  // ClientState enum
   reset() {
     this.tiles = {};
     this.terrains = {};
@@ -1088,7 +1115,7 @@ const DIR8_SOUTHWEST$1 = 5;
 const DIR8_SOUTH$2 = 6;
 const DIR8_SOUTHEAST$1 = 7;
 function clientState() {
-  return window.civclient_state ?? ClientState.INITIAL;
+  return store.civclientState;
 }
 function canClientChangeView() {
   const playing2 = store.client?.conn?.playing;
@@ -1222,6 +1249,7 @@ const ACT_DEC_ACTIVE = 2;
 const VUT_ADVANCE = 4;
 const VUT_IMPROVEMENT = 20;
 const VUT_UTYPE = 61;
+const RPT_CERTAIN = 1;
 const O_FOOD$1 = 0;
 const O_SHIELD$1 = 1;
 const O_TRADE = 2;
@@ -1627,28 +1655,6 @@ let mouse_touch_started_on_unit = false;
 function setMouseTouchStartedOnUnit(v2) {
   mouse_touch_started_on_unit = v2;
 }
-const EXTRA_NONE$1 = -1;
-const BASE_GUI_FORTRESS = 0;
-const BASE_GUI_AIRBASE = 1;
-function extraByNumber(id) {
-  if (id === EXTRA_NONE$1) {
-    return null;
-  }
-  const extras2 = window.extras;
-  const rc = window.ruleset_control;
-  if (id >= 0 && rc && id < rc["num_extra_types"]) {
-    return extras2[id];
-  } else {
-    console.log("extra_by_number(): Invalid extra id: " + id);
-    return null;
-  }
-}
-function isExtraCausedBy(pextra, cause) {
-  return pextra.causes.isSet(cause);
-}
-function isExtraRemovedBy(pextra, rmcause) {
-  return pextra.rmcauses.isSet(rmcause);
-}
 const MAX_NUM_PLAYERS = 30;
 const MAX_AI_LOVE$1 = 1e3;
 var DiplState = /* @__PURE__ */ ((DiplState2) => {
@@ -1746,6 +1752,15 @@ function research_get(pplayer) {
   if (pplayer == null) return null;
   return research_data[pplayer.playerno] ?? null;
 }
+function player_has_wonder(playerno, improvement_id) {
+  for (const city_id in cities) {
+    const pcity = cities[city_id];
+    if (pcity.owner === playerno && pcity.improvements != null && pcity.improvements[improvement_id] === true) {
+      return true;
+    }
+  }
+  return false;
+}
 function player_capital(player) {
   if (player == null) return null;
   for (const city_id in cities) {
@@ -1780,6 +1795,27 @@ _w$6["DS_LAST"] = 7;
 _w$6["PLRF_AI"] = 0;
 _w$6["PLRF_SCENARIO_RESERVED"] = 1;
 _w$6["PLRF_COUNT"] = 2;
+const EXTRA_NONE$1 = -1;
+const BASE_GUI_FORTRESS = 0;
+const BASE_GUI_AIRBASE = 1;
+function extraByNumber(id) {
+  if (id === EXTRA_NONE$1) {
+    return null;
+  }
+  const rc = store.rulesControl;
+  if (id >= 0 && rc && id < rc["num_extra_types"]) {
+    return store.extras[id];
+  } else {
+    console.log("extra_by_number(): Invalid extra id: " + id);
+    return null;
+  }
+}
+function isExtraCausedBy(pextra, cause) {
+  return pextra.causes.isSet(cause);
+}
+function isExtraRemovedBy(pextra, rmcause) {
+  return pextra.rmcauses.isSet(rmcause);
+}
 var Order = /* @__PURE__ */ ((Order2) => {
   Order2[Order2["MOVE"] = 0] = "MOVE";
   Order2[Order2["ACTIVITY"] = 1] = "ACTIVITY";
@@ -1888,8 +1924,7 @@ function move_points_text(moves) {
   return result;
 }
 function unit_has_goto(punit) {
-  const _client = window.client;
-  if (_client?.conn?.playing == null || punit.owner !== _client.conn.playing.playerno) {
+  if (store.client?.conn?.playing == null || punit.owner !== store.client.conn.playing.playerno) {
     return false;
   }
   return punit.goto_tile !== -1;
@@ -2202,6 +2237,241 @@ const fc_e_events = [
   "e_chat_observer",
   "e_undefined"
 ];
+let banned_users = [];
+function check_text_with_banlist(text) {
+  if (text == null || text.length === 0) return false;
+  for (let i2 = 0; i2 < banned_users.length; i2++) {
+    if (text.toLowerCase().indexOf(banned_users[i2].toLowerCase()) !== -1) return false;
+  }
+  return true;
+}
+const win$4 = window;
+function isLongturn() {
+  return win$4.game_type === "longturn";
+}
+function setPhaseStart() {
+  win$4.phase_start_time = Date.now();
+}
+function requestObserveGame() {
+  send_message("/observe ");
+}
+const DP_NONE = 0;
+const DP_FIRST = 1;
+const DP_LAST = 2;
+const DP_COUNT = 3;
+const DP_ALL = 4;
+class EventAggregator {
+  static DP_NONE = DP_NONE;
+  static DP_FIRST = DP_FIRST;
+  static DP_LAST = DP_LAST;
+  static DP_COUNT = DP_COUNT;
+  static DP_ALL = DP_ALL;
+  handler;
+  timeout;
+  latency;
+  maxDelays;
+  delayTimeout;
+  dataPolicy;
+  timer = null;
+  data;
+  burst = false;
+  delays = 0;
+  count = 0;
+  constructor(handler, timeout, dataPolicy, latency, maxDelays, delayTimeout) {
+    this.handler = handler;
+    this.timeout = timeout || 1e3;
+    this.latency = latency === 0 ? 0 : latency || this.timeout;
+    this.maxDelays = maxDelays || 0;
+    this.delayTimeout = delayTimeout === 0 ? 0 : delayTimeout || this.timeout / 2;
+    this.dataPolicy = dataPolicy || DP_NONE;
+    this.clear();
+  }
+  _setTimeout(delay) {
+    return setTimeout(() => this.fired(), delay);
+  }
+  fireNow() {
+    if (this.count > 0) {
+      const count = this.count;
+      const data = this.data;
+      this.cancel();
+      this.clear();
+      switch (this.dataPolicy) {
+        case DP_FIRST:
+        case DP_LAST:
+        case DP_ALL:
+          this.handler(data);
+          break;
+        case DP_COUNT:
+          this.handler(count);
+          break;
+        default:
+          this.handler();
+      }
+      if (this.latency > 0) {
+        this.timer = this._setTimeout(this.latency);
+      }
+    }
+  }
+  update(data) {
+    switch (this.dataPolicy) {
+      case DP_FIRST:
+        if (this.count === 0) this.data = data;
+        break;
+      case DP_LAST:
+        this.data = data;
+        break;
+      case DP_ALL:
+        this.data.push(data);
+        break;
+    }
+    this.count++;
+    if (this.timer === null) {
+      this.timer = this._setTimeout(this.timeout);
+    } else if (this.count > 1) {
+      this.burst = true;
+    }
+  }
+  fired() {
+    if (this.burst && this.delays < this.maxDelays) {
+      this.burst = false;
+      this.delays++;
+      this.timer = this._setTimeout(this.delayTimeout);
+    } else {
+      this.timer = null;
+      this.fireNow();
+    }
+  }
+  cancel() {
+    if (this.timer !== null) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
+  }
+  clear() {
+    if (this.dataPolicy === DP_ALL) {
+      this.data = [];
+    } else {
+      this.data = void 0;
+    }
+    this.burst = false;
+    this.delays = 0;
+    this.count = 0;
+  }
+}
+window.EventAggregator = EventAggregator;
+const is_longturn = isLongturn;
+const civclient_state = clientState();
+let chatbox_active = true;
+const message_log = new EventAggregator(
+  update_chatbox,
+  125,
+  EventAggregator.DP_ALL,
+  1e3,
+  0
+);
+const max_chat_message_length = 350;
+function init_chatbox() {
+  chatbox_active = true;
+  const panel = document.getElementById("game_chatbox_panel");
+  if (panel) {
+    panel.title = "Messages";
+    panel.style.display = "block";
+  }
+}
+function reclassify_chat_message(text) {
+  if (text == null || text.length < 29) {
+    return E_CHAT_MSG;
+  }
+  text = text.replace(/^<b>[^<]*:<\/b>/, "");
+  text = text.replace(/^\([^)]*\) /, "");
+  const color = text.substring(14, 20);
+  if (color == "A020F0") {
+    return E_CHAT_PRIVATE;
+  } else if (color == "551166") {
+    return E_CHAT_ALLIES;
+  } else if (text.charAt(23) == "(") {
+    return E_CHAT_OBSERVER;
+  }
+  return E_CHAT_MSG;
+}
+function add_chatbox_text(packet) {
+  let text = packet["message"];
+  if (text == null) return;
+  if (!check_text_with_banlist(text)) return;
+  if (is_longturn()) {
+    if (text.indexOf("waiting on") != -1 || text.indexOf("Lost connection") != -1 || text.indexOf("Not enough") != -1 || text.indexOf("has been removed") != -1 || text.indexOf("has connected") != -1) return;
+  }
+  if (text.length >= max_chat_message_length) return;
+  if (packet["event"] === E_CHAT_MSG) {
+    packet["event"] = reclassify_chat_message(text);
+  }
+  if (civclient_state <= C_S_PREPARING) {
+    text = text.replace(/#FFFFFF/g, "#000000");
+  } else {
+    text = text.replace(/#0000FF/g, "#5555FF").replace(/#006400/g, "#00AA00").replace(/#551166/g, "#AA88FF").replace(/#A020F0/g, "#F020FF");
+  }
+  packet["message"] = text;
+  message_log.update(packet);
+}
+function get_chatbox_text() {
+  const chatbox_msg_list = get_chatbox_msg_list();
+  if (chatbox_msg_list != null) {
+    return chatbox_msg_list.textContent;
+  } else {
+    return null;
+  }
+}
+function get_chatbox_msg_list() {
+  return document.getElementById(civclient_state <= C_S_PREPARING ? "pregame_message_area" : "game_message_area");
+}
+function clear_chatbox() {
+  message_log.clear();
+  chatbox_clip_messages(0);
+}
+function update_chatbox(messages) {
+  const scrollDiv = get_chatbox_msg_list();
+  if (scrollDiv != null) {
+    for (let i2 = 0; i2 < messages.length; i2++) {
+      const item = document.createElement("li");
+      item.className = fc_e_events[messages[i2].event] || "";
+      item.innerHTML = messages[i2].message;
+      scrollDiv.appendChild(item);
+    }
+  } else {
+    for (let i2 = 0; i2 < messages.length; i2++) {
+      message_log.update(messages[i2]);
+    }
+  }
+  setTimeout(() => {
+    const el = document.getElementById("freeciv_custom_scrollbar_div");
+    if (el) el.scrollTop = el.scrollHeight;
+  }, 100);
+}
+function chatbox_clip_messages(lines) {
+  if (lines === void 0 || lines < 0) {
+    lines = 24;
+  }
+  message_log.fireNow();
+  const msglist = get_chatbox_msg_list();
+  if (!msglist) return;
+  let remove = msglist.children.length - lines;
+  while (remove-- > 0) {
+    if (msglist.firstChild) {
+      msglist.removeChild(msglist.firstChild);
+    }
+  }
+  update_chatbox([]);
+}
+function wait_for_text(text, runnable) {
+  const chatbox_text = get_chatbox_text();
+  if (chatbox_text != null && chatbox_text.indexOf(text) != -1) {
+    runnable();
+  } else {
+    setTimeout(function() {
+      wait_for_text(text, runnable);
+    }, 100);
+  }
+}
 function hashString(s2) {
   let h2 = 0;
   for (let i2 = 0; i2 < s2.length; i2++) {
@@ -2332,18 +2602,15 @@ function tileOwner(tile) {
 function tileCity(ptile) {
   if (!ptile) return null;
   const cityId = ptile.worked;
-  const cities2 = window.cities;
-  if (!cities2) return null;
-  const pcity = cities2[cityId];
+  const pcity = store.cities[cityId];
   if (pcity && pcity.tile === ptile.index) {
     return pcity;
   }
   return null;
 }
 function tileTerrain(ptile) {
-  const terrains2 = window.terrains;
-  if (!terrains2) return void 0;
-  return terrains2[ptile.terrain];
+  if (!store.terrains) return void 0;
+  return store.terrains[ptile.terrain];
 }
 function tileTerrainNear(ptile) {
   const near = [];
@@ -2887,241 +3154,6 @@ const packet_client_info = 119;
 const packet_web_cma_clear = 258;
 const packet_web_goto_path_req = 287;
 const packet_web_info_text_req = 289;
-let banned_users = [];
-function check_text_with_banlist(text) {
-  if (text == null || text.length === 0) return false;
-  for (let i2 = 0; i2 < banned_users.length; i2++) {
-    if (text.toLowerCase().indexOf(banned_users[i2].toLowerCase()) !== -1) return false;
-  }
-  return true;
-}
-const win$4 = window;
-function isLongturn() {
-  return win$4.game_type === "longturn";
-}
-function setPhaseStart() {
-  win$4.phase_start_time = Date.now();
-}
-function requestObserveGame() {
-  send_message("/observe ");
-}
-const DP_NONE = 0;
-const DP_FIRST = 1;
-const DP_LAST = 2;
-const DP_COUNT = 3;
-const DP_ALL = 4;
-class EventAggregator {
-  static DP_NONE = DP_NONE;
-  static DP_FIRST = DP_FIRST;
-  static DP_LAST = DP_LAST;
-  static DP_COUNT = DP_COUNT;
-  static DP_ALL = DP_ALL;
-  handler;
-  timeout;
-  latency;
-  maxDelays;
-  delayTimeout;
-  dataPolicy;
-  timer = null;
-  data;
-  burst = false;
-  delays = 0;
-  count = 0;
-  constructor(handler, timeout, dataPolicy, latency, maxDelays, delayTimeout) {
-    this.handler = handler;
-    this.timeout = timeout || 1e3;
-    this.latency = latency === 0 ? 0 : latency || this.timeout;
-    this.maxDelays = maxDelays || 0;
-    this.delayTimeout = delayTimeout === 0 ? 0 : delayTimeout || this.timeout / 2;
-    this.dataPolicy = dataPolicy || DP_NONE;
-    this.clear();
-  }
-  _setTimeout(delay) {
-    return setTimeout(() => this.fired(), delay);
-  }
-  fireNow() {
-    if (this.count > 0) {
-      const count = this.count;
-      const data = this.data;
-      this.cancel();
-      this.clear();
-      switch (this.dataPolicy) {
-        case DP_FIRST:
-        case DP_LAST:
-        case DP_ALL:
-          this.handler(data);
-          break;
-        case DP_COUNT:
-          this.handler(count);
-          break;
-        default:
-          this.handler();
-      }
-      if (this.latency > 0) {
-        this.timer = this._setTimeout(this.latency);
-      }
-    }
-  }
-  update(data) {
-    switch (this.dataPolicy) {
-      case DP_FIRST:
-        if (this.count === 0) this.data = data;
-        break;
-      case DP_LAST:
-        this.data = data;
-        break;
-      case DP_ALL:
-        this.data.push(data);
-        break;
-    }
-    this.count++;
-    if (this.timer === null) {
-      this.timer = this._setTimeout(this.timeout);
-    } else if (this.count > 1) {
-      this.burst = true;
-    }
-  }
-  fired() {
-    if (this.burst && this.delays < this.maxDelays) {
-      this.burst = false;
-      this.delays++;
-      this.timer = this._setTimeout(this.delayTimeout);
-    } else {
-      this.timer = null;
-      this.fireNow();
-    }
-  }
-  cancel() {
-    if (this.timer !== null) {
-      clearTimeout(this.timer);
-      this.timer = null;
-    }
-  }
-  clear() {
-    if (this.dataPolicy === DP_ALL) {
-      this.data = [];
-    } else {
-      this.data = void 0;
-    }
-    this.burst = false;
-    this.delays = 0;
-    this.count = 0;
-  }
-}
-window.EventAggregator = EventAggregator;
-const is_longturn = isLongturn;
-const civclient_state = clientState();
-let chatbox_active = true;
-const message_log = new EventAggregator(
-  update_chatbox,
-  125,
-  EventAggregator.DP_ALL,
-  1e3,
-  0
-);
-const max_chat_message_length = 350;
-function init_chatbox() {
-  chatbox_active = true;
-  const panel = document.getElementById("game_chatbox_panel");
-  if (panel) {
-    panel.title = "Messages";
-    panel.style.display = "block";
-  }
-}
-function reclassify_chat_message(text) {
-  if (text == null || text.length < 29) {
-    return E_CHAT_MSG;
-  }
-  text = text.replace(/^<b>[^<]*:<\/b>/, "");
-  text = text.replace(/^\([^)]*\) /, "");
-  const color = text.substring(14, 20);
-  if (color == "A020F0") {
-    return E_CHAT_PRIVATE;
-  } else if (color == "551166") {
-    return E_CHAT_ALLIES;
-  } else if (text.charAt(23) == "(") {
-    return E_CHAT_OBSERVER;
-  }
-  return E_CHAT_MSG;
-}
-function add_chatbox_text(packet) {
-  let text = packet["message"];
-  if (text == null) return;
-  if (!check_text_with_banlist(text)) return;
-  if (is_longturn()) {
-    if (text.indexOf("waiting on") != -1 || text.indexOf("Lost connection") != -1 || text.indexOf("Not enough") != -1 || text.indexOf("has been removed") != -1 || text.indexOf("has connected") != -1) return;
-  }
-  if (text.length >= max_chat_message_length) return;
-  if (packet["event"] === E_CHAT_MSG) {
-    packet["event"] = reclassify_chat_message(text);
-  }
-  if (civclient_state <= C_S_PREPARING) {
-    text = text.replace(/#FFFFFF/g, "#000000");
-  } else {
-    text = text.replace(/#0000FF/g, "#5555FF").replace(/#006400/g, "#00AA00").replace(/#551166/g, "#AA88FF").replace(/#A020F0/g, "#F020FF");
-  }
-  packet["message"] = text;
-  message_log.update(packet);
-}
-function get_chatbox_text() {
-  const chatbox_msg_list = get_chatbox_msg_list();
-  if (chatbox_msg_list != null) {
-    return chatbox_msg_list.textContent;
-  } else {
-    return null;
-  }
-}
-function get_chatbox_msg_list() {
-  return document.getElementById(civclient_state <= C_S_PREPARING ? "pregame_message_area" : "game_message_area");
-}
-function clear_chatbox() {
-  message_log.clear();
-  chatbox_clip_messages(0);
-}
-function update_chatbox(messages) {
-  const scrollDiv = get_chatbox_msg_list();
-  if (scrollDiv != null) {
-    for (let i2 = 0; i2 < messages.length; i2++) {
-      const item = document.createElement("li");
-      item.className = fc_e_events[messages[i2].event] || "";
-      item.innerHTML = messages[i2].message;
-      scrollDiv.appendChild(item);
-    }
-  } else {
-    for (let i2 = 0; i2 < messages.length; i2++) {
-      message_log.update(messages[i2]);
-    }
-  }
-  setTimeout(() => {
-    const el = document.getElementById("freeciv_custom_scrollbar_div");
-    if (el) el.scrollTop = el.scrollHeight;
-  }, 100);
-}
-function chatbox_clip_messages(lines) {
-  if (lines === void 0 || lines < 0) {
-    lines = 24;
-  }
-  message_log.fireNow();
-  const msglist = get_chatbox_msg_list();
-  if (!msglist) return;
-  let remove = msglist.children.length - lines;
-  while (remove-- > 0) {
-    if (msglist.firstChild) {
-      msglist.removeChild(msglist.firstChild);
-    }
-  }
-  update_chatbox([]);
-}
-function wait_for_text(text, runnable) {
-  const chatbox_text = get_chatbox_text();
-  if (chatbox_text != null && chatbox_text.indexOf(text) != -1) {
-    runnable();
-  } else {
-    setTimeout(function() {
-      wait_for_text(text, runnable);
-    }, 100);
-  }
-}
 function orientation_changed() {
 }
 function $id(id) {
@@ -3191,6 +3223,9 @@ function init_mapview() {
   mapview_canvas_ctx = mapview_canvas.getContext("2d");
   buffer_canvas = document.createElement("canvas");
   buffer_canvas_ctx = buffer_canvas.getContext("2d");
+  store.mapviewCanvasCtx = mapview_canvas_ctx;
+  store.bufferCanvas = buffer_canvas;
+  store.mapviewCanvas = mapview_canvas;
   window.mapview_canvas_ctx = mapview_canvas_ctx;
   window.buffer_canvas = buffer_canvas;
   window.mapview_canvas = mapview_canvas;
@@ -3199,7 +3234,7 @@ function init_mapview() {
   }
   if (mapview_canvas_ctx) {
     dashedSupport = "setLineDash" in mapview_canvas_ctx;
-    window.dashedSupport = dashedSupport;
+    store.dashedSupport = dashedSupport;
   }
   setupWindowSize();
   mapview$1["gui_x0"] = 0;
@@ -3217,6 +3252,7 @@ function init_mapview() {
     }
     fullfog[i2] = buf;
   }
+  store.fullfog = fullfog;
   window.fullfog = fullfog;
   if (is_small_screen()) _win.MAPVIEW_REFRESH_INTERVAL = 12;
   init_sprites();
@@ -3438,6 +3474,7 @@ function set_city_mapview_active() {
     city_canvas_ctx.font = canvas_text_font;
   }
   mapview_canvas_ctx = city_canvas.getContext("2d");
+  store.mapviewCanvasCtx = mapview_canvas_ctx;
   window.mapview_canvas_ctx = mapview_canvas_ctx;
   mapview$1["width"] = citydlg_map_width;
   mapview$1["height"] = citydlg_map_height;
@@ -3481,6 +3518,7 @@ function enable_mapview_slide(ptile) {
   const old_height = mapview$1["store_height"];
   mapview_canvas = buffer_canvas;
   mapview_canvas_ctx = buffer_canvas_ctx;
+  store.mapviewCanvasCtx = mapview_canvas_ctx;
   window.mapview_canvas_ctx = mapview_canvas_ctx;
   if (dx >= 0 && dy <= 0) {
     mapview$1["gui_y0"] -= Math.abs(dy);
@@ -3509,6 +3547,7 @@ function enable_mapview_slide(ptile) {
   }
   mapview_canvas = document.getElementById("canvas");
   mapview_canvas_ctx = mapview_canvas.getContext("2d");
+  store.mapviewCanvasCtx = mapview_canvas_ctx;
   window.mapview_canvas_ctx = mapview_canvas_ctx;
   if (buffer_canvas_ctx && mapview_canvas) {
     if (dx >= 0 && dy >= 0) {
@@ -3525,65 +3564,6 @@ function enable_mapview_slide(ptile) {
   mapview$1["store_height"] = old_height;
   mapview$1["width"] = old_width;
   mapview$1["height"] = old_height;
-}
-function actionByNumber(actId) {
-  const actions = store.actions;
-  if (actions[actId] == void 0) {
-    console.log("Asked for non existing action numbered %d", actId);
-    return null;
-  }
-  return actions[actId];
-}
-function actionHasResult(paction, result) {
-  if (paction == null || paction["result"] == null) {
-    console.log("action_has_result(): bad action");
-    console.log(paction);
-    return null;
-  }
-  return paction["result"] == result;
-}
-function actionProbPossible(aprob) {
-  const notImpl = window.action_prob_not_impl;
-  return 0 < aprob["max"] || notImpl != null && notImpl(aprob);
-}
-const sounds_enabled_get = () => window.sounds_enabled ?? false;
-const soundset_get = () => window.soundset ?? {};
-let sound_path = "/sounds/";
-function unit_move_sound_play(unit) {
-  if (!sounds_enabled_get()) return;
-  if (unit == null) return;
-  if (soundset_get() == null) {
-    console.error("soundset not found.");
-    return;
-  }
-  const ptype = unit_type(unit);
-  if (soundset_get()[ptype["sound_move"]] != null) {
-    play_sound(soundset_get()[ptype["sound_move"]]);
-  } else if (soundset_get()[ptype["sound_move_alt"]] != null) {
-    play_sound(soundset_get()[ptype["sound_move_alt"]]);
-  }
-}
-function play_sound(sound_file) {
-  try {
-    if (!sounds_enabled_get() || !document.createElement("audio").canPlayType || Audio == null) return;
-    const audio2 = new Audio(sound_path + sound_file);
-    const promise = audio2.play();
-    if (promise != null) {
-      promise.catch(sound_error_handler);
-    }
-  } catch (err) {
-    sound_error_handler(err);
-  }
-}
-function sound_error_handler(err) {
-  window.sounds_enabled = false;
-  const trackJs = window.trackJs;
-  if (trackJs) {
-    trackJs.console.log(err);
-    trackJs.track("Sound problem");
-  } else {
-    console.error(err);
-  }
 }
 const TECH_UNKNOWN = 0;
 const TECH_PREREQS_KNOWN = 1;
@@ -3700,6 +3680,649 @@ function techIdByName(tname) {
     if (tname === store.techs[techId]["name"]) return techId;
   }
   return null;
+}
+const TILE_INDEX_NONE$1 = -1;
+let action_selection_restart = false;
+let did_not_decide = false;
+function _set_action_selection_restart(val) {
+  action_selection_restart = val;
+}
+function _set_did_not_decide(val) {
+  did_not_decide = val;
+}
+function act_sel_queue_may_be_done(actor_unit_id) {
+  if (!is_more_user_input_needed) {
+    if (action_selection_restart) {
+      action_selection_restart = false;
+    } else {
+      action_selection_no_longer_in_progress(actor_unit_id);
+    }
+    if (did_not_decide) {
+      did_not_decide = false;
+    } else {
+      action_decision_clear_want(actor_unit_id);
+      action_selection_next_in_focus(actor_unit_id);
+    }
+  }
+}
+function act_sel_queue_done(actor_unit_id) {
+  set_is_more_user_input_needed(false);
+  act_sel_queue_may_be_done(actor_unit_id);
+  action_selection_restart = false;
+  did_not_decide = false;
+}
+function action_selection_actor_unit() {
+  return action_selection_in_progress_for;
+}
+function action_selection_target_city() {
+  if (action_selection_in_progress_for == IDENTITY_NUMBER_ZERO) {
+    return IDENTITY_NUMBER_ZERO;
+  }
+  const el = document.getElementById("act_sel_dialog_" + action_selection_in_progress_for);
+  return el ? Number(el.getAttribute("target_city")) : IDENTITY_NUMBER_ZERO;
+}
+function action_selection_target_unit() {
+  if (action_selection_in_progress_for == IDENTITY_NUMBER_ZERO) {
+    return IDENTITY_NUMBER_ZERO;
+  }
+  const el = document.getElementById("act_sel_dialog_" + action_selection_in_progress_for);
+  return el ? Number(el.getAttribute("target_unit")) : IDENTITY_NUMBER_ZERO;
+}
+function action_selection_target_tile() {
+  if (action_selection_in_progress_for == IDENTITY_NUMBER_ZERO) {
+    return TILE_INDEX_NONE$1;
+  }
+  const el = document.getElementById("act_sel_dialog_" + action_selection_in_progress_for);
+  return el ? Number(el.getAttribute("target_tile")) : TILE_INDEX_NONE$1;
+}
+function action_selection_target_extra() {
+  if (action_selection_in_progress_for == IDENTITY_NUMBER_ZERO) {
+    return EXTRA_NONE$1;
+  }
+  const el = document.getElementById("act_sel_dialog_" + action_selection_in_progress_for);
+  return el ? Number(el.getAttribute("target_extra")) : EXTRA_NONE$1;
+}
+function action_selection_refresh(actor_unit, target_city, target_unit, target_tile, target_extra, act_probs) {
+  document.getElementById("act_sel_dialog_" + actor_unit["id"])?.remove();
+  popup_action_selection(
+    actor_unit,
+    act_probs,
+    target_tile,
+    target_extra,
+    target_unit,
+    target_city
+  );
+}
+function action_selection_close() {
+  const actor_unit_id = action_selection_in_progress_for;
+  const ids = [
+    "act_sel_dialog_" + actor_unit_id,
+    "bribe_unit_dialog_" + actor_unit_id,
+    "incite_city_dialog_" + actor_unit_id,
+    "upgrade_unit_dialog_" + actor_unit_id,
+    "stealtech_dialog_" + actor_unit_id,
+    "sabotage_impr_dialog_" + actor_unit_id,
+    "sel_tgt_unit_dialog_" + actor_unit_id,
+    "sel_tgt_extra_dialog_" + actor_unit_id,
+    "city_name_dialog"
+  ];
+  for (const id of ids) {
+    document.getElementById(id)?.remove();
+  }
+  act_sel_queue_done(actor_unit_id);
+}
+function list_potential_target_extras(act_unit, target_tile) {
+  const potential_targets = [];
+  for (let i2 = 0; i2 < (store.rulesControl?.num_extra_types ?? 0); i2++) {
+    const pextra = store.extras[i2];
+    if (tileHasExtra(target_tile, pextra.id)) {
+      if (isExtraRemovedBy(pextra, ERM_PILLAGE$1) && unit_can_do_action(act_unit, ACTION_PILLAGE$1) || isExtraRemovedBy(pextra, ERM_CLEAN) && unit_can_do_action(act_unit, ACTION_CLEAN)) {
+        potential_targets.push(pextra);
+      }
+    } else {
+      if (pextra.buildable && (isExtraCausedBy(pextra, EC_IRRIGATION) && unit_can_do_action(act_unit, ACTION_IRRIGATE) || isExtraCausedBy(pextra, EC_MINE) && unit_can_do_action(act_unit, ACTION_MINE) || isExtraCausedBy(pextra, EC_BASE) && unit_can_do_action(act_unit, ACTION_BASE) || isExtraCausedBy(pextra, EC_ROAD) && unit_can_do_action(act_unit, ACTION_ROAD))) {
+        potential_targets.push(pextra);
+      }
+    }
+  }
+  return potential_targets;
+}
+function select_tgt_unit(actor_unit, target_tile, potential_tgt_units) {
+}
+function select_tgt_extra(actor_unit, target_unit, target_tile, potential_tgt_extras) {
+}
+const TILE_INDEX_NONE = -1;
+let auto_attack = false;
+function createNativeDialog(dlgId, title, content, buttons, opts) {
+  document.getElementById(dlgId)?.remove();
+  const dlg = document.createElement("div");
+  dlg.id = dlgId;
+  dlg.className = "act_sel_dialog";
+  const w2 = opts?.width || "390px";
+  dlg.style.cssText = "position:fixed;z-index:5000;background:#222;border:1px solid #555;padding:16px;top:20%;left:50%;transform:translateX(-50%);width:" + w2 + ";max-height:70vh;overflow-y:auto;color:#fff;";
+  if (title) {
+    const h2 = document.createElement("h3");
+    h2.textContent = title;
+    h2.style.cssText = "margin:0 0 8px;";
+    dlg.appendChild(h2);
+  }
+  if (content) {
+    const body = document.createElement("div");
+    body.innerHTML = content;
+    dlg.appendChild(body);
+  }
+  const btnContainer = document.createElement("div");
+  btnContainer.style.cssText = "margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;";
+  for (const b2 of buttons) {
+    const btn = document.createElement("button");
+    if (b2.id) btn.id = b2.id;
+    if (b2.class) btn.className = b2.class;
+    btn.textContent = b2.text;
+    if (b2.title) btn.title = b2.title;
+    btn.addEventListener("click", b2.click);
+    btnContainer.appendChild(btn);
+  }
+  dlg.appendChild(btnContainer);
+  document.getElementById("game_page")?.appendChild(dlg);
+  return dlg;
+}
+function removeDialog(dlgId) {
+  document.getElementById(dlgId)?.remove();
+}
+function popup_action_selection(actor_unit, action_probabilities, target_tile, target_extra, target_unit, target_city) {
+  if (clientIsObserver()) return;
+  const dlgId = "act_sel_dialog_" + actor_unit["id"];
+  if (action_selection_in_progress_for != IDENTITY_NUMBER_ZERO && action_selection_in_progress_for != actor_unit["id"]) {
+    logNormal(
+      "Looks like unit %d has an action selection dialog open but a dialog for unit %d is about to be opened.",
+      action_selection_in_progress_for,
+      actor_unit["id"]
+    );
+    logNormal(
+      "Closing the action selection dialog for unit %d",
+      action_selection_in_progress_for
+    );
+    action_selection_close();
+  }
+  const actor_homecity = store.cities[actor_unit["homecity"]];
+  let dhtml = "";
+  if (target_city != null) {
+    dhtml += "Your " + store.unitTypes[actor_unit["type"]]["name"];
+    if (actor_homecity != null) {
+      dhtml += " from " + decodeURIComponent(actor_homecity["name"]);
+    }
+    dhtml += " has arrived at " + decodeURIComponent(target_city["name"]) + ". What is your command?";
+  } else if (target_unit != null) {
+    dhtml += "Your " + store.unitTypes[actor_unit["type"]]["name"] + " is ready to act against " + store.nations[unit_owner(target_unit)["nation"]]["adjective"] + " " + store.unitTypes[target_unit["type"]]["name"] + ".";
+  } else {
+    dhtml += "Your " + store.unitTypes[actor_unit["type"]]["name"] + " is waiting for your command.";
+  }
+  const buttons = [];
+  for (let tgt_kind = ATK_CITY; tgt_kind < ATK_COUNT; tgt_kind++) {
+    let tgt_id = -1;
+    let sub_tgt_id = -1;
+    switch (tgt_kind) {
+      case ATK_CITY:
+        if (target_city != null) tgt_id = target_city["id"];
+        break;
+      case ATK_UNIT:
+        if (target_unit != null) tgt_id = target_unit["id"];
+        break;
+      case ATK_UNITS:
+        if (target_tile != null) tgt_id = target_tile["index"];
+        break;
+      case ATK_TILE:
+      case ATK_EXTRAS:
+        if (target_tile != null) tgt_id = target_tile["index"];
+        if (target_extra != null) sub_tgt_id = target_extra["id"];
+        break;
+      case ATK_SELF:
+        if (actor_unit != null) tgt_id = actor_unit["id"];
+        break;
+      default:
+        logError("Unsupported action target kind " + tgt_kind);
+        break;
+    }
+    for (let action_id = 0; action_id < ACTION_COUNT$1; action_id++) {
+      if (store.actions[action_id]["tgt_kind"] == tgt_kind && actionProbPossible(action_probabilities[action_id])) {
+        const b2 = create_act_sel_button(
+          "#" + dlgId,
+          actor_unit["id"],
+          tgt_id,
+          sub_tgt_id,
+          action_id,
+          action_probabilities
+        );
+        buttons.push({ text: b2.text, id: b2.id, class: b2["class"], title: b2.title, click: b2.click });
+      }
+    }
+  }
+  if (target_unit != null && tile_units(target_tile).length > 1) {
+    buttons.push({
+      id: "act_sel_tgt_unit_switch" + actor_unit["id"],
+      class: "act_sel_button",
+      text: "Change unit target",
+      click: function() {
+        select_tgt_unit(actor_unit, target_tile, tile_units(target_tile) ?? []);
+        _set_action_selection_restart(true);
+        removeDialog(dlgId);
+      }
+    });
+  }
+  if (target_extra != null) {
+    buttons.push({
+      id: "act_sel_tgt_extra_switch" + actor_unit["id"],
+      class: "act_sel_button",
+      text: "Change extra target",
+      click: function() {
+        select_tgt_extra(
+          actor_unit,
+          target_unit,
+          target_tile,
+          list_potential_target_extras(actor_unit, target_tile)
+        );
+        _set_action_selection_restart(true);
+        removeDialog(dlgId);
+      }
+    });
+  }
+  if (actionProbPossible(action_probabilities[ACTION_ATTACK])) {
+    if (!auto_attack) {
+      buttons.push({
+        id: "act_sel_" + ACTION_ATTACK + "_" + actor_unit["id"],
+        class: "act_sel_button",
+        text: "Auto attack from now on!",
+        title: "Attack without showing this attack dialog in the future",
+        click: function() {
+          request_unit_do_action(ACTION_ATTACK, actor_unit["id"], target_tile["index"]);
+          auto_attack = true;
+          removeDialog(dlgId);
+          act_sel_queue_may_be_done(actor_unit["id"]);
+        }
+      });
+    }
+  }
+  buttons.push({
+    id: "act_sel_wait" + actor_unit["id"],
+    class: "act_sel_button",
+    text: "Wait",
+    click: function() {
+      _set_did_not_decide(true);
+      removeDialog(dlgId);
+      act_sel_queue_may_be_done(actor_unit["id"]);
+    }
+  });
+  buttons.push({
+    id: "act_sel_cancel" + actor_unit["id"],
+    class: "act_sel_button",
+    text: "Cancel",
+    click: function() {
+      removeDialog(dlgId);
+      act_sel_queue_may_be_done(actor_unit["id"]);
+    }
+  });
+  const dlg = createNativeDialog(
+    dlgId,
+    "Choose Your " + store.unitTypes[actor_unit["type"]]["name"] + "'s Strategy",
+    dhtml,
+    buttons
+  );
+  dlg.setAttribute("actor_unit", String(actor_unit != null ? actor_unit["id"] : IDENTITY_NUMBER_ZERO));
+  dlg.setAttribute("target_city", String(target_city != null ? target_city["id"] : IDENTITY_NUMBER_ZERO));
+  dlg.setAttribute("target_unit", String(target_unit != null ? target_unit["id"] : IDENTITY_NUMBER_ZERO));
+  dlg.setAttribute("target_tile", String(target_tile != null ? target_tile["index"] : TILE_INDEX_NONE));
+  dlg.setAttribute("target_extra", String(target_extra != null ? target_extra["id"] : EXTRA_NONE$1));
+  set_is_more_user_input_needed(false);
+}
+function popup_bribe_dialog(actor_unit, target_unit, cost, act_id) {
+  const dlgId = "bribe_unit_dialog_" + actor_unit["id"];
+  let dhtml = "";
+  dhtml += "Treasury contains " + unit_owner(actor_unit)["gold"] + " gold. ";
+  dhtml += "The price of bribing " + store.nations[unit_owner(target_unit)["nation"]]["adjective"] + " " + store.unitTypes[target_unit["type"]]["name"] + " is " + cost + ". ";
+  const bribe_possible = cost <= unit_owner(actor_unit)["gold"];
+  if (!bribe_possible) {
+    dhtml += "Traitors Demand Too Much!<br>";
+  }
+  const buttons = [];
+  if (bribe_possible) {
+    buttons.push({
+      text: "Do it!",
+      click: function() {
+        request_unit_do_action(act_id, actor_unit["id"], target_unit["id"]);
+        removeDialog(dlgId);
+        act_sel_queue_done(actor_unit["id"]);
+      }
+    });
+  }
+  buttons.push({
+    text: bribe_possible ? "Cancel" : "Close",
+    click: function() {
+      removeDialog(dlgId);
+      act_sel_queue_done(actor_unit["id"]);
+    }
+  });
+  createNativeDialog(dlgId, "About that bribery you requested...", dhtml, buttons);
+}
+function popup_incite_dialog(actor_unit, target_city, cost, act_id) {
+  const dlgId = "incite_city_dialog_" + actor_unit["id"];
+  let dhtml = "";
+  dhtml += "Treasury contains " + unit_owner(actor_unit)["gold"] + " gold. ";
+  dhtml += "The price of inciting " + decodeURIComponent(target_city["name"]) + " is " + cost + ".";
+  const incite_possible = cost != INCITE_IMPOSSIBLE_COST && cost <= unit_owner(actor_unit)["gold"];
+  if (!incite_possible) {
+    dhtml += " Traitors Demand Too Much!<br>";
+  }
+  const buttons = [];
+  if (incite_possible) {
+    buttons.push({
+      text: "Do it!",
+      click: function() {
+        request_unit_do_action(act_id, actor_unit["id"], target_city["id"]);
+        removeDialog(dlgId);
+        act_sel_queue_done(actor_unit["id"]);
+      }
+    });
+  }
+  buttons.push({
+    text: incite_possible ? "Cancel" : "Close",
+    click: function() {
+      removeDialog(dlgId);
+      act_sel_queue_done(actor_unit["id"]);
+    }
+  });
+  createNativeDialog(dlgId, "About that incite you requested...", dhtml, buttons);
+}
+function popup_unit_upgrade_dlg(actor_unit, target_city, cost, act_id) {
+  const dlgId = "upgrade_unit_dialog_" + actor_unit["id"];
+  let dhtml = "";
+  dhtml += "Treasury contains " + unit_owner(actor_unit)["gold"] + " gold. ";
+  dhtml += "The price of upgrading our " + store.unitTypes[actor_unit["type"]]["name"] + " is " + cost + ".";
+  const upgrade_possible = cost <= unit_owner(actor_unit)["gold"];
+  const buttons = [];
+  if (upgrade_possible) {
+    buttons.push({
+      text: "Do it!",
+      click: function() {
+        request_unit_do_action(act_id, actor_unit["id"], target_city["id"]);
+        removeDialog(dlgId);
+        act_sel_queue_done(actor_unit["id"]);
+      }
+    });
+  }
+  buttons.push({
+    text: upgrade_possible ? "Cancel" : "Close",
+    click: function() {
+      removeDialog(dlgId);
+      act_sel_queue_done(actor_unit["id"]);
+    }
+  });
+  createNativeDialog(dlgId, "Unit upgrade", dhtml, buttons);
+}
+function create_steal_tech_button(parent_id, tech, actor_id, city_id, action_id) {
+  return {
+    text: tech["name"],
+    click: function() {
+      request_unit_do_action(action_id, actor_id, city_id, tech["id"]);
+      removeDialog(parent_id);
+      act_sel_queue_done(actor_id);
+    }
+  };
+}
+function popup_steal_tech_selection_dialog(actor_unit, target_city, act_probs, action_id) {
+  const dlgId = "stealtech_dialog_" + actor_unit["id"];
+  const buttons = [];
+  let untargeted_action_id = ACTION_COUNT$1;
+  for (const tech_id in store.techs) {
+    const tech = store.techs[tech_id];
+    const act_kn = playerInventionState(clientPlaying(), tech["id"]);
+    const tgt_kn = playerInventionState(target_city["owner"], tech["id"]);
+    if (tgt_kn == TECH_KNOWN$2 && (act_kn == TECH_PREREQS_KNOWN$1 || store.gameInfo["tech_steal_allow_holes"] && act_kn == TECH_UNKNOWN$1)) {
+      buttons.push(create_steal_tech_button(
+        dlgId,
+        tech,
+        actor_unit["id"],
+        target_city["id"],
+        action_id
+      ));
+    }
+  }
+  if (action_id == ACTION_SPY_TARGETED_STEAL_TECH_ESC) {
+    untargeted_action_id = ACTION_SPY_STEAL_TECH_ESC;
+  } else if (action_id == ACTION_SPY_TARGETED_STEAL_TECH) {
+    untargeted_action_id = ACTION_SPY_STEAL_TECH;
+  }
+  if (untargeted_action_id != ACTION_COUNT$1 && actionProbPossible(act_probs[untargeted_action_id])) {
+    buttons.push({
+      text: "At " + store.unitTypes[actor_unit["type"]]["name"] + "'s Discretion",
+      click: function() {
+        request_unit_do_action(
+          untargeted_action_id,
+          actor_unit["id"],
+          target_city["id"]
+        );
+        removeDialog(dlgId);
+        act_sel_queue_done(actor_unit["id"]);
+      }
+    });
+  }
+  buttons.push({
+    text: "Cancel",
+    click: function() {
+      removeDialog(dlgId);
+      act_sel_queue_done(actor_unit["id"]);
+    }
+  });
+  createNativeDialog(dlgId, "Select Advance to Steal", "", buttons, { width: "90%" });
+}
+function create_sabotage_impr_button(improvement, parent_id, actor_unit_id, target_city_id, act_id) {
+  return {
+    text: improvement["name"],
+    click: function() {
+      request_unit_do_action(
+        act_id,
+        actor_unit_id,
+        target_city_id,
+        improvement["id"]
+      );
+      removeDialog(parent_id);
+      act_sel_queue_done(actor_unit_id);
+    }
+  };
+}
+function popup_sabotage_dialog(actor_unit, target_city, city_imprs, act_id) {
+  const dlgId = "sabotage_impr_dialog_" + actor_unit["id"];
+  const buttons = [];
+  for (let i2 = 0; i2 < (store.rulesControl?.["num_impr_types"] ?? 0); i2++) {
+    const improvement = store.improvements[i2];
+    if (city_imprs.isSet(i2) && improvement["sabotage"] > 0) {
+      buttons.push(create_sabotage_impr_button(
+        improvement,
+        dlgId,
+        actor_unit["id"],
+        target_city["id"],
+        act_id
+      ));
+    }
+  }
+  buttons.push({
+    text: "Cancel",
+    click: function() {
+      removeDialog(dlgId);
+      act_sel_queue_done(actor_unit["id"]);
+    }
+  });
+  createNativeDialog(dlgId, "Select Improvement to Sabotage", "", buttons, { width: "90%" });
+}
+const REQEST_PLAYER_INITIATED$3 = 0;
+function action_prob_not_impl(probability) {
+  return probability["min"] == 254 && probability["max"] == 0;
+}
+function format_act_prob_part(prob) {
+  return prob / 2 + "%";
+}
+function format_action_probability(probability) {
+  if (probability["min"] == probability["max"]) {
+    return " (" + format_act_prob_part(probability["max"]) + ")";
+  } else if (probability["min"] < probability["max"]) {
+    return " ([" + format_act_prob_part(probability["min"]) + ", " + format_act_prob_part(probability["max"]) + "])";
+  } else {
+    return "";
+  }
+}
+function format_action_label(action_id, action_probabilities) {
+  return store.actions[action_id]["ui_name"].replace("%s", "").replace(
+    "%s",
+    format_action_probability(action_probabilities[action_id])
+  );
+}
+function format_action_tooltip(act_id, act_probs) {
+  let out = "";
+  if (act_probs[act_id]["min"] == act_probs[act_id]["max"]) {
+    out = "The probability of success is ";
+    out += format_act_prob_part(act_probs[act_id]["max"]) + ".";
+  } else if (act_probs[act_id]["min"] < act_probs[act_id]["max"]) {
+    out = "The probability of success is ";
+    out += format_act_prob_part(act_probs[act_id]["min"]);
+    out += ", ";
+    out += format_act_prob_part(act_probs[act_id]["max"]);
+    out += " or somewhere in between.";
+    if (act_probs[act_id]["max"] - act_probs[act_id]["min"] > 1) {
+      out += " (This is the most precise interval I can calculate ";
+      out += "given the information our nation has access to.)";
+    }
+  }
+  return out;
+}
+function act_sel_click_function(parent_id, actor_unit_id, tgt_id, sub_tgt_id, action_id, action_probabilities) {
+  switch (action_id) {
+    case ACTION_SPY_TARGETED_STEAL_TECH:
+    case ACTION_SPY_TARGETED_STEAL_TECH_ESC:
+      return function() {
+        popup_steal_tech_selection_dialog(
+          store.units[actor_unit_id],
+          store.cities[tgt_id],
+          action_probabilities,
+          action_id
+        );
+        set_is_more_user_input_needed(true);
+        document.querySelector(parent_id)?.remove();
+      };
+    case ACTION_SPY_TARGETED_SABOTAGE_CITY:
+    case ACTION_SPY_TARGETED_SABOTAGE_CITY_ESC:
+    case ACTION_SPY_INCITE_CITY:
+    case ACTION_SPY_INCITE_CITY_ESC:
+    case ACTION_SPY_BRIBE_UNIT:
+    case ACTION_UPGRADE_UNIT:
+      return function() {
+        const packet = {
+          "pid": packet_unit_action_query,
+          "actor_id": actor_unit_id,
+          "target_id": tgt_id,
+          "action_type": action_id,
+          "request_kind": REQEST_PLAYER_INITIATED$3
+        };
+        send_request(JSON.stringify(packet));
+        set_is_more_user_input_needed(true);
+        document.querySelector(parent_id)?.remove();
+      };
+    case ACTION_FOUND_CITY:
+      return function() {
+        const packet = {
+          "pid": packet_city_name_suggestion_req,
+          "unit_id": actor_unit_id
+        };
+        send_request(JSON.stringify(packet));
+        set_is_more_user_input_needed(true);
+        document.querySelector(parent_id)?.remove();
+      };
+    default:
+      return function() {
+        request_unit_do_action(action_id, actor_unit_id, tgt_id, sub_tgt_id);
+        document.querySelector(parent_id)?.remove();
+        act_sel_queue_may_be_done(actor_unit_id);
+      };
+  }
+}
+function create_act_sel_button(parent_id, actor_unit_id, tgt_id, sub_tgt_id, action_id, action_probabilities) {
+  const button = {
+    id: "act_sel_" + action_id + "_" + actor_unit_id,
+    "class": "act_sel_button",
+    text: format_action_label(
+      action_id,
+      action_probabilities
+    ),
+    title: format_action_tooltip(
+      action_id,
+      action_probabilities
+    ),
+    click: act_sel_click_function(
+      parent_id,
+      actor_unit_id,
+      tgt_id,
+      sub_tgt_id,
+      action_id,
+      action_probabilities
+    )
+  };
+  return button;
+}
+function actionByNumber(actId) {
+  const actions = store.actions;
+  if (actions[actId] == void 0) {
+    console.log("Asked for non existing action numbered %d", actId);
+    return null;
+  }
+  return actions[actId];
+}
+function actionHasResult(paction, result) {
+  if (paction == null || paction["result"] == null) {
+    console.log("action_has_result(): bad action");
+    console.log(paction);
+    return null;
+  }
+  return paction["result"] == result;
+}
+function actionProbPossible(aprob) {
+  return 0 < aprob["max"] || action_prob_not_impl(aprob);
+}
+const sounds_enabled_get = () => store.soundsEnabled;
+const soundset_get = () => window.soundset ?? {};
+let sound_path = "/sounds/";
+function unit_move_sound_play(unit) {
+  if (!sounds_enabled_get()) return;
+  if (unit == null) return;
+  if (soundset_get() == null) {
+    console.error("soundset not found.");
+    return;
+  }
+  const ptype = unit_type(unit);
+  if (soundset_get()[ptype["sound_move"]] != null) {
+    play_sound(soundset_get()[ptype["sound_move"]]);
+  } else if (soundset_get()[ptype["sound_move_alt"]] != null) {
+    play_sound(soundset_get()[ptype["sound_move_alt"]]);
+  }
+}
+function play_sound(sound_file) {
+  try {
+    if (!sounds_enabled_get() || !document.createElement("audio").canPlayType || Audio == null) return;
+    const audio2 = new Audio(sound_path + sound_file);
+    const promise = audio2.play();
+    if (promise != null) {
+      promise.catch(sound_error_handler);
+    }
+  } catch (err) {
+    sound_error_handler(err);
+  }
+}
+function sound_error_handler(err) {
+  store.soundsEnabled = false;
+  const trackJs = window.trackJs;
+  if (trackJs) {
+    trackJs.console.log(err);
+    trackJs.track("Sound problem");
+  } else {
+    console.error(err);
+  }
 }
 const B_AIRPORT_NAME = "Airport";
 const improvements_name_index = {};
@@ -4293,10 +4916,8 @@ function governmentMaxRate(govtId) {
 function canPlayerGetGov(govtId) {
   const client = store.client;
   const governments2 = store.governments;
-  const playerHasWonder = window.player_has_wonder;
   const areReqsActive = window.are_reqs_active;
-  const RPT_CERTAIN = window.RPT_CERTAIN;
-  return playerHasWonder(client.conn.playing.playerno, 63) || // hack for Statue of Liberty
+  return player_has_wonder(client.conn.playing.playerno, 63) || // hack for Statue of Liberty
   areReqsActive(
     client.conn.playing,
     null,
@@ -5211,7 +5832,7 @@ function mouse_moved_cb(e2) {
     }
   }
   const canvasEl = document.getElementById("canvas");
-  if (active_city == null && window.mapview_canvas != null && canvasEl) {
+  if (active_city == null && store.mapviewCanvas != null && canvasEl) {
     const canvasRect = canvasEl.getBoundingClientRect();
     setMouseX(mouse_x - canvasRect.left);
     setMouseY(mouse_y - canvasRect.top);
@@ -5333,11 +5954,11 @@ function mapview_mouse_click(e2) {
   if (rightclick) {
     if (!map_select_active || !map_select_setting_enabled) {
       setContextMenuActive(true);
-      window.context_menu_active = true;
+      store.contextMenuActive = true;
       recenter_button_pressed(mouse_x, mouse_y);
     } else {
       setContextMenuActive(false);
-      window.context_menu_active = false;
+      store.contextMenuActive = false;
       map_select_units(mouse_x, mouse_y);
     }
     map_select_active = false;
@@ -5345,11 +5966,11 @@ function mapview_mouse_click(e2) {
   } else if (!middleclick) {
     action_button_pressed(mouse_x, mouse_y, SELECT_POPUP);
     setMapviewMouseMovement(false);
-    window.mapview_mouse_movement = false;
+    store.mapviewMouseMovement = false;
     update_mouse_cursor();
   }
   setKeyboardInput(true);
-  window.keyboard_input = true;
+  store.keyboardInput = true;
 }
 function mapview_mouse_down(e2) {
   let rightclick = false;
@@ -5378,7 +5999,7 @@ function mapview_mouse_down(e2) {
     map_select_y = mouse_y;
     map_select_check_started = (/* @__PURE__ */ new Date()).getTime();
     setContextMenuActive(false);
-    window.context_menu_active = false;
+    store.contextMenuActive = false;
   }
 }
 function mapview_touch_start(e2) {
@@ -5455,7 +6076,7 @@ function map_select_units(canvas_x, canvas_y) {
     }
   }
   setCurrentFocus(selected_units);
-  window.current_focus = selected_units;
+  store.currentFocus = selected_units;
   action_selection_next_in_focus(IDENTITY_NUMBER_ZERO);
   update_active_units_dialog();
 }
@@ -5819,9 +6440,9 @@ function handle_new_year(packet) {
   store.gameInfo["turn"] = packet["turn"];
 }
 function handle_timeout_info(packet) {
-  window.last_turn_change_time = Math.ceil(packet["last_turn_change_time"]);
-  window.seconds_to_phasedone = Math.floor(packet["seconds_to_phasedone"]);
-  window.seconds_to_phasedone_sync = (/* @__PURE__ */ new Date()).getTime();
+  store.lastTurnChangeTime = Math.ceil(packet["last_turn_change_time"]);
+  store.secondsToPhasedone = Math.floor(packet["seconds_to_phasedone"]);
+  store.secondsToPhasedoneSync = (/* @__PURE__ */ new Date()).getTime();
 }
 function handle_trade_route_info(packet) {
   if (city_trade_routes[packet["city"]] == null) {
@@ -5830,7 +6451,8 @@ function handle_trade_route_info(packet) {
   city_trade_routes[packet["city"]][packet["index"]] = packet;
 }
 function handle_endgame_player(packet) {
-  window.endgame_player_info.push(packet);
+  store.endgamePlayerInfo.push(packet);
+  window.endgame_player_info = store.endgamePlayerInfo;
 }
 function handle_unknown_research(packet) {
   delete research_data[packet["id"]];
@@ -5841,7 +6463,7 @@ function handle_end_phase(_packet) {
 function handle_start_phase(_packet) {
   setClientState(C_S_RUNNING);
   setPhaseStart();
-  window.saved_this_turn = false;
+  store.savedThisTurn = false;
 }
 function handle_endgame_report(_packet) {
   setClientState(C_S_OVER);
@@ -6378,7 +7000,7 @@ function handle_conn_info(packet) {
   }
 }
 function handle_conn_ping(packet) {
-  window.ping_last = (/* @__PURE__ */ new Date()).getTime();
+  store.pingLast = (/* @__PURE__ */ new Date()).getTime();
   sendConnPong();
 }
 function handle_authentication_req(packet) {
@@ -6414,8 +7036,8 @@ function handle_set_topology(_packet) {
 }
 function handle_conn_ping_info(packet) {
   if (store.debugActive) {
-    window.conn_ping_info = packet;
-    window.debug_ping_list.push(packet["ping_time"][0] * 1e3);
+    store.connPingInfo = packet;
+    store.debugPingList.push(packet["ping_time"][0] * 1e3);
   }
 }
 function handle_single_want_hack_reply(packet) {
@@ -6478,588 +7100,6 @@ function handle_nuke_tile_info(packet) {
   ptile["nuke"] = 60;
   play_sound("LrgExpl.ogg");
 }
-const TILE_INDEX_NONE$1 = -1;
-let action_selection_restart = false;
-let did_not_decide = false;
-function _set_action_selection_restart(val) {
-  action_selection_restart = val;
-}
-function _set_did_not_decide(val) {
-  did_not_decide = val;
-}
-function act_sel_queue_may_be_done(actor_unit_id) {
-  if (!is_more_user_input_needed) {
-    if (action_selection_restart) {
-      action_selection_restart = false;
-    } else {
-      action_selection_no_longer_in_progress(actor_unit_id);
-    }
-    if (did_not_decide) {
-      did_not_decide = false;
-    } else {
-      action_decision_clear_want(actor_unit_id);
-      action_selection_next_in_focus(actor_unit_id);
-    }
-  }
-}
-function act_sel_queue_done(actor_unit_id) {
-  set_is_more_user_input_needed(false);
-  act_sel_queue_may_be_done(actor_unit_id);
-  action_selection_restart = false;
-  did_not_decide = false;
-}
-function action_selection_actor_unit() {
-  return action_selection_in_progress_for;
-}
-function action_selection_target_city() {
-  if (action_selection_in_progress_for == IDENTITY_NUMBER_ZERO) {
-    return IDENTITY_NUMBER_ZERO;
-  }
-  const el = document.getElementById("act_sel_dialog_" + action_selection_in_progress_for);
-  return el ? Number(el.getAttribute("target_city")) : IDENTITY_NUMBER_ZERO;
-}
-function action_selection_target_unit() {
-  if (action_selection_in_progress_for == IDENTITY_NUMBER_ZERO) {
-    return IDENTITY_NUMBER_ZERO;
-  }
-  const el = document.getElementById("act_sel_dialog_" + action_selection_in_progress_for);
-  return el ? Number(el.getAttribute("target_unit")) : IDENTITY_NUMBER_ZERO;
-}
-function action_selection_target_tile() {
-  if (action_selection_in_progress_for == IDENTITY_NUMBER_ZERO) {
-    return TILE_INDEX_NONE$1;
-  }
-  const el = document.getElementById("act_sel_dialog_" + action_selection_in_progress_for);
-  return el ? Number(el.getAttribute("target_tile")) : TILE_INDEX_NONE$1;
-}
-function action_selection_target_extra() {
-  if (action_selection_in_progress_for == IDENTITY_NUMBER_ZERO) {
-    return EXTRA_NONE$1;
-  }
-  const el = document.getElementById("act_sel_dialog_" + action_selection_in_progress_for);
-  return el ? Number(el.getAttribute("target_extra")) : EXTRA_NONE$1;
-}
-function action_selection_refresh(actor_unit, target_city, target_unit, target_tile, target_extra, act_probs) {
-  document.getElementById("act_sel_dialog_" + actor_unit["id"])?.remove();
-  popup_action_selection(
-    actor_unit,
-    act_probs,
-    target_tile,
-    target_extra,
-    target_unit,
-    target_city
-  );
-}
-function action_selection_close() {
-  const actor_unit_id = action_selection_in_progress_for;
-  const ids = [
-    "act_sel_dialog_" + actor_unit_id,
-    "bribe_unit_dialog_" + actor_unit_id,
-    "incite_city_dialog_" + actor_unit_id,
-    "upgrade_unit_dialog_" + actor_unit_id,
-    "stealtech_dialog_" + actor_unit_id,
-    "sabotage_impr_dialog_" + actor_unit_id,
-    "sel_tgt_unit_dialog_" + actor_unit_id,
-    "sel_tgt_extra_dialog_" + actor_unit_id,
-    "city_name_dialog"
-  ];
-  for (const id of ids) {
-    document.getElementById(id)?.remove();
-  }
-  act_sel_queue_done(actor_unit_id);
-}
-function list_potential_target_extras(act_unit, target_tile) {
-  const potential_targets = [];
-  for (let i2 = 0; i2 < (store.rulesControl?.num_extra_types ?? 0); i2++) {
-    const pextra = store.extras[i2];
-    if (tileHasExtra(target_tile, pextra.id)) {
-      if (isExtraRemovedBy(pextra, ERM_PILLAGE$1) && unit_can_do_action(act_unit, ACTION_PILLAGE$1) || isExtraRemovedBy(pextra, ERM_CLEAN) && unit_can_do_action(act_unit, ACTION_CLEAN)) {
-        potential_targets.push(pextra);
-      }
-    } else {
-      if (pextra.buildable && (isExtraCausedBy(pextra, EC_IRRIGATION) && unit_can_do_action(act_unit, ACTION_IRRIGATE) || isExtraCausedBy(pextra, EC_MINE) && unit_can_do_action(act_unit, ACTION_MINE) || isExtraCausedBy(pextra, EC_BASE) && unit_can_do_action(act_unit, ACTION_BASE) || isExtraCausedBy(pextra, EC_ROAD) && unit_can_do_action(act_unit, ACTION_ROAD))) {
-        potential_targets.push(pextra);
-      }
-    }
-  }
-  return potential_targets;
-}
-function select_tgt_unit(actor_unit, target_tile, potential_tgt_units) {
-}
-function select_tgt_extra(actor_unit, target_unit, target_tile, potential_tgt_extras) {
-}
-const TILE_INDEX_NONE = -1;
-let auto_attack = false;
-function createNativeDialog(dlgId, title, content, buttons, opts) {
-  document.getElementById(dlgId)?.remove();
-  const dlg = document.createElement("div");
-  dlg.id = dlgId;
-  dlg.className = "act_sel_dialog";
-  const w2 = opts?.width || "390px";
-  dlg.style.cssText = "position:fixed;z-index:5000;background:#222;border:1px solid #555;padding:16px;top:20%;left:50%;transform:translateX(-50%);width:" + w2 + ";max-height:70vh;overflow-y:auto;color:#fff;";
-  if (title) {
-    const h2 = document.createElement("h3");
-    h2.textContent = title;
-    h2.style.cssText = "margin:0 0 8px;";
-    dlg.appendChild(h2);
-  }
-  if (content) {
-    const body = document.createElement("div");
-    body.innerHTML = content;
-    dlg.appendChild(body);
-  }
-  const btnContainer = document.createElement("div");
-  btnContainer.style.cssText = "margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;";
-  for (const b2 of buttons) {
-    const btn = document.createElement("button");
-    if (b2.id) btn.id = b2.id;
-    if (b2.class) btn.className = b2.class;
-    btn.textContent = b2.text;
-    if (b2.title) btn.title = b2.title;
-    btn.addEventListener("click", b2.click);
-    btnContainer.appendChild(btn);
-  }
-  dlg.appendChild(btnContainer);
-  document.getElementById("game_page")?.appendChild(dlg);
-  return dlg;
-}
-function removeDialog(dlgId) {
-  document.getElementById(dlgId)?.remove();
-}
-function popup_action_selection(actor_unit, action_probabilities, target_tile, target_extra, target_unit, target_city) {
-  if (clientIsObserver()) return;
-  const dlgId = "act_sel_dialog_" + actor_unit["id"];
-  if (action_selection_in_progress_for != IDENTITY_NUMBER_ZERO && action_selection_in_progress_for != actor_unit["id"]) {
-    logNormal(
-      "Looks like unit %d has an action selection dialog open but a dialog for unit %d is about to be opened.",
-      action_selection_in_progress_for,
-      actor_unit["id"]
-    );
-    logNormal(
-      "Closing the action selection dialog for unit %d",
-      action_selection_in_progress_for
-    );
-    action_selection_close();
-  }
-  const actor_homecity = store.cities[actor_unit["homecity"]];
-  let dhtml = "";
-  if (target_city != null) {
-    dhtml += "Your " + store.unitTypes[actor_unit["type"]]["name"];
-    if (actor_homecity != null) {
-      dhtml += " from " + decodeURIComponent(actor_homecity["name"]);
-    }
-    dhtml += " has arrived at " + decodeURIComponent(target_city["name"]) + ". What is your command?";
-  } else if (target_unit != null) {
-    dhtml += "Your " + store.unitTypes[actor_unit["type"]]["name"] + " is ready to act against " + store.nations[unit_owner(target_unit)["nation"]]["adjective"] + " " + store.unitTypes[target_unit["type"]]["name"] + ".";
-  } else {
-    dhtml += "Your " + store.unitTypes[actor_unit["type"]]["name"] + " is waiting for your command.";
-  }
-  const buttons = [];
-  for (let tgt_kind = ATK_CITY; tgt_kind < ATK_COUNT; tgt_kind++) {
-    let tgt_id = -1;
-    let sub_tgt_id = -1;
-    switch (tgt_kind) {
-      case ATK_CITY:
-        if (target_city != null) tgt_id = target_city["id"];
-        break;
-      case ATK_UNIT:
-        if (target_unit != null) tgt_id = target_unit["id"];
-        break;
-      case ATK_UNITS:
-        if (target_tile != null) tgt_id = target_tile["index"];
-        break;
-      case ATK_TILE:
-      case ATK_EXTRAS:
-        if (target_tile != null) tgt_id = target_tile["index"];
-        if (target_extra != null) sub_tgt_id = target_extra["id"];
-        break;
-      case ATK_SELF:
-        if (actor_unit != null) tgt_id = actor_unit["id"];
-        break;
-      default:
-        logError("Unsupported action target kind " + tgt_kind);
-        break;
-    }
-    for (let action_id = 0; action_id < ACTION_COUNT$1; action_id++) {
-      if (store.actions[action_id]["tgt_kind"] == tgt_kind && actionProbPossible(action_probabilities[action_id])) {
-        const b2 = create_act_sel_button(
-          "#" + dlgId,
-          actor_unit["id"],
-          tgt_id,
-          sub_tgt_id,
-          action_id,
-          action_probabilities
-        );
-        buttons.push({ text: b2.text, id: b2.id, class: b2["class"], title: b2.title, click: b2.click });
-      }
-    }
-  }
-  if (target_unit != null && tile_units(target_tile).length > 1) {
-    buttons.push({
-      id: "act_sel_tgt_unit_switch" + actor_unit["id"],
-      class: "act_sel_button",
-      text: "Change unit target",
-      click: function() {
-        select_tgt_unit(actor_unit, target_tile, tile_units(target_tile) ?? []);
-        _set_action_selection_restart(true);
-        removeDialog(dlgId);
-      }
-    });
-  }
-  if (target_extra != null) {
-    buttons.push({
-      id: "act_sel_tgt_extra_switch" + actor_unit["id"],
-      class: "act_sel_button",
-      text: "Change extra target",
-      click: function() {
-        select_tgt_extra(
-          actor_unit,
-          target_unit,
-          target_tile,
-          list_potential_target_extras(actor_unit, target_tile)
-        );
-        _set_action_selection_restart(true);
-        removeDialog(dlgId);
-      }
-    });
-  }
-  if (actionProbPossible(action_probabilities[ACTION_ATTACK])) {
-    if (!auto_attack) {
-      buttons.push({
-        id: "act_sel_" + ACTION_ATTACK + "_" + actor_unit["id"],
-        class: "act_sel_button",
-        text: "Auto attack from now on!",
-        title: "Attack without showing this attack dialog in the future",
-        click: function() {
-          request_unit_do_action(ACTION_ATTACK, actor_unit["id"], target_tile["index"]);
-          auto_attack = true;
-          removeDialog(dlgId);
-          act_sel_queue_may_be_done(actor_unit["id"]);
-        }
-      });
-    }
-  }
-  buttons.push({
-    id: "act_sel_wait" + actor_unit["id"],
-    class: "act_sel_button",
-    text: "Wait",
-    click: function() {
-      _set_did_not_decide(true);
-      removeDialog(dlgId);
-      act_sel_queue_may_be_done(actor_unit["id"]);
-    }
-  });
-  buttons.push({
-    id: "act_sel_cancel" + actor_unit["id"],
-    class: "act_sel_button",
-    text: "Cancel",
-    click: function() {
-      removeDialog(dlgId);
-      act_sel_queue_may_be_done(actor_unit["id"]);
-    }
-  });
-  const dlg = createNativeDialog(
-    dlgId,
-    "Choose Your " + store.unitTypes[actor_unit["type"]]["name"] + "'s Strategy",
-    dhtml,
-    buttons
-  );
-  dlg.setAttribute("actor_unit", String(actor_unit != null ? actor_unit["id"] : IDENTITY_NUMBER_ZERO));
-  dlg.setAttribute("target_city", String(target_city != null ? target_city["id"] : IDENTITY_NUMBER_ZERO));
-  dlg.setAttribute("target_unit", String(target_unit != null ? target_unit["id"] : IDENTITY_NUMBER_ZERO));
-  dlg.setAttribute("target_tile", String(target_tile != null ? target_tile["index"] : TILE_INDEX_NONE));
-  dlg.setAttribute("target_extra", String(target_extra != null ? target_extra["id"] : EXTRA_NONE$1));
-  set_is_more_user_input_needed(false);
-}
-function popup_bribe_dialog(actor_unit, target_unit, cost, act_id) {
-  const dlgId = "bribe_unit_dialog_" + actor_unit["id"];
-  let dhtml = "";
-  dhtml += "Treasury contains " + unit_owner(actor_unit)["gold"] + " gold. ";
-  dhtml += "The price of bribing " + store.nations[unit_owner(target_unit)["nation"]]["adjective"] + " " + store.unitTypes[target_unit["type"]]["name"] + " is " + cost + ". ";
-  const bribe_possible = cost <= unit_owner(actor_unit)["gold"];
-  if (!bribe_possible) {
-    dhtml += "Traitors Demand Too Much!<br>";
-  }
-  const buttons = [];
-  if (bribe_possible) {
-    buttons.push({
-      text: "Do it!",
-      click: function() {
-        request_unit_do_action(act_id, actor_unit["id"], target_unit["id"]);
-        removeDialog(dlgId);
-        act_sel_queue_done(actor_unit["id"]);
-      }
-    });
-  }
-  buttons.push({
-    text: bribe_possible ? "Cancel" : "Close",
-    click: function() {
-      removeDialog(dlgId);
-      act_sel_queue_done(actor_unit["id"]);
-    }
-  });
-  createNativeDialog(dlgId, "About that bribery you requested...", dhtml, buttons);
-}
-function popup_incite_dialog(actor_unit, target_city, cost, act_id) {
-  const dlgId = "incite_city_dialog_" + actor_unit["id"];
-  let dhtml = "";
-  dhtml += "Treasury contains " + unit_owner(actor_unit)["gold"] + " gold. ";
-  dhtml += "The price of inciting " + decodeURIComponent(target_city["name"]) + " is " + cost + ".";
-  const incite_possible = cost != INCITE_IMPOSSIBLE_COST && cost <= unit_owner(actor_unit)["gold"];
-  if (!incite_possible) {
-    dhtml += " Traitors Demand Too Much!<br>";
-  }
-  const buttons = [];
-  if (incite_possible) {
-    buttons.push({
-      text: "Do it!",
-      click: function() {
-        request_unit_do_action(act_id, actor_unit["id"], target_city["id"]);
-        removeDialog(dlgId);
-        act_sel_queue_done(actor_unit["id"]);
-      }
-    });
-  }
-  buttons.push({
-    text: incite_possible ? "Cancel" : "Close",
-    click: function() {
-      removeDialog(dlgId);
-      act_sel_queue_done(actor_unit["id"]);
-    }
-  });
-  createNativeDialog(dlgId, "About that incite you requested...", dhtml, buttons);
-}
-function popup_unit_upgrade_dlg(actor_unit, target_city, cost, act_id) {
-  const dlgId = "upgrade_unit_dialog_" + actor_unit["id"];
-  let dhtml = "";
-  dhtml += "Treasury contains " + unit_owner(actor_unit)["gold"] + " gold. ";
-  dhtml += "The price of upgrading our " + store.unitTypes[actor_unit["type"]]["name"] + " is " + cost + ".";
-  const upgrade_possible = cost <= unit_owner(actor_unit)["gold"];
-  const buttons = [];
-  if (upgrade_possible) {
-    buttons.push({
-      text: "Do it!",
-      click: function() {
-        request_unit_do_action(act_id, actor_unit["id"], target_city["id"]);
-        removeDialog(dlgId);
-        act_sel_queue_done(actor_unit["id"]);
-      }
-    });
-  }
-  buttons.push({
-    text: upgrade_possible ? "Cancel" : "Close",
-    click: function() {
-      removeDialog(dlgId);
-      act_sel_queue_done(actor_unit["id"]);
-    }
-  });
-  createNativeDialog(dlgId, "Unit upgrade", dhtml, buttons);
-}
-function create_steal_tech_button(parent_id, tech, actor_id, city_id, action_id) {
-  return {
-    text: tech["name"],
-    click: function() {
-      request_unit_do_action(action_id, actor_id, city_id, tech["id"]);
-      removeDialog(parent_id);
-      act_sel_queue_done(actor_id);
-    }
-  };
-}
-function popup_steal_tech_selection_dialog(actor_unit, target_city, act_probs, action_id) {
-  const dlgId = "stealtech_dialog_" + actor_unit["id"];
-  const buttons = [];
-  let untargeted_action_id = ACTION_COUNT$1;
-  for (const tech_id in store.techs) {
-    const tech = store.techs[tech_id];
-    const act_kn = playerInventionState(clientPlaying(), tech["id"]);
-    const tgt_kn = playerInventionState(target_city["owner"], tech["id"]);
-    if (tgt_kn == TECH_KNOWN$2 && (act_kn == TECH_PREREQS_KNOWN$1 || store.gameInfo["tech_steal_allow_holes"] && act_kn == TECH_UNKNOWN$1)) {
-      buttons.push(create_steal_tech_button(
-        dlgId,
-        tech,
-        actor_unit["id"],
-        target_city["id"],
-        action_id
-      ));
-    }
-  }
-  if (action_id == ACTION_SPY_TARGETED_STEAL_TECH_ESC) {
-    untargeted_action_id = ACTION_SPY_STEAL_TECH_ESC;
-  } else if (action_id == ACTION_SPY_TARGETED_STEAL_TECH) {
-    untargeted_action_id = ACTION_SPY_STEAL_TECH;
-  }
-  if (untargeted_action_id != ACTION_COUNT$1 && actionProbPossible(act_probs[untargeted_action_id])) {
-    buttons.push({
-      text: "At " + store.unitTypes[actor_unit["type"]]["name"] + "'s Discretion",
-      click: function() {
-        request_unit_do_action(
-          untargeted_action_id,
-          actor_unit["id"],
-          target_city["id"]
-        );
-        removeDialog(dlgId);
-        act_sel_queue_done(actor_unit["id"]);
-      }
-    });
-  }
-  buttons.push({
-    text: "Cancel",
-    click: function() {
-      removeDialog(dlgId);
-      act_sel_queue_done(actor_unit["id"]);
-    }
-  });
-  createNativeDialog(dlgId, "Select Advance to Steal", "", buttons, { width: "90%" });
-}
-function create_sabotage_impr_button(improvement, parent_id, actor_unit_id, target_city_id, act_id) {
-  return {
-    text: improvement["name"],
-    click: function() {
-      request_unit_do_action(
-        act_id,
-        actor_unit_id,
-        target_city_id,
-        improvement["id"]
-      );
-      removeDialog(parent_id);
-      act_sel_queue_done(actor_unit_id);
-    }
-  };
-}
-function popup_sabotage_dialog(actor_unit, target_city, city_imprs, act_id) {
-  const dlgId = "sabotage_impr_dialog_" + actor_unit["id"];
-  const buttons = [];
-  for (let i2 = 0; i2 < (store.rulesControl?.["num_impr_types"] ?? 0); i2++) {
-    const improvement = store.improvements[i2];
-    if (city_imprs.isSet(i2) && improvement["sabotage"] > 0) {
-      buttons.push(create_sabotage_impr_button(
-        improvement,
-        dlgId,
-        actor_unit["id"],
-        target_city["id"],
-        act_id
-      ));
-    }
-  }
-  buttons.push({
-    text: "Cancel",
-    click: function() {
-      removeDialog(dlgId);
-      act_sel_queue_done(actor_unit["id"]);
-    }
-  });
-  createNativeDialog(dlgId, "Select Improvement to Sabotage", "", buttons, { width: "90%" });
-}
-const REQEST_PLAYER_INITIATED$3 = 0;
-function format_act_prob_part(prob) {
-  return prob / 2 + "%";
-}
-function format_action_probability(probability) {
-  if (probability["min"] == probability["max"]) {
-    return " (" + format_act_prob_part(probability["max"]) + ")";
-  } else if (probability["min"] < probability["max"]) {
-    return " ([" + format_act_prob_part(probability["min"]) + ", " + format_act_prob_part(probability["max"]) + "])";
-  } else {
-    return "";
-  }
-}
-function format_action_label(action_id, action_probabilities) {
-  return store.actions[action_id]["ui_name"].replace("%s", "").replace(
-    "%s",
-    format_action_probability(action_probabilities[action_id])
-  );
-}
-function format_action_tooltip(act_id, act_probs) {
-  let out = "";
-  if (act_probs[act_id]["min"] == act_probs[act_id]["max"]) {
-    out = "The probability of success is ";
-    out += format_act_prob_part(act_probs[act_id]["max"]) + ".";
-  } else if (act_probs[act_id]["min"] < act_probs[act_id]["max"]) {
-    out = "The probability of success is ";
-    out += format_act_prob_part(act_probs[act_id]["min"]);
-    out += ", ";
-    out += format_act_prob_part(act_probs[act_id]["max"]);
-    out += " or somewhere in between.";
-    if (act_probs[act_id]["max"] - act_probs[act_id]["min"] > 1) {
-      out += " (This is the most precise interval I can calculate ";
-      out += "given the information our nation has access to.)";
-    }
-  }
-  return out;
-}
-function act_sel_click_function(parent_id, actor_unit_id, tgt_id, sub_tgt_id, action_id, action_probabilities) {
-  switch (action_id) {
-    case ACTION_SPY_TARGETED_STEAL_TECH:
-    case ACTION_SPY_TARGETED_STEAL_TECH_ESC:
-      return function() {
-        popup_steal_tech_selection_dialog(
-          store.units[actor_unit_id],
-          store.cities[tgt_id],
-          action_probabilities,
-          action_id
-        );
-        set_is_more_user_input_needed(true);
-        document.querySelector(parent_id)?.remove();
-      };
-    case ACTION_SPY_TARGETED_SABOTAGE_CITY:
-    case ACTION_SPY_TARGETED_SABOTAGE_CITY_ESC:
-    case ACTION_SPY_INCITE_CITY:
-    case ACTION_SPY_INCITE_CITY_ESC:
-    case ACTION_SPY_BRIBE_UNIT:
-    case ACTION_UPGRADE_UNIT:
-      return function() {
-        const packet = {
-          "pid": packet_unit_action_query,
-          "actor_id": actor_unit_id,
-          "target_id": tgt_id,
-          "action_type": action_id,
-          "request_kind": REQEST_PLAYER_INITIATED$3
-        };
-        send_request(JSON.stringify(packet));
-        set_is_more_user_input_needed(true);
-        document.querySelector(parent_id)?.remove();
-      };
-    case ACTION_FOUND_CITY:
-      return function() {
-        const packet = {
-          "pid": packet_city_name_suggestion_req,
-          "unit_id": actor_unit_id
-        };
-        send_request(JSON.stringify(packet));
-        set_is_more_user_input_needed(true);
-        document.querySelector(parent_id)?.remove();
-      };
-    default:
-      return function() {
-        request_unit_do_action(action_id, actor_unit_id, tgt_id, sub_tgt_id);
-        document.querySelector(parent_id)?.remove();
-        act_sel_queue_may_be_done(actor_unit_id);
-      };
-  }
-}
-function create_act_sel_button(parent_id, actor_unit_id, tgt_id, sub_tgt_id, action_id, action_probabilities) {
-  const button = {
-    id: "act_sel_" + action_id + "_" + actor_unit_id,
-    "class": "act_sel_button",
-    text: format_action_label(
-      action_id,
-      action_probabilities
-    ),
-    title: format_action_tooltip(
-      action_id,
-      action_probabilities
-    ),
-    click: act_sel_click_function(
-      parent_id,
-      actor_unit_id,
-      tgt_id,
-      sub_tgt_id,
-      action_id,
-      action_probabilities
-    )
-  };
-  return button;
-}
 const REQEST_PLAYER_INITIATED$2 = 0;
 function handle_city_info(packet) {
   if (typeof mark_tile_dirty === "function" && packet["tile"] != null) {
@@ -7071,7 +7111,7 @@ function handle_city_info(packet) {
   packet["unhappy"] = cityUnhappy(packet);
   if (store.cities[packet["id"]] == null) {
     store.cities[packet["id"]] = packet;
-    if (C_S_RUNNING === clientState() && !store.observing && window.benchmark_start === 0 && !clientIsObserver() && packet["owner"] === clientPlaying()?.playerno) {
+    if (C_S_RUNNING === clientState() && !store.observing && store.benchmarkStart === 0 && !clientIsObserver() && packet["owner"] === clientPlaying()?.playerno) {
       show_city_dialog_by_id(packet["id"]);
     }
   } else {
@@ -7298,7 +7338,7 @@ function handle_unit_short_info(packet) {
 function action_decision_handle(punit) {
   for (let a2 = 0; a2 < auto_attack_actions.length; a2++) {
     const action = auto_attack_actions[a2];
-    if (utype_can_do_action$1(unit_type(punit), action) && window.auto_attack) {
+    if (utype_can_do_action$1(unit_type(punit), action) && store.autoAttack) {
       sendUnitGetActions(
         punit["id"],
         IDENTITY_NUMBER_ZERO,
@@ -7314,7 +7354,7 @@ function action_decision_handle(punit) {
 function action_decision_maybe_auto(actor_unit, action_probabilities, target_tile, target_extra, target_unit, _target_city) {
   for (let a2 = 0; a2 < auto_attack_actions.length; a2++) {
     const action = auto_attack_actions[a2];
-    if (actionProbPossible(action_probabilities[action]) && window.auto_attack) {
+    if (actionProbPossible(action_probabilities[action]) && store.autoAttack) {
       let target = target_tile["index"];
       if (action === ACTION_NUKE_CITY) {
         const tc = tileCity(target_tile);
@@ -8727,9 +8767,6 @@ function center_on_any_city() {
     return;
   }
 }
-if (!window["nation_groups"]) window["nation_groups"] = [];
-if (!window["diplstates"]) window["diplstates"] = {};
-if (window["selected_player"] === void 0) window["selected_player"] = -1;
 function getDiplstates() {
   return store.diplstates;
 }
@@ -11663,15 +11700,15 @@ function update_map_canvas(canvas_x, canvas_y, width, height) {
   const t2 = base_canvas_to_map_pos(0, mapview$1["height"]);
   const u2 = base_canvas_to_map_pos(mapview$1["width"], mapview$1["height"]);
   if (r2["map_x"] < 0 || r2["map_x"] > store.mapInfo["xsize"] || r2["map_y"] < 0 || r2["map_y"] > store.mapInfo["ysize"] || s2["map_x"] < 0 || s2["map_x"] > store.mapInfo["xsize"] || s2["map_y"] < 0 || s2["map_y"] > store.mapInfo["ysize"] || t2["map_x"] < 0 || t2["map_x"] > store.mapInfo["xsize"] || t2["map_y"] < 0 || t2["map_y"] > store.mapInfo["ysize"] || u2["map_x"] < 0 || u2["map_x"] > store.mapInfo["xsize"] || u2["map_y"] < 0 || u2["map_y"] > store.mapInfo["ysize"]) {
-    canvas_put_rectangle(window.mapview_canvas_ctx, "rgb(0,0,0)", canvas_x, canvas_y, width, height);
+    canvas_put_rectangle(store.mapviewCanvasCtx, "rgb(0,0,0)", canvas_x, canvas_y, width, height);
   }
   for (let layer = 0; layer <= LAYER_COUNT; layer++) {
     if (layer == LAYER_SPECIAL1) {
-      window.mapview_canvas_ctx.lineWidth = 2;
-      window.mapview_canvas_ctx.lineCap = "butt";
-      if (window.dashedSupport) window.mapview_canvas_ctx.setLineDash([4, 4]);
+      store.mapviewCanvasCtx.lineWidth = 2;
+      store.mapviewCanvasCtx.lineCap = "butt";
+      if (store.dashedSupport) store.mapviewCanvasCtx.setLineDash([4, 4]);
     } else if (layer == LAYER_CITY1) {
-      if (window.dashedSupport) window.mapview_canvas_ctx.setLineDash([]);
+      if (store.dashedSupport) store.mapviewCanvasCtx.setLineDash([]);
     }
     let gui_x_0 = gui_x0;
     let gui_y_0 = gui_y0;
@@ -11728,10 +11765,10 @@ function update_map_canvas(canvas_x, canvas_y, width, height) {
         const cx = gui_x - mapview$1["gui_x0"];
         const cy = gui_y - mapview$1["gui_y0"];
         if (ptile != null) {
-          put_one_tile(window.mapview_canvas_ctx, layer, ptile, cx, cy);
+          put_one_tile(store.mapviewCanvasCtx, layer, ptile, cx, cy);
         } else if (pcorner != null) {
           put_one_element(
-            window.mapview_canvas_ctx,
+            store.mapviewCanvasCtx,
             layer,
             null,
             null,
@@ -11747,7 +11784,7 @@ function update_map_canvas(canvas_x, canvas_y, width, height) {
   }
   if (map_select_active && map_select_setting_enabled) {
     canvas_put_select_rectangle(
-      window.mapview_canvas_ctx,
+      store.mapviewCanvasCtx,
       map_select_x,
       map_select_y,
       mouse_x - map_select_x,
@@ -11908,8 +11945,8 @@ function update_map_slide() {
     sx = Math.floor(dx * (-1 * mapview_slide["i"] / mapview_slide["max"]));
     sy = Math.floor(dy * (-1 * mapview_slide["i"] / mapview_slide["max"]));
   }
-  window.mapview_canvas_ctx.drawImage(
-    window.buffer_canvas,
+  store.mapviewCanvasCtx.drawImage(
+    store.bufferCanvas,
     sx,
     sy,
     mapview$1["width"],
@@ -12323,10 +12360,6 @@ store.renderer = RENDERER_2DCANVAS$1;
 if (window.fc_seedrandom === void 0) window.fc_seedrandom = null;
 if (window.audio === void 0) window.audio = null;
 if (window.audio_enabled === void 0) window.audio_enabled = false;
-if (window.last_turn_change_time === void 0) window.last_turn_change_time = 0;
-if (window.turn_change_elapsed === void 0) window.turn_change_elapsed = 0;
-if (window.seconds_to_phasedone === void 0) window.seconds_to_phasedone = 0;
-if (window.seconds_to_phasedone_sync === void 0) window.seconds_to_phasedone_sync = 0;
 if (window.dialog_close_trigger === void 0) window.dialog_close_trigger = "";
 if (window.dialog_message_close_task === void 0) window.dialog_message_close_task = void 0;
 if (!window.music_list) {
@@ -12343,9 +12376,7 @@ if (!window.music_list) {
 }
 function civClientInit() {
   store.observing = true;
-  window.observing = true;
   store.gameType = "observe";
-  window.game_type = "observe";
   for (const id of ["civ_tab", "cities_tab", "opt_tab", "hel_tab", "pregame_buttons", "game_unit_orders_default", "civ_dialog", "game_unit_panel", "tabs-cities", "tabs-opt", "tabs-hel", "tabs-civ"]) {
     document.getElementById(id)?.remove();
   }
@@ -12378,9 +12409,11 @@ function civClientInit() {
     const el = document.getElementById(id);
     if (el) el.style.height = "auto";
   }
-  window.sounds_enabled = JSON.parse(localStorage.getItem("sndFX") ?? "null");
-  if (window.sounds_enabled == null) {
-    window.sounds_enabled = navigator.userAgent.includes("Safari") && !navigator.userAgent.includes("Chrome") ? false : true;
+  const savedSounds = JSON.parse(localStorage.getItem("sndFX") ?? "null");
+  if (savedSounds != null) {
+    store.soundsEnabled = savedSounds;
+  } else {
+    store.soundsEnabled = !(navigator.userAgent.includes("Safari") && !navigator.userAgent.includes("Chrome"));
   }
   if (window.audiojs) {
     window.audiojs.events.ready(function() {
@@ -12404,7 +12437,6 @@ function civClientInit() {
 function initCommonIntroDialog() {
   const saved = localStorage.getItem("username");
   store.username = saved || "Observer";
-  window.username = store.username;
   showIntroDialog("Welcome to XBWorld", "You are joining the game as an observer. Please enter your name:");
   Promise.resolve().then(() => connection).then((m2) => m2.network_init());
 }
@@ -12416,17 +12448,17 @@ function showAuthDialog(packet) {
 }
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", () => {
-    if (!window.civclient_state || window.civclient_state === 0) {
+    if (!store.civclientState) {
       civClientInit();
     }
   });
 } else {
-  if (!window.civclient_state || window.civclient_state === 0) {
+  if (!store.civclientState) {
     civClientInit();
   }
 }
 function getMessageLog() {
-  return window.message_log;
+  return message_log;
 }
 const jsSHA = window.jsSHA;
 const load_game_check = window.load_game_check;
@@ -12732,7 +12764,7 @@ function can_ask_server_for_actions() {
   return action_selection_in_progress_for === FC_IDENTITY_NUMBER_ZERO;
 }
 function ask_server_for_actions(punit) {
-  if (window.observing || punit == null) {
+  if (store.observing || punit == null) {
     return false;
   }
   if (action_selection_in_progress_for != FC_IDENTITY_NUMBER_ZERO && action_selection_in_progress_for != punit.id) {
@@ -14255,7 +14287,7 @@ function buildCityTileMap(radiusSq) {
       base_sorted: vectors,
       maps: [baseMap]
     };
-    window.city_tile_map = cityTileMap;
+    store.cityTileMap = cityTileMap;
   }
 }
 function deltaTileHelper(pos, r2, size) {

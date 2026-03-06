@@ -96,7 +96,7 @@ export function handle_conn_info(packet: any): void {
 }
 
 export function handle_conn_ping(packet: any): void {
-  (window as any).ping_last = new Date().getTime();
+  store.pingLast = new Date().getTime();
   sendConnPong();
 }
 
@@ -127,8 +127,8 @@ export function handle_set_topology(_packet: any): void { /* TODO */ }
 
 export function handle_conn_ping_info(packet: any): void {
   if (store.debugActive) {
-    (window as any).conn_ping_info = packet;
-    (window as any).debug_ping_list.push(packet['ping_time'][0] * 1000);
+    store.connPingInfo = packet;
+    store.debugPingList.push(packet['ping_time'][0] * 1000);
   }
 }
 

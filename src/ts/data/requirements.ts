@@ -73,6 +73,7 @@ import {
   REQ_RANGE_COUNT,
   RPT_POSSIBLE,
 } from './fcTypes';
+import { playerInventionState, TECH_KNOWN } from './tech';
 
 // ---------------------------------------------------------------------------
 // Functions
@@ -86,9 +87,7 @@ export function isTechInRange(
   range: number,
   tech: number,
 ): number {
-  const playerInventionState = (window as any).player_invention_state as
-    (p: any, t: number) => number;
-  const TECH_KNOWN_VAL = (window as any).TECH_KNOWN as number;
+  const TECH_KNOWN_VAL = TECH_KNOWN;
 
   switch (range) {
     case REQ_RANGE_PLAYER:

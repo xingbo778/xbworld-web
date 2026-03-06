@@ -445,7 +445,7 @@ export function buildCityTileMap(radiusSq: number): void {
     };
 
     // Also update the legacy global
-    (window as any).city_tile_map = cityTileMap;
+    store.cityTileMap = cityTileMap;
   }
 }
 

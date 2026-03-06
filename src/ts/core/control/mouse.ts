@@ -46,7 +46,7 @@ export function mouse_moved_cb(e: MouseEvent): void {
   }
 
   const canvasEl = document.getElementById('canvas');
-  if (RENDERER_2DCANVAS && active_city == null && (window as any).mapview_canvas != null
+  if (RENDERER_2DCANVAS && active_city == null && store.mapviewCanvas != null
     && canvasEl) {
     const canvasRect = canvasEl.getBoundingClientRect();
     S.setMouseX(S.mouse_x - canvasRect.left);

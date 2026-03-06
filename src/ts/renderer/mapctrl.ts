@@ -88,11 +88,11 @@ export function mapview_mouse_click(e: any): void {
     /* right click to recenter. */
     if (!map_select_active || !map_select_setting_enabled) {
       setContextMenuActive(true);
-      (window as any).context_menu_active = true;
+      store.contextMenuActive = true;
       recenter_button_pressed(mouse_x, mouse_y);
     } else {
       setContextMenuActive(false);
-      (window as any).context_menu_active = false;
+      store.contextMenuActive = false;
       map_select_units(mouse_x, mouse_y);
     }
     map_select_active = false;
@@ -102,11 +102,11 @@ export function mapview_mouse_click(e: any): void {
     /* Left mouse button*/
     action_button_pressed(mouse_x, mouse_y, SELECT_POPUP);
     setMapviewMouseMovement(false);
-    (window as any).mapview_mouse_movement = false;
+    store.mapviewMouseMovement = false;
     update_mouse_cursor();
   }
   setKeyboardInput(true);
-  (window as any).keyboard_input = true;
+  store.keyboardInput = true;
 }
 
 /****************************************************************************
@@ -146,7 +146,7 @@ export function mapview_mouse_down(e: any): boolean | void {
     /* The context menu blocks the right click mouse up event on some
      * browsers. */
     setContextMenuActive(false);
-    (window as any).context_menu_active = false;
+    store.contextMenuActive = false;
   }
 }
 
@@ -299,7 +299,7 @@ export function map_select_units(canvas_x: number, canvas_y: number): void {
   }
 
   setCurrentFocus(selected_units);
-  (window as any).current_focus = selected_units;
+  store.currentFocus = selected_units;
   action_selection_next_in_focus(IDENTITY_NUMBER_ZERO);
   update_active_units_dialog();
 }

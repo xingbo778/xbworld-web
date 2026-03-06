@@ -2,8 +2,10 @@
  * XBWorld — Extra data module (migrated from extra.js)
  *
  * Pure query functions for extras (roads, bases, resources, etc.).
- * All functions read from `window.extras`, `window.ruleset_control`, etc.
  */
+
+import { store } from './store';
+import { player_by_number } from './player';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -24,10 +26,9 @@ export function extraByNumber(id: number): any {
   if (id === EXTRA_NONE) {
     return null;
   }
-  const extras = (window as any).extras;
-  const rc = (window as any).ruleset_control;
-  if (id >= 0 && rc && id < rc['num_extra_types']) {
-    return extras[id];
+  const rc = store.rulesControl;
+  if (id >= 0 && rc && id < (rc as any)['num_extra_types']) {
+    return store.extras[id];
   } else {
     console.log('extra_by_number(): Invalid extra id: ' + id);
     return null;
@@ -38,8 +39,7 @@ export function extraByNumber(id: number): any {
  * Who owns extras on tile.
  */
 export function extraOwner(ptile: any): any {
-  const playerByNumber = (window as any).player_by_number as (n: number) => any;
-  return playerByNumber(ptile['extras_owner']);
+  return player_by_number(ptile['extras_owner']);
 }
 
 /**

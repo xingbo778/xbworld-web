@@ -13,10 +13,9 @@
 import { E_LOG_ERROR } from '../data/eventConstants';
 import { swal } from '../components/Dialogs/SwalDialog';
 
-// message_log is imported lazily to avoid triggering EventAggregator construction at module load
-// (EventAggregator is a global script that may not be available in test environment)
+import { message_log } from '../core/messages';
 function getMessageLog(): any {
-  return (window as any).message_log;
+  return message_log;
 }
 
 import { showDialogMessage as show_dialog_message } from '../client/civClient';

@@ -81,6 +81,34 @@ class GameStore {
   civserverport: string | number = '';
   freecivWikiDocs: Record<string, string> = {};
 
+  // Canvas/map rendering state
+  mapviewCanvasCtx: CanvasRenderingContext2D | null = null;
+  bufferCanvas: HTMLCanvasElement | null = null;
+  mapviewCanvas: HTMLCanvasElement | null = null;
+  dashedSupport: boolean = false;
+  fullfog: string[] = [];
+
+  // UI interaction state
+  contextMenuActive: boolean = false;
+  keyboardInput: boolean = true;
+  mapviewMouseMovement: boolean = false;
+  currentFocus: any[] = [];
+  soundsEnabled: boolean = false;
+
+  // Timer/network state
+  lastTurnChangeTime: number = 0;
+  turnChangeElapsed: number = 0;
+  secondsToPhasedone: number = 0;
+  secondsToPhasedoneSync: number = 0;
+  pingLast: number = 0;
+  connPingInfo: any = null;
+  debugPingList: number[] = [];
+  savedThisTurn: boolean = false;
+  endgamePlayerInfo: any[] = [];
+  benchmarkStart: number = 0;
+  autoAttack: boolean = false;
+  cityTileMap: any = null;
+
   client: ClientState = {
     conn: { id: 0, playing: null },
   };
@@ -93,6 +121,7 @@ class GameStore {
   phaseStartTime = 0;
   debugActive = false;
   autostart = false;
+  civclientState: number = 0;  // ClientState enum
 
   reset(): void {
     this.tiles = {};

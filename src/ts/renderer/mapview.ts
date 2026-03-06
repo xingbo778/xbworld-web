@@ -79,7 +79,10 @@ export function init_mapview(): void {
   buffer_canvas = document.createElement('canvas');
   buffer_canvas_ctx = buffer_canvas.getContext('2d');
 
-  // Expose canvas contexts on window so mapviewCommon (and other modules) can access them
+  // Expose canvas contexts — store is canonical, window is for clientMain.ts _w pattern
+  store.mapviewCanvasCtx = mapview_canvas_ctx;
+  store.bufferCanvas = buffer_canvas;
+  store.mapviewCanvas = mapview_canvas;
   (window as any).mapview_canvas_ctx = mapview_canvas_ctx;
   (window as any).buffer_canvas = buffer_canvas;
   (window as any).mapview_canvas = mapview_canvas;
@@ -90,7 +93,7 @@ export function init_mapview(): void {
   }
   if (mapview_canvas_ctx) {
     dashedSupport = ("setLineDash" in mapview_canvas_ctx);
-    (window as any).dashedSupport = dashedSupport;
+    store.dashedSupport = dashedSupport;
   }
 
   setupWindowSize();
@@ -119,7 +122,8 @@ export function init_mapview(): void {
 
     fullfog[i] = buf;
   }
-  (window as any).fullfog = fullfog;
+  store.fullfog = fullfog;
+  (window as any).fullfog = fullfog;  // tilespec.ts reads _w.fullfog
 
   if (is_small_screen()) _win.MAPVIEW_REFRESH_INTERVAL = 12;
 
@@ -415,6 +419,7 @@ export function set_city_mapview_active(): void {
   }
 
   mapview_canvas_ctx = city_canvas.getContext("2d");
+  store.mapviewCanvasCtx = mapview_canvas_ctx;
   (window as any).mapview_canvas_ctx = mapview_canvas_ctx;
 
   mapview['width'] = citydlg_map_width;
@@ -478,6 +483,7 @@ export function enable_mapview_slide(ptile: any): void {
 
   mapview_canvas = buffer_canvas;
   mapview_canvas_ctx = buffer_canvas_ctx;
+  store.mapviewCanvasCtx = mapview_canvas_ctx;
   (window as any).mapview_canvas_ctx = mapview_canvas_ctx;
 
   if (dx >= 0 && dy <= 0) {
@@ -512,6 +518,7 @@ export function enable_mapview_slide(ptile: any): void {
   /* restore default mapview. */
   mapview_canvas = document.getElementById('canvas') as HTMLCanvasElement;
   mapview_canvas_ctx = mapview_canvas.getContext("2d");
+  store.mapviewCanvasCtx = mapview_canvas_ctx;
   (window as any).mapview_canvas_ctx = mapview_canvas_ctx;
 
   if (buffer_canvas_ctx && mapview_canvas) {

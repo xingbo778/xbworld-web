@@ -35,12 +35,7 @@ import { getUrlVar } from '../utils/helpers';
 
 // ---------------------------------------------------------------------------
 // Global variable initialisation (replaces var declarations in nation.js)
-// ---------------------------------------------------------------------------
-// nation_groups and diplstates are written by packhandlers.ts via window.*
-// selected_player is read/written by the nation-screen functions below.
-if (!(window as any)['nation_groups']) (window as any)['nation_groups'] = [];
-if (!(window as any)['diplstates'])    (window as any)['diplstates']    = {};
-if ((window as any)['selected_player'] === undefined) (window as any)['selected_player'] = -1;
+// nation_groups, diplstates, selectedPlayer are now store properties with defaults.
 
 // ---------------------------------------------------------------------------
 // Helpers to access shared window globals

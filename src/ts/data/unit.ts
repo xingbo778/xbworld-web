@@ -201,8 +201,7 @@ export function move_points_text(moves: number): string {
 // ---------------------------------------------------------------------------
 
 export function unit_has_goto(punit: Unit): boolean {
-  const _client = (window as any).client;
-  if (_client?.conn?.playing == null || punit.owner !== _client.conn.playing.playerno) {
+  if (store.client?.conn?.playing == null || punit.owner !== store.client.conn.playing.playerno) {
     return false;
   }
 

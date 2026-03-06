@@ -4,6 +4,7 @@
  */
 
 import type { Tile, Terrain } from './types';
+import { store } from './store';
 import { tileGetKnown, TILE_UNKNOWN } from './tile';
 import { mapstep, Direction } from './map';
 import { logError } from '../core/log';
@@ -12,11 +13,8 @@ export function tileSetTerrain(ptile: Tile, terrain: number): void {
 }
 
 export function tileTerrain(ptile: Tile): Terrain | undefined {
-  /* eslint-disable @typescript-eslint/no-explicit-any */
-  const terrains = (window as any).terrains;
-  /* eslint-enable @typescript-eslint/no-explicit-any */
-  if (!terrains) return undefined;
-  return terrains[ptile.terrain];
+  if (!store.terrains) return undefined;
+  return store.terrains[ptile.terrain];
 }
 
 export function tileTerrainNear(ptile: Tile): (Terrain | undefined)[] {

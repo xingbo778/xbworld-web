@@ -93,7 +93,7 @@ export function handle_unit_short_info(packet: any): void {
 export function action_decision_handle(punit: any): void {
   for (let a = 0; a < auto_attack_actions.length; a++) {
     const action = auto_attack_actions[a];
-    if (utype_can_do_action(unit_type(punit), action) && (window as any).auto_attack) {
+    if (utype_can_do_action(unit_type(punit), action) && store.autoAttack) {
       sendUnitGetActions(
         punit['id'], IDENTITY_NUMBER_ZERO,
         punit['action_decision_tile'], EXTRA_NONE,
@@ -112,7 +112,7 @@ export function action_decision_maybe_auto(
 ): void {
   for (let a = 0; a < auto_attack_actions.length; a++) {
     const action = auto_attack_actions[a];
-    if (actionProbPossible(action_probabilities[action]) && (window as any).auto_attack) {
+    if (actionProbPossible(action_probabilities[action]) && store.autoAttack) {
       let target = target_tile['index'];
       if (action === ACTION_NUKE_CITY) {
         const tc = tileCity(target_tile);

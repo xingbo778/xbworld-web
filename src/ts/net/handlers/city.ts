@@ -25,7 +25,7 @@ export function handle_city_info(packet: any): void {
   if (store.cities[packet['id']] == null) {
     const pcity = packet;
     store.cities[packet['id']] = packet;
-    if (C_S_RUNNING === clientState() && !store.observing && (window as any).benchmark_start === 0
+    if (C_S_RUNNING === clientState() && !store.observing && store.benchmarkStart === 0
         && !clientIsObserver() && packet['owner'] === clientPlaying()?.playerno) {
       show_city_dialog_by_id(packet['id']);
     }

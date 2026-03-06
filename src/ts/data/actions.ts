@@ -6,6 +6,7 @@
  */
 
 import { store } from './store';
+import { action_prob_not_impl } from '../ui/actionDialogFormat';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -59,9 +60,7 @@ export function actionHasResult(paction: Action | null, result: number): boolean
  * NOTE: action_prob_not_impl is defined in action_dialog.js (Legacy).
  */
 export function actionProbPossible(aprob: ActionProb): boolean {
-  const notImpl = (window as any).action_prob_not_impl as
-    ((p: ActionProb) => boolean) | undefined;
-  return 0 < aprob['max'] || (notImpl != null && notImpl(aprob));
+  return 0 < aprob['max'] || action_prob_not_impl(aprob);
 }
 
 // ---------------------------------------------------------------------------
