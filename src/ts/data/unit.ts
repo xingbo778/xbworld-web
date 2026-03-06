@@ -94,7 +94,7 @@ export function client_remove_unit(punit: Unit): void {
 
   // Check focus via store
   const focused = store.currentFocus || [];
-  if (focused.some((u: any) => u.id === punit.id)) {
+  if (focused.some((u: Unit) => u.id === punit.id)) {
     store.currentFocus = [];
   }
 
@@ -416,23 +416,25 @@ export function get_unit_city_info(punit: Unit): string {
 // Pillage
 // ---------------------------------------------------------------------------
 
-export function get_what_can_unit_pillage_from(punit: Unit | null, ptile: any): number[] {
+export function get_what_can_unit_pillage_from(punit: Unit | null, ptile: Tile | null): number[] {
   const targets: number[] = [];
   if (punit == null) return targets;
 
   if (ptile == null) {
-    ptile = index_to_tile(punit.tile);
+    ptile = index_to_tile(punit.tile) ?? null;
   }
+  if (ptile == null) return targets;
 
   if (store.terrains[ptile.terrain].pillage_time === 0) return targets;
   if (!utype_can_do_action(unit_type(punit), ACTION_PILLAGE)) return targets;
 
   const cannot_pillage = new BitVector([]);
 
-  for (const unit_idx in Object.keys(ptile.units)) {
-    const u = ptile.units[unit_idx];
+  const ptile_units = tile_units(ptile) || [];
+  for (let ui = 0; ui < ptile_units.length; ui++) {
+    const u = ptile_units[ui];
     if (u.activity === ACTIVITY_PILLAGE) {
-      cannot_pillage.set(u.activity_tgt);
+      cannot_pillage.set(u['activity_tgt'] as number);
     }
   }
 

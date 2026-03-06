@@ -1,4 +1,4 @@
-import type { City } from './types';
+import type { City, Unit } from './types';
 import { store } from './store';
 import { cityPopulation as city_population } from './city';
 import { clientState as client_state, C_S_RUNNING, clientPlaying } from '../client/clientState';
@@ -21,7 +21,7 @@ export function game_find_city_by_number(id: number): City | undefined {
   return store.cities[id];
 }
 
-export function game_find_unit_by_number(id: number): any {
+export function game_find_unit_by_number(id: number): Unit | undefined {
   return store.units[id];
 }
 

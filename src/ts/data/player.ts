@@ -3,7 +3,7 @@
  * Migrated from player.js.
  */
 
-import type { Player, City } from './types';
+import type { Player, City, Unit } from './types';
 import { store } from './store';
 export const MAX_NUM_PLAYERS = 30;
 export const MAX_AI_LOVE = 1000;
@@ -25,7 +25,8 @@ export const enum PlayerFlag {
   PLRF_COUNT = 2,
 }
 
-export const research_data: Record<number, any> = {};
+export interface ResearchData { researching: number; bulbs_researched: number; researching_cost: number; total_bulbs_prod?: number; [key: string]: unknown; }
+export const research_data: Record<number, ResearchData> = {};
 
 export function valid_player_by_number(playerno: number): Player | null {
   if (store.players[playerno] == null) return null;
@@ -54,7 +55,7 @@ export function player_by_full_username(pname: string): Player | null {
   return null;
 }
 
-export function player_find_unit_by_id(pplayer: Player, unit_id: number): any | null {
+export function player_find_unit_by_id(pplayer: Player, unit_id: number): Unit | null {
   for (const id in store.units) {
     const punit = store.units[id];
     if (punit.owner === pplayer.playerno && punit.id === unit_id) {
@@ -126,7 +127,7 @@ export function get_player_connection_status(pplayer: Player): string {
   return 'disconnected';
 }
 
-export function research_get(pplayer: Player): any | null {
+export function research_get(pplayer: Player): ResearchData | null {
   if (pplayer == null) return null;
   return research_data[pplayer.playerno] ?? null;
 }

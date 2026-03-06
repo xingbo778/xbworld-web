@@ -304,7 +304,7 @@ describe('research_get', () => {
   });
 
   it('should return research data for player', () => {
-    research_data[0] = { researching: 5, bulbs_researched: 10 };
+    research_data[0] = { researching: 5, bulbs_researched: 10, researching_cost: 100 };
     expect(research_get(makePlayer({ playerno: 0 }))?.researching).toBe(5);
   });
 

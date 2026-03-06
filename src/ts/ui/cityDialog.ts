@@ -10,6 +10,7 @@ import { get_unit_image_sprite } from '../renderer/tilespec';
 import { game_find_unit_by_number } from '../data/game';
 import { VUT_UTYPE, VUT_IMPROVEMENT, FC_INFINITY, O_FOOD, O_SHIELD, O_TRADE, O_GOLD, O_LUXURY, O_SCIENCE, MAX_LEN_CITYNAME, MAX_LEN_NAME } from '../data/fcTypes';
 import { get_improvement_image_sprite } from '../renderer/tilespec';
+import type { SpriteInfo } from '../renderer/spriteGetters';
 import { RENDERER_2DCANVAS } from '../core/constants';
 import { tile_units } from '../data/unit';
 import { clientState as client_state, C_S_RUNNING, clientIsObserver, clientPlaying } from '../client/clientState';
@@ -100,7 +101,7 @@ export function show_city_dialog_by_id(pcity_id: number): void {
 
 export function show_city_dialog(pcity: City): void {
   let turns_to_complete: number;
-  let sprite: any;
+  let sprite: SpriteInfo | null;
   let punit: Unit;
 
   if (active_city != pcity || active_city == null) {
@@ -330,6 +331,7 @@ export function show_city_dialog(pcity: City): void {
     for (let i = 0; i < (pcity as any)['ppl_' + citizen_types[s]][FEELING_FINAL]; i ++) {
       sprite = get_specialist_image_sprite("citizen." + citizen_types[s] + "_"
          + (i % 2));
+      if (sprite == null) continue;
       specialist_html = specialist_html +
       "<div class='specialist_item' style='background: transparent url("
            + sprite['image-src'] +
@@ -344,6 +346,7 @@ export function show_city_dialog(pcity: City): void {
     const spec_gfx_key: string = "specialist." + store.specialists[u]['rule_name'] + "_0";
     for (let j = 0; j < (pcity as any)['specialists'][u]; j++) {
       sprite = get_specialist_image_sprite(spec_gfx_key);
+      if (sprite == null) continue;
       specialist_html = specialist_html +
       "<div class='specialist_item' style='cursor:pointer;cursor:hand; background: transparent url("
            + sprite['image-src'] +
@@ -363,8 +366,8 @@ export function show_city_dialog(pcity: City): void {
     disbandEl.parentNode?.replaceChild(newDisband, disbandEl);
     newDisband.checked = pcity['city_options'] != null && (pcity['city_options'] as any).isSet(CITYO_DISBAND);
     newDisband.addEventListener('click', function() {
-      const options: any = pcity['city_options'];
-      const packet: any = {
+      const options = pcity['city_options'] as any;
+      const packet: Record<string, unknown> = {
         "pid"     : packet_city_options_req,
         "city_id" : active_city!['id'],
         "options" : options.raw
@@ -435,13 +438,13 @@ export function request_city_buy(): void {
 export function send_city_buy(): void {
   if (clientIsObserver()) return;
   if (active_city != null) {
-    const packet: any = {"pid" : packet_city_buy, "city_id" : active_city['id']};
+    const packet: Record<string, unknown> = {"pid" : packet_city_buy, "city_id" : active_city['id']};
     sendRequest(JSON.stringify(packet));
   }
 }
 
 export function send_city_change(city_id: number, kind: number, value: number): void {
-  const packet: any = {"pid" : packet_city_change, "city_id" : city_id,
+  const packet: Record<string, unknown> = {"pid" : packet_city_change, "city_id" : city_id,
                 "production_kind": kind, "production_value" : value};
   sendRequest(JSON.stringify(packet));
 }
@@ -519,7 +522,7 @@ export function city_name_dialog(suggested_name: string, unit_id: number): void 
     }
     const actor_unit = game_find_unit_by_number(unit_id);
     request_unit_do_action(ACTION_FOUND_CITY,
-      unit_id, actor_unit['tile'], 0, encodeURIComponent(name));
+      unit_id, actor_unit!['tile'] as number, 0, encodeURIComponent(name));
     nameDlg.remove();
     act_sel_queue_done(unit_id);
   }
@@ -577,12 +580,12 @@ export function city_sell_improvement(improvement_id: number): void {
   if ('confirm' in window) {
     const agree: boolean = confirm("Are you sure you want to sell this building?");
     if (agree) {
-      const packet: any = {"pid" : packet_city_sell, "city_id" : active_city!['id'],
+      const packet: Record<string, unknown> = {"pid" : packet_city_sell, "city_id" : active_city!['id'],
                   "build_id": improvement_id};
       sendRequest(JSON.stringify(packet));
     }
   } else {
-    const packet: any = {"pid" : packet_city_sell, "city_id" : active_city!['id'],
+    const packet: Record<string, unknown> = {"pid" : packet_city_sell, "city_id" : active_city!['id'],
                 "build_id": improvement_id};
     sendRequest(JSON.stringify(packet));
   }
@@ -590,7 +593,7 @@ export function city_sell_improvement(improvement_id: number): void {
 
 export function city_change_specialist(city_id: number, from_specialist_id: number): void {
   if (clientIsObserver()) return;
-  const city_message: any = {"pid": packet_city_change_specialist,
+  const city_message: Record<string, unknown> = {"pid": packet_city_change_specialist,
                       "city_id" : city_id,
                       "from" : from_specialist_id,
                       "to" : (from_specialist_id + 1) % 3};
@@ -626,7 +629,7 @@ export function rename_city(): void {
       swal("City name is invalid");
       return;
     }
-    const packet: any = {"pid" : packet_city_rename, "name" : encodeURIComponent(name), "city_id" : active_city!['id'] };
+    const packet: Record<string, unknown> = {"pid" : packet_city_rename, "name" : encodeURIComponent(name), "city_id" : active_city!['id'] };
     sendRequest(JSON.stringify(packet));
     renameDlg.remove();
   }
@@ -742,7 +745,7 @@ export function set_citydlg_dimensions(pcity: City): void {
 
 // Dummy functions for external references that are not part of the provided JS
 function show_city_traderoutes(): void {}
-function get_specialist_image_sprite(key: string): any {}
+function get_specialist_image_sprite(key: string): SpriteInfo | null { return null; }
 function city_mapview_mouse_click(): void {}
 function show_city_governor_tab(): void {}
 function show_dialog_message(title: string, message: string): void {}

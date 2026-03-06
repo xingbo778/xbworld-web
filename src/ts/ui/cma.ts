@@ -67,8 +67,8 @@ export function show_city_governor_tab(): boolean | void {
 /**************************************************************************
   Sends new CMA parameters to the server, populated from the UI states.
 **************************************************************************/
-export function request_new_cma(city_id: any): void {
-  const cm_parameter: any = {};
+export function request_new_cma(city_id: number): void {
+  const cm_parameter: Record<string, unknown> = {};
 
   const cmaIds = ['cma_food', 'cma_shield', 'cma_trade', 'cma_gold', 'cma_luxury', 'cma_science'];
   for (let i = 0; i < cmaIds.length; i++) {

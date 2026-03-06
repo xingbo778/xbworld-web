@@ -77,15 +77,16 @@ export function show_intelligence_report_embassy(pplayer: Player): void {
   const research = research_get(pplayer);
   let researchText = '(Unknown)';
   const techNames: string[] = [];
-  if (research !== undefined) {
+  if (research != null) {
     const researching = store.techs[research['researching']];
     if (researching !== undefined) {
       researchText = `${researching['name']} (${research['bulbs_researched']}/${research['researching_cost']})`;
     } else {
       researchText = '(Nothing)';
     }
+    const inventions = research['inventions'] as Record<string, number> | undefined;
     for (const tech_id in store.techs) {
-      if (research['inventions'][tech_id] === TECH_KNOWN) {
+      if (inventions?.[tech_id] === TECH_KNOWN) {
         techNames.push(store.techs[tech_id]['name']);
       }
     }

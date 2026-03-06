@@ -155,7 +155,7 @@ export function handle_unit_packet_common(packet_unit: any): void {
     store.units[packet_unit['id']] = packet_unit;
     store.units[packet_unit['id']]['facing'] = 6;
   } else {
-    if ((punit['action_decision_want'] !== packet_unit['action_decision_want']
+    if (punit != null && (punit['action_decision_want'] !== packet_unit['action_decision_want']
          || punit['action_decision_tile'] !== packet_unit['action_decision_tile'])
         && should_ask_server_for_actions(packet_unit)) {
       action_decision_handle(packet_unit);
@@ -280,8 +280,8 @@ export function handle_unit_actions(packet: any): void {
   switch (packet['request_kind']) {
   case REQEST_PLAYER_INITIATED:
     if (hasActions) {
-      popup_action_selection(pdiplomat, action_probabilities,
-                               ptile, target_extra, target_unit, target_city ?? null);
+      popup_action_selection(pdiplomat!, action_probabilities,
+                               ptile, target_extra, target_unit ?? null, target_city ?? null);
     } else {
       action_selection_no_longer_in_progress(actor_unit_id);
       action_decision_clear_want(actor_unit_id);
@@ -289,8 +289,8 @@ export function handle_unit_actions(packet: any): void {
     }
     break;
   case REQEST_BACKGROUND_REFRESH:
-    action_selection_refresh(pdiplomat,
-                               target_city ?? null, target_unit, ptile,
+    action_selection_refresh(pdiplomat!,
+                               target_city ?? null, target_unit ?? null, ptile ?? null,
                                target_extra,
                                action_probabilities);
     break;

@@ -525,7 +525,7 @@ export function init_game_unit_panel(): void {
 }
 
 export function find_best_focus_candidate(accept_current: boolean): Unit | null {
-  let punit: Unit;
+  let punit: Unit | undefined;
   let i: number;
   if (client_is_observer()) return null;
 

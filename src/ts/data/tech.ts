@@ -70,11 +70,12 @@ export function isTechReqForGoal(checkTechId: number, goalTechId: number): boole
   if (checkTechId === goalTechId) return true;
   if (goalTechId === 0 || checkTechId === 0) return false;
 
-  const goalTech: any = store.techs[goalTechId];
+  const goalTech = store.techs[goalTechId];
   if (goalTech == null) return false;
 
-  for (let i = 0; i < goalTech['research_reqs'].length; i++) {
-    const rid = goalTech['research_reqs'][i]['value'];
+  const reqs = goalTech['research_reqs'] as { value: number }[];
+  for (let i = 0; i < reqs.length; i++) {
+    const rid = reqs[i]['value'];
     if (checkTechId === rid) {
       return true;
     } else if (isTechReqForGoal(checkTechId, rid)) {
@@ -93,11 +94,12 @@ export function isTechReqForTech(checkTechId: number, nextTechId: number): boole
   if (checkTechId === nextTechId) return false;
   if (nextTechId === 0 || checkTechId === 0) return false;
 
-  const nextTech: any = store.techs[nextTechId];
+  const nextTech = store.techs[nextTechId];
   if (nextTech == null) return false;
 
-  for (let i = 0; i < nextTech['research_reqs'].length; i++) {
-    const rid = nextTech['research_reqs'][i]['value'];
+  const reqs = nextTech['research_reqs'] as { value: number }[];
+  for (let i = 0; i < reqs.length; i++) {
+    const rid = reqs[i]['value'];
     if (checkTechId === rid) {
       return true;
     }
