@@ -712,6 +712,7 @@ export function update_active_units_dialog(): void {
   for (let i = 0; i < punits.length; i++) {
     const punit = punits[i];
     const sprite = get_unit_image_sprite(punit);
+    if (!sprite) continue;
     const active = (S.current_focus.length > 1 || S.current_focus[0]['id'] == punit['id']);
 
     unit_info_html += "<div id='unit_info_div' class='" + (active ? "current_focus_unit" : "")

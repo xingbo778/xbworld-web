@@ -6,7 +6,7 @@
  */
 
 import { IDENTITY_NUMBER_ZERO } from '../../core/constants';
-import type { Unit } from '../../data/types';
+import type { Extra, Unit } from '../../data/types';
 
 // ---------------------------------------------------------------------------
 // Mouse state
@@ -32,11 +32,11 @@ export function setMapviewMouseMovement(v: boolean) { mapview_mouse_movement = v
 // ---------------------------------------------------------------------------
 // Roads / bases (shared with rendering)
 // ---------------------------------------------------------------------------
-export let roads: any[] = [];
-export let bases: any[] = [];
+export let roads: Extra[] = [];
+export let bases: Extra[] = [];
 
-export function setRoads(v: any[]) { roads = v; }
-export function setBases(v: any[]) { bases = v; }
+export function setRoads(v: Extra[]) { roads = v; }
+export function setBases(v: Extra[]) { bases = v; }
 
 // ---------------------------------------------------------------------------
 // Unit focus state
@@ -59,7 +59,7 @@ export let action_tgt_sel_active: boolean = false;
 export let goto_last_order: number = -1;
 export let goto_last_action: number = -1;
 export let goto_request_map: { [key: string]: any } = {};
-export let goto_turns_request_map: { [key: string]: any } = {};
+export let goto_turns_request_map: { [key: string]: number } = {};
 export let current_goto_turns: number = 0;
 
 export function setGotoActive(v: boolean) { goto_active = v; }
@@ -69,7 +69,7 @@ export function setActionTgtSelActive(v: boolean) { action_tgt_sel_active = v; }
 export function setGotoLastOrder(v: number) { goto_last_order = v; }
 export function setGotoLastAction(v: number) { goto_last_action = v; }
 export function setGotoRequestMap(v: { [key: string]: any }) { goto_request_map = v; }
-export function setGotoTurnsRequestMap(v: { [key: string]: any }) { goto_turns_request_map = v; }
+export function setGotoTurnsRequestMap(v: { [key: string]: number }) { goto_turns_request_map = v; }
 export function setCurrentGotoTurns(v: number) { current_goto_turns = v; }
 
 // ---------------------------------------------------------------------------

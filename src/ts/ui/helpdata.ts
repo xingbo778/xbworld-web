@@ -21,11 +21,13 @@ import { is_wonder, get_improvement_requirements } from '../data/improvement';
 import { unittype_ids_alphabetic } from '../data/unit';
 import { U_NOT_OBSOLETED } from '../data/unittype';
 import { get_unit_type_image_sprite, get_technology_image_sprite, get_improvement_image_sprite } from '../renderer/tilespec';
+import type { SpriteInfo } from '../renderer/spriteGetters';
 import { move_points_text } from '../data/unit';
 import { ruledir_from_ruleset_name } from '../core/pregame';
 import { get_advances_text } from './techDialog';
 import { toTitleCase, stringUnqualify } from '../utils/helpers';
 import { store } from '../data/store';
+import type { Improvement, UnitType } from '../data/types';
 
 function get_helpdata_order(): string[] { return (store as any).helpdata_order || []; }
 function get_helpdata(): Record<string, { text: string }> { return (store as any).helpdata || {}; }
@@ -175,7 +177,8 @@ export function generate_help_menu(key: string): void {
 /**************************************************************************
 ...
 **************************************************************************/
-export function render_sprite(sprite: any): string {
+export function render_sprite(sprite: SpriteInfo | null): string {
+  if (!sprite) return '';
   return "<div class='help_unit_image' style=' background: transparent url(" +
     sprite["image-src"] +
     ");background-position:-" +
@@ -256,8 +259,8 @@ function handle_help_menu_select_native(item: HTMLElement): void {
 }
 
 // Keep old export name for backward compat
-export function handle_help_menu_select(ui: any): void {
-  const item = ui.item?.[0] || ui.item;
+export function handle_help_menu_select(ui: { item?: HTMLElement | HTMLElement[] }): void {
+  const item = Array.isArray(ui.item) ? ui.item[0] : ui.item;
   if (item) handle_help_menu_select_native(item);
 }
 
@@ -315,7 +318,7 @@ export function generate_help_text(key: string): void {
       "<br>Food/Prod/Trade: " +
       terrain["output"][0] + "/" + terrain["output"][1] + "/" + terrain["output"][2];
   } else if (key.indexOf("help_gen_improvements") !== -1 || key.indexOf("help_gen_wonders") !== -1) {
-    const improvement = store.improvements[
+    const improvement: any = store.improvements[
       parseInt(key.replace("help_gen_wonders_", "").replace("help_gen_improvements_", ""))
     ];
     msg =
@@ -377,7 +380,7 @@ export function generate_help_text(key: string): void {
     msg += wiki_on_item_button(punit_type["name"]);
     msg += "<div id='datastore' hidden='true'></div>";
   } else if (key.indexOf("help_gen_techs") !== -1) {
-    const tech = store.techs[parseInt(key.replace("help_gen_techs_", ""))];
+    const tech: any = store.techs[parseInt(key.replace("help_gen_techs_", ""))];
     msg =
       "<h1>" + tech["name"] + "</h1>" +
       render_sprite(get_technology_image_sprite(tech)) +

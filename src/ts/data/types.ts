@@ -141,6 +141,8 @@ export interface Tech {
   id: number;
   name: string;
   rule_name: string;
+  graphic_str: string;
+  graphic_alt: string;
   [key: string]: unknown;
 }
 
@@ -172,6 +174,8 @@ export interface Improvement {
   rule_name: string;
   genus: number;
   build_cost: number;
+  graphic_str: string;
+  graphic_alt: string;
   [key: string]: unknown;
 }
 

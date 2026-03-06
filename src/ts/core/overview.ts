@@ -18,6 +18,7 @@
 **********************************************************************/
 
 import { store } from '../data/store';
+import type { Tile, Terrain, City, Unit, Player } from '../data/types';
 import { mapPosToTile } from '../data/map';
 import { wrapHasFlag, WRAP_X, WRAP_Y } from '../data/map';
 import { tileCity, tileGetKnown } from '../data/tile';
@@ -307,8 +308,8 @@ export function generate_palette(): number[][] {
   palette[COLOR_OVERVIEW_VIEWRECT] = [200,200,255];
   palette_terrain_offset = palette.length;
   for (const terrain_id in store.terrains) {
-    const terrain: any = store.terrains[terrain_id];
-    palette.push([terrain['color_red'], terrain['color_green'], terrain['color_blue']]);
+    const terrain: Terrain = store.terrains[Number(terrain_id)];
+    palette.push([terrain['color_red'] as number, terrain['color_green'] as number, terrain['color_blue'] as number]);
   }
 
   palette_color_offset = palette.length;
@@ -316,11 +317,11 @@ export function generate_palette(): number[][] {
 
   for (const player_id_str in store.players) {
     const player_id = Number(player_id_str);
-    const pplayer: any = store.players[player_id];
-    if (pplayer['nation'] == -1) {
+    const pplayer: Player = store.players[player_id];
+    if (pplayer.nation == -1) {
       palette[palette_color_offset+(player_id % player_count)] = [0,0,0];
     } else {
-      const pcolor: any = store.nations[pplayer['nation']]['color'];
+      const pcolor = store.nations[pplayer.nation]?.['color'] as string | null;
       if (pcolor != null) {
         palette[palette_color_offset+(player_id % player_count)] = color_rbg_to_list(pcolor) ?? [];
       } else {
@@ -335,9 +336,9 @@ export function generate_palette(): number[][] {
   Returns the color of the tile at the given map position.
 ****************************************************************************/
 export function overview_tile_color(map_x: number, map_y: number): number {
-  const ptile: any = map_pos_to_tile(map_x, map_y);
+  const ptile: Tile | undefined = map_pos_to_tile(map_x, map_y);
 
-  const pcity: any = tile_city(ptile);
+  const pcity: City | null = tile_city(ptile ?? null);
 
   if (pcity != null) {
     if (clientPlaying() == null) {
@@ -349,22 +350,22 @@ export function overview_tile_color(map_x: number, map_y: number): number {
     }
   }
 
-  const punit: any = find_visible_unit(ptile);
+  const punit: Unit | null = find_visible_unit(ptile ?? null);
   if (punit != null) {
     if (clientPlaying() == null) {
       return COLOR_OVERVIEW_ENEMY_UNIT;
-    } else if (punit['owner'] == clientPlaying()['id']) {
+    } else if (punit.owner == clientPlaying()['id']) {
       return COLOR_OVERVIEW_MY_UNIT;
-    } else if (punit['owner'] != null && punit['owner'] != 255) {
-      return palette_color_offset + punit['owner'];
+    } else if (punit.owner != null && punit.owner != 255) {
+      return palette_color_offset + punit.owner;
     } else {
       return COLOR_OVERVIEW_ENEMY_UNIT;
     }
   }
 
-  if (tile_get_known(ptile) != TILE_UNKNOWN) {
-    if (ptile['owner'] != null && ptile['owner'] != 255) {
-      return palette_color_offset + ptile['owner'];
+  if (ptile != null && tile_get_known(ptile) != TILE_UNKNOWN) {
+    if (ptile.owner != null && ptile.owner != 255) {
+      return palette_color_offset + ptile.owner;
     } else {
       return palette_terrain_offset + tile_terrain(ptile)!['id'];
     }
@@ -385,7 +386,7 @@ export function overview_clicked (x: number, y: number): void {
   const x1: number = Math.floor((x * store.mapInfo!.xsize) / width);
   const y1: number = Math.floor((y * store.mapInfo!.ysize) / height);
 
-  const ptile: any = map_pos_to_tile(x1, y1);
+  const ptile: Tile | undefined = map_pos_to_tile(x1, y1);
   if (ptile != null) {
     center_tile_mapcanvas(ptile);
   }

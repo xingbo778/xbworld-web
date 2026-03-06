@@ -16,6 +16,7 @@
 // Imports
 // ---------------------------------------------------------------------------
 import { store } from './store';
+import type { Player } from './types';
 import { DiplState, PlayerFlag, get_ai_level_text, get_diplstate_text, get_embassy_text } from './player';
 import { cityTile, cityOwnerPlayerId } from './city';
 import { swal } from '../components/Dialogs/SwalDialog';
@@ -112,9 +113,10 @@ export function loveText(love: number): string {
 }
 
 /** Returns score text for a player. */
-export function getScoreText(player: any): string | number {
-  if (player['score'] >= 0) {
-    return player['score'];
+export function getScoreText(player: Player): string | number {
+  const score = player['score'] as number | undefined;
+  if (score != null && score >= 0) {
+    return score;
   } else {
     return '?';
   }
@@ -124,7 +126,7 @@ export function getScoreText(player: any): string | number {
  * Returns the attitude text for a player towards the current player.
  * Used in the nation table's "Attitude" column.
  */
-export function colLove(pplayer: any): string {
+export function colLove(pplayer: Player): string {
   if (
     clientIsObserver() ||
     store.client?.conn?.playing == null ||
@@ -158,7 +160,7 @@ export function updateNationScreen(): void {
     "<th class='nation_team'>Team</th><th>State</th></tr></thead><tbody class='nation_table_body'>";
 
   for (const player_id in store.players) {
-    const pplayer: any = store.players[player_id];
+    const pplayer = store.players[player_id as unknown as number];
     if (pplayer['nation'] === -1) continue;
     if (isLongturn() && pplayer['name'].indexOf('New Available Player') !== -1) continue;
     total_players++;
@@ -178,8 +180,8 @@ export function updateNationScreen(): void {
     if (!pplayer['is_alive']) plr_class = 'nation_row_dead';
     if (
       !clientIsObserver() &&
-      diplstates[player_id as any] != null &&
-      diplstates[player_id as any] === DiplState.DS_WAR
+      diplstates[Number(player_id)] != null &&
+      diplstates[Number(player_id)] === DiplState.DS_WAR
     ) {
       plr_class = 'nation_row_war';
     }
@@ -215,15 +217,15 @@ export function updateNationScreen(): void {
     if (
       !clientIsObserver() &&
       clientPlaying() != null &&
-      diplstates[player_id as any] != null &&
+      diplstates[Number(player_id)] != null &&
       Number(player_id) !== clientPlaying()['playerno']
     ) {
-      nation_list_html += '<td>' + get_diplstate_text(diplstates[player_id as any]) + '</td>';
+      nation_list_html += '<td>' + get_diplstate_text(diplstates[Number(player_id)]) + '</td>';
     } else {
       nation_list_html += '<td>-</td>';
     }
 
-    nation_list_html += '<td>' + get_embassy_text(player_id as any) + '</td>';
+    nation_list_html += '<td>' + get_embassy_text(Number(player_id)) + '</td>';
     nation_list_html += '<td>';
     if (!clientIsObserver() && clientPlaying() != null) {
       if (
@@ -245,7 +247,7 @@ export function updateNationScreen(): void {
     let pstate = ' ';
     if (pplayer['phase_done'] && !pplayer['flags'].isSet(PlayerFlag.PLRF_AI)) {
       pstate = 'Done';
-    } else if (!pplayer['flags'].isSet(PlayerFlag.PLRF_AI) && pplayer['nturns_idle'] > 1) {
+    } else if (!pplayer['flags'].isSet(PlayerFlag.PLRF_AI) && (pplayer['nturns_idle'] ?? 0) > 1) {
       pstate += 'Idle for ' + pplayer['nturns_idle'] + ' turns';
     } else if (!pplayer['phase_done'] && !pplayer['flags'].isSet(PlayerFlag.PLRF_AI)) {
       pstate = 'Moving';
@@ -253,7 +255,7 @@ export function updateNationScreen(): void {
     nation_list_html += "<td id='player_state_" + player_id + "'>" + pstate + '</td>';
     nation_list_html += '</tr>';
 
-    if (!pplayer['flags'].isSet(PlayerFlag.PLRF_AI) && pplayer['is_alive'] && pplayer['nturns_idle'] <= 4) {
+    if (!pplayer['flags'].isSet(PlayerFlag.PLRF_AI) && pplayer['is_alive'] && (pplayer['nturns_idle'] ?? 0) <= 4) {
       no_humans++;
     }
     if (pplayer['flags'].isSet(PlayerFlag.PLRF_AI) && pplayer['is_alive']) no_ais++;
@@ -362,7 +364,7 @@ export function updateNationScreen(): void {
  * Handles a click on a row in the nation table.
  * Replaces handle_nation_table_select() in nation.js.
  */
-export function handleNationTableSelect(this: any, ev: Event): void {
+export function handleNationTableSelect(this: HTMLElement, ev: Event): void {
   ev.stopPropagation();
   const new_element = ev.currentTarget as HTMLElement;
   const new_player = parseFloat(new_element.dataset.plrid || '');
@@ -389,7 +391,7 @@ export function handleNationTableSelect(this: any, ev: Event): void {
 export function selectANation(): void {
   const diplstates = getDiplstates();
   const player_id = getSelectedPlayer();
-  const pplayer: any = store.players[getSelectedPlayer()];
+  const pplayer = store.players[getSelectedPlayer()];
   if (pplayer == null) return;
 
   const selected_myself =
@@ -551,7 +553,7 @@ export function withdrawVisionClicked(): void {
 /** Handles the "Meet" button click in the nation dialog. */
 export function nationMeetClicked(): void {
   if (getSelectedPlayer() === -1) return;
-  const pplayer: any = store.players[getSelectedPlayer()];
+  const pplayer = store.players[getSelectedPlayer()];
   if (pplayer == null) return;
   sendDiplomacyInitMeeting(pplayer['playerno']);
   setDefaultMapviewActive();

@@ -96,7 +96,7 @@ export function control_init(): void {
   });
 
 
-  const gameTextInput = document.getElementById('game_text_input');
+  const gameTextInput = document.getElementById('game_text_input') as HTMLInputElement | null;
   gameTextInput?.addEventListener('keydown', function(event: KeyboardEvent) {
     return check_text_input(event, gameTextInput);
   });
@@ -256,6 +256,6 @@ export function control_init(): void {
   const nationsList = document.getElementById('nations_list');
   nationsList?.addEventListener('click', function(e: MouseEvent) {
     const row = (e.target as HTMLElement).closest('tbody tr');
-    if (row) handle_nation_table_select.call(row, e);
+    if (row) handle_nation_table_select.call(row as HTMLElement, e);
   });
 }

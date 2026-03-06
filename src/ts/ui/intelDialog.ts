@@ -18,6 +18,7 @@
 ***********************************************************************/
 
 import { store } from '../data/store';
+import type { Player, City, Tech } from '../data/types';
 import { player_capital, get_diplstate_text, research_get, DiplState } from '../data/player';
 import { TECH_KNOWN } from '../data/tech';
 import { clientIsObserver as client_is_observer, clientPlaying } from '../client/clientState';
@@ -27,7 +28,7 @@ import { showIntelDialog } from '../components/Dialogs/IntelDialog';
 export function show_intelligence_report_dialog(): void {
   const selected_player = store.selectedPlayer;
   if (selected_player === -1) return;
-  const pplayer: any = store.players[selected_player];
+  const pplayer = store.players[selected_player]!;
 
   if (client_is_observer()
       || clientPlaying()?.['real_embassy']?.isSet(selected_player)) {
@@ -37,18 +38,18 @@ export function show_intelligence_report_dialog(): void {
   }
 }
 
-export function show_intelligence_report_hearsay(pplayer: any): void {
+export function show_intelligence_report_hearsay(pplayer: Player): void {
   let msg: string = "Ruler " + pplayer['name'] + "<br>";
-  if (pplayer['government'] > 0) {
-    msg += "Government: " + store.governments[pplayer['government']]['name'] + "<br>";
+  if ((pplayer['government'] as number) > 0) {
+    msg += "Government: " + store.governments[pplayer['government'] as number]['name'] + "<br>";
   }
 
-  if (pplayer['gold'] > 0) {
+  if ((pplayer['gold'] as number) > 0) {
     msg += "Gold: " + pplayer['gold'] + "<br>";
   }
 
-  if (pplayer['researching'] != null && pplayer['researching'] > 0 && store.techs[pplayer['researching']] != null) {
-    msg += "Researching: " + store.techs[pplayer['researching']]['name'] + "<br>";
+  if (pplayer['researching'] != null && (pplayer['researching'] as number) > 0 && store.techs[pplayer['researching'] as number] != null) {
+    msg += "Researching: " + store.techs[pplayer['researching'] as number]['name'] + "<br>";
   }
 
   msg += "<br><br>Establishing an embassy will show a detailed intelligence report.";
@@ -57,9 +58,9 @@ export function show_intelligence_report_hearsay(pplayer: any): void {
       msg);
 }
 
-export function show_intelligence_report_embassy(pplayer: any): void {
-  const capital: any = player_capital(pplayer);
-  const gov = store.governments[pplayer['government']];
+export function show_intelligence_report_embassy(pplayer: Player): void {
+  const capital = player_capital(pplayer);
+  const gov = store.governments[pplayer['government'] as number];
   const govName = gov ? gov['name'] : '(Unknown)';
   const capitalName = capital ? capital.name : '(capital unknown)';
 
@@ -73,11 +74,11 @@ export function show_intelligence_report_embassy(pplayer: any): void {
   html += `<tr><td><b>Luxury:</b></td><td>${pplayer['luxury']}%</td></tr>`;
   html += `<tr><td><b>Culture:</b></td><td>${pplayer['culture']}</td></tr>`;
 
-  const research: any = research_get(pplayer);
+  const research = research_get(pplayer);
   let researchText = '(Unknown)';
   const techNames: string[] = [];
   if (research !== undefined) {
-    const researching: any = store.techs[research['researching']];
+    const researching = store.techs[research['researching']];
     if (researching !== undefined) {
       researchText = `${researching['name']} (${research['bulbs_researched']}/${research['researching_cost']})`;
     } else {
@@ -94,10 +95,10 @@ export function show_intelligence_report_embassy(pplayer: any): void {
 
   if (pplayer['diplstates'] !== undefined) {
     const diplEntries: string[] = [];
-    pplayer['diplstates'].forEach(function (st: any, i: number) {
+    (pplayer['diplstates'] as any[]).forEach(function (st: Record<string, unknown>, i: number) {
       if (st['state'] !== DiplState.DS_NO_CONTACT && i !== pplayer['playerno'] && store.players[i]) {
-        const stateText = get_diplstate_text(st['state']);
-        const nationAdj = store.nations[store.players[i]['nation']]?.['adjective'] || 'Unknown';
+        const stateText = get_diplstate_text(st['state'] as number);
+        const nationAdj = store.nations[store.players[i]['nation'] as number]?.['adjective'] || 'Unknown';
         diplEntries.push(`${nationAdj}: ${stateText}`);
       }
     });

@@ -21,6 +21,17 @@ import { store } from '../../data/store';
 import { getDiplstates } from '../../data/nation';
 
 // ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+/** A chat recipient entry shown in the recipient picker. */
+interface ChatRecipient {
+  id: number | null;
+  flag: CanvasImageSource | null;
+  description: string;
+}
+
+// ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
@@ -33,9 +44,9 @@ export function chat_context_change(): void {
   }
 }
 
-export function chat_context_get_recipients(): any[] {
+export function chat_context_get_recipients(): ChatRecipient[] {
   let allies = false;
-  const pm: any[] = [];
+  const pm: ChatRecipient[] = [];
 
   pm.push({ id: null, flag: null, description: 'Everybody' });
 
@@ -71,7 +82,7 @@ export function chat_context_get_recipients(): any[] {
     pm.push({ id: self, flag: null, description: 'Allies' });
   }
 
-  pm.sort(function(a: any, b: any) {
+  pm.sort(function(a: ChatRecipient, b: ChatRecipient) {
     if (a.id == null) return -1;
     if (b.id == null) return 1;
     if (a.id == self) return -1;
@@ -84,7 +95,7 @@ export function chat_context_get_recipients(): any[] {
   return pm;
 }
 
-export function chat_context_set_next(recipients: any[]): void {
+export function chat_context_set_next(recipients: ChatRecipient[]): void {
   let next = 0;
   while (next < recipients.length && recipients[next].id != S.chat_send_to) {
     next++;
@@ -97,7 +108,7 @@ export function chat_context_set_next(recipients: any[]): void {
   set_chat_direction(recipients[next].id);
 }
 
-export function chat_context_dialog_show(recipients: any[]): void {
+export function chat_context_dialog_show(recipients: ChatRecipient[]): void {
   const existingDlg = document.getElementById('chat_context_dialog');
   if (existingDlg) existingDlg.remove();
   const dlgDiv = document.createElement('div');
@@ -112,7 +123,7 @@ export function chat_context_dialog_show(recipients: any[]): void {
 
   const tbody_el = document.createElement('tbody');
 
-  const add_row = function(id: number | null, flag: any, description: string): CanvasRenderingContext2D {
+  const add_row = function(id: number | null, flag: CanvasImageSource | null, description: string): CanvasRenderingContext2D {
     let flag_canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, row: HTMLTableRowElement, cell: HTMLTableCellElement;
     row = document.createElement('tr');
     cell = document.createElement('td');
@@ -129,7 +140,7 @@ export function chat_context_dialog_show(recipients: any[]): void {
     cell.appendChild(document.createTextNode(description));
     row.appendChild(cell);
     if (id != null) {
-      (row as any).dataset.chatSendTo = id;
+      row.dataset.chatSendTo = String(id);
     }
     tbody_el.appendChild(row);
     return ctx;
@@ -155,7 +166,7 @@ export function chat_context_dialog_show(recipients: any[]): void {
   const table = document.createElement('table');
   table.appendChild(tbody_el);
   table.addEventListener('click', function(ev: Event) {
-    const row = (ev.target as HTMLElement).closest('tbody tr');
+    const row = (ev.target as HTMLElement).closest('tbody tr') as HTMLElement | null;
     if (row) {
       handle_chat_direction_chosen.call(row, ev);
     }
@@ -168,8 +179,8 @@ export function chat_context_dialog_show(recipients: any[]): void {
   chatDlg.style.display = 'block';
 }
 
-export function handle_chat_direction_chosen(this: any, ev: any): void {
-  const new_send_to = (this as HTMLElement).dataset.chatSendTo;
+export function handle_chat_direction_chosen(this: HTMLElement, ev: Event): void {
+  const new_send_to = this.dataset.chatSendTo;
   const chatDlg = document.getElementById('chat_context_dialog');
   if (chatDlg) chatDlg.remove();
   if (new_send_to == null) {
@@ -247,9 +258,9 @@ export function is_unprefixed_message(message: string | null): boolean {
   return (space_pos !== -1 && (space_pos < private_mark));
 }
 
-export function check_text_input(event: any, chatboxtextarea: any): boolean | undefined {
-  if (event.keyCode == 13 && event.shiftKey == 0) {
-    let message = (chatboxtextarea as HTMLInputElement).value;
+export function check_text_input(event: KeyboardEvent, chatboxtextarea: HTMLInputElement): boolean | undefined {
+  if (event.keyCode == 13 && !event.shiftKey) {
+    let message = chatboxtextarea.value;
 
     if (S.chat_send_to != null && S.chat_send_to >= 0
       && is_unprefixed_message(message)) {
@@ -276,7 +287,7 @@ export function check_text_input(event: any, chatboxtextarea: any): boolean | un
       message = encode_message_text(message);
     }
 
-    (chatboxtextarea as HTMLInputElement).value = '';
+    chatboxtextarea.value = '';
     if (!is_touch_device()) chatboxtextarea.focus();
     S.setKeyboardInput(true);
 
