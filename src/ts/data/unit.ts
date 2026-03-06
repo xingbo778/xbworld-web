@@ -4,6 +4,8 @@
  */
 
 import type { Unit, UnitType, City, Tile, Player } from './types';
+import { player_by_number } from './player';
+import { indexToTile as index_to_tile } from './map';
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
@@ -197,7 +199,8 @@ export function move_points_text(moves: number): string {
 // ---------------------------------------------------------------------------
 
 export function unit_has_goto(punit: Unit): boolean {
-  if (client.conn.playing == null || punit.owner !== client.conn.playing.playerno) {
+  const _client = (window as any).client;
+  if (_client?.conn?.playing == null || punit.owner !== _client.conn.playing.playerno) {
     return false;
   }
 

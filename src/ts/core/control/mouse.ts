@@ -20,6 +20,7 @@ import * as S from './controlState';
 // Circular imports — OK, only used inside functions
 import { find_visible_unit, set_unit_focus, update_active_units_dialog } from './unitFocus';
 import { activate_goto } from './mapClick';
+import { redraw_overview } from '../overview';
 
 
 // ---------------------------------------------------------------------------
@@ -58,6 +59,7 @@ export function mouse_moved_cb(e: MouseEvent): void {
       mapview['gui_x0'] += diff_x;
       mapview['gui_y0'] += diff_y;
       mark_all_dirty();
+      redraw_overview();
       setTouchStart(S.mouse_x, S.mouse_y);
       update_mouse_cursor();
     }

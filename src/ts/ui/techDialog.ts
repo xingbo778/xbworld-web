@@ -687,7 +687,8 @@ export function show_observer_tech_dialog(): void {
   const technologies = document.getElementById('technologies');
   if (techInfoBox) techInfoBox.style.display = 'none';
   if (techCanvas) techCanvas.style.display = 'none';
-  let msg: string = "<h2>Research</h2>";
+  let msg: string = '<h2 style="margin:0 0 12px 0;color:#e6edf3">Research Progress</h2>';
+  msg += '<div style="display:flex;flex-direction:column;gap:8px">';
   for (let player_id in store.players) {
     const pplayer = store.players[player_id];
     const pname: string = pplayer['name'];
@@ -696,13 +697,31 @@ export function show_observer_tech_dialog(): void {
 
     const researching: number = pr['researching'];
     const techData = store.techs[researching];
+    const bulbs = pr['bulbs_researched'] ?? 0;
+    const cost = pr['researching_cost'] ?? 1;
+    const pct = Math.min(100, Math.round((bulbs / cost) * 100));
+
+    const nation = store.nations[pplayer['nation']];
+    const color = nation?.['color'] ?? '#888';
+
+    msg += '<div style="background:rgba(30,35,45,0.8);border:1px solid #30363d;border-radius:6px;padding:8px 12px">';
+    msg += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">';
+    msg += '<span style="font-weight:600;color:' + color + '">' + pname + '</span>';
     if (techData != null) {
-      msg += pname + ": " + techData['name'] + "<br>";
+      msg += '<span style="color:#8b949e;font-size:12px">' + techData['name'] + ' (' + bulbs + '/' + cost + ')</span>';
+    } else {
+      msg += '<span style="color:#8b949e;font-size:12px">None</span>';
     }
+    msg += '</div>';
+    msg += '<div style="background:#21262d;border-radius:3px;height:8px;overflow:hidden">';
+    msg += '<div style="background:' + color + ';height:100%;width:' + pct + '%;border-radius:3px;transition:width 0.3s"></div>';
+    msg += '</div>';
+    msg += '</div>';
   }
+  msg += '</div>';
   if (technologies) {
     technologies.innerHTML = msg;
-    technologies.style.color = 'black';
+    technologies.style.color = '#e6edf3';
   }
 }
 

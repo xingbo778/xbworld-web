@@ -1625,6 +1625,137 @@ function isExtraCausedBy(pextra, cause) {
 function isExtraRemovedBy(pextra, rmcause) {
   return pextra.rmcauses.isSet(rmcause);
 }
+const MAX_NUM_PLAYERS = 30;
+const MAX_AI_LOVE$1 = 1e3;
+var DiplState = /* @__PURE__ */ ((DiplState2) => {
+  DiplState2[DiplState2["DS_ARMISTICE"] = 0] = "DS_ARMISTICE";
+  DiplState2[DiplState2["DS_WAR"] = 1] = "DS_WAR";
+  DiplState2[DiplState2["DS_CEASEFIRE"] = 2] = "DS_CEASEFIRE";
+  DiplState2[DiplState2["DS_PEACE"] = 3] = "DS_PEACE";
+  DiplState2[DiplState2["DS_ALLIANCE"] = 4] = "DS_ALLIANCE";
+  DiplState2[DiplState2["DS_NO_CONTACT"] = 5] = "DS_NO_CONTACT";
+  DiplState2[DiplState2["DS_TEAM"] = 6] = "DS_TEAM";
+  DiplState2[DiplState2["DS_LAST"] = 7] = "DS_LAST";
+  return DiplState2;
+})(DiplState || {});
+var PlayerFlag = /* @__PURE__ */ ((PlayerFlag2) => {
+  PlayerFlag2[PlayerFlag2["PLRF_AI"] = 0] = "PLRF_AI";
+  PlayerFlag2[PlayerFlag2["PLRF_SCENARIO_RESERVED"] = 1] = "PLRF_SCENARIO_RESERVED";
+  PlayerFlag2[PlayerFlag2["PLRF_COUNT"] = 2] = "PLRF_COUNT";
+  return PlayerFlag2;
+})(PlayerFlag || {});
+const research_data = {};
+function valid_player_by_number(playerno) {
+  if (players[playerno] == null) return null;
+  return players[playerno];
+}
+function player_by_number(playerno) {
+  if (players[playerno] == null) return null;
+  return players[playerno];
+}
+function player_by_full_username(pname) {
+  for (const player_id in players) {
+    const pplayer = players[player_id];
+    if (pplayer.username === pname) return pplayer;
+    if ("AI " + pplayer.name === pname) return pplayer;
+  }
+  return null;
+}
+function player_find_unit_by_id(pplayer, unit_id) {
+  for (const id in units) {
+    const punit = units[id];
+    if (punit.owner === pplayer.playerno && punit.id === unit_id) {
+      return punit;
+    }
+  }
+  return null;
+}
+function get_diplstate_text(state_id) {
+  switch (state_id) {
+    case 0:
+      return "Armistice";
+    case 1:
+      return "War";
+    case 2:
+      return "Ceasefire";
+    case 3:
+      return "Peace";
+    case 4:
+      return "Alliance";
+    case 5:
+      return "No contact";
+    case 6:
+      return "Team";
+    default:
+      return "Unknown";
+  }
+}
+function get_embassy_text(player_id) {
+  const pplayer = players[player_id];
+  if (pplayer == null) return "";
+  if (pplayer.embassy_txt != null) return pplayer.embassy_txt;
+  return "";
+}
+function get_ai_level_text(player) {
+  if (player.ai_skill_level === 0) return "Away";
+  if (player.ai_skill_level === 1) return "Handicapped";
+  if (player.ai_skill_level === 2) return "Novice";
+  if (player.ai_skill_level === 3) return "Easy";
+  if (player.ai_skill_level === 4) return "Normal";
+  if (player.ai_skill_level === 5) return "Hard";
+  if (player.ai_skill_level === 6) return "Cheating";
+  if (player.ai_skill_level === 7) return "Experimental";
+  return "";
+}
+function get_player_connection_status(pplayer) {
+  if (pplayer == null) return "";
+  for (const cid in connections) {
+    const pconn = connections[cid];
+    if (pconn.playing != null && pconn.playing.playerno === pplayer.playerno) {
+      return "connected";
+    }
+  }
+  if (pplayer.ai_skill_level > 0) return "AI";
+  return "disconnected";
+}
+function research_get(pplayer) {
+  if (pplayer == null) return null;
+  return research_data[pplayer.playerno] ?? null;
+}
+function player_capital(player) {
+  if (player == null) return null;
+  for (const city_id in cities) {
+    const pcity = cities[city_id];
+    if (pcity.owner === player.playerno && is_capital(pcity)) {
+      return pcity;
+    }
+  }
+  return null;
+}
+function is_capital(pcity) {
+  if (pcity.improvements == null) return false;
+  for (const imp_id in improvements) {
+    const imp = improvements[imp_id];
+    if (imp != null && imp.genus === 0 && pcity.improvements[imp.id] === true) {
+      return true;
+    }
+  }
+  return false;
+}
+const _w$4 = window;
+_w$4["MAX_NUM_PLAYERS"] = MAX_NUM_PLAYERS;
+_w$4["MAX_AI_LOVE"] = MAX_AI_LOVE$1;
+_w$4["DS_ARMISTICE"] = 0;
+_w$4["DS_WAR"] = 1;
+_w$4["DS_CEASEFIRE"] = 2;
+_w$4["DS_PEACE"] = 3;
+_w$4["DS_ALLIANCE"] = 4;
+_w$4["DS_NO_CONTACT"] = 5;
+_w$4["DS_TEAM"] = 6;
+_w$4["DS_LAST"] = 7;
+_w$4["PLRF_AI"] = 0;
+_w$4["PLRF_SCENARIO_RESERVED"] = 1;
+_w$4["PLRF_COUNT"] = 2;
 var Order = /* @__PURE__ */ ((Order2) => {
   Order2[Order2["MOVE"] = 0] = "MOVE";
   Order2[Order2["ACTIVITY"] = 1] = "ACTIVITY";
@@ -1678,7 +1809,7 @@ function get_supported_units(pcity) {
 }
 function update_tile_unit(punit) {
   if (punit == null) return;
-  const ptile = index_to_tile(punit.tile);
+  const ptile = indexToTile(punit.tile);
   if (ptile == null || ptile["units"] == null) return;
   let found = false;
   for (let i2 = 0; i2 < ptile["units"].length; i2++) {
@@ -1692,7 +1823,7 @@ function update_tile_unit(punit) {
 }
 function clear_tile_unit(punit) {
   if (punit == null) return;
-  const ptile = index_to_tile(punit.tile);
+  const ptile = indexToTile(punit.tile);
   if (ptile == null || ptile["units"] == null) return;
   const idx = ptile["units"].indexOf(punit);
   if (idx >= 0) {
@@ -1733,7 +1864,8 @@ function move_points_text(moves) {
   return result;
 }
 function unit_has_goto(punit) {
-  if (client.conn.playing == null || punit.owner !== client.conn.playing.playerno) {
+  const _client = window.client;
+  if (_client?.conn?.playing == null || punit.owner !== _client.conn.playing.playerno) {
     return false;
   }
   return punit.goto_tile !== -1;
@@ -1774,9 +1906,9 @@ function get_unit_anim_offset(punit) {
   if (animList != null && animList.length >= 2) {
     const anim_tuple_src = animList[0];
     const anim_tuple_dst = animList[1];
-    const src_tile = index_to_tile(anim_tuple_src.tile);
-    const dst_tile = index_to_tile(anim_tuple_dst.tile);
-    const u_tile = index_to_tile(punit.tile);
+    const src_tile = indexToTile(anim_tuple_src.tile);
+    const dst_tile = indexToTile(anim_tuple_dst.tile);
+    const u_tile = indexToTile(punit.tile);
     anim_tuple_dst.i = anim_tuple_dst.i - 1;
     const i2 = Math.floor((anim_tuple_dst.i + 2) / 3);
     const r2 = map_to_gui_pos(src_tile["x"], src_tile["y"]);
@@ -1818,7 +1950,7 @@ function get_unit_homecity_name(punit) {
 }
 function is_unit_visible(punit) {
   if (punit == null || punit.tile == null) return false;
-  const u_tile = index_to_tile(punit.tile);
+  const u_tile = indexToTile(punit.tile);
   const r2 = map_to_gui_pos(u_tile["x"], u_tile["y"]);
   const unit_gui_x = r2["gui_dx"];
   const unit_gui_y = r2["gui_dy"];
@@ -1863,7 +1995,7 @@ function get_what_can_unit_pillage_from(punit, ptile) {
   const targets = [];
   if (punit == null) return targets;
   if (ptile == null) {
-    ptile = index_to_tile(punit.tile);
+    ptile = indexToTile(punit.tile);
   }
   if (terrains[ptile.terrain].pillage_time === 0) return targets;
   if (!utype_can_do_action(unit_type(punit), ACTION_PILLAGE)) return targets;
@@ -2217,10 +2349,10 @@ function isOceanTile(ptile) {
   if (!t2) return false;
   return t2.graphic_str === "floor" || t2.graphic_str === "coast";
 }
-const _w$4 = window;
-if (!_w$4["terrains"]) _w$4["terrains"] = {};
-if (!_w$4["resources"]) _w$4["resources"] = {};
-if (!_w$4["terrain_control"]) _w$4["terrain_control"] = {};
+const _w$3 = window;
+if (!_w$3["terrains"]) _w$3["terrains"] = {};
+if (!_w$3["resources"]) _w$3["resources"] = {};
+if (!_w$3["terrain_control"]) _w$3["terrain_control"] = {};
 const UTYF_FLAGLESS = 29;
 const U_NOT_OBSOLETED = null;
 function utype_can_do_action$1(putype, action_id) {
@@ -2275,13 +2407,13 @@ const MATCH_PAIR$1 = 2;
 const MATCH_FULL$1 = 3;
 const CELL_WHOLE$1 = 0;
 const CELL_CORNER$1 = 1;
-const _w$3 = window;
-_w$3.MATCH_NONE = MATCH_NONE$1;
-_w$3.MATCH_SAME = MATCH_SAME$1;
-_w$3.MATCH_PAIR = MATCH_PAIR$1;
-_w$3.MATCH_FULL = MATCH_FULL$1;
-_w$3.CELL_WHOLE = CELL_WHOLE$1;
-_w$3.CELL_CORNER = CELL_CORNER$1;
+const _w$2 = window;
+_w$2.MATCH_NONE = MATCH_NONE$1;
+_w$2.MATCH_SAME = MATCH_SAME$1;
+_w$2.MATCH_PAIR = MATCH_PAIR$1;
+_w$2.MATCH_FULL = MATCH_FULL$1;
+_w$2.CELL_WHOLE = CELL_WHOLE$1;
+_w$2.CELL_CORNER = CELL_CORNER$1;
 const tileset_tile_width = 96;
 const tileset_tile_height = 48;
 const tileset_name = "amplio2";
@@ -2970,133 +3102,6 @@ function wait_for_text(text, runnable) {
     }, 100);
   }
 }
-const MAX_NUM_PLAYERS = 30;
-const MAX_AI_LOVE$1 = 1e3;
-var DiplState = /* @__PURE__ */ ((DiplState2) => {
-  DiplState2[DiplState2["DS_ARMISTICE"] = 0] = "DS_ARMISTICE";
-  DiplState2[DiplState2["DS_WAR"] = 1] = "DS_WAR";
-  DiplState2[DiplState2["DS_CEASEFIRE"] = 2] = "DS_CEASEFIRE";
-  DiplState2[DiplState2["DS_PEACE"] = 3] = "DS_PEACE";
-  DiplState2[DiplState2["DS_ALLIANCE"] = 4] = "DS_ALLIANCE";
-  DiplState2[DiplState2["DS_NO_CONTACT"] = 5] = "DS_NO_CONTACT";
-  DiplState2[DiplState2["DS_TEAM"] = 6] = "DS_TEAM";
-  DiplState2[DiplState2["DS_LAST"] = 7] = "DS_LAST";
-  return DiplState2;
-})(DiplState || {});
-var PlayerFlag = /* @__PURE__ */ ((PlayerFlag2) => {
-  PlayerFlag2[PlayerFlag2["PLRF_AI"] = 0] = "PLRF_AI";
-  PlayerFlag2[PlayerFlag2["PLRF_SCENARIO_RESERVED"] = 1] = "PLRF_SCENARIO_RESERVED";
-  PlayerFlag2[PlayerFlag2["PLRF_COUNT"] = 2] = "PLRF_COUNT";
-  return PlayerFlag2;
-})(PlayerFlag || {});
-const research_data = {};
-function valid_player_by_number(playerno) {
-  if (players[playerno] == null) return null;
-  return players[playerno];
-}
-function player_by_full_username(pname) {
-  for (const player_id in players) {
-    const pplayer = players[player_id];
-    if (pplayer.username === pname) return pplayer;
-    if ("AI " + pplayer.name === pname) return pplayer;
-  }
-  return null;
-}
-function player_find_unit_by_id(pplayer, unit_id) {
-  for (const id in units) {
-    const punit = units[id];
-    if (punit.owner === pplayer.playerno && punit.id === unit_id) {
-      return punit;
-    }
-  }
-  return null;
-}
-function get_diplstate_text(state_id) {
-  switch (state_id) {
-    case 0:
-      return "Armistice";
-    case 1:
-      return "War";
-    case 2:
-      return "Ceasefire";
-    case 3:
-      return "Peace";
-    case 4:
-      return "Alliance";
-    case 5:
-      return "No contact";
-    case 6:
-      return "Team";
-    default:
-      return "Unknown";
-  }
-}
-function get_embassy_text(player_id) {
-  const pplayer = players[player_id];
-  if (pplayer == null) return "";
-  if (pplayer.embassy_txt != null) return pplayer.embassy_txt;
-  return "";
-}
-function get_ai_level_text(player) {
-  if (player.ai_skill_level === 0) return "Away";
-  if (player.ai_skill_level === 1) return "Handicapped";
-  if (player.ai_skill_level === 2) return "Novice";
-  if (player.ai_skill_level === 3) return "Easy";
-  if (player.ai_skill_level === 4) return "Normal";
-  if (player.ai_skill_level === 5) return "Hard";
-  if (player.ai_skill_level === 6) return "Cheating";
-  if (player.ai_skill_level === 7) return "Experimental";
-  return "";
-}
-function get_player_connection_status(pplayer) {
-  if (pplayer == null) return "";
-  for (const cid in connections) {
-    const pconn = connections[cid];
-    if (pconn.playing != null && pconn.playing.playerno === pplayer.playerno) {
-      return "connected";
-    }
-  }
-  if (pplayer.ai_skill_level > 0) return "AI";
-  return "disconnected";
-}
-function research_get(pplayer) {
-  if (pplayer == null) return null;
-  return research_data[pplayer.playerno] ?? null;
-}
-function player_capital(player) {
-  if (player == null) return null;
-  for (const city_id in cities) {
-    const pcity = cities[city_id];
-    if (pcity.owner === player.playerno && is_capital(pcity)) {
-      return pcity;
-    }
-  }
-  return null;
-}
-function is_capital(pcity) {
-  if (pcity.improvements == null) return false;
-  for (const imp_id in improvements) {
-    const imp = improvements[imp_id];
-    if (imp != null && imp.genus === 0 && pcity.improvements[imp.id] === true) {
-      return true;
-    }
-  }
-  return false;
-}
-const _w$2 = window;
-_w$2["MAX_NUM_PLAYERS"] = MAX_NUM_PLAYERS;
-_w$2["MAX_AI_LOVE"] = MAX_AI_LOVE$1;
-_w$2["DS_ARMISTICE"] = 0;
-_w$2["DS_WAR"] = 1;
-_w$2["DS_CEASEFIRE"] = 2;
-_w$2["DS_PEACE"] = 3;
-_w$2["DS_ALLIANCE"] = 4;
-_w$2["DS_NO_CONTACT"] = 5;
-_w$2["DS_TEAM"] = 6;
-_w$2["DS_LAST"] = 7;
-_w$2["PLRF_AI"] = 0;
-_w$2["PLRF_SCENARIO_RESERVED"] = 1;
-_w$2["PLRF_COUNT"] = 2;
 function orientation_changed() {
 }
 function $id(id) {
@@ -4363,14 +4368,14 @@ function governmentMaxRate(govtId) {
   }
 }
 function canPlayerGetGov(govtId) {
-  const client2 = store.client;
+  const client = store.client;
   const governments2 = store.governments;
   const playerHasWonder = window.player_has_wonder;
   const areReqsActive = window.are_reqs_active;
   const RPT_CERTAIN = window.RPT_CERTAIN;
-  return playerHasWonder(client2.conn.playing.playerno, 63) || // hack for Statue of Liberty
+  return playerHasWonder(client.conn.playing.playerno, 63) || // hack for Statue of Liberty
   areReqsActive(
-    client2.conn.playing,
+    client.conn.playing,
     null,
     null,
     null,
@@ -5204,7 +5209,8 @@ function show_observer_tech_dialog() {
   const technologies = document.getElementById("technologies");
   if (techInfoBox) techInfoBox.style.display = "none";
   if (techCanvas) techCanvas.style.display = "none";
-  let msg = "<h2>Research</h2>";
+  let msg = '<h2 style="margin:0 0 12px 0;color:#e6edf3">Research Progress</h2>';
+  msg += '<div style="display:flex;flex-direction:column;gap:8px">';
   for (let player_id in store.players) {
     const pplayer = store.players[player_id];
     const pname = pplayer["name"];
@@ -5212,13 +5218,29 @@ function show_observer_tech_dialog() {
     if (pr == null) continue;
     const researching = pr["researching"];
     const techData = store.techs[researching];
+    const bulbs = pr["bulbs_researched"] ?? 0;
+    const cost = pr["researching_cost"] ?? 1;
+    const pct = Math.min(100, Math.round(bulbs / cost * 100));
+    const nation = store.nations[pplayer["nation"]];
+    const color = nation?.["color"] ?? "#888";
+    msg += '<div style="background:rgba(30,35,45,0.8);border:1px solid #30363d;border-radius:6px;padding:8px 12px">';
+    msg += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">';
+    msg += '<span style="font-weight:600;color:' + color + '">' + pname + "</span>";
     if (techData != null) {
-      msg += pname + ": " + techData["name"] + "<br>";
+      msg += '<span style="color:#8b949e;font-size:12px">' + techData["name"] + " (" + bulbs + "/" + cost + ")</span>";
+    } else {
+      msg += '<span style="color:#8b949e;font-size:12px">None</span>';
     }
+    msg += "</div>";
+    msg += '<div style="background:#21262d;border-radius:3px;height:8px;overflow:hidden">';
+    msg += '<div style="background:' + color + ";height:100%;width:" + pct + '%;border-radius:3px;transition:width 0.3s"></div>';
+    msg += "</div>";
+    msg += "</div>";
   }
+  msg += "</div>";
   if (technologies) {
     technologies.innerHTML = msg;
-    technologies.style.color = "black";
+    technologies.style.color = "#e6edf3";
   }
 }
 function update_bulbs_output_info() {
@@ -5254,6 +5276,7 @@ function mouse_moved_cb(e2) {
       mapview$1["gui_x0"] += diff_x;
       mapview$1["gui_y0"] += diff_y;
       mark_all_dirty();
+      redraw_overview();
       setTouchStart(mouse_x, mouse_y);
       update_mouse_cursor();
     }
