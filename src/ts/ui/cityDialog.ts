@@ -2,6 +2,7 @@ import { initTabs } from './tabs';
 import { swal } from '../components/Dialogs/SwalDialog';
 import { initTableSort } from '../utils/tableSort';
 import { store } from '../data/store';
+import type { City, Player, Unit, Tile, UnitType, Improvement } from '../data/types';
 import { cityTile, cityOwner, getCityProductionTypeSprite as get_city_production_type_sprite, getCityProductionTime as get_city_production_time, getProductionProgress as get_production_progress, getCityProductionType as get_city_production_type, cityPopulation as city_population, cityTurnsToGrowthText as city_turns_to_growth_text } from '../data/city';
 import { get_supported_units } from '../data/unit';
 import { get_unit_city_info } from '../data/unit';
@@ -80,7 +81,7 @@ export {
 } from './cityWorklist';
 
 function byId(id: string): HTMLElement | null { return document.getElementById(id); }
-function setHtml(id: string, html: string): void { const el = byId(id); if (el) el.innerHTML = html; }
+function setHtml(id: string, html: unknown): void { const el = byId(id); if (el) el.innerHTML = String(html); }
 
 // Register update_city_screen with the lazy proxy in cityDialogState
 set_city_screen_updater_fn(update_city_screen);
@@ -93,14 +94,14 @@ globalEvents.on('city:screenUpdate', () => city_screen_updater?.update());
  ...
 **************************************************************************/
 
-export function show_city_dialog_by_id(pcity_id: any): void {
+export function show_city_dialog_by_id(pcity_id: number): void {
   show_city_dialog(cities[pcity_id]);
 }
 
-export function show_city_dialog(pcity: any): void {
-  let turns_to_complete: any;
+export function show_city_dialog(pcity: City): void {
+  let turns_to_complete: number;
   let sprite: any;
-  let punit: any;
+  let punit: Unit;
 
   if (active_city != pcity || active_city == null) {
     set_city_prod_clicks(0);
@@ -123,7 +124,7 @@ export function show_city_dialog(pcity: any): void {
     + 'width:' + dlgWidth + ';height:' + dlgHeight + 'px;overflow:auto;color:#fff;';
   document.getElementById('game_page')?.appendChild(dlg);
 
-  const city_data: any = {};
+  const city_data: Record<string, unknown> = {};
 
   // Title bar
   const titleBar = document.createElement('div');
@@ -190,7 +191,7 @@ export function show_city_dialog(pcity: any): void {
 
   city_worklist_dialog(pcity);
 
-  const orig_renderer: any = store.renderer;
+  const orig_renderer = store.renderer;
   // store.renderer = RENDERER_2DCANVAS; // This line is commented out in the original JS, so it's commented here too.
   set_citydlg_dimensions(pcity);
   set_city_mapview_active();
@@ -208,7 +209,7 @@ export function show_city_dialog(pcity: any): void {
                        + "Granary: " + pcity['food_stock'] + "/" + pcity['granary_size'] + "<br>"
                        + "Change in: " + city_turns_to_growth_text(pcity) + governor_text);
 
-  const prod_type: any = get_city_production_type_sprite(pcity);
+  const prod_type = get_city_production_type_sprite(pcity);
   setHtml("city_production_overview", "Producing: " + (prod_type != null ? prod_type['type']['name'] : "None"));
 
   turns_to_complete = get_city_production_time(pcity);
@@ -221,7 +222,7 @@ export function show_city_dialog(pcity: any): void {
 
   let improvements_html: string = "";
   for (let z = 0; z < ((store.rulesControl as any)?.num_impr_types ?? 0); z ++) {
-    if (pcity['improvements'] != null && pcity['improvements'].isSet(z)) {
+    if (pcity['improvements'] != null && (pcity['improvements'] as any).isSet(z)) {
        sprite = get_improvement_image_sprite(store.improvements[z]);
        if (sprite == null) {
          console.log("Missing sprite for improvement " + z);
@@ -240,7 +241,7 @@ export function show_city_dialog(pcity: any): void {
   }
   setHtml("city_improvements_list", improvements_html);
 
-  const punits: any = tile_units(cityTile(pcity));
+  const punits: Unit[] | null = tile_units(cityTile(pcity));
   if (punits != null) {
     let present_units_html: string = "";
     for (let r = 0; r < punits.length; r++) {
@@ -263,7 +264,7 @@ export function show_city_dialog(pcity: any): void {
     setHtml("city_present_units_list", present_units_html);
   }
 
-  const sunits: any = get_supported_units(pcity);
+  const sunits: Unit[] | null = get_supported_units(pcity);
   if (sunits != null) {
     let supported_units_html: string = "";
     for (let t = 0; t < sunits.length; t++) {
@@ -304,29 +305,29 @@ export function show_city_dialog(pcity: any): void {
     if (pcity['surplus'][O_GOLD] > 0) gold_txt += "+";
     gold_txt += pcity['surplus'][O_GOLD] + ")";
 
-    const luxury_txt: any = pcity['prod'][O_LUXURY];
-    const science_txt: any = pcity['prod'][O_SCIENCE];
+    const luxury_txt: number = pcity['prod'][O_LUXURY];
+    const science_txt: number = pcity['prod'][O_SCIENCE];
 
     setHtml("city_food", food_txt);
     setHtml("city_prod", shield_txt);
     setHtml("city_trade", trade_txt);
     setHtml("city_gold", gold_txt);
-    setHtml("city_luxury", luxury_txt);
-    setHtml("city_science", science_txt);
+    setHtml("city_luxury", String(luxury_txt));
+    setHtml("city_science", String(science_txt));
 
-    setHtml("city_corruption", pcity['waste'][O_TRADE]);
-    setHtml("city_waste", pcity['waste'][O_SHIELD]);
-    setHtml("city_pollution", pcity['pollution']);
-    setHtml("city_steal", pcity['steal']);
-    setHtml("city_culture", pcity['culture']);
+    setHtml("city_corruption", String(pcity['waste'][O_TRADE]));
+    setHtml("city_waste", String(pcity['waste'][O_SHIELD]));
+    setHtml("city_pollution", String(pcity['pollution']));
+    setHtml("city_steal", String(pcity['steal']));
+    setHtml("city_culture", String(pcity['culture']));
   }
 
   /* Handle citizens and specialists */
   let specialist_html: string = "";
   const citizen_types: string[] = ["angry", "unhappy", "content", "happy"];
   for (let s = 0; s < citizen_types.length; s++) {
-    if (pcity['ppl_' + citizen_types[s]] == null) continue;
-    for (let i = 0; i < pcity['ppl_' + citizen_types[s]][FEELING_FINAL]; i ++) {
+    if ((pcity as any)['ppl_' + citizen_types[s]] == null) continue;
+    for (let i = 0; i < (pcity as any)['ppl_' + citizen_types[s]][FEELING_FINAL]; i ++) {
       sprite = get_specialist_image_sprite("citizen." + citizen_types[s] + "_"
          + (i % 2));
       specialist_html = specialist_html +
@@ -338,10 +339,10 @@ export function show_city_dialog(pcity: any): void {
     }
   }
 
-  for (let u = 0; u < pcity['specialists_size']; u++) {
+  for (let u = 0; u < (pcity as any)['specialists_size']; u++) {
     const spec_type_name: string = store.specialists[u]['plural_name'];
     const spec_gfx_key: string = "specialist." + store.specialists[u]['rule_name'] + "_0";
-    for (let j = 0; j < pcity['specialists'][u]; j++) {
+    for (let j = 0; j < (pcity as any)['specialists'][u]; j++) {
       sprite = get_specialist_image_sprite(spec_gfx_key);
       specialist_html = specialist_html +
       "<div class='specialist_item' style='cursor:pointer;cursor:hand; background: transparent url("
@@ -360,7 +361,7 @@ export function show_city_dialog(pcity: any): void {
   if (disbandEl) {
     const newDisband = disbandEl.cloneNode(true) as HTMLInputElement;
     disbandEl.parentNode?.replaceChild(newDisband, disbandEl);
-    newDisband.checked = pcity['city_options'] != null && pcity['city_options'].isSet(CITYO_DISBAND);
+    newDisband.checked = pcity['city_options'] != null && (pcity['city_options'] as any).isSet(CITYO_DISBAND);
     newDisband.addEventListener('click', function() {
       const options: any = pcity['city_options'];
       const packet: any = {
@@ -388,31 +389,31 @@ export function show_city_dialog(pcity: any): void {
 
 export function request_city_buy(): void {
   if (clientIsObserver()) return;
-  const pcity: any = active_city;
-  const pplayer: any = clientPlaying();
+  const pcity = active_city;
+  const pplayer = clientPlaying();
 
   // reset dialog page.
   byId('dialog')?.remove();
   let buy_price_string: string = "";
   let buy_question_string: string = "";
 
-  if (pcity['production_kind'] == VUT_UTYPE) {
-    const punit_type: any = store.unitTypes[pcity['production_value']];
+  if (pcity!['production_kind'] == VUT_UTYPE) {
+    const punit_type: UnitType = store.unitTypes[pcity!['production_value']];
     if (punit_type != null) {
-      buy_price_string = punit_type['name'] + " costs " + pcity['buy_cost'] + " gold.";
-      buy_question_string = "Buy " + punit_type['name'] + " for " + pcity['buy_cost'] + " gold?";
+      buy_price_string = punit_type['name'] + " costs " + pcity!['buy_cost'] + " gold.";
+      buy_question_string = "Buy " + punit_type['name'] + " for " + pcity!['buy_cost'] + " gold?";
     }
   } else {
-    const improvement: any = store.improvements[pcity['production_value']];
+    const improvement: Improvement = store.improvements[pcity!['production_value']];
     if (improvement != null) {
-      buy_price_string = improvement['name'] + " costs " + pcity['buy_cost'] + " gold.";
-      buy_question_string = "Buy " + improvement['name'] + " for " + pcity['buy_cost'] + " gold?";
+      buy_price_string = improvement['name'] + " costs " + pcity!['buy_cost'] + " gold.";
+      buy_question_string = "Buy " + improvement['name'] + " for " + pcity!['buy_cost'] + " gold?";
     }
   }
 
   const treasury_text: string = "<br>Treasury contains " + pplayer['gold'] + " gold.";
 
-  if (pcity['buy_cost'] > pplayer['gold']) {
+  if ((pcity as any)['buy_cost'] > pplayer['gold']) {
     show_dialog_message("Buy It!",
       buy_price_string + treasury_text);
     return;
@@ -439,7 +440,7 @@ export function send_city_buy(): void {
   }
 }
 
-export function send_city_change(city_id: number, kind: any, value: any): void {
+export function send_city_change(city_id: number, kind: number, value: number): void {
   const packet: any = {"pid" : packet_city_change, "city_id" : city_id,
                 "production_kind": kind, "production_value" : value};
   sendRequest(JSON.stringify(packet));
@@ -475,8 +476,8 @@ export function city_dialog_close_handler(): void {
   set_worklist_dialog_active(false);
 }
 
-export function do_city_map_click(ptile: any): void {
-  let packet: any = null;
+export function do_city_map_click(ptile: Tile): void {
+  let packet: Record<string, unknown>;
   if (ptile['worked'] == active_city!['id']) {
     packet = {"pid"     : packet_city_make_specialist,
               "city_id" : active_city!['id'],
@@ -516,7 +517,7 @@ export function city_name_dialog(suggested_name: string, unit_id: number): void 
       swal("City name is invalid. Please try a different shorter name.");
       return;
     }
-    const actor_unit: any = game_find_unit_by_number(unit_id);
+    const actor_unit = game_find_unit_by_number(unit_id);
     request_unit_do_action(ACTION_FOUND_CITY,
       unit_id, actor_unit['tile'], 0, encodeURIComponent(name));
     nameDlg.remove();
@@ -654,10 +655,10 @@ export function update_city_screen(): void {
         + "<th>Surplus<br>Food/Prod/Trade</th><th>Economy<br>Gold/Luxury/Science</th></tr></thead><tbody>";
   let count: number = 0;
   for (const city_id in cities){
-    const pcity: any = cities[city_id];
+    const pcity: City = cities[city_id as any];
     if (clientPlaying() != null && cityOwner(pcity) != null && cityOwner(pcity).playerno == clientPlaying().playerno) {
       count++;
-      const prod_type: any = get_city_production_type(pcity);
+      const prod_type = get_city_production_type(pcity);
       let turns_to_complete_str: string;
       if (get_city_production_time(pcity) == FC_INFINITY) {
         turns_to_complete_str = "-"; //client does not know how long production will take yet.
@@ -669,7 +670,7 @@ export function update_city_screen(): void {
               + pcity['name'] + "</td><td>" + numberWithCommas(city_population(pcity)*1000) +
               "</td><td>" + pcity['size'] + "</td><td>" + get_city_state(pcity) + "</td><td>" + pcity['food_stock'] + "/" + pcity['granary_size'] +
               "</td><td>" + city_turns_to_growth_text(pcity) + "</td>" +
-              "<td>" + prod_type['name'] + " (" + turns_to_complete_str + ")" +
+              "<td>" + prod_type!['name'] + " (" + turns_to_complete_str + ")" +
               "</td><td>" + pcity['surplus'][O_FOOD] + "/" + pcity['surplus'][O_SHIELD] + "/" + pcity['surplus'][O_TRADE] + "</td>" +
               "<td>" + pcity['prod'][O_GOLD] + "/" + pcity['prod'][O_LUXURY] + "/" + pcity['prod'][O_SCIENCE] + "<td>";
 
@@ -690,7 +691,7 @@ export function update_city_screen(): void {
   initTableSort('#city_table', { sortList: sortList });
 }
 
-export function get_city_state(pcity: any): string | undefined {
+export function get_city_state(pcity: City | null): string | undefined {
   if (pcity == null) return;
 
   if (pcity['was_happy'] && pcity['size'] >= 3) {
@@ -702,13 +703,12 @@ export function get_city_state(pcity: any): string | undefined {
   }
 }
 
-export function city_keyboard_listener(ev: any): void {
+export function city_keyboard_listener(ev: KeyboardEvent): void {
   // Check if focus is in chat field, where these keyboard events are ignored.
   if (document.querySelector('input:focus') || !keyboard_input) return;
 
   if (C_S_RUNNING != client_state()) return;
 
-  if (!ev) ev = window.event;
   const keyboard_key: string = String.fromCharCode(ev.keyCode);
 
   if (active_city != null) {
@@ -726,8 +726,8 @@ export function city_keyboard_listener(ev: any): void {
   }
 }
 
-export function set_citydlg_dimensions(pcity: any): void {
-  const city_radius: number = pcity.city_radius_sq;
+export function set_citydlg_dimensions(pcity: City): void {
+  const city_radius: number = pcity['city_radius_sq'] as number;
 
   const radius_tiles: number = Math.ceil(Math.sqrt(city_radius));
 
@@ -746,4 +746,4 @@ function get_specialist_image_sprite(key: string): any {}
 function city_mapview_mouse_click(): void {}
 function show_city_governor_tab(): void {}
 function show_dialog_message(title: string, message: string): void {}
-function city_dialog_activate_unit(unit: any): void {}
+function city_dialog_activate_unit(unit: Unit): void {}

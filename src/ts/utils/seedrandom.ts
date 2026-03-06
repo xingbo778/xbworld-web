@@ -30,6 +30,8 @@ function seedrandom(_seed: string): () => number {
   return rng;
 }
 
-// Expose as Math.seedrandom and window.seedrandom for legacy compatibility
+export { seedrandom };
+
+// Legacy compatibility
 (Math as any).seedrandom = seedrandom;
 (window as any).seedrandom = seedrandom;

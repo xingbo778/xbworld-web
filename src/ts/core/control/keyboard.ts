@@ -421,7 +421,8 @@ export function handle_context_menu_callback(key: string) {
     case "show_city":
       const stile = find_a_focus_unit_tile_to_center_on();
       if (stile != null) {
-        show_city_dialog(tileCity(stile));
+        const scity = tileCity(stile);
+        if (scity) show_city_dialog(scity);
       }
       break;
   }

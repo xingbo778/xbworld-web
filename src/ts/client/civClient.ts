@@ -15,7 +15,7 @@
  * is still loaded. Guards below initialise them once civclient.js is removed.
  */
 
-import '../utils/seedrandom';  // Must be before civClientInit uses Math.seedrandom
+import { seedrandom } from '../utils/seedrandom';
 import { initTabs } from '../ui/tabs';
 import { swal } from '../components/Dialogs/SwalDialog';
 import { RENDERER_2DCANVAS } from '../core/constants';
@@ -66,7 +66,7 @@ export function civClientInit(): void {
   }
 
   // Initialise seeded random number generator
-  (window as any).fc_seedrandom = new ((window as any).Math.seedrandom || (window as any).seedrandom)('xbworld');
+  (window as any).fc_seedrandom = seedrandom('xbworld');
 
   if (window.requestAnimationFrame == null) {
     swal('Please upgrade your browser.');

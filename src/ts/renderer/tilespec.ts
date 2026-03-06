@@ -7,6 +7,10 @@ import { mapPosToTile as map_pos_to_tile, mapstep, mapDistanceVector as map_dist
 import { tileGetKnown as tile_get_known, tileHasExtra as tile_has_extra, tileResource as tile_resource } from '../data/tile';
 import { tileTerrain as tile_terrain, tileTerrainNear as tile_terrain_near, isOceanTile as is_ocean_tile } from '../data/terrain';
 import { unit_is_in_focus, should_ask_server_for_actions } from '../core/control';
+import type { Tile, Unit, City, Terrain, Extra, UnitType } from '../data/types';
+
+/** A single sprite entry passed to the renderer. */
+interface SpriteEntry { key?: string | null; [prop: string]: unknown }
 
 import { TILE_KNOWN_SEEN, TILE_KNOWN_UNSEEN, TILE_UNKNOWN } from '../data/tile';
 import {
@@ -128,7 +132,7 @@ function tileset_has_tag(tagname: string): boolean {
   case the store.tileset don't support the first tag is the 'graphic_alt' field
   and the entity name is stored in the 'name' field.
 **************************************************************************/
-export function tileset_ruleset_entity_tag_str_or_alt(entity: any, kind_name: string): string | null {
+export function tileset_ruleset_entity_tag_str_or_alt(entity: { graphic_str: string; graphic_alt: string; name: string } | null, kind_name: string): string | null {
   if (entity == null) {
     console.log("No " + kind_name + " to return tag for.");
     return null;
@@ -150,14 +154,14 @@ export function tileset_ruleset_entity_tag_str_or_alt(entity: any, kind_name: st
   Returns the tag name of the graphic showing the specified Extra on the
   map.
 **************************************************************************/
-function tileset_extra_graphic_tag(extra: any): string | null {
-  return tileset_ruleset_entity_tag_str_or_alt(extra, "extra");
+function tileset_extra_graphic_tag(extra: Extra | null): string | null {
+  return tileset_ruleset_entity_tag_str_or_alt(extra as { graphic_str: string; graphic_alt: string; name: string } | null, "extra");
 }
 
 /**************************************************************************
   Returns the tag name of the graphic showing the specified unit type.
 **************************************************************************/
-export function tileset_unit_type_graphic_tag(utype: any): string | null {
+export function tileset_unit_type_graphic_tag(utype: UnitType): string | null {
   if (tileset_has_tag(utype['graphic_str'] + "_Idle")) {
     return utype['graphic_str'] + "_Idle";
   }
@@ -173,22 +177,24 @@ export function tileset_unit_type_graphic_tag(utype: any): string | null {
 /**************************************************************************
   Returns the tag name of the graphic for the unit.
 **************************************************************************/
-function tileset_unit_graphic_tag(punit: any): string | null {
+function tileset_unit_graphic_tag(punit: Unit): string | null {
   /* Currently always uses the default "_Idle" sprite */
-  return tileset_unit_type_graphic_tag(unit_type(punit));
+  const utype = unit_type(punit);
+  if (utype == null) return null;
+  return tileset_unit_type_graphic_tag(utype);
 }
 
 /**************************************************************************
   Returns the tag name of the graphic showing the specified building.
 **************************************************************************/
-export function tileset_building_graphic_tag(pimprovement: any): string | null {
+export function tileset_building_graphic_tag(pimprovement: { graphic_str: string; graphic_alt: string; name: string } | null): string | null {
   return tileset_ruleset_entity_tag_str_or_alt(pimprovement, "building");
 }
 
 /**************************************************************************
   Returns the tag name of the graphic showing the specified tech.
 **************************************************************************/
-export function tileset_tech_graphic_tag(ptech: any): string | null {
+export function tileset_tech_graphic_tag(ptech: { graphic_str: string; graphic_alt: string; name: string } | null): string | null {
   return tileset_ruleset_entity_tag_str_or_alt(ptech, "tech");
 }
 
@@ -204,22 +210,22 @@ function tileset_extra_id_graphic_tag(extra_id: number): string | null {
   Returns the tag name of the graphic showing that a unit is building the
   specified Extra.
 **************************************************************************/
-function tileset_extra_activity_graphic_tag(extra: any): string | null {
+function tileset_extra_activity_graphic_tag(extra: Extra | null): string | null {
   if (extra == null) {
     console.log("No extra to return tag for.");
     return null;
   }
 
-  if (tileset_has_tag(extra['activity_gfx'])) {
-    return extra['activity_gfx'];
+  if (tileset_has_tag(extra['activity_gfx'] as string)) {
+    return extra['activity_gfx'] as string;
   }
 
-  if (tileset_has_tag(extra['act_gfx_alt'])) {
-    return extra['act_gfx_alt'];
+  if (tileset_has_tag(extra['act_gfx_alt'] as string)) {
+    return extra['act_gfx_alt'] as string;
   }
 
-  if (tileset_has_tag(extra['act_gfx_alt2'])) {
-    return extra['act_gfx_alt2'];
+  if (tileset_has_tag(extra['act_gfx_alt2'] as string)) {
+    return extra['act_gfx_alt2'] as string;
   }
 
   console.log("No activity graphic for extra " + extra['name']);
@@ -239,22 +245,22 @@ function tileset_extra_id_activity_graphic_tag(extra_id: number): string | null 
   Returns the tag name of the graphic showing that a unit is removing the
   specified Extra.
 **************************************************************************/
-function tileset_extra_rmactivity_graphic_tag(extra: any): string | null {
+function tileset_extra_rmactivity_graphic_tag(extra: Extra | null): string | null {
   if (extra == null) {
     console.log("No extra to return tag for.");
     return null;
   }
 
-  if (tileset_has_tag(extra['rmact_gfx'])) {
-    return extra['rmact_gfx'];
+  if (tileset_has_tag(extra['rmact_gfx'] as string)) {
+    return extra['rmact_gfx'] as string;
   }
 
-  if (tileset_has_tag(extra['rmact_gfx_alt'])) {
-    return extra['rmact_gfx_alt'];
+  if (tileset_has_tag(extra['rmact_gfx_alt'] as string)) {
+    return extra['rmact_gfx_alt'] as string;
   }
 
-  if (tileset_has_tag(extra['rmact_gfx_alt2'])) {
-    return extra['rmact_gfx_alt2'];
+  if (tileset_has_tag(extra['rmact_gfx_alt2'] as string)) {
+    return extra['rmact_gfx_alt2'] as string;
   }
 
   console.log("No removal activity graphic for extra " + extra['name']);
@@ -286,8 +292,8 @@ function tileset_extra_id_rmactivity_graphic_tag(extra_id: number): string | nul
   citymode specifies whether this is part of a citydlg. If so some drawing
   is done differently.
 ****************************************************************************/
-export function fill_sprite_array(layer: number, ptile: any, pedge: any, pcorner: any, punit: any, pcity: any, citymode: boolean): any[] {
-  let sprite_array: any[] = [];
+export function fill_sprite_array(layer: number, ptile: Tile | null, pedge: any, pcorner: any, punit: Unit | null, pcity: City | null, citymode: boolean): SpriteEntry[] {
+  let sprite_array: SpriteEntry[] = [];
 
   switch (layer) {
     case LAYER_TERRAIN1:
@@ -397,7 +403,8 @@ export function fill_sprite_array(layer: number, ptile: any, pedge: any, pcorner
         && unit_is_in_focus(punit))));
 
       if (do_draw_unit && active_city == null) {
-        const stacked = (ptile['units'] != null && ptile['units'].length > 1);
+        const punits = ptile != null ? tile_units(ptile) : null;
+        const stacked = (punits != null && punits.length > 1);
         // const backdrop = false; /* !pcity;*/
 
         if (unit_is_in_focus(punit)) {
@@ -465,7 +472,7 @@ export function fill_sprite_array(layer: number, ptile: any, pedge: any, pcorner
       break;
 
     case LAYER_TILELABEL:
-      if (ptile != null && ptile['label'] != null && ptile['label'].length > 0) {
+      if (ptile != null && ptile['label'] != null && (ptile['label'] as string).length > 0) {
         sprite_array.push(get_tile_label_text(ptile));
       }
       break;
@@ -505,8 +512,8 @@ export function fill_sprite_array(layer: number, ptile: any, pedge: any, pcorner
         sprite_array = sprite_array.concat(fill_goto_line_sprite_array(ptile));
       }
 
-      if (ptile != null && ptile['nuke'] > 0) {
-        ptile['nuke'] = ptile['nuke'] - 1;
+      if (ptile != null && ((ptile as any)['nuke'] as number) > 0) {
+        (ptile as any)['nuke'] = ((ptile as any)['nuke'] as number) - 1;
         sprite_array.push({
           "key": "explode.nuke",
           "offset_x": -45,
@@ -527,7 +534,7 @@ export function fill_sprite_array(layer: number, ptile: any, pedge: any, pcorner
   Add store.sprites for the base tile to the sprite list. This doesn't
   include specials or rivers.
 ****************************************************************************/
-function fill_terrain_sprite_layer(layer_num: number, ptile: any, pterrain: any, tterrain_near: any): any[] {
+function fill_terrain_sprite_layer(layer_num: number, ptile: Tile, pterrain: Terrain | undefined, tterrain_near: (Terrain | undefined)[]): SpriteEntry[] {
   /* FIXME: handle blending and darkness. */
 
   return fill_terrain_sprite_array(layer_num, ptile, pterrain, tterrain_near);
@@ -537,15 +544,15 @@ function fill_terrain_sprite_layer(layer_num: number, ptile: any, pterrain: any,
 /****************************************************************************
   Helper function for fill_terrain_sprite_layer.
 ****************************************************************************/
-function fill_terrain_sprite_array(l: number, ptile: any, pterrain: any, tterrain_near: any): any[] {
+function fill_terrain_sprite_array(l: number, ptile: Tile, pterrain: Terrain | undefined, tterrain_near: (Terrain | undefined)[]): SpriteEntry[] {
   if (pterrain == null) return [];
 
-  if (tile_types_setup["l" + l + "." + pterrain['graphic_str']] == null) {
-    //console.log("missing " + "l" + l + "." + pterrain['graphic_str']);
+  if (tile_types_setup["l" + l + "." + pterrain!['graphic_str']] == null) {
+    //console.log("missing " + "l" + l + "." + pterrain!['graphic_str']);
     return [];
   }
 
-  const dlp = tile_types_setup["l" + l + "." + pterrain['graphic_str']];
+  const dlp = tile_types_setup["l" + l + "." + pterrain!['graphic_str']];
 
   switch (dlp['sprite_type']) {
     case CELL_WHOLE:
@@ -553,13 +560,14 @@ function fill_terrain_sprite_array(l: number, ptile: any, pterrain: any, tterrai
         switch (dlp['match_style']) {
           case MATCH_NONE:
             {
-              const result_sprites: any[] = [];
+              const result_sprites: SpriteEntry[] = [];
               if (dlp['dither'] == true) {
                 for (let i = 0; i < num_cardinal_tileset_dirs; i++) {
-                  if (ts_tiles[tterrain_near[DIR4_TO_DIR8[i]]['graphic_str']] == null) continue;
-                  const near_dlp = tile_types_setup["l" + l + "." + tterrain_near[DIR4_TO_DIR8[i]]['graphic_str']];
-                  const terrain_near = (near_dlp['dither'] == true) ? tterrain_near[DIR4_TO_DIR8[i]]['graphic_str'] : pterrain['graphic_str'];
-                  const dither_tile = i + pterrain['graphic_str'] + "_" + terrain_near;
+                  const near_t = tterrain_near[DIR4_TO_DIR8[i]]!;
+                  if (near_t == null || ts_tiles[near_t['graphic_str']] == null) continue;
+                  const near_dlp = tile_types_setup["l" + l + "." + near_t['graphic_str']];
+                  const terrain_near = (near_dlp['dither'] == true) ? near_t['graphic_str'] : pterrain!['graphic_str'];
+                  const dither_tile = i + pterrain!['graphic_str'] + "_" + terrain_near;
                   const x = dither_offset_x[i];
                   const y = dither_offset_y[i];
                   result_sprites.push({ "key": dither_tile, "offset_x": x, "offset_y": y });
@@ -567,23 +575,24 @@ function fill_terrain_sprite_array(l: number, ptile: any, pterrain: any, tterrai
                 return result_sprites;
 
               } else {
-                return [{ "key": "t.l" + l + "." + pterrain['graphic_str'] + 1 }];
+                return [{ "key": "t.l" + l + "." + pterrain!['graphic_str'] + 1 }];
               }
             }
 
           case MATCH_SAME:
             {
               let tileno = 0;
-              const this_match_type = ts_tiles[pterrain['graphic_str']]['layer' + l + '_match_type'];
+              const this_match_type = ts_tiles[pterrain!['graphic_str']]['layer' + l + '_match_type'];
 
               for (let i = 0; i < num_cardinal_tileset_dirs; i++) {
-                if (ts_tiles[tterrain_near[i]['graphic_str']] == null) continue;
-                const that = ts_tiles[tterrain_near[i]['graphic_str']]['layer' + l + '_match_type'];
+                const near_t = tterrain_near[i]!;
+                if (near_t == null || ts_tiles[near_t['graphic_str']] == null) continue;
+                const that = ts_tiles[near_t['graphic_str']]['layer' + l + '_match_type'];
                 if (that == this_match_type) {
                   tileno |= 1 << i;
                 }
               }
-              const gfx_key = "t.l" + l + "." + pterrain['graphic_str'] + "_" + cardinal_index_str(tileno);
+              const gfx_key = "t.l" + l + "." + pterrain!['graphic_str'] + "_" + cardinal_index_str(tileno);
               const y = tileset_tile_height - store.tileset[gfx_key][3];
 
               return [{ "key": gfx_key, "offset_x": 0, "offset_y": y }];
@@ -605,9 +614,9 @@ function fill_terrain_sprite_array(l: number, ptile: any, pterrain: any, tterrai
         const W = normal_tile_width;
         const H = normal_tile_height;
         const iso_offsets = [[W / 4, 0], [W / 4, H / 2], [W / 2, H / 4], [0, H / 4]];
-        const this_match_index = ('l' + l + '.' + pterrain['graphic_str'] in tile_types_setup) ? tile_types_setup['l' + l + '.' + pterrain['graphic_str']]['match_index'][0] : -1;
-        /* var that_match_index = ('l' + l + '.' + pterrain['graphic_str'] in tile_types_setup) ? tile_types_setup['l' + l + '.' + pterrain['graphic_str']]['match_index'][1] : -1; */
-        const result_sprites: any[] = [];
+        const this_match_index = ('l' + l + '.' + pterrain!['graphic_str'] in tile_types_setup) ? tile_types_setup['l' + l + '.' + pterrain!['graphic_str']]['match_index'][0] : -1;
+        /* var that_match_index = ('l' + l + '.' + pterrain!['graphic_str'] in tile_types_setup) ? tile_types_setup['l' + l + '.' + pterrain!['graphic_str']]['match_index'][1] : -1; */
+        const result_sprites: SpriteEntry[] = [];
 
         /* Put corner cells */
         for (let i = 0; i < NUM_CORNER_DIRS; i++) {
@@ -617,9 +626,9 @@ function fill_terrain_sprite_array(l: number, ptile: any, pterrain: any, tterrai
           const x = iso_offsets[i][0];
           const y = iso_offsets[i][1];
 
-          const m = [('l' + l + '.' + tterrain_near[dir_ccw(dir)]['graphic_str'] in tile_types_setup) ? tile_types_setup['l' + l + '.' + tterrain_near[dir_ccw(dir)]['graphic_str']]['match_index'][0] : -1,
-          ('l' + l + '.' + tterrain_near[dir]['graphic_str'] in tile_types_setup) ? tile_types_setup['l' + l + '.' + tterrain_near[dir]['graphic_str']]['match_index'][0] : -1,
-          ('l' + l + '.' + tterrain_near[dir_cw(dir)]['graphic_str'] in tile_types_setup) ? tile_types_setup['l' + l + '.' + tterrain_near[dir_cw(dir)]['graphic_str']]['match_index'][0] : -1]; // Assuming dir_cw exists
+          const m = [('l' + l + '.' + tterrain_near[dir_ccw(dir)]!['graphic_str'] in tile_types_setup) ? tile_types_setup['l' + l + '.' + tterrain_near[dir_ccw(dir)]!['graphic_str']]['match_index'][0] : -1,
+          ('l' + l + '.' + tterrain_near[dir]!['graphic_str'] in tile_types_setup) ? tile_types_setup['l' + l + '.' + tterrain_near[dir]!['graphic_str']]['match_index'][0] : -1,
+          ('l' + l + '.' + tterrain_near[dir_cw(dir)]!['graphic_str'] in tile_types_setup) ? tile_types_setup['l' + l + '.' + tterrain_near[dir_cw(dir)]!['graphic_str']]['match_index'][0] : -1]; // Assuming dir_cw exists
 
           /* synthesize 4 dimensional array? */
           switch (dlp['match_style']) {
@@ -665,7 +674,7 @@ function fill_terrain_sprite_array(l: number, ptile: any, pterrain: any, tterrai
               break;
           };
           array_index = array_index * NUM_CORNER_DIRS + i;
-          result_sprites.push({ "key": cellgroup_map[pterrain['graphic_str'] + "." + array_index] + "." + i, "offset_x": x, "offset_y": y });
+          result_sprites.push({ "key": cellgroup_map[pterrain!['graphic_str'] + "." + array_index] + "." + i, "offset_x": x, "offset_y": y });
 
         }
 
@@ -685,9 +694,9 @@ function fill_terrain_sprite_array(l: number, ptile: any, pterrain: any, tterrai
 /**************************************************************************
  ...
 **************************************************************************/
-function fill_unit_sprite_array(punit: any, stacked: boolean, backdrop: boolean): any[] {
+function fill_unit_sprite_array(punit: Unit, stacked: boolean, backdrop: boolean): SpriteEntry[] {
   const unit_offset = get_unit_anim_offset(punit);
-  const result: any[] = [get_unit_nation_flag_sprite(punit),
+  const result: SpriteEntry[] = [get_unit_nation_flag_sprite(punit),
   {
     "key": tileset_unit_graphic_tag(punit),
     "offset_x": unit_offset['x'] + unit_offset_x,
@@ -695,14 +704,14 @@ function fill_unit_sprite_array(punit: any, stacked: boolean, backdrop: boolean)
   }];
   const activities = get_unit_activity_sprite(punit);
   if (activities != null) {
-    activities['offset_x'] = activities['offset_x'] + unit_offset['x'];
-    activities['offset_y'] = activities['offset_y'] + unit_offset['y'];
+    activities['offset_x'] = (activities['offset_x'] as number) + unit_offset['x'];
+    activities['offset_y'] = (activities['offset_y'] as number) + unit_offset['y'];
     result.push(activities);
   }
   const agent = get_unit_agent_sprite(punit);
   if (agent != null) {
-    agent['offset_x'] = agent['offset_x'] + unit_offset['x'];
-    agent['offset_y'] = agent['offset_y'] + unit_offset['y'];
+    (agent as any)['offset_x'] = (agent as any)['offset_x'] + unit_offset['x'];
+    (agent as any)['offset_y'] = (agent as any)['offset_y'] + unit_offset['y'];
     result.push(agent);
   }
 
@@ -770,15 +779,15 @@ function cardinal_index_str(idx: number): string {
 /***********************************************************************
   Return the flag graphic to be used by the city.
 ***********************************************************************/
-export function get_city_flag_sprite(pcity: any): any {
+export function get_city_flag_sprite(pcity: City): SpriteEntry {
   const owner_id = pcity['owner'];
-  if (owner_id == null) return {};
+  if (owner_id == null) return { "key": "" };
   const owner = store.players[owner_id];
-  if (owner == null) return {};
+  if (owner == null) return { "key": "" };
   const nation_id = owner['nation'];
-  if (nation_id == null) return {};
+  if (nation_id == null) return { "key": "" };
   const nation = store.nations[nation_id];
-  if (nation == null) return {};
+  if (nation == null) return { "key": "" };
   return {
     "key": "f." + nation['graphic_str'],
     "offset_x": city_flag_offset_x,
@@ -789,15 +798,15 @@ export function get_city_flag_sprite(pcity: any): any {
 /***********************************************************************
   Return the flag graphic to be used by the base on tile
 ***********************************************************************/
-function get_base_flag_sprite(ptile: any): any {
-  const owner_id = ptile['extras_owner'];
-  if (owner_id == null) return {};
+function get_base_flag_sprite(ptile: Tile): SpriteEntry {
+  const owner_id = ptile['extras_owner'] as number | undefined;
+  if (owner_id == null) return { "key": "" };
   const owner = store.players[owner_id];
-  if (owner == null) return {};
+  if (owner == null) return { "key": "" };
   const nation_id = owner['nation'];
-  if (nation_id == null) return {};
+  if (nation_id == null) return { "key": "" };
   const nation = store.nations[nation_id];
-  if (nation == null) return {};
+  if (nation == null) return { "key": "" };
   return {
     "key": "f." + nation['graphic_str'],
     "offset_x": city_flag_offset_x,
@@ -808,7 +817,7 @@ function get_base_flag_sprite(ptile: any): any {
 /***********************************************************************
   Returns the sprite key for the number of defending units in a city.
 ***********************************************************************/
-export function get_city_occupied_sprite(pcity: any): string {
+export function get_city_occupied_sprite(pcity: City): string {
   const owner_id = pcity['owner'];
   const ptile = city_tile(pcity);
   const punits = tile_units(ptile);
@@ -830,7 +839,7 @@ export function get_city_occupied_sprite(pcity: any): string {
 /***********************************************************************
   ...
 ***********************************************************************/
-function get_city_food_output_sprite(num: number): any {
+function get_city_food_output_sprite(num: number): SpriteEntry {
   return {
     "key": "city.t_food_" + num,
     "offset_x": normal_tile_width / 4,
@@ -841,7 +850,7 @@ function get_city_food_output_sprite(num: number): any {
 /***********************************************************************
 ...
 ***********************************************************************/
-function get_city_shields_output_sprite(num: number): any {
+function get_city_shields_output_sprite(num: number): SpriteEntry {
   return {
     "key": "city.t_shields_" + num,
     "offset_x": normal_tile_width / 4,
@@ -852,7 +861,7 @@ function get_city_shields_output_sprite(num: number): any {
 /***********************************************************************
 ...
 ***********************************************************************/
-function get_city_trade_output_sprite(num: number): any {
+function get_city_trade_output_sprite(num: number): SpriteEntry {
   return {
     "key": "city.t_trade_" + num,
     "offset_x": normal_tile_width / 4,
@@ -864,7 +873,7 @@ function get_city_trade_output_sprite(num: number): any {
 /***********************************************************************
   Return the sprite for an invalid city worked tile.
 ***********************************************************************/
-function get_city_invalid_worked_sprite(): any {
+function get_city_invalid_worked_sprite(): SpriteEntry {
   return {
     "key": "grid.unavailable",
     "offset_x": 0,
@@ -876,15 +885,15 @@ function get_city_invalid_worked_sprite(): any {
 /***********************************************************************
 ...
 ***********************************************************************/
-function fill_goto_line_sprite_array(ptile: any): any {
+function fill_goto_line_sprite_array(ptile: Tile): SpriteEntry {
   return { "key": "goto_line", "goto_dir": ptile['goto_dir'] };
 }
 
 /***********************************************************************
 ...
 ***********************************************************************/
-function get_border_line_sprites(ptile: any): any[] {
-  const result: any[] = [];
+function get_border_line_sprites(ptile: Tile): SpriteEntry[] {
+  const result: SpriteEntry[] = [];
 
   for (let i = 0; i < num_cardinal_tileset_dirs; i++) {
     const dir = cardinal_tileset_dirs[i];
@@ -910,13 +919,13 @@ function get_border_line_sprites(ptile: any): any[] {
 /***********************************************************************
   ...
 ***********************************************************************/
-function get_unit_nation_flag_sprite(punit: any): any {
+function get_unit_nation_flag_sprite(punit: Unit): SpriteEntry {
   const owner_id = punit['owner'];
 
   if ((unit_type(punit) as any)?.['flags']?.isSet?.(UTYF_FLAGLESS)
     && clientPlaying() != null
     && owner_id != clientPlaying().playerno) {
-    return [];
+    return { "key": "" };
   } else {
     const owner = store.players[owner_id];
     const nation_id = owner['nation'];
@@ -934,7 +943,7 @@ function get_unit_nation_flag_sprite(punit: any): any {
 /***********************************************************************
   ...
 ***********************************************************************/
-function get_unit_stack_sprite(punit?: any): any {
+function get_unit_stack_sprite(punit?: Unit): SpriteEntry {
   return {
     "key": "unit.stack",
     "offset_x": unit_flag_offset_x + -25,
@@ -945,7 +954,7 @@ function get_unit_stack_sprite(punit?: any): any {
 /***********************************************************************
   ...
 ***********************************************************************/
-function get_unit_hp_sprite(punit: any): any {
+function get_unit_hp_sprite(punit: Unit): SpriteEntry {
   const hp = punit['hp'];
   const utype = unit_type(punit);
   const max_hp = utype?.['hp'] ?? 1;
@@ -962,7 +971,7 @@ function get_unit_hp_sprite(punit: any): any {
 /***********************************************************************
   ...
 ***********************************************************************/
-function get_unit_veteran_sprite(punit: any): any {
+function get_unit_veteran_sprite(punit: Unit): SpriteEntry {
   return {
     "key": "unit.vet_" + punit['veteran'],
     "offset_x": unit_activity_offset_x - 20,
@@ -973,14 +982,14 @@ function get_unit_veteran_sprite(punit: any): any {
 /***********************************************************************
   ...
 ***********************************************************************/
-function get_unit_activity_sprite(punit: any): any | null {
+function get_unit_activity_sprite(punit: Unit): SpriteEntry | null {
   if (punit['ssa_controller'] == SSA_AUTOEXPLORE) {
     // FIXME: Currently can't have SSA_AUTOEXPLORE sprite with activity store.sprites
     return null;
   }
 
   const activity = punit['activity'];
-  const act_tgt = punit['activity_tgt'];
+  const act_tgt = punit['activity_tgt'] as number;
 
   switch (activity) {
     case ACTIVITY_CLEAN:
@@ -1102,7 +1111,7 @@ function get_unit_activity_sprite(punit: any): any | null {
 /***********************************************************************
   ...
 ***********************************************************************/
-function get_unit_agent_sprite(punit: any): any | null {
+function get_unit_agent_sprite(punit: Unit): SpriteEntry | null {
   switch (punit['ssa_controller']) {
     case SSA_NONE:
       break;
@@ -1130,8 +1139,8 @@ function get_unit_agent_sprite(punit: any): any | null {
 
   See also load_city_sprite, free_city_sprite.
 ****************************************************************************/
-function get_city_sprite(pcity: any): any {
-  let style_id = pcity['style'];
+function get_city_sprite(pcity: City): SpriteEntry {
+  let style_id = pcity['style'] as number;
   if (style_id == -1) style_id = 0;   /* Sometimes a player has no city_style. */
   const city_rule = city_rules[style_id];
 
@@ -1160,7 +1169,7 @@ function get_city_sprite(pcity: any): any {
 /****************************************************************************
   Add store.sprites for fog (and some forms of darkness).
 ****************************************************************************/
-function fill_fog_sprite_array(ptile: any, pedge: any, pcorner: any): any[] {
+function fill_fog_sprite_array(ptile: Tile | null, pedge: any, pcorner: any): SpriteEntry[] {
 
   let i, tileno = 0;
 
@@ -1197,7 +1206,7 @@ function fill_fog_sprite_array(ptile: any, pedge: any, pcorner: any): any[] {
 /****************************************************************************
  ...
 ****************************************************************************/
-function get_select_sprite(): any {
+function get_select_sprite(): SpriteEntry {
   // update selected unit sprite 6 times a second.
   current_select_sprite = (Math.floor(new Date().getTime() * 6 / 1000) % max_select_sprite);
   return { "key": "unit.select" + current_select_sprite };
@@ -1206,7 +1215,7 @@ function get_select_sprite(): any {
 /****************************************************************************
  ...
 ****************************************************************************/
-function get_city_info_text(pcity: any): any {
+function get_city_info_text(pcity: City): SpriteEntry {
   return {
     "key": "city_text", "city": pcity,
     "offset_x": citybar_offset_x, "offset_y": citybar_offset_y
@@ -1216,7 +1225,7 @@ function get_city_info_text(pcity: any): any {
 /****************************************************************************
  ...
 ****************************************************************************/
-function get_tile_label_text(ptile: any): any {
+function get_tile_label_text(ptile: Tile): SpriteEntry {
   return {
     "key": "tile_label", "tile": ptile,
     "offset_x": tilelabel_offset_x, "offset_y": tilelabel_offset_y
@@ -1226,13 +1235,13 @@ function get_tile_label_text(ptile: any): any {
 /****************************************************************************
  ...
 ****************************************************************************/
-function get_tile_specials_sprite(ptile: any): any | null {
+function get_tile_specials_sprite(ptile: Tile): SpriteEntry | null {
   const extra_id = tile_resource(ptile);
 
   if (extra_id !== null) {
     const extra = store.extras[extra_id];
     if (extra != null) {
-      return { "key": extra['graphic_str'] };
+      return { "key": extra['graphic_str'] as string };
     }
   }
   return null;
@@ -1241,7 +1250,7 @@ function get_tile_specials_sprite(ptile: any): any | null {
 /****************************************************************************
  ...
 ****************************************************************************/
-function get_tile_river_sprite(ptile: any): any | null {
+function get_tile_river_sprite(ptile: Tile | null): SpriteEntry | null {
   if (ptile == null) {
     return null;
   }
@@ -1263,7 +1272,7 @@ function get_tile_river_sprite(ptile: any): any | null {
   }
 
   const pterrain = tile_terrain(ptile);
-  if (pterrain != null && pterrain['graphic_str'] == "coast") {
+  if (pterrain != null && pterrain!['graphic_str'] == "coast") {
     for (let i = 0; i < num_cardinal_tileset_dirs; i++) {
       const dir = cardinal_tileset_dirs[i];
       const checktile = mapstep(ptile, dir);
@@ -1283,7 +1292,7 @@ function get_tile_river_sprite(ptile: any): any | null {
     - Support generic road types
     - Properly support generic extra hiding properties
 ****************************************************************************/
-function fill_path_sprite_array(ptile: any, pcity: any): any[] {
+function fill_path_sprite_array(ptile: Tile, pcity: City | null): SpriteEntry[] {
   const rs_maglev = typeof store.extraIds['EXTRA_MAGLEV'] !== 'undefined';
   const road = tile_has_extra(ptile, store.extraIds['EXTRA_ROAD']);
   const rail = tile_has_extra(ptile, store.extraIds['EXTRA_RAIL']);
@@ -1294,7 +1303,7 @@ function fill_path_sprite_array(ptile: any, pcity: any): any[] {
   const draw_rail: boolean[] = [];
   const draw_road: boolean[] = [];
   const draw_maglev: boolean[] = [];
-  const result_sprites: any[] = [];
+  const result_sprites: SpriteEntry[] = [];
   let draw_single_road: boolean;
   let draw_single_rail: boolean;
   let draw_single_maglev: boolean;
@@ -1333,8 +1342,8 @@ function fill_path_sprite_array(ptile: any, pcity: any): any[] {
 /**************************************************************************
   Fill layer 1 sprite array (fortress background).
 **************************************************************************/
-function fill_layer1_sprite_array(ptile: any, pcity: any): any[] {
-  const result_sprites: any[] = [];
+function fill_layer1_sprite_array(ptile: Tile, pcity: City | null): SpriteEntry[] {
+  const result_sprites: SpriteEntry[] = [];
 
   if (pcity == null) {
     if (tile_has_extra(ptile, store.extraIds['EXTRA_FORTRESS'])) {
@@ -1349,8 +1358,8 @@ function fill_layer1_sprite_array(ptile: any, pcity: any): any[] {
 /**************************************************************************
   Fill layer 2 sprite array (airbase, buoy, ruins).
 **************************************************************************/
-function fill_layer2_sprite_array(ptile: any, pcity: any): any[] {
-  const result_sprites: any[] = [];
+function fill_layer2_sprite_array(ptile: Tile, pcity: City | null): SpriteEntry[] {
+  const result_sprites: SpriteEntry[] = [];
 
   if (pcity == null) {
     if (tile_has_extra(ptile, store.extraIds['EXTRA_AIRBASE'])) {
@@ -1374,8 +1383,8 @@ function fill_layer2_sprite_array(ptile: any, pcity: any): any[] {
 /**************************************************************************
   Fill layer 3 sprite array (fortress foreground).
 **************************************************************************/
-function fill_layer3_sprite_array(ptile: any, pcity: any): any[] {
-  const result_sprites: any[] = [];
+function fill_layer3_sprite_array(ptile: Tile, pcity: City | null): SpriteEntry[] {
+  const result_sprites: SpriteEntry[] = [];
 
   if (pcity == null) {
     if (tile_has_extra(ptile, store.extraIds['EXTRA_FORTRESS'])) {

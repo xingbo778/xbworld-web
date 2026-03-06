@@ -298,7 +298,7 @@ export function mapview_put_city_bar(pcanvas: CanvasRenderingContext2D, city: an
     (prod_type != null) ? size_measure.width + 35 : size_measure.width + 8, 24);
 
   const city_flag = get_city_flag_sprite(city);
-  pcanvas.drawImage(sprites[city_flag['key']],
+  pcanvas.drawImage(sprites[city_flag['key']!],
     canvas_x - Math.floor(txt_measure.width / 2) - 45, canvas_y - 17);
 
   pcanvas.drawImage(sprites[get_city_occupied_sprite(city)],
