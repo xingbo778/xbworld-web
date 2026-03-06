@@ -8926,7 +8926,8 @@ function updateNationScreen() {
         }
       }
     }
-    if (_$) _$("#nation_table").trigger("update");
+    const nationTable = document.getElementById("nation_table");
+    if (nationTable) nationTable.dispatchEvent(new Event("update"));
   }).catch(function() {
   });
   if (isLongturn()) {
@@ -9088,8 +9089,8 @@ function sendPrivateMessage(other_player_name) {
   const message = other_player_name + ": " + encode_message_text(inputEl ? inputEl.value : "");
   sendChatMessage(message);
   setKeyboardInput(true);
-  const _$22 = window.$;
-  if (_$22) _$22("#dialog").dialog("close");
+  const dlg = document.getElementById("dialog");
+  if (dlg) dlg.remove();
 }
 function showSendPrivateMessageDialog() {
   if (getSelectedPlayer() === -1) return;
@@ -9109,20 +9110,22 @@ function showSendPrivateMessageDialog() {
   const intro_html = "Message: <input id='private_message_text' type='text' size='50' maxlength='80'>";
   dialogEl.innerHTML = intro_html;
   dialogEl.setAttribute("title", "Send private message to " + name);
-  const _$22 = window.$;
-  if (_$22) {
-    _$22("#dialog").dialog({
-      bgiframe: true,
-      modal: true,
-      width: is_small_screen() ? "80%" : "40%",
-      buttons: {
-        Send: function() {
-          sendPrivateMessage(name);
-        }
-      }
-    });
-    _$22("#dialog").dialog("open");
-  }
+  dialogEl.style.cssText = "position:fixed;z-index:5000;background:#222;border:1px solid #555;padding:16px;top:30%;left:50%;transform:translateX(-50%);width:" + (is_small_screen() ? "80%" : "40%") + ";";
+  const sendBtn = document.createElement("button");
+  sendBtn.textContent = "Send";
+  sendBtn.style.cssText = "margin-top:8px;margin-right:8px;";
+  sendBtn.addEventListener("click", function() {
+    sendPrivateMessage(name);
+  });
+  const cancelBtn = document.createElement("button");
+  cancelBtn.textContent = "Cancel";
+  cancelBtn.style.cssText = "margin-top:8px;";
+  cancelBtn.addEventListener("click", function() {
+    dialogEl.remove();
+  });
+  dialogEl.appendChild(document.createElement("br"));
+  dialogEl.appendChild(sendBtn);
+  dialogEl.appendChild(cancelBtn);
   dialogEl.addEventListener("keyup", function(e2) {
     if (e2.keyCode === 13) {
       sendPrivateMessage(name);
@@ -9192,10 +9195,7 @@ function chat_context_set_next(recipients) {
 }
 function chat_context_dialog_show(recipients) {
   const existingDlg = document.getElementById("chat_context_dialog");
-  if (existingDlg) {
-    window.$("#chat_context_dialog").dialog("close");
-    existingDlg.remove();
-  }
+  if (existingDlg) existingDlg.remove();
   const dlgDiv = document.createElement("div");
   dlgDiv.id = "chat_context_dialog";
   dlgDiv.title = "Choose chat recipient";
@@ -9254,23 +9254,14 @@ function chat_context_dialog_show(recipients) {
     }
   });
   document.getElementById("chat_context_dialog").appendChild(table);
-  window.$("#chat_context_dialog").dialog({
-    bgiframe: true,
-    modal: false,
-    maxHeight: 0.9 * window.innerHeight
-  }).dialogExtend({
-    minimizable: true,
-    closable: true,
-    icons: {
-      minimize: "ui-icon-circle-minus",
-      restore: "ui-icon-bullet"
-    }
-  });
-  window.$("#chat_context_dialog").dialog("open");
+  const chatDlg = document.getElementById("chat_context_dialog");
+  chatDlg.style.cssText = "position:absolute;z-index:5000;background:#222;border:1px solid #555;padding:8px;max-height:" + Math.floor(0.9 * window.innerHeight) + "px;overflow-y:auto;";
+  chatDlg.style.display = "block";
 }
 function handle_chat_direction_chosen(ev) {
   const new_send_to = this.dataset.chatSendTo;
-  window.$("#chat_context_dialog").dialog("close");
+  const chatDlg = document.getElementById("chat_context_dialog");
+  if (chatDlg) chatDlg.remove();
   if (new_send_to == null) {
     set_chat_direction(null);
   } else {
@@ -14410,8 +14401,8 @@ if (window["game_rules"] === void 0) window["game_rules"] = null;
 if (window["ruleset_control"] === void 0) window["ruleset_control"] = null;
 if (window["ruleset_summary"] === void 0) window["ruleset_summary"] = null;
 if (window["ruleset_description"] === void 0) window["ruleset_description"] = null;
-const _$$1 = window.jQuery;
-if (!_$$1) throw new Error("jqueryUiShim requires jQuery");
+const _$ = window.jQuery;
+if (!_$) throw new Error("jqueryUiShim requires jQuery");
 const dialogStore = /* @__PURE__ */ new WeakMap();
 function createDialogWrapper(el, options) {
   const wrapper = document.createElement("div");
@@ -14504,7 +14495,7 @@ function dialogAction(el, action) {
     if (data.options.close) data.options.close();
   }
 }
-_$$1.fn.dialog = function(optionsOrAction, ...args) {
+_$.fn.dialog = function(optionsOrAction, ...args) {
   return this.each(function() {
     if (typeof optionsOrAction === "string") {
       dialogAction(this, optionsOrAction);
@@ -14521,13 +14512,13 @@ _$$1.fn.dialog = function(optionsOrAction, ...args) {
     }
   });
 };
-_$$1.fn.dialogExtend = function() {
+_$.fn.dialogExtend = function() {
   return this;
 };
-_$$1.fn.tooltip = function() {
+_$.fn.tooltip = function() {
   return this;
 };
-_$$1.fn.button = function(opts) {
+_$.fn.button = function(opts) {
   if (!opts || typeof opts !== "object") return this;
   return this.each(function() {
     if (opts.label) this.textContent = opts.label;
@@ -14535,13 +14526,13 @@ _$$1.fn.button = function(opts) {
     else if (opts.disabled === false) this.disabled = false;
   });
 };
-_$$1.fn.menu = function() {
+_$.fn.menu = function() {
   return this;
 };
-_$$1.fn.selectable = function() {
+_$.fn.selectable = function() {
   return this;
 };
-_$$1.fn.tabs = function() {
+_$.fn.tabs = function() {
   return this;
 };
 const DEFAULT_OPTIONS = {

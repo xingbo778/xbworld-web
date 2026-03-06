@@ -99,10 +99,7 @@ export function chat_context_set_next(recipients: any[]): void {
 
 export function chat_context_dialog_show(recipients: any[]): void {
   const existingDlg = document.getElementById('chat_context_dialog');
-  if (existingDlg) {
-    (window as any).$('#chat_context_dialog').dialog('close');
-    existingDlg.remove();
-  }
+  if (existingDlg) existingDlg.remove();
   const dlgDiv = document.createElement('div');
   dlgDiv.id = 'chat_context_dialog';
   dlgDiv.title = 'Choose chat recipient';
@@ -165,25 +162,16 @@ export function chat_context_dialog_show(recipients: any[]): void {
   });
   document.getElementById('chat_context_dialog')!.appendChild(table);
 
-  (window as any).$('#chat_context_dialog').dialog({
-    bgiframe: true,
-    modal: false,
-    maxHeight: 0.9 * window.innerHeight
-  }).dialogExtend({
-    minimizable: true,
-    closable: true,
-    icons: {
-      minimize: "ui-icon-circle-minus",
-      restore: "ui-icon-bullet"
-    }
-  });
-
-  (window as any).$('#chat_context_dialog').dialog('open');
+  // Show as a simple positioned popup
+  const chatDlg = document.getElementById('chat_context_dialog')!;
+  chatDlg.style.cssText = 'position:absolute;z-index:5000;background:#222;border:1px solid #555;padding:8px;max-height:' + Math.floor(0.9 * window.innerHeight) + 'px;overflow-y:auto;';
+  chatDlg.style.display = 'block';
 }
 
 export function handle_chat_direction_chosen(this: any, ev: any): void {
   const new_send_to = (this as HTMLElement).dataset.chatSendTo;
-  (window as any).$('#chat_context_dialog').dialog('close');
+  const chatDlg = document.getElementById('chat_context_dialog');
+  if (chatDlg) chatDlg.remove();
   if (new_send_to == null) {
     set_chat_direction(null);
   } else {

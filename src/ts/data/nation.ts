@@ -347,7 +347,8 @@ export function updateNationScreen(): void {
           }
         }
       }
-      if (_$) _$('#nation_table').trigger('update');
+      const nationTable = document.getElementById('nation_table');
+      if (nationTable) nationTable.dispatchEvent(new Event('update'));
     })
     .catch(function () { /* ignore fetch errors */ });
 
@@ -620,8 +621,8 @@ export function sendPrivateMessage(other_player_name: string): void {
     other_player_name + ': ' + encode_message_text(inputEl ? inputEl.value : '');
   sendChatMessage(message);
   setKeyboardInput(true);
-  const _$ = (window as any).$;
-  if (_$) _$('#dialog').dialog('close');
+  const dlg = document.getElementById('dialog');
+  if (dlg) dlg.remove();
 }
 
 /**
@@ -651,20 +652,20 @@ export function showSendPrivateMessageDialog(): void {
   dialogEl.innerHTML = intro_html;
   dialogEl.setAttribute('title', 'Send private message to ' + name);
 
-  const _$ = (window as any).$;
-  if (_$) {
-    _$('#dialog').dialog({
-      bgiframe: true,
-      modal: true,
-      width: is_small_screen() ? '80%' : '40%',
-      buttons: {
-        Send: function () {
-          sendPrivateMessage(name);
-        },
-      },
-    });
-    _$('#dialog').dialog('open');
-  }
+  // Show as a simple modal dialog
+  dialogEl.style.cssText = 'position:fixed;z-index:5000;background:#222;border:1px solid #555;padding:16px;top:30%;left:50%;transform:translateX(-50%);width:' + (is_small_screen() ? '80%' : '40%') + ';';
+  const sendBtn = document.createElement('button');
+  sendBtn.textContent = 'Send';
+  sendBtn.style.cssText = 'margin-top:8px;margin-right:8px;';
+  sendBtn.addEventListener('click', function() { sendPrivateMessage(name); });
+  const cancelBtn = document.createElement('button');
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.style.cssText = 'margin-top:8px;';
+  cancelBtn.addEventListener('click', function() { dialogEl.remove(); });
+  dialogEl.appendChild(document.createElement('br'));
+  dialogEl.appendChild(sendBtn);
+  dialogEl.appendChild(cancelBtn);
+
   dialogEl.addEventListener('keyup', function (e: KeyboardEvent) {
     if (e.keyCode === 13) {
       sendPrivateMessage(name);
