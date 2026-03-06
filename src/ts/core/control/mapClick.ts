@@ -5,6 +5,7 @@
  */
 
 import { store } from '../../data/store';
+import type { Tile, Unit, City, UnitType } from '../../data/types';
 import { unit_type, tile_units, Order, UnitSSDataType } from '../../data/unit';
 import { indexToTile as index_to_tile, mapPosToTile as map_pos_to_tile, mapstep, clearGotoTiles as clear_goto_tiles } from '../../data/map';
 import { tileCity as tile_city, tileGetKnown as tile_get_known, TILE_UNKNOWN } from '../../data/tile';
@@ -40,7 +41,7 @@ const ORDER_FULL_MP = Order.FULL_MP;
 // Public API
 // ---------------------------------------------------------------------------
 
-export function order_wants_direction(order: number, act_id: number, ptile: any): boolean {
+export function order_wants_direction(order: number, act_id: number, ptile: Tile): boolean {
   const action = store.actions[act_id];
 
   if (order == S.goto_last_order && action == null) {
@@ -60,7 +61,7 @@ export function order_wants_direction(order: number, act_id: number, ptile: any)
         return false;
       }
       if (tile_city(ptile) != null
-        || (tile_units(ptile) as any[]).length != 0) {
+        || (tile_units(ptile) ?? []).length != 0) {
         return true;
       }
       return false;
@@ -69,9 +70,9 @@ export function order_wants_direction(order: number, act_id: number, ptile: any)
   }
 }
 
-export function do_unit_paradrop_to(punit: any, ptile: any): void {
+export function do_unit_paradrop_to(punit: Unit, ptile: Tile): void {
   let act_id: number;
-  let paradrop_action: any = null;
+  let paradrop_action: { id: number; result: number; [key: string]: unknown } | null = null;
   const FC_ACTION_COUNT = ACTION_COUNT;
 
   for (act_id = 0; act_id < FC_ACTION_COUNT; act_id++) {
@@ -98,10 +99,18 @@ export function do_unit_paradrop_to(punit: any, ptile: any): void {
   }
 }
 
-export function do_map_click(ptile: any, qtype: any, first_time_called: boolean) {
-  let punit: any;
-  let packet: any;
-  let pcity: any;
+export function do_map_click(ptile: Tile, qtype: number, first_time_called: boolean) {
+  let punit: Unit;
+  let packet: {
+    unit_id: number;
+    src_tile: number;
+    length: number;
+    repeat: boolean;
+    vigilant: boolean;
+    dest_tile: number;
+    orders: Record<string, number>[];
+  };
+  let pcity: City | null;
   if (ptile == null || client_is_observer()) return;
 
   if (S.current_focus.length > 0 && S.current_focus[0]['tile'] == ptile['index']) {
@@ -135,10 +144,11 @@ export function do_map_click(ptile: any, qtype: any, first_time_called: boolean)
           "length": goto_path['length'],
           "repeat": false,
           "vigilant": false,
-          "dest_tile": ptile['index']
+          "dest_tile": ptile['index'],
+          "orders": []
         };
 
-        const order: any = {
+        const order: Record<string, number> = {
           "order": ORDER_LAST,
           "activity": ACTIVITY_LAST,
           "target": 0,
@@ -147,7 +157,6 @@ export function do_map_click(ptile: any, qtype: any, first_time_called: boolean)
           "dir": -1
         };
 
-        packet['orders'] = [];
         for (let i = 0; i < goto_path['length']; i++) {
           if (goto_path['dir'][i] == -1) {
             order['order'] = ORDER_FULL_MP;
@@ -204,7 +213,7 @@ export function do_map_click(ptile: any, qtype: any, first_time_called: boolean)
           unit_move_sound_play(punit);
         } else if (!S.has_movesleft_warning_been_shown) {
           S.setHasMovesleftWarningBeenShown(true);
-          const ptype = unit_type(punit) as any;
+          const ptype = unit_type(punit);
           message_log.update({
             event: E_BAD_COMMAND,
             message: (ptype ? ptype['name'] : 'Unit') + " has no moves left. Press turn done for the next turn."
@@ -318,7 +327,7 @@ export function activate_goto() {
   activate_goto_last(ORDER_LAST, ACTION_COUNT);
 }
 
-export function activate_goto_last(last_order: any, last_action: any) {
+export function activate_goto_last(last_order: number, last_action: number) {
   S.setGotoActive(true);
   const canvasDiv = document.getElementById("canvas_div");
   if (canvasDiv) canvasDiv.style.cursor = "crosshair";
@@ -403,7 +412,7 @@ export function request_goto_path(unit_id: number, dst_x: number, dst_y: number)
 export function check_request_goto_path() {
   if (S.goto_active && S.current_focus.length > 0
     && S.prev_mouse_x == S.mouse_x && S.prev_mouse_y == S.mouse_y) {
-    let ptile: any;
+    let ptile: Tile | null;
     clear_goto_tiles();
     ptile = canvas_pos_to_tile(S.mouse_x, S.mouse_y);
     if (ptile != null) {
@@ -416,7 +425,7 @@ export function check_request_goto_path() {
   S.setPrevMouseY(S.mouse_y);
 }
 
-export function update_goto_path(goto_packet: any) {
+export function update_goto_path(goto_packet: Record<string, unknown> & { unit_id: number; dest: number; dir: number[]; turns: number }) {
   const punit = store.units[goto_packet['unit_id']];
   if (punit == null) return;
   const t0 = index_to_tile(punit['tile']);
@@ -448,13 +457,13 @@ export function update_goto_path(goto_packet: any) {
   update_mouse_cursor();
 }
 
-export function center_tile_mapcanvas(ptile: any) {
+export function center_tile_mapcanvas(ptile: Tile | null) {
   if (ptile == null) return;
   center_tile_mapcanvas_2d(ptile);
 }
 
 export function popit() {
-  let ptile: any;
+  let ptile: Tile | null;
 
   ptile = canvas_pos_to_tile(S.mouse_x, S.mouse_y);
 
@@ -463,7 +472,7 @@ export function popit() {
   popit_req(ptile);
 }
 
-export function popit_req(ptile: any) {
+export function popit_req(ptile: Tile | null) {
   if (ptile == null) return;
 
   if (tile_get_known(ptile) == TILE_UNKNOWN) {

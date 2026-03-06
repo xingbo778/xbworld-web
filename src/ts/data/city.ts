@@ -7,6 +7,7 @@
  */
 
 import type { City, Tile, Player, UnitType, Improvement } from './types';
+import type { BitVector } from '../utils/bitvector';
 import {
   FC_INFINITY,
   VUT_UTYPE,
@@ -286,35 +287,35 @@ export function generateProductionList(): ProductionItem[] {
 // ---------------------------------------------------------------------------
 
 /** Return whether given city can build given unit, ignoring obsolete. */
-export function canCityBuildUnitDirect(_pcity: any, _punittype: any): boolean {
+export function canCityBuildUnitDirect(_pcity: City, _punittype: UnitType): boolean {
   // TODO: implement
   return true;
 }
 
 /** Return whether given city can build given unit now. */
-export function canCityBuildUnitNow(pcity: any, punittypeId: number): boolean {
+export function canCityBuildUnitNow(pcity: City | null | undefined, punittypeId: number): boolean {
   return (
     pcity != null &&
     typeof pcity['can_build_unit'] !== 'undefined' &&
-    pcity['can_build_unit'].isSet(punittypeId)
+    (pcity['can_build_unit'] as BitVector).isSet(punittypeId)
   );
 }
 
 /** Return whether given city can build given improvement now. */
 export function canCityBuildImprovementNow(
-  pcity: any,
+  pcity: City | null | undefined,
   pimproveId: number,
 ): boolean {
   return (
     pcity != null &&
     typeof pcity['can_build_improvement'] !== 'undefined' &&
-    pcity['can_build_improvement'].isSet(pimproveId)
+    (pcity['can_build_improvement'] as BitVector).isSet(pimproveId)
   );
 }
 
 /** Return whether given city can build given item. */
 export function canCityBuildNow(
-  pcity: any,
+  pcity: City | null | undefined,
   kind: number | null,
   value: number | null,
 ): boolean {
@@ -328,18 +329,18 @@ export function canCityBuildNow(
 }
 
 /** Return TRUE iff the city has this building in it. */
-export function cityHasBuilding(pcity: any, improvementId: number): boolean {
+export function cityHasBuilding(pcity: City, improvementId: number): boolean {
   return (
     0 <= improvementId &&
     improvementId < (store.rulesControl as Record<string, number>).num_impr_types &&
     pcity['improvements'] &&
-    pcity['improvements'].isSet(improvementId)
+    (pcity['improvements'] as unknown as BitVector).isSet(improvementId)
   );
 }
 
 /** Return TRUE iff the city has this improvement (by name). */
 export function doesCityHaveImprovement(
-  pcity: any,
+  pcity: City | null | undefined,
   improvementName: string,
 ): boolean {
   if (pcity == null || pcity['improvements'] == null) return false;
@@ -347,7 +348,7 @@ export function doesCityHaveImprovement(
   for (let z = 0; z < (store.rulesControl as Record<string, number>).num_impr_types; z++) {
     if (
       pcity['improvements'] != null &&
-      pcity['improvements'].isSet(z) &&
+      (pcity['improvements'] as unknown as BitVector).isSet(z) &&
       store.improvements[z] != null &&
       store.improvements[z]['name'] === improvementName
     ) {
@@ -358,7 +359,7 @@ export function doesCityHaveImprovement(
 }
 
 /** Simplified check: can the city buy its current production? */
-export function cityCanBuy(pcity: any): boolean {
+export function cityCanBuy(pcity: City): boolean {
   const improvement = store.improvements[pcity['production_value']];
   return (
     !pcity['did_buy'] &&
@@ -372,8 +373,8 @@ export function cityCanBuy(pcity: any): boolean {
 // ---------------------------------------------------------------------------
 
 /** Create text describing city growth. */
-export function cityTurnsToGrowthText(pcity: any): string {
-  const turns = pcity['granary_turns'];
+export function cityTurnsToGrowthText(pcity: City): string {
+  const turns = pcity['granary_turns'] as number;
   if (turns === 0) {
     return 'blocked';
   } else if (turns > 1000000) {
@@ -412,8 +413,8 @@ export function dxyToCenterIndex(dx: number, dy: number, r: number): number {
 }
 
 /** Converts from coordinate offset from city center to index. */
-export function getCityDxyToIndex(dx: number, dy: number, pcity: any): number {
-  buildCityTileMap(pcity.city_radius_sq);
+export function getCityDxyToIndex(dx: number, dy: number, pcity: City): number {
+  buildCityTileMap(pcity['city_radius_sq'] as number);
   const cityTileMapIndex = dxyToCenterIndex(dx, dy, cityTileMap!.radius);
   const ctile = cityTile(pcity)!;
   return getCityTileMapForPos(ctile.x, ctile.y)[cityTileMapIndex];

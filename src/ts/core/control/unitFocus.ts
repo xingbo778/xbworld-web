@@ -102,7 +102,7 @@ export function unit_is_in_focus(cunit: Unit): boolean {
   return false;
 }
 
-export function get_units_in_focus(): any[] {
+export function get_units_in_focus(): Unit[] {
   return S.current_focus;
 }
 
@@ -231,13 +231,13 @@ export function advance_unit_focus(): void {
   }
 }
 
-export function update_unit_order_commands(): { [key: string]: any } {
+export function update_unit_order_commands(): { [key: string]: { name: string } } {
   let i: number;
-  let punit: any;
-  let ptype: any;
+  let punit: Unit;
+  let ptype: UnitType | undefined;
   let pcity: City | null;
   let ptile: Tile | undefined;
-  let unit_actions: { [key: string]: any } = {};
+  let unit_actions: { [key: string]: { name: string } } = {};
   const funits = get_units_in_focus();
   for (i = 0; i < funits.length; i++) {
     punit = funits[i];
@@ -254,7 +254,7 @@ export function update_unit_order_commands(): { [key: string]: any } {
     punit = funits[i];
     ptype = unit_type(punit);
     ptile = index_to_tile(punit['tile']);
-    if (ptile == null) continue;
+    if (ptile == null || ptype == null) continue;
     pcity = tile_city(ptile);
 
     if (utype_can_do_action(ptype, FC_ACTION_FOUND_CITY)
@@ -284,7 +284,7 @@ export function update_unit_order_commands(): { [key: string]: any } {
     punit = funits[i];
     ptype = unit_type(punit);
     ptile = index_to_tile(punit['tile']);
-    if (ptile == null) continue;
+    if (ptile == null || ptype == null) continue;
     pcity = tile_city(ptile);
 
     if (ptype['name'] == "Settlers" || ptype['name'] == "Workers"
@@ -443,7 +443,7 @@ export function update_unit_order_commands(): { [key: string]: any } {
       unit_actions["airlift"] = { name: "Airlift (Shift-L)" };
     }
 
-    if (pcity != null && ptype != null && store.unitTypes[ptype['obsoleted_by']] != null && can_player_build_unit_direct(clientPlaying(), store.unitTypes[ptype['obsoleted_by']])) {
+    if (pcity != null && ptype != null && store.unitTypes[ptype['obsoleted_by'] as number] != null && can_player_build_unit_direct(clientPlaying(), store.unitTypes[ptype['obsoleted_by'] as number])) {
       unit_actions["upgrade"] = { name: "Upgrade unit (U)" };
     }
     if (ptype != null && ptype['name'] != "Explorer") {
@@ -463,7 +463,7 @@ export function update_unit_order_commands(): { [key: string]: any } {
 
     // Unload unit from transport
     const units_on_tile = tile_units_func(ptile) || [];
-    if (ptype['transport_capacity'] > 0 && units_on_tile.length >= 2) {
+    if ((ptype['transport_capacity'] as number) > 0 && units_on_tile.length >= 2) {
       for (let r = 0; r < units_on_tile.length; r++) {
         const tunit = units_on_tile[r];
         if (tunit['transported']) {
@@ -524,12 +524,12 @@ export function init_game_unit_panel(): void {
   if (S.game_unit_panel_state === 'minimized') unitPanelDialog.minimize();
 }
 
-export function find_best_focus_candidate(accept_current: boolean): any {
-  let punit: any;
+export function find_best_focus_candidate(accept_current: boolean): Unit | null {
+  let punit: Unit;
   let i: number;
   if (client_is_observer()) return null;
 
-  const sorted_units: any[] = [];
+  const sorted_units: Unit[] = [];
   for (const unit_id_str in store.units) {
     const unit_id = parseInt(unit_id_str);
     punit = store.units[unit_id];
@@ -566,7 +566,7 @@ export function find_best_focus_candidate(accept_current: boolean): any {
   return null;
 }
 
-export function unit_distance_compare(unit_a: any, unit_b: any): number {
+export function unit_distance_compare(unit_a: Unit, unit_b: Unit): number {
   if (unit_a == null || unit_b == null) return 0;
   const ptile_a = index_to_tile(unit_a['tile']);
   const ptile_b = index_to_tile(unit_b['tile']);
@@ -641,7 +641,7 @@ export function find_a_focus_unit_tile_to_center_on(): Tile | undefined | null {
   return index_to_tile(funit['tile']);
 }
 
-export function find_visible_unit(ptile: Tile | null): any {
+export function find_visible_unit(ptile: Tile | null): Unit | null {
   let i: number;
 
   if (ptile == null || unit_list_size(tile_units_func(ptile)) == 0) {
@@ -675,7 +675,7 @@ export function find_visible_unit(ptile: Tile | null): any {
   return (tile_units_func(ptile) || [])[0];
 }
 
-export function get_drawable_unit(ptile: Tile | null, citymode: any): any {
+export function get_drawable_unit(ptile: Tile | null, citymode: boolean): Unit | null {
   const punit = find_visible_unit(ptile);
 
   if (punit == null) return null;
@@ -690,7 +690,7 @@ export function get_drawable_unit(ptile: Tile | null, citymode: any): any {
 export function update_active_units_dialog(): void {
   let unit_info_html = "";
   let ptile = null;
-  let punits: any[] = [];
+  let punits: Unit[] = [];
   let width = 0;
 
   if (client_is_observer() || !S.unitpanel_active) return;
@@ -726,7 +726,7 @@ export function update_active_units_dialog(): void {
 
   if (S.current_focus.length == 1) {
     const aunit = S.current_focus[0];
-    const ptype = unit_type(aunit) as any;
+    const ptype = unit_type(aunit);
     unit_info_html += "<div id='active_unit_info' title='" + (ptype ? ptype['helptext'] : '') + "'>";
 
     if (clientPlaying() != null && S.current_focus[0]['owner'] != clientPlaying().playerno) {
@@ -748,7 +748,7 @@ export function update_active_units_dialog(): void {
     if (aunit['veteran'] > 0) {
       unit_info_html += " <span>Veteran: " + aunit['veteran'] + "</span>";
     }
-    if (ptype && ptype['transport_capacity'] > 0) {
+    if (ptype && (ptype['transport_capacity'] as number) > 0) {
       unit_info_html += " <span>Transport: " + ptype['transport_capacity'] + "</span>";
     }
 

@@ -55,9 +55,9 @@ export function show_city_governor_tab(): boolean | void {
     return false;
   }
   const cmaIds = ['cma_food', 'cma_shield', 'cma_trade', 'cma_gold', 'cma_luxury', 'cma_science'];
-  if (typeof active_city['cm_parameter'] !== 'undefined') {
+  if (typeof (active_city as any)['cm_parameter'] !== 'undefined') {
     for (let i = 0; i < cmaIds.length; i++) {
-      setCheckedById(cmaIds[i], active_city['cm_parameter']['factor'][i] >= 5);
+      setCheckedById(cmaIds[i], (active_city as any)['cm_parameter']['factor'][i] >= 5);
     }
   } else {
     for (const id of cmaIds) setCheckedById(id, false);
@@ -96,5 +96,5 @@ export function request_new_cma(city_id: any): void {
   Called when user clicks button to Enable/Disable governor.
 **************************************************************************/
 export function button_pushed_toggle_cma(): void {
-  request_new_cma(active_city['id']);
+  request_new_cma(active_city!['id']);
 }

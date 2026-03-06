@@ -1,4 +1,5 @@
 import { EventAggregator } from '../utils/EventAggregator';
+import type { City } from '../data/types';
 
 export let citydlg_map_width: number = 384;      // default values for most rulesets
 export let citydlg_map_height: number = 192;     // default value for most rulesets
@@ -6,13 +7,13 @@ export let citydlg_map_height: number = 192;     // default value for most rules
 export const tileset_width: number = 96;         // amplio2 based tileset
 export const tileset_height: number = 48;
 
-export let cities: any = {};
-export let city_rules: any = {};
-export let city_trade_routes: any = {};
+export let cities: Record<number, City> = {};
+export let city_rules: Record<number, any> = {};
+export let city_trade_routes: Record<number, Record<number, any>> = {};
 
-export let goods: any = {};
+export let goods: Record<number, any> = {};
 
-export let active_city: any = null;
+export let active_city: City | null = null;
 export let worklist_dialog_active: boolean = false;
 export let production_selection: any[] = [];
 export let worklist_selection: any[] = [];
@@ -47,7 +48,7 @@ function _update_city_screen_proxy(): void {
   if (_update_city_screen_fn) _update_city_screen_fn();
 }
 
-export const city_screen_updater: any = new EventAggregator(_update_city_screen_proxy, 250,
+export const city_screen_updater: EventAggregator = new EventAggregator(_update_city_screen_proxy, 250,
                                               EventAggregator.DP_NONE,
                                               250, 3, 250);
 
@@ -59,7 +60,7 @@ export let opt_show_unreachable_items: boolean = false;
 // Setter functions for mutable state that other modules need to modify
 export function set_citydlg_map_width(v: number): void { citydlg_map_width = v; }
 export function set_citydlg_map_height(v: number): void { citydlg_map_height = v; }
-export function set_active_city(v: any): void { active_city = v; }
+export function set_active_city(v: City | null): void { active_city = v; }
 export function set_worklist_dialog_active(v: boolean): void { worklist_dialog_active = v; }
 export function set_production_selection(v: any[]): void { production_selection = v; }
 export function set_worklist_selection(v: any[]): void { worklist_selection = v; }

@@ -365,7 +365,7 @@ export function show_city_dialog(pcity: any): void {
       const options: any = pcity['city_options'];
       const packet: any = {
         "pid"     : packet_city_options_req,
-        "city_id" : active_city['id'],
+        "city_id" : active_city!['id'],
         "options" : options.raw
       };
       if (newDisband.checked) {
@@ -477,13 +477,13 @@ export function city_dialog_close_handler(): void {
 
 export function do_city_map_click(ptile: any): void {
   let packet: any = null;
-  if (ptile['worked'] == active_city['id']) {
+  if (ptile['worked'] == active_city!['id']) {
     packet = {"pid"     : packet_city_make_specialist,
-              "city_id" : active_city['id'],
+              "city_id" : active_city!['id'],
               "tile_id" : ptile['index']};
   } else {
     packet = {"pid"     : packet_city_make_worker,
-              "city_id" : active_city['id'],
+              "city_id" : active_city!['id'],
               "tile_id" : ptile['index']};
   }
   sendRequest(JSON.stringify(packet));
@@ -543,14 +543,14 @@ export function next_city(): void {
 
   city_screen_updater.fireNow();
 
-  const currentRow = byId('cities_list_' + active_city['id']);
+  const currentRow = byId('cities_list_' + active_city!['id']);
   let nextRow = currentRow?.nextElementSibling as HTMLElement | null;
   if (!nextRow) {
     // Go to the beginning
     nextRow = document.querySelector('#city_table tbody tr') as HTMLElement | null;
   }
   if (nextRow?.id) {
-    show_city_dialog(cities[nextRow.id.substr(12)]);
+    show_city_dialog(cities[Number(nextRow.id.substr(12))]);
   }
 }
 
@@ -559,7 +559,7 @@ export function previous_city(): void {
 
   city_screen_updater.fireNow();
 
-  const currentRow = byId('cities_list_' + active_city['id']);
+  const currentRow = byId('cities_list_' + active_city!['id']);
   let prevRow = currentRow?.previousElementSibling as HTMLElement | null;
   if (!prevRow) {
     // Go to the end
@@ -567,7 +567,7 @@ export function previous_city(): void {
     prevRow = rows.length > 0 ? rows[rows.length - 1] as HTMLElement : null;
   }
   if (prevRow?.id) {
-    show_city_dialog(cities[prevRow.id.substr(12)]);
+    show_city_dialog(cities[Number(prevRow.id.substr(12))]);
   }
 }
 
@@ -576,12 +576,12 @@ export function city_sell_improvement(improvement_id: number): void {
   if ('confirm' in window) {
     const agree: boolean = confirm("Are you sure you want to sell this building?");
     if (agree) {
-      const packet: any = {"pid" : packet_city_sell, "city_id" : active_city['id'],
+      const packet: any = {"pid" : packet_city_sell, "city_id" : active_city!['id'],
                   "build_id": improvement_id};
       sendRequest(JSON.stringify(packet));
     }
   } else {
-    const packet: any = {"pid" : packet_city_sell, "city_id" : active_city['id'],
+    const packet: any = {"pid" : packet_city_sell, "city_id" : active_city!['id'],
                 "build_id": improvement_id};
     sendRequest(JSON.stringify(packet));
   }
@@ -625,7 +625,7 @@ export function rename_city(): void {
       swal("City name is invalid");
       return;
     }
-    const packet: any = {"pid" : packet_city_rename, "name" : encodeURIComponent(name), "city_id" : active_city['id'] };
+    const packet: any = {"pid" : packet_city_rename, "name" : encodeURIComponent(name), "city_id" : active_city!['id'] };
     sendRequest(JSON.stringify(packet));
     renameDlg.remove();
   }

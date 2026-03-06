@@ -481,9 +481,9 @@ export function fill_sprite_array(layer: number, ptile: any, pedge: any, pcorner
         const d = map_distance_vector(ctile, ptile);
         const idx = get_city_dxy_to_index(d[0], d[1], active_city);
 
-        let food_output = active_city['output_food'][idx];
-        let shield_output = active_city['output_shield'][idx];
-        let trade_output = active_city['output_trade'][idx];
+        let food_output = (active_city as any)['output_food'][idx];
+        let shield_output = (active_city as any)['output_shield'][idx];
+        let trade_output = (active_city as any)['output_trade'][idx];
 
         /* The ruleset may use large values scaled down to get greater
          * granularity. */

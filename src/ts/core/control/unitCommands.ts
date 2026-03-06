@@ -5,6 +5,7 @@
  */
 
 import { store } from '../../data/store';
+import type { Unit, UnitType, Tile } from '../../data/types';
 import { unit_type, tile_units, get_what_can_unit_pillage_from, Order, UnitSSDataType, ServerSideAgent } from '../../data/unit';
 import { indexToTile as index_to_tile, mapstep } from '../../data/map';
 import { tileCity as tile_city, tileHasExtra as tile_has_extra, tileHasTerritoryClaimingExtra as tile_has_territory_claiming_extra } from '../../data/tile';
@@ -76,8 +77,8 @@ export function key_unit_load() {
     for (let r = 0; r < units_on_tile.length; r++) {
       const tunit = units_on_tile[r];
       if (tunit['id'] == punit['id']) continue;
-      const ntype = unit_type(tunit) as any;
-      if (ntype != null && ntype['transport_capacity'] > 0) {
+      const ntype = unit_type(tunit);
+      if (ntype != null && (ntype['transport_capacity'] as number) > 0) {
         has_transport_unit = true;
         transporter_unit_id = tunit['id'];
       }
@@ -155,7 +156,7 @@ export function key_unit_noorders() {
   advance_unit_focus();
 }
 
-function set_focus_units_activity(activity: any, target: any = EXTRA_NONE) {
+function set_focus_units_activity(activity: number, target: number = EXTRA_NONE) {
   if (observerGuard()) return;
   for (const punit of get_units_in_focus()) {
     request_new_unit_activity(punit, activity, target);
@@ -334,7 +335,7 @@ export function key_unit_action_select() {
   }
 }
 
-export function request_unit_act_sel_vs(ptile: any) {
+export function request_unit_act_sel_vs(ptile: Tile) {
   const funits = get_units_in_focus();
 
   for (let i = 0; i < funits.length; i++) {
@@ -362,7 +363,7 @@ export function key_unit_auto_work() {
   setTimeout(update_unit_focus, 700);
 }
 
-export function request_unit_cancel_orders(punit: any) {
+export function request_unit_cancel_orders(punit: Unit) {
   if (punit != null && (punit.ssa_controller != SSA_NONE
     || punit.has_orders)) {
     punit.ssa_controller = SSA_NONE;
@@ -379,19 +380,19 @@ export function request_unit_cancel_orders(punit: any) {
   }
 }
 
-export function request_new_unit_activity(punit: any, activity: any, target: any) {
+export function request_new_unit_activity(punit: Unit, activity: number, target: number) {
   request_unit_cancel_orders(punit);
   action_decision_clear_want(punit['id']);
   sendUnitChangeActivity(punit['id'], activity, target);
 }
 
-export function request_unit_ssa_set(punit: any, agent: any) {
+export function request_unit_ssa_set(punit: Unit, agent: ServerSideAgent) {
   if (punit != null) {
     sendUnitServerSideAgentSet(punit['id'], agent);
   }
 }
 
-export function request_unit_autoworkers(punit: any) {
+export function request_unit_autoworkers(punit: Unit) {
   if (punit != null) {
     request_unit_cancel_orders(punit);
     action_decision_clear_want(punit['id']);
@@ -413,7 +414,7 @@ export function request_unit_build_city() {
         return;
       }
 
-      const ptype = unit_type(punit) as any;
+      const ptype = unit_type(punit);
       if (ptype != null && (ptype['name'] == "Settlers" || ptype['name'] == "Engineers")) {
         const target_city = tile_city(index_to_tile(punit['tile']));
 
@@ -427,7 +428,7 @@ export function request_unit_build_city() {
   }
 }
 
-export function request_unit_do_action(action_id: any, actor_id: any, target_id: any, sub_tgt_id: any = 0,
+export function request_unit_do_action(action_id: number, actor_id: number, target_id: number, sub_tgt_id: number = 0,
   name: string = "") {
   sendUnitDoAction(action_id, actor_id, target_id, sub_tgt_id || 0, name || "");
   action_decision_clear_want(actor_id);
@@ -479,7 +480,7 @@ export function key_unit_move(dir: number) {
       return;
     }
 
-    const order: any = {
+    const order: { order: number; dir: number; activity: number; target: number; sub_target: number; action: number } = {
       "order": ORDER_ACTION_MOVE,
       "dir": dir,
       "activity": ACTIVITY_LAST,
@@ -490,7 +491,7 @@ export function key_unit_move(dir: number) {
 
     if (punit['transported']
       && clientPlaying() != null
-      && newtile['units'].every(function (ounit: any) {
+      && newtile['units'].every(function (ounit: Unit) {
         return ounit['owner'] == clientPlaying()?.playerno;
       })
       && (tile_city(newtile) == null

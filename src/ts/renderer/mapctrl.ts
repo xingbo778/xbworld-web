@@ -72,11 +72,10 @@ export function mapctrl_init_2d(): void {
 /****************************************************************************
   Triggered when the mouse button is clicked UP on the mapview canvas.
 ****************************************************************************/
-export function mapview_mouse_click(e: any): void {
+export function mapview_mouse_click(e: MouseEvent): void {
   let rightclick = false;
   let middleclick = false;
 
-  if (!e) e = window.event;
   if (e.which) {
     rightclick = (e.which == 3);
     middleclick = (e.which == 2);
@@ -112,11 +111,10 @@ export function mapview_mouse_click(e: any): void {
 /****************************************************************************
   Triggered when the mouse button is clicked DOWN on the mapview canvas.
 ****************************************************************************/
-export function mapview_mouse_down(e: any): boolean | void {
+export function mapview_mouse_down(e: MouseEvent): boolean | void {
   let rightclick = false;
   let middleclick = false;
 
-  if (!e) e = window.event;
   if (e.which) {
     rightclick = (e.which == 3);
     middleclick = (e.which == 2);
@@ -154,7 +152,7 @@ export function mapview_mouse_down(e: any): boolean | void {
   This function is triggered when beginning a touch event on a touch device,
   eg. finger down on screen.
 ****************************************************************************/
-export function mapview_touch_start(e: any): void {
+export function mapview_touch_start(e: TouchEvent): void {
   e.preventDefault();
 
   const canvasEl = document.getElementById('canvas')!;
@@ -169,14 +167,14 @@ export function mapview_touch_start(e: any): void {
   This function is triggered when ending a touch event on a touch device,
   eg finger up from screen.
 ****************************************************************************/
-export function mapview_touch_end(e: any): void {
+export function mapview_touch_end(e: TouchEvent): void {
   action_button_pressed(touch_start_x, touch_start_y, SELECT_POPUP);
 }
 
 /****************************************************************************
   This function is triggered on a touch move event on a touch device.
 ****************************************************************************/
-export function mapview_touch_move(e: any): void {
+export function mapview_touch_move(e: TouchEvent): void {
   const canvasEl = document.getElementById('canvas')!;
   const rect = canvasEl.getBoundingClientRect();
   setMouseX(e.touches[0].pageX - (rect.left + window.scrollX));
@@ -217,9 +215,8 @@ export function mapview_touch_move(e: any): void {
 /****************************************************************************
   This function is triggered when the mouse is clicked on the city canvas.
 ****************************************************************************/
-export function city_mapview_mouse_click(e: any): void {
+export function city_mapview_mouse_click(e: MouseEvent): void {
   let rightclick = false;
-  if (!e) e = window.event;
   if (e.which) {
     rightclick = (e.which == 3);
   } else if (e.button) {
@@ -236,7 +233,7 @@ export function city_mapview_mouse_click(e: any): void {
   left-click) is pressed. For more sophisticated user control use (or
   write) a different xxx_button_pressed function.
 **************************************************************************/
-export function action_button_pressed(canvas_x: number, canvas_y: number, qtype: any): void {
+export function action_button_pressed(canvas_x: number, canvas_y: number, qtype: number): void {
   const ptile = canvas_pos_to_tile(canvas_x, canvas_y);
 
   if (can_client_change_view() && ptile != null) {
