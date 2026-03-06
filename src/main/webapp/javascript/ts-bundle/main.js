@@ -4682,11 +4682,11 @@ function loadWikiDocs() {
 const freeciv_wiki_docs = new Proxy({}, {
   get: (_target, prop) => (window.freeciv_wiki_docs || {})[prop]
 });
-function byId$2(id) {
+function byId$3(id) {
   return document.getElementById(id);
 }
-function setHtml$2(id, html) {
-  const el = byId$2(id);
+function setHtml$3(id, html) {
+  const el = byId$3(id);
   if (el) el.innerHTML = html;
 }
 const techs = {};
@@ -4714,7 +4714,7 @@ const bulbs_output_updater = new EventAggregator(
 );
 function init_tech_screen() {
   if (isSmallScreen()) tech_canvas_text_font = "20px Arial";
-  const techEl = byId$2("technologies");
+  const techEl = byId$3("technologies");
   if (techEl) {
     techEl.style.width = window.innerWidth - 20 + "px";
     techEl.style.height = window.innerHeight - techEl.getBoundingClientRect().top - 15 + "px";
@@ -4748,11 +4748,11 @@ function init_tech_screen() {
     if (tech_canvas_ctx) {
       tech_canvas_ctx.scale(0.6, 0.6);
     }
-    const trt = byId$2("tech_result_text");
+    const trt = byId$3("tech_result_text");
     if (trt) trt.style.fontSize = "85%";
-    const tch = byId$2("tech_color_help");
+    const tch = byId$3("tech_color_help");
     if (tch) tch.style.fontSize = "65%";
-    const tpb = byId$2("tech_progress_box");
+    const tpb = byId$3("tech_progress_box");
     if (tpb) tpb.style.paddingLeft = "10px";
   }
   is_tech_tree_init = true;
@@ -4881,17 +4881,17 @@ function update_tech_screen() {
   if (techs[clientPlaying()["tech_goal"]] != null) {
     research_goal_text = research_goal_text + "<br>Research Goal: " + techs[clientPlaying()["tech_goal"]]["name"];
   }
-  setHtml$2("tech_goal_box", research_goal_text);
-  setHtml$2("tech_progress_text", "Research progress: " + clientPlaying()["bulbs_researched"] + " / " + clientPlaying()["researching_cost"]);
+  setHtml$3("tech_goal_box", research_goal_text);
+  setHtml$3("tech_progress_text", "Research progress: " + clientPlaying()["bulbs_researched"] + " / " + clientPlaying()["researching_cost"]);
   const pct_progress = 100 * (clientPlaying()["bulbs_researched"] / clientPlaying()["researching_cost"]);
-  const progressFg = byId$2("progress_fg");
+  const progressFg = byId$3("progress_fg");
   if (progressFg) progressFg.style.width = pct_progress + "%";
   if (clicked_tech_id != null) {
-    setHtml$2("tech_result_text", "<span id='tech_advance_helptext'>" + get_advances_text(clicked_tech_id) + "</span>");
+    setHtml$3("tech_result_text", "<span id='tech_advance_helptext'>" + get_advances_text(clicked_tech_id) + "</span>");
   } else if (techs[clientPlaying()["researching"]] != null) {
-    setHtml$2("tech_result_text", "<span id='tech_advance_helptext'>" + get_advances_text(clientPlaying()["researching"]) + "</span>");
+    setHtml$3("tech_result_text", "<span id='tech_advance_helptext'>" + get_advances_text(clientPlaying()["researching"]) + "</span>");
   }
-  const techTabItem = byId$2("tech_tab_item");
+  const techTabItem = byId$3("tech_tab_item");
   if (techTabItem) techTabItem.style.color = "#000000";
   maxleft = maxleft - 280;
   if (maxleft < 0) maxleft = 0;
@@ -4916,12 +4916,12 @@ function get_advances_text(tech_id) {
   ) + ".";
 }
 function scroll_tech_tree() {
-  const el = byId$2("technologies");
+  const el = byId$3("technologies");
   if (el) el.scrollLeft = maxleft;
 }
 function send_player_research(tech_id) {
   sendPlayerResearch(tech_id);
-  byId$2("tech_dialog")?.remove();
+  byId$3("tech_dialog")?.remove();
 }
 function send_player_tech_goal(tech_id) {
   sendPlayerTechGoal(tech_id);
@@ -4939,7 +4939,7 @@ function tech_mapview_mouse_click(e2) {
     rightclick = false;
   }
   if (rightclick) {
-    const techEl = byId$2("technologies");
+    const techEl = byId$3("technologies");
     if (techEl) {
       if (mouse_x > window.innerWidth / 2) {
         techEl.scrollLeft += 150;
@@ -4950,7 +4950,7 @@ function tech_mapview_mouse_click(e2) {
     return;
   }
   if (tech_canvas != null) {
-    const techEl = byId$2("technologies");
+    const techEl = byId$3("technologies");
     const rect = techEl.getBoundingClientRect();
     const tech_mouse_x = mouse_x - rect.left + techEl.scrollLeft;
     const tech_mouse_y = mouse_y - rect.top + techEl.scrollTop;
@@ -4999,7 +4999,7 @@ function queue_tech_gained_dialog(tech_gained_id) {
 }
 function show_tech_gained_dialog(tech_gained_id) {
   if (clientIsObserver() || C_S_RUNNING != clientState()) return;
-  const tti = byId$2("tech_tab_item");
+  const tti = byId$3("tech_tab_item");
   if (tti) tti.style.color = "#aa0000";
   const pplayer = clientPlaying();
   const tech = techs[tech_gained_id];
@@ -5021,7 +5021,7 @@ function show_tech_gained_dialog(tech_gained_id) {
     if (html) message += html;
   }
   message += "</div>";
-  byId$2("tech_dialog")?.remove();
+  byId$3("tech_dialog")?.remove();
   const dlg = document.createElement("div");
   dlg.id = "tech_dialog";
   dlg.style.cssText = "position:fixed;z-index:5000;background:#222;border:1px solid #555;padding:16px;top:10%;left:50%;transform:translateX(-50%);width:" + (isSmallScreen() ? "90%" : "60%") + ";max-height:80vh;overflow-y:auto;color:#fff;";
@@ -5038,7 +5038,7 @@ function show_tech_gained_dialog(tech_gained_id) {
   closeBtn.textContent = "Close";
   closeBtn.addEventListener("click", function() {
     dlg.remove();
-    byId$2("game_text_input")?.blur();
+    byId$3("game_text_input")?.blur();
   });
   const treeBtn = document.createElement("button");
   treeBtn.textContent = "Show Technology Tree";
@@ -5050,12 +5050,12 @@ function show_tech_gained_dialog(tech_gained_id) {
   btnContainer.appendChild(closeBtn);
   btnContainer.appendChild(treeBtn);
   dlg.appendChild(btnContainer);
-  byId$2("game_page")?.appendChild(dlg);
-  byId$2("game_text_input")?.blur();
+  byId$3("game_page")?.appendChild(dlg);
+  byId$3("game_text_input")?.blur();
 }
 function show_tech_info_dialog(tech_name, unit_type_id, improvement_id) {
   loadWikiDocs();
-  const tti = byId$2("tech_tab_item");
+  const tti = byId$3("tech_tab_item");
   if (tti) tti.style.color = "#aa0000";
   let message = "";
   if (unit_type_id != null) {
@@ -5070,7 +5070,7 @@ function show_tech_info_dialog(tech_name, unit_type_id, improvement_id) {
     }
     message += freeciv_wiki_docs[tech_name]["summary"];
   }
-  byId$2("wiki_dialog")?.remove();
+  byId$3("wiki_dialog")?.remove();
   const dlg = document.createElement("div");
   dlg.id = "wiki_dialog";
   dlg.style.cssText = "position:fixed;z-index:5000;background:#222;border:1px solid #555;padding:16px;top:10%;left:50%;transform:translateX(-50%);width:" + (isSmallScreen() ? "95%" : "70%") + ";height:" + (window.innerHeight - 60) + "px;overflow-y:auto;color:#fff;";
@@ -5088,13 +5088,13 @@ function show_tech_info_dialog(tech_name, unit_type_id, improvement_id) {
     dlg.remove();
   });
   dlg.appendChild(okBtn);
-  byId$2("game_page")?.appendChild(dlg);
-  byId$2("game_text_input")?.blur();
+  byId$3("game_page")?.appendChild(dlg);
+  byId$3("game_text_input")?.blur();
 }
 function update_tech_dialog_cursor() {
   if (!tech_canvas) return;
   tech_canvas.style.cursor = "default";
-  const techEl = byId$2("technologies");
+  const techEl = byId$3("technologies");
   const rect = techEl.getBoundingClientRect();
   const tech_mouse_x = mouse_x - rect.left + techEl.scrollLeft;
   const tech_mouse_y = mouse_y - rect.top + techEl.scrollTop;
@@ -5115,7 +5115,7 @@ function update_tech_dialog_cursor() {
       } else {
         tech_canvas.style.cursor = "not-allowed";
       }
-      setHtml$2("tech_result_text", "<span id='tech_advance_helptext'>" + get_advances_text(ptech["id"]) + "</span>");
+      setHtml$3("tech_result_text", "<span id='tech_advance_helptext'>" + get_advances_text(ptech["id"]) + "</span>");
     }
   }
 }
@@ -9604,19 +9604,19 @@ function set_city_prod_clicks(v2) {
 function set_opt_show_unreachable_items(v2) {
   opt_show_unreachable_items = v2;
 }
-function byId$1(id) {
+function byId$2(id) {
   return document.getElementById(id);
 }
-function setHtml$1(id, html) {
-  const el = byId$1(id);
+function setHtml$2(id, html) {
+  const el = byId$2(id);
   if (el) el.innerHTML = html;
 }
 function setHeight(id, px) {
-  const el = byId$1(id);
+  const el = byId$2(id);
   if (el) el.style.height = px + "px";
 }
 function setBtnEnabled(id, enabled) {
-  const el = byId$1(id);
+  const el = byId$2(id);
   if (el) el.disabled = !enabled;
 }
 function get_unit_type_image_sprite$1(unit_type2) {
@@ -9671,9 +9671,9 @@ function city_worklist_dialog(pcity) {
     worklist_html += "<tr class='prod_choice_list_item" + (canCityBuildNow(pcity, universal["kind"], universal["value"]) ? "" : " cannot_build_item") + "' data-wlitem='" + j2 + `'  title="` + universal["helptext"] + `"><td><div class='production_list_item_sub' style=' background: transparent url(` + sprite["image-src"] + ");background-position:-" + sprite["tileset-x"] + "px -" + sprite["tileset-y"] + "px;  width: " + sprite["width"] + "px;height: " + sprite["height"] + "px;'></div></td><td class='prod_choice_name'>" + universal["name"] + "</td><td class='prod_choice_cost'>" + universal["build_cost"] + "</td></tr>";
   }
   worklist_html += "</table>";
-  setHtml$1("city_current_worklist", worklist_html);
+  setHtml$2("city_current_worklist", worklist_html);
   populate_worklist_production_choices(pcity);
-  const showUnreachable = byId$1("show_unreachable_items");
+  const showUnreachable = byId$2("show_unreachable_items");
   if (showUnreachable) {
     const newEl = showUnreachable.cloneNode(true);
     showUnreachable.parentNode?.replaceChild(newEl, showUnreachable);
@@ -9699,15 +9699,15 @@ function city_worklist_dialog(pcity) {
   if (turns_to_complete != FC_INFINITY) {
     headline += ", turns: " + turns_to_complete;
   }
-  setHtml$1("worklist_dialog_headline", headline + "</div>");
+  setHtml$2("worklist_dialog_headline", headline + "</div>");
   if (isTouchDevice()) {
-    setHtml$1("prod_buttons", "<x-small>Click to change production, next clicks will add to worklist on mobile.</x-small>");
+    setHtml$2("prod_buttons", "<x-small>Click to change production, next clicks will add to worklist on mobile.</x-small>");
   }
-  const tabEl = byId$1("city_production_tab");
+  const tabEl = byId$2("city_production_tab");
   const tab_h = tabEl ? tabEl.offsetHeight : 400;
   setHeight("city_current_worklist", tab_h - 150);
   setHeight("worklist_production_choices", tab_h - 121);
-  const wlControl = byId$1("worklist_control");
+  const wlControl = byId$2("worklist_control");
   if (wlControl) {
     if (tab_h > 250) {
       wlControl.style.height = tab_h - 148 + "px";
@@ -9716,7 +9716,7 @@ function city_worklist_dialog(pcity) {
       wlControl.style.height = tab_h - 77 + "px";
     }
   }
-  const worklistContainer = byId$1("city_current_worklist");
+  const worklistContainer = byId$2("city_current_worklist");
   const worklist_items = worklistContainer ? Array.from(worklistContainer.querySelectorAll(".prod_choice_list_item")) : [];
   const max_selection = Math.min(MAX_LEN_WORKLIST, worklist_items.length);
   for (let k2 = 0; k2 < worklist_selection.length; k2++) {
@@ -9772,8 +9772,8 @@ function populate_worklist_production_choices(pcity) {
     }
   }
   production_html += "</table>";
-  setHtml$1("worklist_production_choices", production_html);
-  const choicesContainer = byId$1("worklist_production_choices");
+  setHtml$2("worklist_production_choices", production_html);
+  const choicesContainer = byId$2("worklist_production_choices");
   const kindValueItems = choicesContainer ? Array.from(choicesContainer.querySelectorAll(".kindvalue_item")) : [];
   if (!isTouchDevice()) {
     kindValueItems.forEach((item) => {
@@ -10071,6 +10071,13 @@ function city_worklist_task_remove() {
   set_worklist_selection([]);
   send_city_worklist(active_city["id"]);
 }
+function byId$1(id) {
+  return document.getElementById(id);
+}
+function setHtml$1(id, html) {
+  const el = byId$1(id);
+  if (el) el.innerHTML = html;
+}
 set_city_screen_updater_fn(update_city_screen);
 function show_city_dialog_by_id(pcity_id) {
   show_city_dialog(cities$1[pcity_id]);
@@ -10087,79 +10094,59 @@ function show_city_dialog(pcity) {
   if (active_city != null) close_city_dialog();
   set_active_city(pcity);
   if (pcity == null) return;
-  $("#city_dialog").remove();
-  $("<div id='city_dialog'></div>").appendTo("div#game_page");
+  byId$1("city_dialog")?.remove();
+  const dlg = document.createElement("div");
+  dlg.id = "city_dialog";
+  const dlgWidth = isSmallScreen() ? "98%" : "80%";
+  const dlgHeight = isSmallScreen() ? window.innerHeight + 10 : window.innerHeight - 80;
+  dlg.style.cssText = "position:fixed;z-index:4000;background:#222;border:1px solid #555;padding:0;left:50%;top:50%;transform:translate(-50%,-50%);width:" + dlgWidth + ";height:" + dlgHeight + "px;overflow:auto;color:#fff;";
+  document.getElementById("game_page")?.appendChild(dlg);
   const city_data = {};
-  $("#city_dialog").html(window.Handlebars.templates["city"](city_data));
-  $("#city_canvas").click(city_mapview_mouse_click);
-  let dialog_buttons = {};
-  if (!isSmallScreen()) {
-    dialog_buttons = $.extend(
-      dialog_buttons,
-      {
-        "Previous city": function() {
-          previous_city();
-        },
-        "Next city (N)": function() {
-          next_city();
-        },
-        "Buy (B)": function() {
-          request_city_buy();
-        },
-        "Rename": function() {
-          rename_city();
-        }
-      }
-    );
-  } else {
-    dialog_buttons = $.extend(
-      dialog_buttons,
-      {
-        "Next": function() {
-          next_city();
-        },
-        "Buy": function() {
-          request_city_buy();
-        }
-      }
-    );
-  }
-  dialog_buttons = $.extend(dialog_buttons, { "Close": close_city_dialog });
-  $("#city_dialog").attr("title", decodeURIComponent(pcity["name"]) + " (" + pcity["size"] + ")");
-  $("#city_dialog").dialog({
-    bgiframe: true,
-    modal: false,
-    width: isSmallScreen() ? "98%" : "80%",
-    height: isSmallScreen() ? $(window).height() + 10 : $(window).height() - 80,
-    close: city_dialog_close_handler,
-    buttons: dialog_buttons
-  }).dialogExtend({
-    "minimizable": true,
-    "closable": true,
-    "minimize": function(evt, dlg) {
-      setDefaultMapviewActive();
-    },
-    "icons": {
-      "minimize": "ui-icon-circle-minus",
-      "restore": "ui-icon-bullet"
-    }
+  const titleBar = document.createElement("div");
+  titleBar.style.cssText = "background:#333;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #555;";
+  titleBar.innerHTML = '<span style="font-weight:bold;">' + decodeURIComponent(pcity["name"]) + " (" + pcity["size"] + ")</span>";
+  const btnRow = document.createElement("div");
+  btnRow.style.cssText = "display:flex;gap:6px;";
+  const buttonDefs = isSmallScreen() ? [["Next", next_city], ["Buy", request_city_buy], ["Close", close_city_dialog]] : [["Previous city", previous_city], ["Next city (N)", next_city], ["Buy (B)", request_city_buy], ["Rename", rename_city], ["Close", close_city_dialog]];
+  buttonDefs.forEach(([label, fn]) => {
+    const b2 = document.createElement("button");
+    b2.textContent = label;
+    b2.addEventListener("click", fn);
+    btnRow.appendChild(b2);
   });
-  $("#city_dialog").dialog("widget").keydown(city_keyboard_listener);
-  $("#city_dialog").dialog("open");
-  $("#game_text_input").blur();
+  titleBar.appendChild(btnRow);
+  dlg.appendChild(titleBar);
+  const contentArea = document.createElement("div");
+  contentArea.style.cssText = "padding:8px;overflow:auto;height:calc(100% - 50px);";
+  contentArea.innerHTML = window.Handlebars.templates["city"](city_data);
+  dlg.appendChild(contentArea);
+  const cityCanvas = byId$1("city_canvas");
+  if (cityCanvas) cityCanvas.addEventListener("click", city_mapview_mouse_click);
+  dlg.addEventListener("keydown", function(e2) {
+    if (e2.key === "Escape") close_city_dialog();
+    else city_keyboard_listener(e2);
+  });
+  byId$1("game_text_input")?.blur();
   if (!isSmallScreen()) {
-    $("#city_tabs-6").remove();
-    $(".extra_tabs_small").remove();
-    $("#mobile_cma_checkbox").remove();
+    byId$1("city_tabs-6")?.remove();
+    document.querySelectorAll(".extra_tabs_small").forEach((el) => el.remove());
+    byId$1("mobile_cma_checkbox")?.remove();
   } else {
-    $("#city_tabs-5").remove();
-    $(".extra_tabs_big").remove();
-    $("#city_stats").hide();
-    const units_element = $("#city_improvements_panel").detach();
-    $("#city_units_tab").append(units_element);
+    byId$1("city_tabs-5")?.remove();
+    document.querySelectorAll(".extra_tabs_big").forEach((el) => el.remove());
+    const cityStats = byId$1("city_stats");
+    if (cityStats) cityStats.style.display = "none";
+    const unitsElement = byId$1("city_improvements_panel");
+    const cityUnitsTab = byId$1("city_units_tab");
+    if (unitsElement && cityUnitsTab) {
+      cityUnitsTab.appendChild(unitsElement);
+    }
   }
   initTabs("#city_tabs", { active: city_tab_index });
-  $(".citydlg_tabs").height(isSmallScreen() ? $(window).height() - 110 : $(window).height() - 225);
+  const tabHeight = isSmallScreen() ? window.innerHeight - 110 : window.innerHeight - 225;
+  document.querySelectorAll(".citydlg_tabs").forEach((el) => {
+    el.style.height = tabHeight + "px";
+  });
   city_worklist_dialog(pcity);
   set_citydlg_dimensions(pcity);
   set_city_mapview_active();
@@ -10169,14 +10156,14 @@ function show_city_dialog(pcity) {
   if (typeof pcity["cma_enabled"] !== "undefined") {
     governor_text = "<br>" + (pcity["cma_enabled"] ? "Governor Enabled" : "Governor Disabled");
   }
-  $("#city_size").html("Population: " + numberWithCommas(cityPopulation(pcity) * 1e3) + "<br>Size: " + pcity["size"] + "<br>Granary: " + pcity["food_stock"] + "/" + pcity["granary_size"] + "<br>Change in: " + cityTurnsToGrowthText(pcity) + governor_text);
+  setHtml$1("city_size", "Population: " + numberWithCommas(cityPopulation(pcity) * 1e3) + "<br>Size: " + pcity["size"] + "<br>Granary: " + pcity["food_stock"] + "/" + pcity["granary_size"] + "<br>Change in: " + cityTurnsToGrowthText(pcity) + governor_text);
   const prod_type = getCityProductionTypeSprite(pcity);
-  $("#city_production_overview").html("Producing: " + (prod_type != null ? prod_type["type"]["name"] : "None"));
+  setHtml$1("city_production_overview", "Producing: " + (prod_type != null ? prod_type["type"]["name"] : "None"));
   turns_to_complete = getCityProductionTime(pcity);
   if (turns_to_complete != FC_INFINITY) {
-    $("#city_production_turns_overview").html(turns_to_complete + " turns &nbsp;&nbsp;(" + getProductionProgress(pcity) + ")");
+    setHtml$1("city_production_turns_overview", turns_to_complete + " turns &nbsp;&nbsp;(" + getProductionProgress(pcity) + ")");
   } else {
-    $("#city_production_turns_overview").html("-");
+    setHtml$1("city_production_turns_overview", "-");
   }
   let improvements_html = "";
   for (let z2 = 0; z2 < (store.rulesControl?.num_impr_types ?? 0); z2++) {
@@ -10189,7 +10176,7 @@ function show_city_dialog(pcity) {
       improvements_html = improvements_html + "<div id='city_improvement_element'><div style='background: transparent url(" + sprite["image-src"] + ");background-position:-" + sprite["tileset-x"] + "px -" + sprite["tileset-y"] + "px;  width: " + sprite["width"] + "px;height: " + sprite["height"] + `px;float:left; 'title="` + store.improvements[z2]["helptext"] + `" onclick='city_sell_improvement(` + z2 + ");'></div>" + store.improvements[z2]["name"] + "</div>";
     }
   }
-  $("#city_improvements_list").html(improvements_html);
+  setHtml$1("city_improvements_list", improvements_html);
   const punits = tile_units(cityTile(pcity));
   if (punits != null) {
     let present_units_html = "";
@@ -10202,7 +10189,7 @@ function show_city_dialog(pcity) {
       }
       present_units_html = present_units_html + "<div class='game_unit_list_item' title='" + get_unit_city_info(punit) + "' style='cursor:pointer;cursor:hand; background: transparent url(" + sprite["image-src"] + ");background-position:-" + sprite["tileset-x"] + "px -" + sprite["tileset-y"] + "px;  width: " + sprite["width"] + "px;height: " + sprite["height"] + "px;float:left; ' onclick='city_dialog_activate_unit(units[" + punit["id"] + "]);'></div>";
     }
-    $("#city_present_units_list").html(present_units_html);
+    setHtml$1("city_present_units_list", present_units_html);
   }
   const sunits = get_supported_units(pcity);
   if (sunits != null) {
@@ -10216,9 +10203,8 @@ function show_city_dialog(pcity) {
       }
       supported_units_html = supported_units_html + "<div class='game_unit_list_item' title='" + get_unit_city_info(punit) + "' style='cursor:pointer;cursor:hand; background: transparent url(" + sprite["image-src"] + ");background-position:-" + sprite["tileset-x"] + "px -" + sprite["tileset-y"] + "px;  width: " + sprite["width"] + "px;height: " + sprite["height"] + "px;float:left; ' onclick='city_dialog_activate_unit(units[" + punit["id"] + "]);'></div>";
     }
-    $("#city_supported_units_list").html(supported_units_html);
+    setHtml$1("city_supported_units_list", supported_units_html);
   }
-  $(".game_unit_list_item").tooltip();
   if ("prod" in pcity && "surplus" in pcity) {
     let food_txt = pcity["prod"][O_FOOD$1] + " ( ";
     if (pcity["surplus"][O_FOOD$1] > 0) food_txt += "+";
@@ -10234,17 +10220,17 @@ function show_city_dialog(pcity) {
     gold_txt += pcity["surplus"][O_GOLD$1] + ")";
     const luxury_txt = pcity["prod"][O_LUXURY];
     const science_txt = pcity["prod"][O_SCIENCE];
-    $("#city_food").html(food_txt);
-    $("#city_prod").html(shield_txt);
-    $("#city_trade").html(trade_txt);
-    $("#city_gold").html(gold_txt);
-    $("#city_luxury").html(luxury_txt);
-    $("#city_science").html(science_txt);
-    $("#city_corruption").html(pcity["waste"][O_TRADE]);
-    $("#city_waste").html(pcity["waste"][O_SHIELD$1]);
-    $("#city_pollution").html(pcity["pollution"]);
-    $("#city_steal").html(pcity["steal"]);
-    $("#city_culture").html(pcity["culture"]);
+    setHtml$1("city_food", food_txt);
+    setHtml$1("city_prod", shield_txt);
+    setHtml$1("city_trade", trade_txt);
+    setHtml$1("city_gold", gold_txt);
+    setHtml$1("city_luxury", luxury_txt);
+    setHtml$1("city_science", science_txt);
+    setHtml$1("city_corruption", pcity["waste"][O_TRADE]);
+    setHtml$1("city_waste", pcity["waste"][O_SHIELD$1]);
+    setHtml$1("city_pollution", pcity["pollution"]);
+    setHtml$1("city_steal", pcity["steal"]);
+    setHtml$1("city_culture", pcity["culture"]);
   }
   let specialist_html = "";
   const citizen_types = ["angry", "unhappy", "content", "happy"];
@@ -10264,36 +10250,38 @@ function show_city_dialog(pcity) {
     }
   }
   specialist_html += "<div style='clear: both;'></div>";
-  $("#specialist_panel").html(specialist_html);
-  $("#disbandable_city").off();
-  $("#disbandable_city").prop(
-    "checked",
-    pcity["city_options"] != null && pcity["city_options"].isSet(CITYO_DISBAND)
-  );
-  $("#disbandable_city").click(function() {
-    const options = pcity["city_options"];
-    const packet = {
-      "pid": packet_city_options_req,
-      "city_id": active_city["id"],
-      "options": options.raw
-    };
-    if ($("#disbandable_city").prop("checked")) {
-      options.set(CITYO_DISBAND);
-    } else {
-      options.unset(CITYO_DISBAND);
-    }
-    send_request(JSON.stringify(packet));
-  });
+  setHtml$1("specialist_panel", specialist_html);
+  const disbandEl = byId$1("disbandable_city");
+  if (disbandEl) {
+    const newDisband = disbandEl.cloneNode(true);
+    disbandEl.parentNode?.replaceChild(newDisband, disbandEl);
+    newDisband.checked = pcity["city_options"] != null && pcity["city_options"].isSet(CITYO_DISBAND);
+    newDisband.addEventListener("click", function() {
+      const options = pcity["city_options"];
+      const packet = {
+        "pid": packet_city_options_req,
+        "city_id": active_city["id"],
+        "options": options.raw
+      };
+      if (newDisband.checked) {
+        options.set(CITYO_DISBAND);
+      } else {
+        options.unset(CITYO_DISBAND);
+      }
+      send_request(JSON.stringify(packet));
+    });
+  }
   if (isSmallScreen()) {
-    $(".ui-tabs-anchor").css("padding", "2px");
+    document.querySelectorAll(".ui-tabs-anchor").forEach((el) => {
+      el.style.padding = "2px";
+    });
   }
 }
 function request_city_buy() {
   if (clientIsObserver()) return;
   const pcity = active_city;
   const pplayer = clientPlaying();
-  $("#dialog").remove();
-  $("<div id='dialog'></div>").appendTo("div#game_page");
+  byId$1("dialog")?.remove();
   let buy_question_string = "";
   if (pcity["production_kind"] == VUT_UTYPE) {
     const punit_type = store.unitTypes[pcity["production_value"]];
@@ -10312,24 +10300,18 @@ function request_city_buy() {
   if (pcity["buy_cost"] > pplayer["gold"]) {
     return;
   }
-  const dhtml = buy_question_string + treasury_text;
-  $("#dialog").html(dhtml);
-  $("#dialog").attr("title", "Buy It!");
-  $("#dialog").dialog({
-    bgiframe: true,
-    modal: true,
-    width: isSmallScreen() ? "95%" : "50%",
-    buttons: {
-      "Yes": function() {
-        send_city_buy();
-        $("#dialog").dialog("close");
-      },
-      "No": function() {
-        $("#dialog").dialog("close");
-      }
-    }
+  const buyDlg = document.createElement("div");
+  buyDlg.id = "dialog";
+  buyDlg.style.cssText = "position:fixed;z-index:5000;background:#222;border:1px solid #555;padding:16px;top:30%;left:50%;transform:translateX(-50%);width:" + (isSmallScreen() ? "95%" : "50%") + ";color:#fff;";
+  buyDlg.innerHTML = '<div style="font-weight:bold;margin-bottom:8px;">Buy It!</div>' + buy_question_string + treasury_text + '<div style="margin-top:12px;display:flex;gap:8px;"><button id="buy_yes_btn">Yes</button><button id="buy_no_btn">No</button></div>';
+  document.getElementById("game_page")?.appendChild(buyDlg);
+  byId$1("buy_yes_btn")?.addEventListener("click", function() {
+    send_city_buy();
+    buyDlg.remove();
   });
-  $("#dialog").dialog("open");
+  byId$1("buy_no_btn")?.addEventListener("click", function() {
+    buyDlg.remove();
+  });
 }
 function send_city_buy() {
   if (clientIsObserver()) return;
@@ -10348,7 +10330,8 @@ function send_city_change(city_id, kind, value) {
   send_request(JSON.stringify(packet));
 }
 function close_city_dialog() {
-  $("#city_dialog").dialog("close");
+  byId$1("city_dialog")?.remove();
+  city_dialog_close_handler();
 }
 function city_dialog_close_handler() {
   setDefaultMapviewActive();
@@ -10362,87 +10345,68 @@ function city_dialog_close_handler() {
   }
 }
 function city_name_dialog(suggested_name, unit_id) {
-  $("#city_name_dialog").remove();
-  $("<div id='city_name_dialog'></div>").appendTo("div#game_page");
-  $("#city_name_dialog").html($("<div>What should we call our new city?</div><input id='city_name_req' type='text'>"));
-  $("#city_name_req").attr("value", suggested_name);
-  $("#city_name_dialog").attr("title", "Build New City");
-  $("#city_name_dialog").dialog({
-    bgiframe: true,
-    modal: true,
-    width: "300",
-    close: function() {
-      act_sel_queue_done(unit_id);
-    },
-    buttons: [
-      {
-        text: "Cancel",
-        click: function() {
-          $("#city_name_dialog").remove();
-          act_sel_queue_done(unit_id);
-        }
-      },
-      {
-        text: "Ok",
-        click: function() {
-          const name = $("#city_name_req").val();
-          if (name.length == 0 || name.length >= MAX_LEN_CITYNAME - 6 || encodeURIComponent(name).length >= MAX_LEN_CITYNAME - 6) {
-            swal("City name is invalid. Please try a different shorter name.");
-            return;
-          }
-          const actor_unit = game_find_unit_by_number(unit_id);
-          request_unit_do_action(
-            ACTION_FOUND_CITY,
-            unit_id,
-            actor_unit["tile"],
-            0,
-            encodeURIComponent(name)
-          );
-          $("#city_name_dialog").remove();
-          act_sel_queue_done(unit_id);
-        }
-      }
-    ]
-  });
-  $("#city_name_req").attr("maxlength", MAX_LEN_NAME);
-  $("#city_name_dialog").dialog("open");
-  $("#city_name_dialog").keyup(function(e2) {
-    if (e2.keyCode == 13) {
-      const name = $("#city_name_req").val();
-      const actor_unit = game_find_unit_by_number(unit_id);
-      request_unit_do_action(
-        ACTION_FOUND_CITY,
-        unit_id,
-        actor_unit["tile"],
-        0,
-        encodeURIComponent(name)
-      );
-      $("#city_name_dialog").remove();
-      act_sel_queue_done(unit_id);
+  byId$1("city_name_dialog")?.remove();
+  const nameDlg = document.createElement("div");
+  nameDlg.id = "city_name_dialog";
+  nameDlg.style.cssText = "position:fixed;z-index:5000;background:#222;border:1px solid #555;padding:16px;top:30%;left:50%;transform:translateX(-50%);width:300px;color:#fff;";
+  nameDlg.innerHTML = '<div style="font-weight:bold;margin-bottom:8px;">Build New City</div><div>What should we call our new city?</div><input id="city_name_req" type="text" style="width:100%;margin:8px 0;"><div style="display:flex;gap:8px;"><button id="city_name_ok">Ok</button><button id="city_name_cancel">Cancel</button></div>';
+  document.getElementById("game_page")?.appendChild(nameDlg);
+  const nameInput = byId$1("city_name_req");
+  if (nameInput) {
+    nameInput.value = suggested_name;
+    nameInput.maxLength = MAX_LEN_NAME;
+  }
+  function submitName() {
+    const name = nameInput?.value || "";
+    if (name.length == 0 || name.length >= MAX_LEN_CITYNAME - 6 || encodeURIComponent(name).length >= MAX_LEN_CITYNAME - 6) {
+      swal("City name is invalid. Please try a different shorter name.");
+      return;
     }
+    const actor_unit = game_find_unit_by_number(unit_id);
+    request_unit_do_action(
+      ACTION_FOUND_CITY,
+      unit_id,
+      actor_unit["tile"],
+      0,
+      encodeURIComponent(name)
+    );
+    nameDlg.remove();
+    act_sel_queue_done(unit_id);
+  }
+  function cancelName() {
+    nameDlg.remove();
+    act_sel_queue_done(unit_id);
+  }
+  byId$1("city_name_ok")?.addEventListener("click", submitName);
+  byId$1("city_name_cancel")?.addEventListener("click", cancelName);
+  nameDlg.addEventListener("keyup", function(e2) {
+    if (e2.key === "Enter") submitName();
   });
   blur_input_on_touchdevice();
 }
 function next_city() {
   if (!clientPlaying()) return;
   city_screen_updater.fireNow();
-  let next_row = $("#cities_list_" + active_city["id"]).next();
-  if (next_row.length === 0) {
-    next_row = $("#city_table tbody tr").first();
+  const currentRow = byId$1("cities_list_" + active_city["id"]);
+  let nextRow = currentRow?.nextElementSibling;
+  if (!nextRow) {
+    nextRow = document.querySelector("#city_table tbody tr");
   }
-  if (next_row.length > 0) {
-    show_city_dialog(cities$1[next_row.attr("id").substr(12)]);
+  if (nextRow?.id) {
+    show_city_dialog(cities$1[nextRow.id.substr(12)]);
   }
 }
 function previous_city() {
   if (!clientPlaying()) return;
   city_screen_updater.fireNow();
-  let prev_row = $("#cities_list_" + active_city["id"]).prev();
-  if (prev_row.length === 0) {
-    prev_row = $("#city_table tbody tr").last();
+  const currentRow = byId$1("cities_list_" + active_city["id"]);
+  let prevRow = currentRow?.previousElementSibling;
+  if (!prevRow) {
+    const rows = document.querySelectorAll("#city_table tbody tr");
+    prevRow = rows.length > 0 ? rows[rows.length - 1] : null;
   }
-  if (prev_row.length > 0) {
-    show_city_dialog(cities$1[prev_row.attr("id").substr(12)]);
+  if (prevRow?.id) {
+    show_city_dialog(cities$1[prevRow.id.substr(12)]);
   }
 }
 function city_sell_improvement(improvement_id) {
@@ -10478,48 +10442,33 @@ function city_change_specialist(city_id, from_specialist_id) {
 }
 function rename_city() {
   if (clientIsObserver() || active_city == null) return;
-  $("#city_name_dialog").remove();
-  $("<div id='city_name_dialog'></div>").appendTo("div#game_page");
-  $("#city_name_dialog").html($("<div>What should we call this city?</div><input id='city_name_req' type='text'>"));
-  $("#city_name_req").attr("value", active_city["name"]);
-  $("#city_name_dialog").attr("title", "Rename City");
-  $("#city_name_dialog").dialog({
-    bgiframe: true,
-    modal: true,
-    width: "300",
-    close: function() {
-    },
-    buttons: [
-      {
-        text: "Cancel",
-        click: function() {
-          $("#city_name_dialog").remove();
-        }
-      },
-      {
-        text: "Ok",
-        click: function() {
-          const name = $("#city_name_req").val();
-          if (name.length == 0 || name.length >= MAX_LEN_NAME - 4 || encodeURIComponent(name).length >= MAX_LEN_NAME - 4) {
-            swal("City name is invalid");
-            return;
-          }
-          const packet = { "pid": packet_city_rename, "name": encodeURIComponent(name), "city_id": active_city["id"] };
-          send_request(JSON.stringify(packet));
-          $("#city_name_dialog").remove();
-        }
-      }
-    ]
-  });
-  $("#city_name_req").attr("maxlength", MAX_LEN_NAME);
-  $("#city_name_dialog").dialog("open");
-  $("#city_name_dialog").keyup(function(e2) {
-    if (e2.keyCode == 13) {
-      const name = $("#city_name_req").val();
-      const packet = { "pid": packet_city_rename, "name": encodeURIComponent(name), "city_id": active_city["id"] };
-      send_request(JSON.stringify(packet));
-      $("#city_name_dialog").remove();
+  byId$1("city_name_dialog")?.remove();
+  const renameDlg = document.createElement("div");
+  renameDlg.id = "city_name_dialog";
+  renameDlg.style.cssText = "position:fixed;z-index:5000;background:#222;border:1px solid #555;padding:16px;top:30%;left:50%;transform:translateX(-50%);width:300px;color:#fff;";
+  renameDlg.innerHTML = '<div style="font-weight:bold;margin-bottom:8px;">Rename City</div><div>What should we call this city?</div><input id="city_name_req" type="text" style="width:100%;margin:8px 0;"><div style="display:flex;gap:8px;"><button id="rename_ok">Ok</button><button id="rename_cancel">Cancel</button></div>';
+  document.getElementById("game_page")?.appendChild(renameDlg);
+  const nameInput = byId$1("city_name_req");
+  if (nameInput) {
+    nameInput.value = active_city["name"];
+    nameInput.maxLength = MAX_LEN_NAME;
+  }
+  function submitRename() {
+    const name = nameInput?.value || "";
+    if (name.length == 0 || name.length >= MAX_LEN_NAME - 4 || encodeURIComponent(name).length >= MAX_LEN_NAME - 4) {
+      swal("City name is invalid");
+      return;
     }
+    const packet = { "pid": packet_city_rename, "name": encodeURIComponent(name), "city_id": active_city["id"] };
+    send_request(JSON.stringify(packet));
+    renameDlg.remove();
+  }
+  byId$1("rename_ok")?.addEventListener("click", submitRename);
+  byId$1("rename_cancel")?.addEventListener("click", function() {
+    renameDlg.remove();
+  });
+  renameDlg.addEventListener("keyup", function(e2) {
+    if (e2.key === "Enter") submitRename();
   });
 }
 function update_city_screen() {
@@ -10548,11 +10497,12 @@ function update_city_screen() {
     }
   }
   city_list_html += "</tbody></table>";
-  $("#cities_list").html(city_list_html);
+  setHtml$1("cities_list", city_list_html);
   if (count == 0) {
-    $("#city_table").html("You have no cities. Build new cities with the Settlers unit.");
+    setHtml$1("city_table", "You have no cities. Build new cities with the Settlers unit.");
   }
-  $("#cities_scroll").css("height", $(window).height() - 200);
+  const citiesScroll = byId$1("cities_scroll");
+  if (citiesScroll) citiesScroll.style.height = window.innerHeight - 200 + "px";
   initTableSort("#city_table", { sortList });
 }
 function get_city_state(pcity) {
@@ -10566,7 +10516,7 @@ function get_city_state(pcity) {
   }
 }
 function city_keyboard_listener(ev) {
-  if ($("input:focus").length > 0 || !keyboard_input) return;
+  if (document.querySelector("input:focus") || !keyboard_input) return;
   if (C_S_RUNNING != clientState()) return;
   if (!ev) ev = window.event;
   const keyboard_key = String.fromCharCode(ev.keyCode);
@@ -10588,9 +10538,16 @@ function set_citydlg_dimensions(pcity) {
   const radius_tiles = Math.ceil(Math.sqrt(city_radius));
   set_citydlg_map_width(tileset_width + radius_tiles * tileset_width);
   set_citydlg_map_height(tileset_height + radius_tiles * tileset_height);
-  $("#city_canvas_div").css({ "width": citydlg_map_width, "height": citydlg_map_height });
-  $("#city_canvas").attr("width", citydlg_map_width);
-  $("#city_canvas").attr("height", citydlg_map_height);
+  const canvasDiv = byId$1("city_canvas_div");
+  if (canvasDiv) {
+    canvasDiv.style.width = citydlg_map_width + "px";
+    canvasDiv.style.height = citydlg_map_height + "px";
+  }
+  const canvas = byId$1("city_canvas");
+  if (canvas) {
+    canvas.width = citydlg_map_width;
+    canvas.height = citydlg_map_height;
+  }
 }
 function get_specialist_image_sprite(key) {
 }

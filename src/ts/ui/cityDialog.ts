@@ -79,7 +79,8 @@ export {
   city_worklist_task_remove
 } from './cityWorklist';
 
-declare const $: any;
+function byId(id: string): HTMLElement | null { return document.getElementById(id); }
+function setHtml(id: string, html: string): void { const el = byId(id); if (el) el.innerHTML = html; }
 
 // Register update_city_screen with the lazy proxy in cityDialogState
 set_city_screen_updater_fn(update_city_screen);
@@ -108,86 +109,80 @@ export function show_city_dialog(pcity: any): void {
   if (pcity == null) return;
 
   // reset dialog page.
-  $("#city_dialog").remove();
-  $("<div id='city_dialog'></div>").appendTo("div#game_page");
+  byId('city_dialog')?.remove();
+  const dlg = document.createElement('div');
+  dlg.id = 'city_dialog';
+  const dlgWidth = is_small_screen() ? '98%' : '80%';
+  const dlgHeight = is_small_screen() ? (window.innerHeight + 10) : (window.innerHeight - 80);
+  dlg.style.cssText = 'position:fixed;z-index:4000;background:#222;border:1px solid #555;padding:0;'
+    + 'left:50%;top:50%;transform:translate(-50%,-50%);'
+    + 'width:' + dlgWidth + ';height:' + dlgHeight + 'px;overflow:auto;color:#fff;';
+  document.getElementById('game_page')?.appendChild(dlg);
 
   const city_data: any = {};
 
-  $("#city_dialog").html((window as any).Handlebars.templates['city'](city_data));
+  // Title bar
+  const titleBar = document.createElement('div');
+  titleBar.style.cssText = 'background:#333;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #555;';
+  titleBar.innerHTML = '<span style="font-weight:bold;">' + decodeURIComponent(pcity['name']) + ' (' + pcity['size'] + ')</span>';
+  const btnRow = document.createElement('div');
+  btnRow.style.cssText = 'display:flex;gap:6px;';
 
-  $("#city_canvas").click(city_mapview_mouse_click);
+  const buttonDefs: [string, () => void][] = is_small_screen()
+    ? [['Next', next_city], ['Buy', request_city_buy], ['Close', close_city_dialog]]
+    : [['Previous city', previous_city], ['Next city (N)', next_city], ['Buy (B)', request_city_buy], ['Rename', rename_city], ['Close', close_city_dialog]];
+
+  buttonDefs.forEach(([label, fn]) => {
+    const b = document.createElement('button');
+    b.textContent = label;
+    b.addEventListener('click', fn);
+    btnRow.appendChild(b);
+  });
+  titleBar.appendChild(btnRow);
+  dlg.appendChild(titleBar);
+
+  // Content area
+  const contentArea = document.createElement('div');
+  contentArea.style.cssText = 'padding:8px;overflow:auto;height:calc(100% - 50px);';
+  contentArea.innerHTML = (window as any).Handlebars.templates['city'](city_data);
+  dlg.appendChild(contentArea);
+
+  const cityCanvas = byId('city_canvas');
+  if (cityCanvas) cityCanvas.addEventListener('click', city_mapview_mouse_click);
+
+  // Close on Escape
+  dlg.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') close_city_dialog();
+    else city_keyboard_listener(e);
+  });
 
   show_city_traderoutes();
 
-  let dialog_buttons: any = {};
-  if (!is_small_screen()) {
-    dialog_buttons = $.extend(dialog_buttons,
-      {
-       "Previous city" : function() {
-         previous_city();
-       },
-       "Next city (N)" : function() {
-         next_city();
-       },
-       "Buy (B)" : function() {
-         request_city_buy();
-       },
-       "Rename" : function() {
-         rename_city();
-       }
-     });
-   } else {
-       dialog_buttons = $.extend(dialog_buttons,
-         {
-          "Next" : function() {
-            next_city();
-          },
-          "Buy" : function() {
-            request_city_buy();
-          }
-        });
-   }
-
-   dialog_buttons = $.extend(dialog_buttons, {"Close": close_city_dialog});
-
-  $("#city_dialog").attr("title", decodeURIComponent(pcity['name'])
-                         + " (" + pcity['size'] + ")");
-  $("#city_dialog").dialog({
-			bgiframe: true,
-			modal: false,
-			width: is_small_screen() ? "98%" : "80%",
-                        height: is_small_screen() ? $(window).height() + 10 : $(window).height() - 80,
-                        close : city_dialog_close_handler,
-            buttons: dialog_buttons
-                   }).dialogExtend({
-                     "minimizable" : true,
-                     "closable" : true,
-                     "minimize" : function(evt: any, dlg: any){ set_default_mapview_active(); },
-                     "icons" : {
-                       "minimize" : "ui-icon-circle-minus",
-                       "restore" : "ui-icon-bullet"
-                     }});
-
-  $("#city_dialog").dialog('widget').keydown(city_keyboard_listener);
-  $("#city_dialog").dialog('open');
-  $("#game_text_input").blur();
+  (byId('game_text_input') as HTMLInputElement)?.blur();
 
   /* Prepare city dialog for small screens. */
   if (!is_small_screen()) {
-    $("#city_tabs-6").remove();
-    $(".extra_tabs_small").remove();
-    $("#mobile_cma_checkbox").remove();
+    byId('city_tabs-6')?.remove();
+    document.querySelectorAll('.extra_tabs_small').forEach(el => el.remove());
+    byId('mobile_cma_checkbox')?.remove();
   } else {
-    $("#city_tabs-5").remove();
-    $(".extra_tabs_big").remove();
-    $("#city_stats").hide();
-    const units_element: any = $("#city_improvements_panel").detach();
-    $('#city_units_tab').append(units_element);
-   }
+    byId('city_tabs-5')?.remove();
+    document.querySelectorAll('.extra_tabs_big').forEach(el => el.remove());
+    const cityStats = byId('city_stats');
+    if (cityStats) cityStats.style.display = 'none';
+    const unitsElement = byId('city_improvements_panel');
+    const cityUnitsTab = byId('city_units_tab');
+    if (unitsElement && cityUnitsTab) {
+      cityUnitsTab.appendChild(unitsElement);
+    }
+  }
 
   initTabs('#city_tabs', { active: city_tab_index });
 
-  $(".citydlg_tabs").height(is_small_screen() ? $(window).height() - 110 : $(window).height() - 225);
+  const tabHeight = is_small_screen() ? (window.innerHeight - 110) : (window.innerHeight - 225);
+  document.querySelectorAll('.citydlg_tabs').forEach(el => {
+    (el as HTMLElement).style.height = tabHeight + 'px';
+  });
 
   city_worklist_dialog(pcity);
 
@@ -204,20 +199,20 @@ export function show_city_dialog(pcity: any): void {
     governor_text = "<br>" + (pcity['cma_enabled'] ? "Governor Enabled" : "Governor Disabled");
   }
 
-  $("#city_size").html("Population: " + numberWithCommas(city_population(pcity)*1000) + "<br>"
+  setHtml("city_size", "Population: " + numberWithCommas(city_population(pcity)*1000) + "<br>"
                        + "Size: " + pcity['size'] + "<br>"
                        + "Granary: " + pcity['food_stock'] + "/" + pcity['granary_size'] + "<br>"
                        + "Change in: " + city_turns_to_growth_text(pcity) + governor_text);
 
   const prod_type: any = get_city_production_type_sprite(pcity);
-  $("#city_production_overview").html("Producing: " + (prod_type != null ? prod_type['type']['name'] : "None"));
+  setHtml("city_production_overview", "Producing: " + (prod_type != null ? prod_type['type']['name'] : "None"));
 
   turns_to_complete = get_city_production_time(pcity);
 
   if (turns_to_complete != FC_INFINITY) {
-    $("#city_production_turns_overview").html(turns_to_complete + " turns &nbsp;&nbsp;(" + get_production_progress(pcity) + ")");
+    setHtml("city_production_turns_overview", turns_to_complete + " turns &nbsp;&nbsp;(" + get_production_progress(pcity) + ")");
   } else {
-    $("#city_production_turns_overview").html("-");
+    setHtml("city_production_turns_overview", "-");
   }
 
   let improvements_html: string = "";
@@ -239,7 +234,7 @@ export function show_city_dialog(pcity: any): void {
            +"</div>" + store.improvements[z]['name'] + "</div>";
     }
   }
-  $("#city_improvements_list").html(improvements_html);
+  setHtml("city_improvements_list", improvements_html);
 
   const punits: any = tile_units(cityTile(pcity));
   if (punits != null) {
@@ -261,7 +256,7 @@ export function show_city_dialog(pcity: any): void {
            + " onclick='city_dialog_activate_unit(units[" + punit['id'] + "]);'"
            +"></div>";
     }
-    $("#city_present_units_list").html(present_units_html);
+    setHtml("city_present_units_list", present_units_html);
   }
 
   const sunits: any = get_supported_units(pcity);
@@ -284,9 +279,9 @@ export function show_city_dialog(pcity: any): void {
            + " onclick='city_dialog_activate_unit(units[" + punit['id'] + "]);'"
            +"></div>";
     }
-    $("#city_supported_units_list").html(supported_units_html);
+    setHtml("city_supported_units_list", supported_units_html);
   }
-  $(".game_unit_list_item").tooltip();
+  // tooltip() no-op — native title attribute already set
 
   if ('prod' in pcity && 'surplus' in pcity) {
     let food_txt: string = pcity['prod'][O_FOOD] + " ( ";
@@ -308,18 +303,18 @@ export function show_city_dialog(pcity: any): void {
     const luxury_txt: any = pcity['prod'][O_LUXURY];
     const science_txt: any = pcity['prod'][O_SCIENCE];
 
-    $("#city_food").html(food_txt);
-    $("#city_prod").html(shield_txt);
-    $("#city_trade").html(trade_txt);
-    $("#city_gold").html(gold_txt);
-    $("#city_luxury").html(luxury_txt);
-    $("#city_science").html(science_txt);
+    setHtml("city_food", food_txt);
+    setHtml("city_prod", shield_txt);
+    setHtml("city_trade", trade_txt);
+    setHtml("city_gold", gold_txt);
+    setHtml("city_luxury", luxury_txt);
+    setHtml("city_science", science_txt);
 
-    $("#city_corruption").html(pcity['waste'][O_TRADE]);
-    $("#city_waste").html(pcity['waste'][O_SHIELD]);
-    $("#city_pollution").html(pcity['pollution']);
-    $("#city_steal").html(pcity['steal']);
-    $("#city_culture").html(pcity['culture']);
+    setHtml("city_corruption", pcity['waste'][O_TRADE]);
+    setHtml("city_waste", pcity['waste'][O_SHIELD]);
+    setHtml("city_pollution", pcity['pollution']);
+    setHtml("city_steal", pcity['steal']);
+    setHtml("city_culture", pcity['culture']);
   }
 
   /* Handle citizens and specialists */
@@ -355,33 +350,33 @@ export function show_city_dialog(pcity: any): void {
     }
   }
   specialist_html += "<div style='clear: both;'></div>";
-  $("#specialist_panel").html(specialist_html);
+  setHtml("specialist_panel", specialist_html);
 
-  $('#disbandable_city').off();
-  $('#disbandable_city').prop('checked',
-                              pcity['city_options'] != null && pcity['city_options'].isSet(CITYO_DISBAND));
-  $('#disbandable_city').click(function() {
-    const options: any = pcity['city_options'];
-    const packet: any = {
-      "pid"     : packet_city_options_req,
-      "city_id" : active_city['id'],
-      "options" : options.raw
-    };
-
-    /* Change the option value referred to by the packet. */
-    if ($('#disbandable_city').prop('checked')) {
-      options.set(CITYO_DISBAND);
-    } else {
-      options.unset(CITYO_DISBAND);
-    }
-
-    /* Send the (now updated) city options. */
-    sendRequest(JSON.stringify(packet));
-
-  });
+  const disbandEl = byId('disbandable_city') as HTMLInputElement | null;
+  if (disbandEl) {
+    const newDisband = disbandEl.cloneNode(true) as HTMLInputElement;
+    disbandEl.parentNode?.replaceChild(newDisband, disbandEl);
+    newDisband.checked = pcity['city_options'] != null && pcity['city_options'].isSet(CITYO_DISBAND);
+    newDisband.addEventListener('click', function() {
+      const options: any = pcity['city_options'];
+      const packet: any = {
+        "pid"     : packet_city_options_req,
+        "city_id" : active_city['id'],
+        "options" : options.raw
+      };
+      if (newDisband.checked) {
+        options.set(CITYO_DISBAND);
+      } else {
+        options.unset(CITYO_DISBAND);
+      }
+      sendRequest(JSON.stringify(packet));
+    });
+  }
 
   if (is_small_screen()) {
-    $(".ui-tabs-anchor").css("padding", "2px");
+    document.querySelectorAll('.ui-tabs-anchor').forEach(el => {
+      (el as HTMLElement).style.padding = '2px';
+    });
   }
 
   show_city_governor_tab();
@@ -393,8 +388,7 @@ export function request_city_buy(): void {
   const pplayer: any = clientPlaying();
 
   // reset dialog page.
-  $("#dialog").remove();
-  $("<div id='dialog'></div>").appendTo("div#game_page");
+  byId('dialog')?.remove();
   let buy_price_string: string = "";
   let buy_question_string: string = "";
 
@@ -420,29 +414,17 @@ export function request_city_buy(): void {
     return;
   }
 
-  const dhtml: string = buy_question_string + treasury_text;
+  const buyDlg = document.createElement('div');
+  buyDlg.id = 'dialog';
+  buyDlg.style.cssText = 'position:fixed;z-index:5000;background:#222;border:1px solid #555;padding:16px;'
+    + 'top:30%;left:50%;transform:translateX(-50%);width:' + (is_small_screen() ? '95%' : '50%') + ';color:#fff;';
+  buyDlg.innerHTML = '<div style="font-weight:bold;margin-bottom:8px;">Buy It!</div>'
+    + buy_question_string + treasury_text + '<div style="margin-top:12px;display:flex;gap:8px;">'
+    + '<button id="buy_yes_btn">Yes</button><button id="buy_no_btn">No</button></div>';
+  document.getElementById('game_page')?.appendChild(buyDlg);
 
-
-  $("#dialog").html(dhtml);
-
-  $("#dialog").attr("title", "Buy It!");
-  $("#dialog").dialog({
-			bgiframe: true,
-			modal: true,
-			width: is_small_screen() ? "95%" : "50%",
-			buttons: {
-				"Yes": function() {
-						send_city_buy();
-						$("#dialog").dialog('close');
-				},
-				"No": function() {
-						$("#dialog").dialog('close');
-
-				}
-			}
-		});
-
-  $("#dialog").dialog('open');
+  byId('buy_yes_btn')?.addEventListener('click', function() { send_city_buy(); buyDlg.remove(); });
+  byId('buy_no_btn')?.addEventListener('click', function() { buyDlg.remove(); });
 }
 
 export function send_city_buy(): void {
@@ -460,7 +442,8 @@ export function send_city_change(city_id: number, kind: any, value: any): void {
 }
 
 export function close_city_dialog(): void {
-  $("#city_dialog").dialog('close');
+  byId('city_dialog')?.remove();
+  city_dialog_close_handler();
 }
 
 export function city_dialog_close_handler(): void {
@@ -503,80 +486,52 @@ export function do_city_map_click(ptile: any): void {
 }
 
 export function city_name_dialog(suggested_name: string, unit_id: number): void {
-  // reset dialog page.
-  $("#city_name_dialog").remove();
-  $("<div id='city_name_dialog'></div>").appendTo("div#game_page");
+  byId('city_name_dialog')?.remove();
 
-  $("#city_name_dialog").html($("<div>What should we call our new city?</div>"
-                              + "<input id='city_name_req' type='text'>"));
+  const nameDlg = document.createElement('div');
+  nameDlg.id = 'city_name_dialog';
+  nameDlg.style.cssText = 'position:fixed;z-index:5000;background:#222;border:1px solid #555;padding:16px;'
+    + 'top:30%;left:50%;transform:translateX(-50%);width:300px;color:#fff;';
+  nameDlg.innerHTML = '<div style="font-weight:bold;margin-bottom:8px;">Build New City</div>'
+    + '<div>What should we call our new city?</div>'
+    + '<input id="city_name_req" type="text" style="width:100%;margin:8px 0;">'
+    + '<div style="display:flex;gap:8px;"><button id="city_name_ok">Ok</button>'
+    + '<button id="city_name_cancel">Cancel</button></div>';
+  document.getElementById('game_page')?.appendChild(nameDlg);
 
-  /* A suggested city name can contain an apostrophe ("'"). That character
-   * is also used for single quotes. It shouldn't be added unescaped to a
-   * string that later is interpreted as HTML. */
-  /* TODO: Forbid city names containing an apostrophe or make sure that all
-   * JavaScript using city names handles it correctly. Look for places
-   * where a city name string is added to a string that later is
-   * interpreted as HTML. Avoid the situation by directly using JavaScript
-   * like below or by escaping the string. */
-  $("#city_name_req").attr("value", suggested_name);
+  const nameInput = byId('city_name_req') as HTMLInputElement;
+  if (nameInput) {
+    nameInput.value = suggested_name;
+    nameInput.maxLength = MAX_LEN_NAME;
+  }
 
-  $("#city_name_dialog").attr("title", "Build New City");
-  $("#city_name_dialog").dialog({
-			bgiframe: true,
-			modal: true,
-			width: "300",
-			close: function() {
-				// (window as any).keyboard_input=true; // This is a global variable, not a local one.
-                act_sel_queue_done(unit_id);
-			},
-			buttons: [	{
-					text: "Cancel",
-				        click: function() {
-						$("#city_name_dialog").remove();
-                        // (window as any).keyboard_input=true; // This is a global variable, not a local one.
-                        act_sel_queue_done(unit_id);
-					}
-				},{
-					text: "Ok",
-				        click: function() {
-						const name: string = $("#city_name_req").val();
-						if (name.length == 0 || name.length >= MAX_LEN_CITYNAME - 6
-						    || encodeURIComponent(name).length  >= MAX_LEN_CITYNAME - 6) {
-						  swal("City name is invalid. Please try a different shorter name.");
-						  return;
-						}
-
-                        const actor_unit: any = game_find_unit_by_number(unit_id);
-                        request_unit_do_action(ACTION_FOUND_CITY,
-                          unit_id, actor_unit['tile'], 0,
-                          encodeURIComponent(name));
-						$("#city_name_dialog").remove();
-						// (window as any).keyboard_input=true; // This is a global variable, not a local one.
-                        act_sel_queue_done(unit_id);
-					}
-					}
-				]
-		});
-
-  $("#city_name_req").attr('maxlength', MAX_LEN_NAME);
-
-  $("#city_name_dialog").dialog('open');
-
-  $('#city_name_dialog').keyup(function(e: any) {
-    if (e.keyCode == 13) {
-      const name: string = $("#city_name_req").val();
-      const actor_unit: any = game_find_unit_by_number(unit_id);
-      request_unit_do_action(ACTION_FOUND_CITY,
-        unit_id, actor_unit['tile'], 0, encodeURIComponent(name));
-	  $("#city_name_dialog").remove();
-      // (window as any).keyboard_input=true; // This is a global variable, not a local one.
-      act_sel_queue_done(unit_id);
+  function submitName(): void {
+    const name = nameInput?.value || '';
+    if (name.length == 0 || name.length >= MAX_LEN_CITYNAME - 6
+        || encodeURIComponent(name).length >= MAX_LEN_CITYNAME - 6) {
+      swal("City name is invalid. Please try a different shorter name.");
+      return;
     }
+    const actor_unit: any = game_find_unit_by_number(unit_id);
+    request_unit_do_action(ACTION_FOUND_CITY,
+      unit_id, actor_unit['tile'], 0, encodeURIComponent(name));
+    nameDlg.remove();
+    act_sel_queue_done(unit_id);
+  }
+
+  function cancelName(): void {
+    nameDlg.remove();
+    act_sel_queue_done(unit_id);
+  }
+
+  byId('city_name_ok')?.addEventListener('click', submitName);
+  byId('city_name_cancel')?.addEventListener('click', cancelName);
+
+  nameDlg.addEventListener('keyup', function(e) {
+    if (e.key === 'Enter') submitName();
   });
 
   blur_input_on_touchdevice();
-  // (window as any).keyboard_input=false; // This is a global variable, not a local one.
-
 }
 
 export function next_city(): void {
@@ -584,15 +539,14 @@ export function next_city(): void {
 
   city_screen_updater.fireNow();
 
-  let next_row: any = $('#cities_list_' + active_city['id']).next();
-  if (next_row.length === 0) {
-    // Either the city is not in the list anymore or it was the last item.
-    // Anyway, go to the beginning
-    next_row = $('#city_table tbody tr').first();
+  const currentRow = byId('cities_list_' + active_city['id']);
+  let nextRow = currentRow?.nextElementSibling as HTMLElement | null;
+  if (!nextRow) {
+    // Go to the beginning
+    nextRow = document.querySelector('#city_table tbody tr') as HTMLElement | null;
   }
-  if (next_row.length > 0) {
-    // If there's a city
-    show_city_dialog(cities[next_row.attr('id').substr(12)]);
+  if (nextRow?.id) {
+    show_city_dialog(cities[nextRow.id.substr(12)]);
   }
 }
 
@@ -601,15 +555,15 @@ export function previous_city(): void {
 
   city_screen_updater.fireNow();
 
-  let prev_row: any = $('#cities_list_' + active_city['id']).prev();
-  if (prev_row.length === 0) {
-    // Either the city is not in the list anymore or it was the last item.
-    // Anyway, go to the end
-    prev_row = $('#city_table tbody tr').last();
+  const currentRow = byId('cities_list_' + active_city['id']);
+  let prevRow = currentRow?.previousElementSibling as HTMLElement | null;
+  if (!prevRow) {
+    // Go to the end
+    const rows = document.querySelectorAll('#city_table tbody tr');
+    prevRow = rows.length > 0 ? rows[rows.length - 1] as HTMLElement : null;
   }
-  if (prev_row.length > 0) {
-    // If there's a city
-    show_city_dialog(cities[prev_row.attr('id').substr(12)]);
+  if (prevRow?.id) {
+    show_city_dialog(cities[prevRow.id.substr(12)]);
   }
 }
 
@@ -641,60 +595,42 @@ export function city_change_specialist(city_id: number, from_specialist_id: numb
 export function rename_city(): void {
   if (clientIsObserver() || active_city == null) return;
 
-  // reset dialog page.
-  $("#city_name_dialog").remove();
-  $("<div id='city_name_dialog'></div>").appendTo("div#game_page");
+  byId('city_name_dialog')?.remove();
 
-  $("#city_name_dialog").html($("<div>What should we call this city?</div>"
-                                + "<input id='city_name_req' type='text'>"));
-  /* The city name can contain an apostrophe ("'"). That character is also
-   * used for single quotes. It shouldn't be added unescaped to a
-   * string that later is interpreted as HTML. */
-  $("#city_name_req").attr("value", active_city['name']);
-  $("#city_name_dialog").attr("title", "Rename City");
-  $("#city_name_dialog").dialog({
-			bgiframe: true,
-			modal: true,
-			width: "300",
-			close: function() {
-				// (window as any).keyboard_input=true; // This is a global variable, not a local one.
-			},
-			buttons: [	{
-					text: "Cancel",
-				        click: function() {
-						$("#city_name_dialog").remove();
-        					// (window as any).keyboard_input=true; // This is a global variable, not a local one.
-					}
-				},{
-					text: "Ok",
-				        click: function() {
-						const name: string = $("#city_name_req").val();
-						if (name.length == 0 || name.length >= MAX_LEN_NAME - 4
-						    || encodeURIComponent(name).length  >= MAX_LEN_NAME - 4) {
-						  swal("City name is invalid");
-						  return;
-						}
+  const renameDlg = document.createElement('div');
+  renameDlg.id = 'city_name_dialog';
+  renameDlg.style.cssText = 'position:fixed;z-index:5000;background:#222;border:1px solid #555;padding:16px;'
+    + 'top:30%;left:50%;transform:translateX(-50%);width:300px;color:#fff;';
+  renameDlg.innerHTML = '<div style="font-weight:bold;margin-bottom:8px;">Rename City</div>'
+    + '<div>What should we call this city?</div>'
+    + '<input id="city_name_req" type="text" style="width:100%;margin:8px 0;">'
+    + '<div style="display:flex;gap:8px;"><button id="rename_ok">Ok</button>'
+    + '<button id="rename_cancel">Cancel</button></div>';
+  document.getElementById('game_page')?.appendChild(renameDlg);
 
-						const packet: any = {"pid" : packet_city_rename, "name" : encodeURIComponent(name), "city_id" : active_city['id'] };
-						sendRequest(JSON.stringify(packet));
-						$("#city_name_dialog").remove();
-						// (window as any).keyboard_input=true; // This is a global variable, not a local one.
-					}
-					}
-				]
-		});
-  $("#city_name_req").attr('maxlength', MAX_LEN_NAME);
+  const nameInput = byId('city_name_req') as HTMLInputElement;
+  if (nameInput) {
+    nameInput.value = active_city['name'];
+    nameInput.maxLength = MAX_LEN_NAME;
+  }
 
-  $("#city_name_dialog").dialog('open');
-
-  $('#city_name_dialog').keyup(function(e: any) {
-    if (e.keyCode == 13) {
-      const name: string = $("#city_name_req").val();
-      const packet: any = {"pid" : packet_city_rename, "name" : encodeURIComponent(name), "city_id" : active_city['id'] };
-      sendRequest(JSON.stringify(packet));
-      $("#city_name_dialog").remove();
-      // (window as any).keyboard_input=true; // This is a global variable, not a local one.
+  function submitRename(): void {
+    const name = nameInput?.value || '';
+    if (name.length == 0 || name.length >= MAX_LEN_NAME - 4
+        || encodeURIComponent(name).length >= MAX_LEN_NAME - 4) {
+      swal("City name is invalid");
+      return;
     }
+    const packet: any = {"pid" : packet_city_rename, "name" : encodeURIComponent(name), "city_id" : active_city['id'] };
+    sendRequest(JSON.stringify(packet));
+    renameDlg.remove();
+  }
+
+  byId('rename_ok')?.addEventListener('click', submitRename);
+  byId('rename_cancel')?.addEventListener('click', function() { renameDlg.remove(); });
+
+  renameDlg.addEventListener('keyup', function(e) {
+    if (e.key === 'Enter') submitRename();
   });
 }
 
@@ -738,13 +674,14 @@ export function update_city_screen(): void {
   }
 
   city_list_html += "</tbody></table>";
-  $("#cities_list").html(city_list_html);
+  setHtml("cities_list", city_list_html);
 
   if (count == 0) {
-    $("#city_table").html("You have no cities. Build new cities with the Settlers unit.");
+    setHtml("city_table", "You have no cities. Build new cities with the Settlers unit.");
   }
 
-  $('#cities_scroll').css("height", $(window).height() - 200);
+  const citiesScroll = byId('cities_scroll');
+  if (citiesScroll) citiesScroll.style.height = (window.innerHeight - 200) + 'px';
 
   initTableSort('#city_table', { sortList: sortList });
 }
@@ -763,7 +700,7 @@ export function get_city_state(pcity: any): string | undefined {
 
 export function city_keyboard_listener(ev: any): void {
   // Check if focus is in chat field, where these keyboard events are ignored.
-  if ($('input:focus').length > 0 || !keyboard_input) return;
+  if (document.querySelector('input:focus') || !keyboard_input) return;
 
   if (C_S_RUNNING != client_state()) return;
 
@@ -793,9 +730,10 @@ export function set_citydlg_dimensions(pcity: any): void {
   set_citydlg_map_width(tileset_width + radius_tiles * tileset_width);
   set_citydlg_map_height(tileset_height + radius_tiles * tileset_height);
 
-  $("#city_canvas_div").css({"width":citydlg_map_width, "height":citydlg_map_height});
-  $("#city_canvas").attr('width', citydlg_map_width);
-  $("#city_canvas").attr('height', citydlg_map_height);
+  const canvasDiv = byId('city_canvas_div');
+  if (canvasDiv) { canvasDiv.style.width = citydlg_map_width + 'px'; canvasDiv.style.height = citydlg_map_height + 'px'; }
+  const canvas = byId('city_canvas') as HTMLCanvasElement | null;
+  if (canvas) { canvas.width = citydlg_map_width; canvas.height = citydlg_map_height; }
 }
 
 // Dummy functions for external references that are not part of the provided JS
