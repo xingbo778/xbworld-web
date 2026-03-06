@@ -20,7 +20,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npx vite --port 8080',
+    command: 'BACKEND_URL=http://localhost:8002 npx vite --config vite.config.dev.ts --port 8080',
     port: 8080,
     reuseExistingServer: !process.env.CI,
     timeout: 30_000,

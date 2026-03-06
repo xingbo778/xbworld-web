@@ -25,10 +25,7 @@ test.describe('Intro Dialog', () => {
     const startBtn = page.locator('.xb-dialog-content .xb-btn');
     await startBtn.click();
 
-    const validation = page.locator('.xb-dialog-content div', {
-      hasText: 'Username must be at least 3 characters',
-    });
-    await expect(validation).toBeVisible();
+    await expect(page.getByText('Username must be at least 3 characters')).toBeVisible();
   });
 
   test('should validate short username', async ({ page }) => {
@@ -39,10 +36,7 @@ test.describe('Intro Dialog', () => {
     const startBtn = page.locator('.xb-dialog-content .xb-btn');
     await startBtn.click();
 
-    const validation = page.locator('.xb-dialog-content div', {
-      hasText: 'Username must be at least 3 characters',
-    });
-    await expect(validation).toBeVisible();
+    await expect(page.getByText('Username must be at least 3 characters')).toBeVisible();
   });
 
   test('should accept valid username and close dialog', async ({ page }) => {

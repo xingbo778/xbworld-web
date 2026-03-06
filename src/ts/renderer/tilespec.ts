@@ -69,18 +69,18 @@ export let explosion_anim_map: { [key: number]: number } = {};
  * one layer. The names are basically arbitrary and just correspond to
  * groups of elements in fill_sprite_array(). Callers of fill_sprite_array
  * must call it once for each layer. */
-export const LAYER_TERRAIN1: number = 0;
-export const LAYER_TERRAIN2: number = 1;
-export const LAYER_TERRAIN3: number = 2;
-export const LAYER_ROADS: number = 3;
+const LAYER_TERRAIN1: number = 0;
+const LAYER_TERRAIN2: number = 1;
+const LAYER_TERRAIN3: number = 2;
+const LAYER_ROADS: number = 3;
 export const LAYER_SPECIAL1: number = 4;
 export const LAYER_CITY1: number = 5;
-export const LAYER_SPECIAL2: number = 6;
-export const LAYER_UNIT: number = 7;
-export const LAYER_FOG: number = 8;
-export const LAYER_SPECIAL3: number = 9;
-export const LAYER_TILELABEL: number = 10;
-export const LAYER_CITYBAR: number = 11;
+const LAYER_SPECIAL2: number = 6;
+const LAYER_UNIT: number = 7;
+const LAYER_FOG: number = 8;
+const LAYER_SPECIAL3: number = 9;
+const LAYER_TILELABEL: number = 10;
+const LAYER_CITYBAR: number = 11;
 export const LAYER_GOTO: number = 12;
 export const LAYER_COUNT: number = 13;
 
@@ -89,13 +89,6 @@ export const LAYER_COUNT: number = 13;
 //var LAYER_EDITOR = ; (not in use)
 //var LAYER_GRID* = ; (not in use)
 
-/* An edge is the border between two tiles. This structure represents one
- * edge. The tiles are given in the same order as the enumeration name. */
-export const EDGE_NS: number = 0; /* North and south */
-export const EDGE_WE: number = 1; /* West and east */
-export const EDGE_UD: number = 2; /* Up and down (nw/se), for hex_width tilesets */
-export const EDGE_LR: number = 3; /* Left and right (ne/sw), for hex_height tilesets */
-export const EDGE_COUNT: number = 4;
 
 export const MATCH_NONE: number = 0;
 export const MATCH_SAME: number = 1;		/* "boolean" match */
@@ -105,24 +98,6 @@ export const MATCH_FULL: number = 3;
 export const CELL_WHOLE: number = 0;		/* entire tile */
 export const CELL_CORNER: number = 1;	/* corner of tile */
 
-/* Darkness style. Don't reorder this enum since tilesets depend on it. */
-/* No darkness _w.sprites are drawn. */
-export const DARKNESS_NONE: number = 0;
-
-/* 1 sprite that is split into 4 parts and treated as a darkness4. Only
- * works in iso-view. */
-export const DARKNESS_ISORECT: number = 1;
-
-/* 4 _w.sprites, one per direction. More than one sprite per tile may be
- * drawn. */
-export const DARKNESS_CARD_SINGLE: number = 2;
-
-/* 15=2^4-1 _w.sprites. A single sprite is drawn, chosen based on whether
- * there's darkness in _each_ of the cardinal directions. */
-export const DARKNESS_CARD_FULL: number = 3;
-
-/* Corner darkness & fog. 3^4 = 81 _w.sprites. */
-export const DARKNESS_CORNER: number = 4;
 
 let terrain_match: { [key: string]: number } = {
   "t.l0.hills1": MATCH_NONE,
@@ -135,7 +110,7 @@ let terrain_match: { [key: string]: number } = {
 /**************************************************************************
   Returns true iff the _w.tileset has graphics for the specified tag.
 **************************************************************************/
-export function tileset_has_tag(tagname: string): boolean {
+function tileset_has_tag(tagname: string): boolean {
   return (_w.sprites[tagname] != null);
 }
 
@@ -167,7 +142,7 @@ export function tileset_ruleset_entity_tag_str_or_alt(entity: any, kind_name: st
   Returns the tag name of the graphic showing the specified Extra on the
   map.
 **************************************************************************/
-export function tileset_extra_graphic_tag(extra: any): string | null {
+function tileset_extra_graphic_tag(extra: any): string | null {
   return tileset_ruleset_entity_tag_str_or_alt(extra, "extra");
 }
 
@@ -190,7 +165,7 @@ export function tileset_unit_type_graphic_tag(utype: any): string | null {
 /**************************************************************************
   Returns the tag name of the graphic for the unit.
 **************************************************************************/
-export function tileset_unit_graphic_tag(punit: any): string | null {
+function tileset_unit_graphic_tag(punit: any): string | null {
   /* Currently always uses the default "_Idle" sprite */
   return tileset_unit_type_graphic_tag(unit_type(punit));
 }
@@ -213,7 +188,7 @@ export function tileset_tech_graphic_tag(ptech: any): string | null {
   Returns the tag name of the graphic showing the Extra specified by ID on
   the map.
 **************************************************************************/
-export function tileset_extra_id_graphic_tag(extra_id: number): string | null {
+function tileset_extra_id_graphic_tag(extra_id: number): string | null {
   return tileset_extra_graphic_tag(store.extras[extra_id]);
 }
 
@@ -221,7 +196,7 @@ export function tileset_extra_id_graphic_tag(extra_id: number): string | null {
   Returns the tag name of the graphic showing that a unit is building the
   specified Extra.
 **************************************************************************/
-export function tileset_extra_activity_graphic_tag(extra: any): string | null {
+function tileset_extra_activity_graphic_tag(extra: any): string | null {
   if (extra == null) {
     console.log("No extra to return tag for.");
     return null;
@@ -248,7 +223,7 @@ export function tileset_extra_activity_graphic_tag(extra: any): string | null {
   Returns the tag name of the graphic showing that a unit is building the
   Extra specified by the id.
 **************************************************************************/
-export function tileset_extra_id_activity_graphic_tag(extra_id: number): string | null {
+function tileset_extra_id_activity_graphic_tag(extra_id: number): string | null {
   return tileset_extra_activity_graphic_tag(store.extras[extra_id]);
 }
 
@@ -256,7 +231,7 @@ export function tileset_extra_id_activity_graphic_tag(extra_id: number): string 
   Returns the tag name of the graphic showing that a unit is removing the
   specified Extra.
 **************************************************************************/
-export function tileset_extra_rmactivity_graphic_tag(extra: any): string | null {
+function tileset_extra_rmactivity_graphic_tag(extra: any): string | null {
   if (extra == null) {
     console.log("No extra to return tag for.");
     return null;
@@ -283,7 +258,7 @@ export function tileset_extra_rmactivity_graphic_tag(extra: any): string | null 
   Returns the tag name of the graphic showing that a unit is removing the
   Extra specified by the id.
 **************************************************************************/
-export function tileset_extra_id_rmactivity_graphic_tag(extra_id: number): string | null {
+function tileset_extra_id_rmactivity_graphic_tag(extra_id: number): string | null {
   return tileset_extra_rmactivity_graphic_tag(store.extras[extra_id]);
 }
 
@@ -546,7 +521,7 @@ export function fill_sprite_array(layer: number, ptile: any, pedge: any, pcorner
   Add _w.sprites for the base tile to the sprite list. This doesn't
   include specials or rivers.
 ****************************************************************************/
-export function fill_terrain_sprite_layer(layer_num: number, ptile: any, pterrain: any, tterrain_near: any): any[] {
+function fill_terrain_sprite_layer(layer_num: number, ptile: any, pterrain: any, tterrain_near: any): any[] {
   /* FIXME: handle blending and darkness. */
 
   return fill_terrain_sprite_array(layer_num, ptile, pterrain, tterrain_near);
@@ -556,7 +531,7 @@ export function fill_terrain_sprite_layer(layer_num: number, ptile: any, pterrai
 /****************************************************************************
   Helper function for fill_terrain_sprite_layer.
 ****************************************************************************/
-export function fill_terrain_sprite_array(l: number, ptile: any, pterrain: any, tterrain_near: any): any[] {
+function fill_terrain_sprite_array(l: number, ptile: any, pterrain: any, tterrain_near: any): any[] {
   if (pterrain == null) return [];
 
   if (tile_types_setup["l" + l + "." + pterrain['graphic_str']] == null) {
@@ -700,24 +675,11 @@ export function fill_terrain_sprite_array(l: number, ptile: any, pterrain: any, 
 /**********************************************************************
   Determine the sprite_type string.
 ***********************************************************************/
-export function check_sprite_type(sprite_type: string): number {
-  if (sprite_type == "corner") {
-    return CELL_CORNER;
-  }
-  if (sprite_type == "single") {
-    return CELL_WHOLE;
-  }
-  if (sprite_type == "whole") {
-    return CELL_WHOLE;
-  }
-  return CELL_WHOLE;
-}
-
 
 /**************************************************************************
  ...
 **************************************************************************/
-export function fill_unit_sprite_array(punit: any, stacked: boolean, backdrop: boolean): any[] {
+function fill_unit_sprite_array(punit: any, stacked: boolean, backdrop: boolean): any[] {
   const unit_offset = get_unit_anim_offset(punit);
   const result: any[] = [get_unit_nation_flag_sprite(punit),
   {
@@ -757,7 +719,7 @@ export function fill_unit_sprite_array(punit: any, stacked: boolean, backdrop: b
   Return the _w.tileset name of the direction. This is similar to
   dir_get_name but you shouldn't change this or all tilesets will break.
 **************************************************************************/
-export function dir_get_tileset_name(dir: number): string {
+function dir_get_tileset_name(dir: number): string {
   switch (dir) {
     case DIR8_NORTH:
       return "n";
@@ -786,7 +748,7 @@ export function dir_get_tileset_name(dir: number): string {
   binary value 1000 will be converted into "n1e0s0w0". This is in a
   clockwise ordering.
 ****************************************************************************/
-export function cardinal_index_str(idx: number): string {
+function cardinal_index_str(idx: number): string {
   let c = "";
 
   for (let i = 0; i < num_cardinal_tileset_dirs; i++) {
@@ -821,7 +783,7 @@ export function get_city_flag_sprite(pcity: any): any {
 /***********************************************************************
   Return the flag graphic to be used by the base on tile
 ***********************************************************************/
-export function get_base_flag_sprite(ptile: any): any {
+function get_base_flag_sprite(ptile: any): any {
   const owner_id = ptile['extras_owner'];
   if (owner_id == null) return {};
   const owner = store.players[owner_id];
@@ -862,7 +824,7 @@ export function get_city_occupied_sprite(pcity: any): string {
 /***********************************************************************
   ...
 ***********************************************************************/
-export function get_city_food_output_sprite(num: number): any {
+function get_city_food_output_sprite(num: number): any {
   return {
     "key": "city.t_food_" + num,
     "offset_x": normal_tile_width / 4,
@@ -873,7 +835,7 @@ export function get_city_food_output_sprite(num: number): any {
 /***********************************************************************
 ...
 ***********************************************************************/
-export function get_city_shields_output_sprite(num: number): any {
+function get_city_shields_output_sprite(num: number): any {
   return {
     "key": "city.t_shields_" + num,
     "offset_x": normal_tile_width / 4,
@@ -884,7 +846,7 @@ export function get_city_shields_output_sprite(num: number): any {
 /***********************************************************************
 ...
 ***********************************************************************/
-export function get_city_trade_output_sprite(num: number): any {
+function get_city_trade_output_sprite(num: number): any {
   return {
     "key": "city.t_trade_" + num,
     "offset_x": normal_tile_width / 4,
@@ -896,7 +858,7 @@ export function get_city_trade_output_sprite(num: number): any {
 /***********************************************************************
   Return the sprite for an invalid city worked tile.
 ***********************************************************************/
-export function get_city_invalid_worked_sprite(): any {
+function get_city_invalid_worked_sprite(): any {
   return {
     "key": "grid.unavailable",
     "offset_x": 0,
@@ -908,14 +870,14 @@ export function get_city_invalid_worked_sprite(): any {
 /***********************************************************************
 ...
 ***********************************************************************/
-export function fill_goto_line_sprite_array(ptile: any): any {
+function fill_goto_line_sprite_array(ptile: any): any {
   return { "key": "goto_line", "goto_dir": ptile['goto_dir'] };
 }
 
 /***********************************************************************
 ...
 ***********************************************************************/
-export function get_border_line_sprites(ptile: any): any[] {
+function get_border_line_sprites(ptile: any): any[] {
   const result: any[] = [];
 
   for (let i = 0; i < num_cardinal_tileset_dirs; i++) {
@@ -942,7 +904,7 @@ export function get_border_line_sprites(ptile: any): any[] {
 /***********************************************************************
   ...
 ***********************************************************************/
-export function get_unit_nation_flag_sprite(punit: any): any {
+function get_unit_nation_flag_sprite(punit: any): any {
   const owner_id = punit['owner'];
 
   if ((unit_type(punit) as any)?.['flags']?.isSet?.(UTYF_FLAGLESS)
@@ -966,24 +928,7 @@ export function get_unit_nation_flag_sprite(punit: any): any {
 /***********************************************************************
   ...
 ***********************************************************************/
-export function get_unit_nation_flag_normal_sprite(punit: any): any {
-  const owner_id = punit['owner'];
-  const owner = store.players[owner_id];
-  const nation_id = owner['nation'];
-  const nation = store.nations[nation_id];
-  const unit_offset = get_unit_anim_offset(punit);
-
-  return {
-    "key": "f." + nation['graphic_str'],
-    "offset_x": unit_flag_offset_x + unit_offset['x'],
-    "offset_y": - unit_flag_offset_y + unit_offset['y']
-  };
-}
-
-/***********************************************************************
-  ...
-***********************************************************************/
-export function get_unit_stack_sprite(punit?: any): any {
+function get_unit_stack_sprite(punit?: any): any {
   return {
     "key": "unit.stack",
     "offset_x": unit_flag_offset_x + -25,
@@ -994,7 +939,7 @@ export function get_unit_stack_sprite(punit?: any): any {
 /***********************************************************************
   ...
 ***********************************************************************/
-export function get_unit_hp_sprite(punit: any): any {
+function get_unit_hp_sprite(punit: any): any {
   const hp = punit['hp'];
   const utype = unit_type(punit);
   const max_hp = utype?.['hp'] ?? 1;
@@ -1011,7 +956,7 @@ export function get_unit_hp_sprite(punit: any): any {
 /***********************************************************************
   ...
 ***********************************************************************/
-export function get_unit_veteran_sprite(punit: any): any {
+function get_unit_veteran_sprite(punit: any): any {
   return {
     "key": "unit.vet_" + punit['veteran'],
     "offset_x": unit_activity_offset_x - 20,
@@ -1022,7 +967,7 @@ export function get_unit_veteran_sprite(punit: any): any {
 /***********************************************************************
   ...
 ***********************************************************************/
-export function get_unit_activity_sprite(punit: any): any | null {
+function get_unit_activity_sprite(punit: any): any | null {
   if (punit['ssa_controller'] == SSA_AUTOEXPLORE) {
     // FIXME: Currently can't have SSA_AUTOEXPLORE sprite with activity _w.sprites
     return null;
@@ -1151,7 +1096,7 @@ export function get_unit_activity_sprite(punit: any): any | null {
 /***********************************************************************
   ...
 ***********************************************************************/
-export function get_unit_agent_sprite(punit: any): any | null {
+function get_unit_agent_sprite(punit: any): any | null {
   switch (punit['ssa_controller']) {
     case SSA_NONE:
       break;
@@ -1179,7 +1124,7 @@ export function get_unit_agent_sprite(punit: any): any | null {
 
   See also load_city_sprite, free_city_sprite.
 ****************************************************************************/
-export function get_city_sprite(pcity: any): any {
+function get_city_sprite(pcity: any): any {
   let style_id = pcity['style'];
   if (style_id == -1) style_id = 0;   /* Sometimes a player has no city_style. */
   const city_rule = city_rules[style_id];
@@ -1209,7 +1154,7 @@ export function get_city_sprite(pcity: any): any {
 /****************************************************************************
   Add _w.sprites for fog (and some forms of darkness).
 ****************************************************************************/
-export function fill_fog_sprite_array(ptile: any, pedge: any, pcorner: any): any[] {
+function fill_fog_sprite_array(ptile: any, pedge: any, pcorner: any): any[] {
 
   let i, tileno = 0;
 
@@ -1246,7 +1191,7 @@ export function fill_fog_sprite_array(ptile: any, pedge: any, pcorner: any): any
 /****************************************************************************
  ...
 ****************************************************************************/
-export function get_select_sprite(): any {
+function get_select_sprite(): any {
   // update selected unit sprite 6 times a second.
   current_select_sprite = (Math.floor(new Date().getTime() * 6 / 1000) % max_select_sprite);
   return { "key": "unit.select" + current_select_sprite };
@@ -1255,7 +1200,7 @@ export function get_select_sprite(): any {
 /****************************************************************************
  ...
 ****************************************************************************/
-export function get_city_info_text(pcity: any): any {
+function get_city_info_text(pcity: any): any {
   return {
     "key": "city_text", "city": pcity,
     "offset_x": citybar_offset_x, "offset_y": citybar_offset_y
@@ -1265,7 +1210,7 @@ export function get_city_info_text(pcity: any): any {
 /****************************************************************************
  ...
 ****************************************************************************/
-export function get_tile_label_text(ptile: any): any {
+function get_tile_label_text(ptile: any): any {
   return {
     "key": "tile_label", "tile": ptile,
     "offset_x": tilelabel_offset_x, "offset_y": tilelabel_offset_y
@@ -1275,7 +1220,7 @@ export function get_tile_label_text(ptile: any): any {
 /****************************************************************************
  ...
 ****************************************************************************/
-export function get_tile_specials_sprite(ptile: any): any | null {
+function get_tile_specials_sprite(ptile: any): any | null {
   const extra_id = tile_resource(ptile);
 
   if (extra_id !== null) {
@@ -1290,7 +1235,7 @@ export function get_tile_specials_sprite(ptile: any): any | null {
 /****************************************************************************
  ...
 ****************************************************************************/
-export function get_tile_river_sprite(ptile: any): any | null {
+function get_tile_river_sprite(ptile: any): any | null {
   if (ptile == null) {
     return null;
   }
@@ -1442,29 +1387,6 @@ export function get_technology_image_sprite(ptech: any): any | null {
 /****************************************************************************
  ...
 ****************************************************************************/
-export function get_nation_flag_sprite(pnation: any): any | null {
-  const tag = "f." + pnation['graphic_str'];
-
-  if (_w.tileset[tag] == null) return null;
-
-  const tileset_x = _w.tileset[tag][0];
-  const tileset_y = _w.tileset[tag][1];
-  const width = _w.tileset[tag][2];
-  const height = _w.tileset[tag][3];
-  const i = _w.tileset[tag][4];
-  return {
-    "tag": tag,
-    "image-src": "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i + getTilesetFileExtension() + "?ts=" + _w.ts,
-    "tileset-x": tileset_x,
-    "tileset-y": tileset_y,
-    "width": width,
-    "height": height
-  };
-}
-
-/****************************************************************************
- ...
-****************************************************************************/
 export function get_treaty_agree_thumb_up(): any {
   const tag = "treaty.agree_thumb_up";
 
@@ -1511,7 +1433,7 @@ export function get_treaty_disagree_thumb_down(): any {
     - Support generic road types
     - Properly support generic extra hiding properties
 ****************************************************************************/
-export function fill_path_sprite_array(ptile: any, pcity: any): any[] {
+function fill_path_sprite_array(ptile: any, pcity: any): any[] {
   const rs_maglev = typeof _w.EXTRA_MAGLEV !== 'undefined';
   const road = tile_has_extra(ptile, _w.EXTRA_ROAD);
   const rail = tile_has_extra(ptile, _w.EXTRA_RAIL);
@@ -1561,7 +1483,7 @@ export function fill_path_sprite_array(ptile: any, pcity: any): any[] {
 /**************************************************************************
   Fill layer 1 sprite array (fortress background).
 **************************************************************************/
-export function fill_layer1_sprite_array(ptile: any, pcity: any): any[] {
+function fill_layer1_sprite_array(ptile: any, pcity: any): any[] {
   const result_sprites: any[] = [];
 
   if (pcity == null) {
@@ -1577,7 +1499,7 @@ export function fill_layer1_sprite_array(ptile: any, pcity: any): any[] {
 /**************************************************************************
   Fill layer 2 sprite array (airbase, buoy, ruins).
 **************************************************************************/
-export function fill_layer2_sprite_array(ptile: any, pcity: any): any[] {
+function fill_layer2_sprite_array(ptile: any, pcity: any): any[] {
   const result_sprites: any[] = [];
 
   if (pcity == null) {
@@ -1602,7 +1524,7 @@ export function fill_layer2_sprite_array(ptile: any, pcity: any): any[] {
 /**************************************************************************
   Fill layer 3 sprite array (fortress foreground).
 **************************************************************************/
-export function fill_layer3_sprite_array(ptile: any, pcity: any): any[] {
+function fill_layer3_sprite_array(ptile: any, pcity: any): any[] {
   const result_sprites: any[] = [];
 
   if (pcity == null) {
@@ -1655,25 +1577,6 @@ export function assign_nation_color(nation_id: number): void {
   nation['color'] = max_color;
 }
 
-/**************************************************************************
-  Check if two colors are too similar.
-**************************************************************************/
-export function is_color_collision(color_a: string | null, color_b: string | null): boolean {
-  const distance_threshold = 20;
-
-  if (color_a == null || color_b == null) return false;
-
-  const pcolor_a = color_rbg_to_list(color_a);
-  const pcolor_b = color_rbg_to_list(color_b);
-  if (!pcolor_a || !pcolor_b) return false;
-
-  const color_distance = Math.sqrt(
-    Math.pow(pcolor_a[0] - pcolor_b[0], 2)
-    + Math.pow(pcolor_a[1] - pcolor_b[1], 2)
-    + Math.pow(pcolor_a[2] - pcolor_b[2], 2));
-
-  return (color_distance <= distance_threshold);
-}
 
 /**************************************************************************
   Convert RGB color string to number array.
