@@ -14,7 +14,13 @@ import {
 } from './cityDialogState';
 import { send_city_change } from './cityDialog';
 
-declare const $: any;
+function byId(id: string): HTMLElement | null { return document.getElementById(id); }
+function setHtml(id: string, html: string): void { const el = byId(id); if (el) el.innerHTML = html; }
+function setHeight(id: string, px: number): void { const el = byId(id); if (el) el.style.height = px + 'px'; }
+function setBtnEnabled(id: string, enabled: boolean): void {
+  const el = byId(id) as HTMLButtonElement | null;
+  if (el) el.disabled = !enabled;
+}
 
 // Dummy function for external reference
 function get_unit_type_image_sprite(unit_type: any): any {}
@@ -79,23 +85,25 @@ export function city_worklist_dialog(pcity: any): void {
      + "<td class='prod_choice_cost'>" + universal['build_cost'] + "</td></tr>";
   }
   worklist_html += "</table>";
-  $("#city_current_worklist").html(worklist_html);
+  setHtml("city_current_worklist", worklist_html);
 
   populate_worklist_production_choices(pcity);
 
-  $('#show_unreachable_items').off('click');
-  $('#show_unreachable_items').click(function() {
-    set_opt_show_unreachable_items(!opt_show_unreachable_items);
-    $('#show_unreachable_items').prop('checked', opt_show_unreachable_items);
-    // TODO: properly update the selection only when needed,
-    //       instead of always emptying it.
-    if (production_selection.length !== 0) {
-      set_production_selection([]);
-      update_worklist_actions();
-    }
-    populate_worklist_production_choices(pcity);
-  });
-  $('#show_unreachable_items').prop('checked', opt_show_unreachable_items);
+  const showUnreachable = byId('show_unreachable_items') as HTMLInputElement | null;
+  if (showUnreachable) {
+    const newEl = showUnreachable.cloneNode(true) as HTMLInputElement;
+    showUnreachable.parentNode?.replaceChild(newEl, showUnreachable);
+    newEl.addEventListener('click', function() {
+      set_opt_show_unreachable_items(!opt_show_unreachable_items);
+      newEl.checked = opt_show_unreachable_items;
+      if (production_selection.length !== 0) {
+        set_production_selection([]);
+        update_worklist_actions();
+      }
+      populate_worklist_production_choices(pcity);
+    });
+    newEl.checked = opt_show_unreachable_items;
+  }
 
   set_worklist_dialog_active(true);
   const turns_to_complete: any = get_city_production_time(pcity);
@@ -118,50 +126,75 @@ export function city_worklist_dialog(pcity: any): void {
     headline += ", turns: " + turns_to_complete;
   }
 
-  $("#worklist_dialog_headline").html(headline + "</div>");
+  setHtml("worklist_dialog_headline", headline + "</div>");
 
-  $(".production_list_item_sub").tooltip();
+  // tooltip() was jQuery UI no-op; native title attribute already set
 
   if (is_touch_device()) {
-    $("#prod_buttons").html("<x-small>Click to change production, next clicks will add to worklist on mobile.</x-small>");
+    setHtml("prod_buttons", "<x-small>Click to change production, next clicks will add to worklist on mobile.</x-small>");
   }
 
-  $(".button").button();
+  // $(".button").button() was jQuery UI no-op
 
-  const tab_h: number = $("#city_production_tab").height();
-  $("#city_current_worklist").height(tab_h - 150);
-  $("#worklist_production_choices").height(tab_h - 121);
+  const tabEl = byId('city_production_tab');
+  const tab_h: number = tabEl ? tabEl.offsetHeight : 400;
+  setHeight("city_current_worklist", tab_h - 150);
+  setHeight("worklist_production_choices", tab_h - 121);
   /* TODO: remove all hacky sizing and positioning */
-  /* It would have been nice to use $("#city_current_worklist").position().top
-     for worklist_control padding-top, but that's 0 on first run.
-     73 is also wrong, as it depends on text size. */
-  if (tab_h > 250) {
-    $("#worklist_control").height(tab_h - 148).css("padding-top", 73);
-  } else {
-    $("#worklist_control").height(tab_h - 77);
+  const wlControl = byId('worklist_control');
+  if (wlControl) {
+    if (tab_h > 250) {
+      wlControl.style.height = (tab_h - 148) + 'px';
+      wlControl.style.paddingTop = '73px';
+    } else {
+      wlControl.style.height = (tab_h - 77) + 'px';
+    }
   }
 
-  const worklist_items: any = $("#city_current_worklist .prod_choice_list_item");
+  const worklistContainer = byId('city_current_worklist');
+  const worklist_items = worklistContainer
+    ? Array.from(worklistContainer.querySelectorAll('.prod_choice_list_item')) as HTMLElement[]
+    : [];
   const max_selection: number = Math.min(MAX_LEN_WORKLIST, worklist_items.length);
   for (let k = 0; k < worklist_selection.length; k++) {
     if (worklist_selection[k] >= max_selection) {
       worklist_selection.splice(k, worklist_selection.length - k);
       break;
     }
-    worklist_items.eq(worklist_selection[k]).addClass("ui-selected");
+    worklist_items[worklist_selection[k]]?.classList.add("ui-selected");
   }
 
   if (!is_touch_device()) {
-    $("#city_current_worklist .worklist_table").selectable({
-       filter: "tr",
-       selected: handle_current_worklist_select,
-       unselected: handle_current_worklist_unselect
+    // Replace jQuery UI selectable with click-based selection
+    worklist_items.forEach(item => {
+      item.addEventListener('click', function(e) {
+        if (e.ctrlKey || e.metaKey) {
+          // Toggle selection
+          if (item.classList.contains('ui-selected')) {
+            item.classList.remove('ui-selected');
+            handle_current_worklist_unselect(e, { unselected: item });
+          } else {
+            item.classList.add('ui-selected');
+            handle_current_worklist_select(e, { selected: item });
+          }
+        } else {
+          // Single select
+          worklist_items.forEach(el => el.classList.remove('ui-selected'));
+          item.classList.add('ui-selected');
+          set_worklist_selection([]);
+          handle_current_worklist_select(e, { selected: item });
+        }
+      });
     });
   } else {
-    worklist_items.click(handle_current_worklist_click);
+    worklist_items.forEach(item => {
+      item.addEventListener('click', handle_current_worklist_click.bind(item));
+    });
   }
 
-  worklist_items.dblclick(handle_current_worklist_direct_remove);
+  worklist_items.forEach(item => {
+    item.addEventListener('dblclick', handle_current_worklist_direct_remove.bind(item));
+  });
 
   update_worklist_actions();
 }
@@ -195,50 +228,72 @@ export function populate_worklist_production_choices(pcity: any): void {
   }
   production_html += "</table>";
 
-  $("#worklist_production_choices").html(production_html);
-  $("#worklist_production_choices .production_list_item_sub").tooltip();
+  setHtml("worklist_production_choices", production_html);
+  // tooltip() no-op — native title attribute already set
+
+  const choicesContainer = byId('worklist_production_choices');
+  const kindValueItems = choicesContainer
+    ? Array.from(choicesContainer.querySelectorAll('.kindvalue_item')) as HTMLElement[]
+    : [];
 
   if (!is_touch_device()) {
-    $("#worklist_production_choices .worklist_table").selectable({
-       filter: "tr",
-       selected: handle_worklist_select,
-       unselected: handle_worklist_unselect
+    // Replace jQuery UI selectable with click-based selection
+    kindValueItems.forEach(item => {
+      item.addEventListener('click', function(e) {
+        if (e.ctrlKey || e.metaKey) {
+          if (item.classList.contains('ui-selected')) {
+            item.classList.remove('ui-selected');
+            handle_worklist_unselect(e, { unselected: item });
+          } else {
+            item.classList.add('ui-selected');
+            handle_worklist_select(e, { selected: item });
+          }
+        } else {
+          kindValueItems.forEach(el => el.classList.remove('ui-selected'));
+          item.classList.add('ui-selected');
+          set_production_selection([]);
+          handle_worklist_select(e, { selected: item });
+        }
+      });
     });
 
     if (production_selection.length > 0) {
-      const prod_items: any = $("#worklist_production_choices .kindvalue_item");
-      const sel: string[] = [];
       production_selection.forEach(function (v: any) {
-        sel.push("[data-value='" + v.value + "']" +
-                 "[data-kind='"  + v.kind  + "']");
+        const match = choicesContainer?.querySelector(
+          "[data-value='" + v.value + "'][data-kind='" + v.kind + "']"
+        );
+        match?.classList.add("ui-selected");
       });
-      prod_items.filter(sel.join(",")).addClass("ui-selected");
     }
 
-    $(".kindvalue_item").dblclick(function(this: any) {
-      const value: number = parseFloat($(this).data('value'));
-      const kind: number = parseFloat($(this).data('kind'));
-      send_city_worklist_add(pcity['id'], kind, value);
+    kindValueItems.forEach(item => {
+      item.addEventListener('dblclick', function() {
+        const value = parseFloat(item.dataset.value || '0');
+        const kind = parseFloat(item.dataset.kind || '0');
+        send_city_worklist_add(pcity['id'], kind, value);
+      });
     });
   } else {
-    $(".kindvalue_item").click(function(this: any) {
-      const value: number = parseFloat($(this).data('value'));
-      const kind: number = parseFloat($(this).data('kind'));
-      if (city_prod_clicks == 0) {
-        send_city_change(pcity['id'], kind, value);
-      } else {
-        send_city_worklist_add(pcity['id'], kind, value);
-      }
-      set_city_prod_clicks(city_prod_clicks + 1);
-
+    kindValueItems.forEach(item => {
+      item.addEventListener('click', function() {
+        const value = parseFloat(item.dataset.value || '0');
+        const kind = parseFloat(item.dataset.kind || '0');
+        if (city_prod_clicks == 0) {
+          send_city_change(pcity['id'], kind, value);
+        } else {
+          send_city_worklist_add(pcity['id'], kind, value);
+        }
+        set_city_prod_clicks(city_prod_clicks + 1);
+      });
     });
   }
 }
 
 export function extract_universal(element: any): any {
+  const el = element as HTMLElement;
   return {
-    value: parseFloat($(element).data("value")),
-    kind:  parseFloat($(element).data("kind"))
+    value: parseFloat(el.dataset.value || el.getAttribute('data-value') || '0'),
+    kind:  parseFloat(el.dataset.kind || el.getAttribute('data-kind') || '0')
   };
 }
 
@@ -271,7 +326,7 @@ export function handle_worklist_unselect(event: any, ui: any): void {
 }
 
 export function handle_current_worklist_select(event: any, ui: any): void {
-  const idx: number = parseInt($(ui.selected).data('wlitem'), 10);
+  const idx: number = parseInt((ui.selected as HTMLElement).dataset.wlitem || '0', 10);
   let i: number = worklist_selection.length - 1;
   while (i >= 0 && worklist_selection[i] > idx)
     i--;
@@ -282,7 +337,7 @@ export function handle_current_worklist_select(event: any, ui: any): void {
 }
 
 export function handle_current_worklist_unselect(event: any, ui: any): void {
-  const idx: number = parseInt($(ui.unselected).data('wlitem'), 10);
+  const idx: number = parseInt((ui.unselected as HTMLElement).dataset.wlitem || '0', 10);
   let i: number = worklist_selection.length - 1;
   while (i >= 0 && worklist_selection[i] > idx)
     i--;
@@ -295,15 +350,19 @@ export function handle_current_worklist_unselect(event: any, ui: any): void {
 export function handle_current_worklist_click(this: any, event: any): void {
   event.stopPropagation();
 
-  const element: any = $(this);
-  const item: number = parseInt(element.data('wlitem'), 10);
+  const element = this as HTMLElement;
+  const item: number = parseInt(element.dataset.wlitem || '0', 10);
 
   if (worklist_selection.length === 1 && worklist_selection[0] === item) {
-     element.removeClass('ui-selected');
+     element.classList.remove('ui-selected');
      set_worklist_selection([]);
   } else {
-     element.siblings().removeClass('ui-selected');
-     element.addClass('ui-selected');
+     // Remove ui-selected from siblings
+     const parent = element.parentElement;
+     if (parent) {
+       parent.querySelectorAll('.ui-selected').forEach(el => el.classList.remove('ui-selected'));
+     }
+     element.classList.add('ui-selected');
      set_worklist_selection([item]);
   }
 
@@ -312,44 +371,44 @@ export function handle_current_worklist_click(this: any, event: any): void {
 
 export function update_worklist_actions(): void {
   if (worklist_selection.length > 0) {
-    $("#city_worklist_up_btn").button("enable");
-    $("#city_worklist_remove_btn").button("enable");
+    setBtnEnabled("city_worklist_up_btn", true);
+    setBtnEnabled("city_worklist_remove_btn", true);
 
     if (worklist_selection[worklist_selection.length - 1] ===
         active_city['worklist'].length - 1) {
-      $("#city_worklist_down_btn").button("disable");
+      setBtnEnabled("city_worklist_down_btn", false);
     } else {
-      $("#city_worklist_down_btn").button("enable");
+      setBtnEnabled("city_worklist_down_btn", true);
     }
 
   } else {
-    $("#city_worklist_up_btn").button("disable");
-    $("#city_worklist_down_btn").button("disable");
-    $("#city_worklist_exchange_btn").button("disable");
-    $("#city_worklist_remove_btn").button("disable");
+    setBtnEnabled("city_worklist_up_btn", false);
+    setBtnEnabled("city_worklist_down_btn", false);
+    setBtnEnabled("city_worklist_exchange_btn", false);
+    setBtnEnabled("city_worklist_remove_btn", false);
   }
 
   if (production_selection.length > 0) {
-    $("#city_add_to_worklist_btn").button("enable");
-    $("#city_worklist_insert_btn").button("enable");
+    setBtnEnabled("city_add_to_worklist_btn", true);
+    setBtnEnabled("city_worklist_insert_btn", true);
 
     if (production_selection.length == worklist_selection.length ||
         worklist_selection.length == 1) {
-      $("#city_worklist_exchange_btn").button("enable");
+      setBtnEnabled("city_worklist_exchange_btn", true);
     } else {
-      $("#city_worklist_exchange_btn").button("disable");
+      setBtnEnabled("city_worklist_exchange_btn", false);
     }
 
   } else {
-    $("#city_add_to_worklist_btn").button("disable");
-    $("#city_worklist_insert_btn").button("disable");
-    $("#city_worklist_exchange_btn").button("disable");
+    setBtnEnabled("city_add_to_worklist_btn", false);
+    setBtnEnabled("city_worklist_insert_btn", false);
+    setBtnEnabled("city_worklist_exchange_btn", false);
   }
 
   if (production_selection.length === 1) {
-    $("#city_change_production_btn").button("enable");
+    setBtnEnabled("city_change_production_btn", true);
   } else {
-    $("#city_change_production_btn").button("disable");
+    setBtnEnabled("city_change_production_btn", false);
   }
 }
 
@@ -392,7 +451,7 @@ export function city_add_to_worklist(): void {
 }
 
 export function handle_current_worklist_direct_remove(this: any): void {
-  const idx: number = parseInt($(this).data('wlitem'), 10);
+  const idx: number = parseInt((this as HTMLElement).dataset.wlitem || '0', 10);
   active_city['worklist'].splice(idx, 1);
 
   // User may dblclick a task while having other selected

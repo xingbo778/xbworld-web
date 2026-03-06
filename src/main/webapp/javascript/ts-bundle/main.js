@@ -4682,11 +4682,11 @@ function loadWikiDocs() {
 const freeciv_wiki_docs = new Proxy({}, {
   get: (_target, prop) => (window.freeciv_wiki_docs || {})[prop]
 });
-function byId$1(id) {
+function byId$2(id) {
   return document.getElementById(id);
 }
-function setHtml$1(id, html) {
-  const el = byId$1(id);
+function setHtml$2(id, html) {
+  const el = byId$2(id);
   if (el) el.innerHTML = html;
 }
 const techs = {};
@@ -4714,7 +4714,7 @@ const bulbs_output_updater = new EventAggregator(
 );
 function init_tech_screen() {
   if (isSmallScreen()) tech_canvas_text_font = "20px Arial";
-  const techEl = byId$1("technologies");
+  const techEl = byId$2("technologies");
   if (techEl) {
     techEl.style.width = window.innerWidth - 20 + "px";
     techEl.style.height = window.innerHeight - techEl.getBoundingClientRect().top - 15 + "px";
@@ -4748,11 +4748,11 @@ function init_tech_screen() {
     if (tech_canvas_ctx) {
       tech_canvas_ctx.scale(0.6, 0.6);
     }
-    const trt = byId$1("tech_result_text");
+    const trt = byId$2("tech_result_text");
     if (trt) trt.style.fontSize = "85%";
-    const tch = byId$1("tech_color_help");
+    const tch = byId$2("tech_color_help");
     if (tch) tch.style.fontSize = "65%";
-    const tpb = byId$1("tech_progress_box");
+    const tpb = byId$2("tech_progress_box");
     if (tpb) tpb.style.paddingLeft = "10px";
   }
   is_tech_tree_init = true;
@@ -4881,17 +4881,17 @@ function update_tech_screen() {
   if (techs[clientPlaying()["tech_goal"]] != null) {
     research_goal_text = research_goal_text + "<br>Research Goal: " + techs[clientPlaying()["tech_goal"]]["name"];
   }
-  setHtml$1("tech_goal_box", research_goal_text);
-  setHtml$1("tech_progress_text", "Research progress: " + clientPlaying()["bulbs_researched"] + " / " + clientPlaying()["researching_cost"]);
+  setHtml$2("tech_goal_box", research_goal_text);
+  setHtml$2("tech_progress_text", "Research progress: " + clientPlaying()["bulbs_researched"] + " / " + clientPlaying()["researching_cost"]);
   const pct_progress = 100 * (clientPlaying()["bulbs_researched"] / clientPlaying()["researching_cost"]);
-  const progressFg = byId$1("progress_fg");
+  const progressFg = byId$2("progress_fg");
   if (progressFg) progressFg.style.width = pct_progress + "%";
   if (clicked_tech_id != null) {
-    setHtml$1("tech_result_text", "<span id='tech_advance_helptext'>" + get_advances_text(clicked_tech_id) + "</span>");
+    setHtml$2("tech_result_text", "<span id='tech_advance_helptext'>" + get_advances_text(clicked_tech_id) + "</span>");
   } else if (techs[clientPlaying()["researching"]] != null) {
-    setHtml$1("tech_result_text", "<span id='tech_advance_helptext'>" + get_advances_text(clientPlaying()["researching"]) + "</span>");
+    setHtml$2("tech_result_text", "<span id='tech_advance_helptext'>" + get_advances_text(clientPlaying()["researching"]) + "</span>");
   }
-  const techTabItem = byId$1("tech_tab_item");
+  const techTabItem = byId$2("tech_tab_item");
   if (techTabItem) techTabItem.style.color = "#000000";
   maxleft = maxleft - 280;
   if (maxleft < 0) maxleft = 0;
@@ -4916,12 +4916,12 @@ function get_advances_text(tech_id) {
   ) + ".";
 }
 function scroll_tech_tree() {
-  const el = byId$1("technologies");
+  const el = byId$2("technologies");
   if (el) el.scrollLeft = maxleft;
 }
 function send_player_research(tech_id) {
   sendPlayerResearch(tech_id);
-  byId$1("tech_dialog")?.remove();
+  byId$2("tech_dialog")?.remove();
 }
 function send_player_tech_goal(tech_id) {
   sendPlayerTechGoal(tech_id);
@@ -4939,7 +4939,7 @@ function tech_mapview_mouse_click(e2) {
     rightclick = false;
   }
   if (rightclick) {
-    const techEl = byId$1("technologies");
+    const techEl = byId$2("technologies");
     if (techEl) {
       if (mouse_x > window.innerWidth / 2) {
         techEl.scrollLeft += 150;
@@ -4950,7 +4950,7 @@ function tech_mapview_mouse_click(e2) {
     return;
   }
   if (tech_canvas != null) {
-    const techEl = byId$1("technologies");
+    const techEl = byId$2("technologies");
     const rect = techEl.getBoundingClientRect();
     const tech_mouse_x = mouse_x - rect.left + techEl.scrollLeft;
     const tech_mouse_y = mouse_y - rect.top + techEl.scrollTop;
@@ -4999,7 +4999,7 @@ function queue_tech_gained_dialog(tech_gained_id) {
 }
 function show_tech_gained_dialog(tech_gained_id) {
   if (clientIsObserver() || C_S_RUNNING != clientState()) return;
-  const tti = byId$1("tech_tab_item");
+  const tti = byId$2("tech_tab_item");
   if (tti) tti.style.color = "#aa0000";
   const pplayer = clientPlaying();
   const tech = techs[tech_gained_id];
@@ -5021,7 +5021,7 @@ function show_tech_gained_dialog(tech_gained_id) {
     if (html) message += html;
   }
   message += "</div>";
-  byId$1("tech_dialog")?.remove();
+  byId$2("tech_dialog")?.remove();
   const dlg = document.createElement("div");
   dlg.id = "tech_dialog";
   dlg.style.cssText = "position:fixed;z-index:5000;background:#222;border:1px solid #555;padding:16px;top:10%;left:50%;transform:translateX(-50%);width:" + (isSmallScreen() ? "90%" : "60%") + ";max-height:80vh;overflow-y:auto;color:#fff;";
@@ -5038,7 +5038,7 @@ function show_tech_gained_dialog(tech_gained_id) {
   closeBtn.textContent = "Close";
   closeBtn.addEventListener("click", function() {
     dlg.remove();
-    byId$1("game_text_input")?.blur();
+    byId$2("game_text_input")?.blur();
   });
   const treeBtn = document.createElement("button");
   treeBtn.textContent = "Show Technology Tree";
@@ -5050,12 +5050,12 @@ function show_tech_gained_dialog(tech_gained_id) {
   btnContainer.appendChild(closeBtn);
   btnContainer.appendChild(treeBtn);
   dlg.appendChild(btnContainer);
-  byId$1("game_page")?.appendChild(dlg);
-  byId$1("game_text_input")?.blur();
+  byId$2("game_page")?.appendChild(dlg);
+  byId$2("game_text_input")?.blur();
 }
 function show_tech_info_dialog(tech_name, unit_type_id, improvement_id) {
   loadWikiDocs();
-  const tti = byId$1("tech_tab_item");
+  const tti = byId$2("tech_tab_item");
   if (tti) tti.style.color = "#aa0000";
   let message = "";
   if (unit_type_id != null) {
@@ -5070,7 +5070,7 @@ function show_tech_info_dialog(tech_name, unit_type_id, improvement_id) {
     }
     message += freeciv_wiki_docs[tech_name]["summary"];
   }
-  byId$1("wiki_dialog")?.remove();
+  byId$2("wiki_dialog")?.remove();
   const dlg = document.createElement("div");
   dlg.id = "wiki_dialog";
   dlg.style.cssText = "position:fixed;z-index:5000;background:#222;border:1px solid #555;padding:16px;top:10%;left:50%;transform:translateX(-50%);width:" + (isSmallScreen() ? "95%" : "70%") + ";height:" + (window.innerHeight - 60) + "px;overflow-y:auto;color:#fff;";
@@ -5088,13 +5088,13 @@ function show_tech_info_dialog(tech_name, unit_type_id, improvement_id) {
     dlg.remove();
   });
   dlg.appendChild(okBtn);
-  byId$1("game_page")?.appendChild(dlg);
-  byId$1("game_text_input")?.blur();
+  byId$2("game_page")?.appendChild(dlg);
+  byId$2("game_text_input")?.blur();
 }
 function update_tech_dialog_cursor() {
   if (!tech_canvas) return;
   tech_canvas.style.cursor = "default";
-  const techEl = byId$1("technologies");
+  const techEl = byId$2("technologies");
   const rect = techEl.getBoundingClientRect();
   const tech_mouse_x = mouse_x - rect.left + techEl.scrollLeft;
   const tech_mouse_y = mouse_y - rect.top + techEl.scrollTop;
@@ -5115,7 +5115,7 @@ function update_tech_dialog_cursor() {
       } else {
         tech_canvas.style.cursor = "not-allowed";
       }
-      setHtml$1("tech_result_text", "<span id='tech_advance_helptext'>" + get_advances_text(ptech["id"]) + "</span>");
+      setHtml$2("tech_result_text", "<span id='tech_advance_helptext'>" + get_advances_text(ptech["id"]) + "</span>");
     }
   }
 }
@@ -9604,6 +9604,21 @@ function set_city_prod_clicks(v2) {
 function set_opt_show_unreachable_items(v2) {
   opt_show_unreachable_items = v2;
 }
+function byId$1(id) {
+  return document.getElementById(id);
+}
+function setHtml$1(id, html) {
+  const el = byId$1(id);
+  if (el) el.innerHTML = html;
+}
+function setHeight(id, px) {
+  const el = byId$1(id);
+  if (el) el.style.height = px + "px";
+}
+function setBtnEnabled(id, enabled) {
+  const el = byId$1(id);
+  if (el) el.disabled = !enabled;
+}
 function get_unit_type_image_sprite$1(unit_type2) {
 }
 function city_worklist_dialog(pcity) {
@@ -9656,19 +9671,23 @@ function city_worklist_dialog(pcity) {
     worklist_html += "<tr class='prod_choice_list_item" + (canCityBuildNow(pcity, universal["kind"], universal["value"]) ? "" : " cannot_build_item") + "' data-wlitem='" + j2 + `'  title="` + universal["helptext"] + `"><td><div class='production_list_item_sub' style=' background: transparent url(` + sprite["image-src"] + ");background-position:-" + sprite["tileset-x"] + "px -" + sprite["tileset-y"] + "px;  width: " + sprite["width"] + "px;height: " + sprite["height"] + "px;'></div></td><td class='prod_choice_name'>" + universal["name"] + "</td><td class='prod_choice_cost'>" + universal["build_cost"] + "</td></tr>";
   }
   worklist_html += "</table>";
-  $("#city_current_worklist").html(worklist_html);
+  setHtml$1("city_current_worklist", worklist_html);
   populate_worklist_production_choices(pcity);
-  $("#show_unreachable_items").off("click");
-  $("#show_unreachable_items").click(function() {
-    set_opt_show_unreachable_items(!opt_show_unreachable_items);
-    $("#show_unreachable_items").prop("checked", opt_show_unreachable_items);
-    if (production_selection.length !== 0) {
-      set_production_selection([]);
-      update_worklist_actions();
-    }
-    populate_worklist_production_choices(pcity);
-  });
-  $("#show_unreachable_items").prop("checked", opt_show_unreachable_items);
+  const showUnreachable = byId$1("show_unreachable_items");
+  if (showUnreachable) {
+    const newEl = showUnreachable.cloneNode(true);
+    showUnreachable.parentNode?.replaceChild(newEl, showUnreachable);
+    newEl.addEventListener("click", function() {
+      set_opt_show_unreachable_items(!opt_show_unreachable_items);
+      newEl.checked = opt_show_unreachable_items;
+      if (production_selection.length !== 0) {
+        set_production_selection([]);
+        update_worklist_actions();
+      }
+      populate_worklist_production_choices(pcity);
+    });
+    newEl.checked = opt_show_unreachable_items;
+  }
   const turns_to_complete = getCityProductionTime(pcity);
   const prod_type = getCityProductionTypeSprite(pcity);
   let prod_img_html = "";
@@ -9680,39 +9699,60 @@ function city_worklist_dialog(pcity) {
   if (turns_to_complete != FC_INFINITY) {
     headline += ", turns: " + turns_to_complete;
   }
-  $("#worklist_dialog_headline").html(headline + "</div>");
-  $(".production_list_item_sub").tooltip();
+  setHtml$1("worklist_dialog_headline", headline + "</div>");
   if (isTouchDevice()) {
-    $("#prod_buttons").html("<x-small>Click to change production, next clicks will add to worklist on mobile.</x-small>");
+    setHtml$1("prod_buttons", "<x-small>Click to change production, next clicks will add to worklist on mobile.</x-small>");
   }
-  $(".button").button();
-  const tab_h = $("#city_production_tab").height();
-  $("#city_current_worklist").height(tab_h - 150);
-  $("#worklist_production_choices").height(tab_h - 121);
-  if (tab_h > 250) {
-    $("#worklist_control").height(tab_h - 148).css("padding-top", 73);
-  } else {
-    $("#worklist_control").height(tab_h - 77);
+  const tabEl = byId$1("city_production_tab");
+  const tab_h = tabEl ? tabEl.offsetHeight : 400;
+  setHeight("city_current_worklist", tab_h - 150);
+  setHeight("worklist_production_choices", tab_h - 121);
+  const wlControl = byId$1("worklist_control");
+  if (wlControl) {
+    if (tab_h > 250) {
+      wlControl.style.height = tab_h - 148 + "px";
+      wlControl.style.paddingTop = "73px";
+    } else {
+      wlControl.style.height = tab_h - 77 + "px";
+    }
   }
-  const worklist_items = $("#city_current_worklist .prod_choice_list_item");
+  const worklistContainer = byId$1("city_current_worklist");
+  const worklist_items = worklistContainer ? Array.from(worklistContainer.querySelectorAll(".prod_choice_list_item")) : [];
   const max_selection = Math.min(MAX_LEN_WORKLIST, worklist_items.length);
   for (let k2 = 0; k2 < worklist_selection.length; k2++) {
     if (worklist_selection[k2] >= max_selection) {
       worklist_selection.splice(k2, worklist_selection.length - k2);
       break;
     }
-    worklist_items.eq(worklist_selection[k2]).addClass("ui-selected");
+    worklist_items[worklist_selection[k2]]?.classList.add("ui-selected");
   }
   if (!isTouchDevice()) {
-    $("#city_current_worklist .worklist_table").selectable({
-      filter: "tr",
-      selected: handle_current_worklist_select,
-      unselected: handle_current_worklist_unselect
+    worklist_items.forEach((item) => {
+      item.addEventListener("click", function(e2) {
+        if (e2.ctrlKey || e2.metaKey) {
+          if (item.classList.contains("ui-selected")) {
+            item.classList.remove("ui-selected");
+            handle_current_worklist_unselect(e2, { unselected: item });
+          } else {
+            item.classList.add("ui-selected");
+            handle_current_worklist_select(e2, { selected: item });
+          }
+        } else {
+          worklist_items.forEach((el) => el.classList.remove("ui-selected"));
+          item.classList.add("ui-selected");
+          set_worklist_selection([]);
+          handle_current_worklist_select(e2, { selected: item });
+        }
+      });
     });
   } else {
-    worklist_items.click(handle_current_worklist_click);
+    worklist_items.forEach((item) => {
+      item.addEventListener("click", handle_current_worklist_click.bind(item));
+    });
   }
-  worklist_items.dblclick(handle_current_worklist_direct_remove);
+  worklist_items.forEach((item) => {
+    item.addEventListener("dblclick", handle_current_worklist_direct_remove.bind(item));
+  });
   update_worklist_actions();
 }
 function populate_worklist_production_choices(pcity) {
@@ -9732,44 +9772,63 @@ function populate_worklist_production_choices(pcity) {
     }
   }
   production_html += "</table>";
-  $("#worklist_production_choices").html(production_html);
-  $("#worklist_production_choices .production_list_item_sub").tooltip();
+  setHtml$1("worklist_production_choices", production_html);
+  const choicesContainer = byId$1("worklist_production_choices");
+  const kindValueItems = choicesContainer ? Array.from(choicesContainer.querySelectorAll(".kindvalue_item")) : [];
   if (!isTouchDevice()) {
-    $("#worklist_production_choices .worklist_table").selectable({
-      filter: "tr",
-      selected: handle_worklist_select,
-      unselected: handle_worklist_unselect
+    kindValueItems.forEach((item) => {
+      item.addEventListener("click", function(e2) {
+        if (e2.ctrlKey || e2.metaKey) {
+          if (item.classList.contains("ui-selected")) {
+            item.classList.remove("ui-selected");
+            handle_worklist_unselect(e2, { unselected: item });
+          } else {
+            item.classList.add("ui-selected");
+            handle_worklist_select(e2, { selected: item });
+          }
+        } else {
+          kindValueItems.forEach((el) => el.classList.remove("ui-selected"));
+          item.classList.add("ui-selected");
+          set_production_selection([]);
+          handle_worklist_select(e2, { selected: item });
+        }
+      });
     });
     if (production_selection.length > 0) {
-      const prod_items = $("#worklist_production_choices .kindvalue_item");
-      const sel = [];
       production_selection.forEach(function(v2) {
-        sel.push("[data-value='" + v2.value + "'][data-kind='" + v2.kind + "']");
+        const match = choicesContainer?.querySelector(
+          "[data-value='" + v2.value + "'][data-kind='" + v2.kind + "']"
+        );
+        match?.classList.add("ui-selected");
       });
-      prod_items.filter(sel.join(",")).addClass("ui-selected");
     }
-    $(".kindvalue_item").dblclick(function() {
-      const value = parseFloat($(this).data("value"));
-      const kind = parseFloat($(this).data("kind"));
-      send_city_worklist_add(pcity["id"], kind, value);
+    kindValueItems.forEach((item) => {
+      item.addEventListener("dblclick", function() {
+        const value = parseFloat(item.dataset.value || "0");
+        const kind = parseFloat(item.dataset.kind || "0");
+        send_city_worklist_add(pcity["id"], kind, value);
+      });
     });
   } else {
-    $(".kindvalue_item").click(function() {
-      const value = parseFloat($(this).data("value"));
-      const kind = parseFloat($(this).data("kind"));
-      if (city_prod_clicks == 0) {
-        send_city_change(pcity["id"], kind, value);
-      } else {
-        send_city_worklist_add(pcity["id"], kind, value);
-      }
-      set_city_prod_clicks(city_prod_clicks + 1);
+    kindValueItems.forEach((item) => {
+      item.addEventListener("click", function() {
+        const value = parseFloat(item.dataset.value || "0");
+        const kind = parseFloat(item.dataset.kind || "0");
+        if (city_prod_clicks == 0) {
+          send_city_change(pcity["id"], kind, value);
+        } else {
+          send_city_worklist_add(pcity["id"], kind, value);
+        }
+        set_city_prod_clicks(city_prod_clicks + 1);
+      });
     });
   }
 }
 function extract_universal(element) {
+  const el = element;
   return {
-    value: parseFloat($(element).data("value")),
-    kind: parseFloat($(element).data("kind"))
+    value: parseFloat(el.dataset.value || el.getAttribute("data-value") || "0"),
+    kind: parseFloat(el.dataset.kind || el.getAttribute("data-kind") || "0")
   };
 }
 function find_universal_in_worklist(universal, worklist) {
@@ -9797,7 +9856,7 @@ function handle_worklist_unselect(event, ui) {
   }
 }
 function handle_current_worklist_select(event, ui) {
-  const idx = parseInt($(ui.selected).data("wlitem"), 10);
+  const idx = parseInt(ui.selected.dataset.wlitem || "0", 10);
   let i2 = worklist_selection.length - 1;
   while (i2 >= 0 && worklist_selection[i2] > idx)
     i2--;
@@ -9807,7 +9866,7 @@ function handle_current_worklist_select(event, ui) {
   }
 }
 function handle_current_worklist_unselect(event, ui) {
-  const idx = parseInt($(ui.unselected).data("wlitem"), 10);
+  const idx = parseInt(ui.unselected.dataset.wlitem || "0", 10);
   let i2 = worklist_selection.length - 1;
   while (i2 >= 0 && worklist_selection[i2] > idx)
     i2--;
@@ -9818,50 +9877,53 @@ function handle_current_worklist_unselect(event, ui) {
 }
 function handle_current_worklist_click(event) {
   event.stopPropagation();
-  const element = $(this);
-  const item = parseInt(element.data("wlitem"), 10);
+  const element = this;
+  const item = parseInt(element.dataset.wlitem || "0", 10);
   if (worklist_selection.length === 1 && worklist_selection[0] === item) {
-    element.removeClass("ui-selected");
+    element.classList.remove("ui-selected");
     set_worklist_selection([]);
   } else {
-    element.siblings().removeClass("ui-selected");
-    element.addClass("ui-selected");
+    const parent = element.parentElement;
+    if (parent) {
+      parent.querySelectorAll(".ui-selected").forEach((el) => el.classList.remove("ui-selected"));
+    }
+    element.classList.add("ui-selected");
     set_worklist_selection([item]);
   }
   update_worklist_actions();
 }
 function update_worklist_actions() {
   if (worklist_selection.length > 0) {
-    $("#city_worklist_up_btn").button("enable");
-    $("#city_worklist_remove_btn").button("enable");
+    setBtnEnabled("city_worklist_up_btn", true);
+    setBtnEnabled("city_worklist_remove_btn", true);
     if (worklist_selection[worklist_selection.length - 1] === active_city["worklist"].length - 1) {
-      $("#city_worklist_down_btn").button("disable");
+      setBtnEnabled("city_worklist_down_btn", false);
     } else {
-      $("#city_worklist_down_btn").button("enable");
+      setBtnEnabled("city_worklist_down_btn", true);
     }
   } else {
-    $("#city_worklist_up_btn").button("disable");
-    $("#city_worklist_down_btn").button("disable");
-    $("#city_worklist_exchange_btn").button("disable");
-    $("#city_worklist_remove_btn").button("disable");
+    setBtnEnabled("city_worklist_up_btn", false);
+    setBtnEnabled("city_worklist_down_btn", false);
+    setBtnEnabled("city_worklist_exchange_btn", false);
+    setBtnEnabled("city_worklist_remove_btn", false);
   }
   if (production_selection.length > 0) {
-    $("#city_add_to_worklist_btn").button("enable");
-    $("#city_worklist_insert_btn").button("enable");
+    setBtnEnabled("city_add_to_worklist_btn", true);
+    setBtnEnabled("city_worklist_insert_btn", true);
     if (production_selection.length == worklist_selection.length || worklist_selection.length == 1) {
-      $("#city_worklist_exchange_btn").button("enable");
+      setBtnEnabled("city_worklist_exchange_btn", true);
     } else {
-      $("#city_worklist_exchange_btn").button("disable");
+      setBtnEnabled("city_worklist_exchange_btn", false);
     }
   } else {
-    $("#city_add_to_worklist_btn").button("disable");
-    $("#city_worklist_insert_btn").button("disable");
-    $("#city_worklist_exchange_btn").button("disable");
+    setBtnEnabled("city_add_to_worklist_btn", false);
+    setBtnEnabled("city_worklist_insert_btn", false);
+    setBtnEnabled("city_worklist_exchange_btn", false);
   }
   if (production_selection.length === 1) {
-    $("#city_change_production_btn").button("enable");
+    setBtnEnabled("city_change_production_btn", true);
   } else {
-    $("#city_change_production_btn").button("disable");
+    setBtnEnabled("city_change_production_btn", false);
   }
 }
 function send_city_worklist(city_id) {
@@ -9901,7 +9963,7 @@ function city_add_to_worklist() {
   }
 }
 function handle_current_worklist_direct_remove() {
-  const idx = parseInt($(this).data("wlitem"), 10);
+  const idx = parseInt(this.dataset.wlitem || "0", 10);
   active_city["worklist"].splice(idx, 1);
   let i2 = worklist_selection.length - 1;
   while (i2 >= 0 && worklist_selection[i2] > idx) {
