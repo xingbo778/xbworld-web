@@ -12563,7 +12563,7 @@ function check_websocket_ready() {
     }
     const login_message = {
       pid: 4,
-      username: win$3.username,
+      username: store.username,
       capability: freeciv_version,
       version_label: "-dev",
       major_version: 3,
