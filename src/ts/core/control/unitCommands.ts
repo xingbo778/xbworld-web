@@ -30,7 +30,7 @@ import { clientIsObserver, clientPlaying } from '../../client/clientState';
 import * as S from './controlState';
 // Circular imports — OK, only used inside functions at runtime
 import { get_units_in_focus, advance_unit_focus, update_unit_focus, update_active_units_dialog, update_unit_order_commands, set_unit_focus_and_redraw, auto_center_on_focus_unit, find_a_focus_unit_tile_to_center_on } from './unitFocus';
-import { activate_goto_last, deactivate_goto } from './mapClick';
+import { activate_goto_last, deactivate_goto } from './gotoPath';
 import { openPillageDialog } from '../../components/Dialogs/PillageDialog';
 import { unit_move_sound_play } from '../../audio/sounds';
 

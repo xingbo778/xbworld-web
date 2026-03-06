@@ -6,7 +6,8 @@
  *   - control/actionSelection.ts — action selection / server queries
  *   - control/chat.ts           — chat message handling
  *   - control/keyboard.ts       — keyboard event handling
- *   - control/mapClick.ts       — map click, goto, tile popup
+ *   - control/mapClick.ts       — map click, paradrop, dialog, tile popup
+ *   - control/gotoPath.ts       — goto path management, end turn
  *   - control/mouse.ts          — mouse / touch events
  *   - control/unitCommands.ts   — key_unit_* and request_* functions
  *   - control/unitFocus.ts      — unit focus management
@@ -22,6 +23,7 @@ export * from './control/actionSelection';
 export * from './control/chat';
 export * from './control/keyboard';
 export * from './control/mapClick';
+export * from './control/gotoPath';
 export * from './control/mouse';
 export * from './control/unitCommands';
 export * from './control/unitFocus';
@@ -59,7 +61,7 @@ import { setKeyboardInput, setResizeEnabled, setUrgentFocusQueue } from './contr
 import { global_keyboard_listener, handle_context_menu_callback } from './control/keyboard';
 import { chat_context_change } from './control/chat';
 import { check_text_input } from './control/chat';
-import { send_end_turn } from './control/mapClick';
+import { send_end_turn } from './control/gotoPath';
 import { update_unit_order_commands } from './control/unitFocus';
 import * as S from './control/controlState';
 

@@ -10,7 +10,7 @@ import { LAYER_COUNT, LAYER_SPECIAL1, LAYER_CITY1, LAYER_GOTO, type SpriteEntry 
 import { RENDERER_2DCANVAS } from '../core/constants';
 import { get_drawable_unit, init_game_unit_panel } from '../core/control/unitFocus';
 import { draw_fog_of_war } from '../ui/options';
-import { check_request_goto_path } from '../core/control/mapClick';
+import { check_request_goto_path } from '../core/control/gotoPath';
 import { init_chatbox } from '../core/messages';
 import { setKeyboardInput } from '../core/control/controlState';
 import { active_city } from '../ui/cityDialogState';

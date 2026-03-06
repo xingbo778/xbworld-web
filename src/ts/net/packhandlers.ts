@@ -12,7 +12,7 @@ import { clinet_debug_collect } from './connection';
 import { RENDERER_2DCANVAS } from '../core/constants';
 import { update_map_canvas_check } from '../renderer/mapviewCommon';
 import { handle_web_info_text_message } from '../renderer/mapctrl';
-import { update_goto_path } from '../core/control/mapClick';
+import { update_goto_path } from '../core/control/gotoPath';
 import { goto_active } from '../core/control/controlState';
 import type { BasePacket, WebGotoPathPacket } from './handlers/packetTypes';
 

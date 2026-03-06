@@ -21,7 +21,8 @@ import {
 import * as S from './controlState';
 // Circular imports — OK, only used inside functions
 import { find_a_focus_unit_tile_to_center_on, auto_center_on_focus_unit, set_unit_focus_and_redraw, update_active_units_dialog } from './unitFocus';
-import { activate_goto, deactivate_goto, find_active_dialog, popit_req, send_end_turn } from './mapClick';
+import { find_active_dialog, popit_req } from './mapClick';
+import { activate_goto, deactivate_goto, send_end_turn } from './gotoPath';
 import {
   key_unit_auto_explore, key_unit_load, key_unit_unload, key_unit_show_cargo,
   key_unit_wait, key_unit_noorders, key_unit_idle, key_unit_sentry, key_unit_fortify,

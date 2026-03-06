@@ -19,7 +19,7 @@ import { RENDERER_2DCANVAS } from '../constants';
 import * as S from './controlState';
 // Circular imports — OK, only used inside functions
 import { find_visible_unit, set_unit_focus, update_active_units_dialog } from './unitFocus';
-import { activate_goto } from './mapClick';
+import { activate_goto } from './gotoPath';
 import { redraw_overview } from '../overview';
 import type { Tile } from '../../data/types';
 

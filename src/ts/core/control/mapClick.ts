@@ -1,7 +1,8 @@
 /**
- * Map click handling, goto mode, paradrop, and tile popup.
+ * Map click handling, paradrop, dialog detection, and tile popup.
  *
- * Extracted from core/control.ts
+ * Goto path management has been extracted to gotoPath.ts.
+ * Re-exports are provided below for backward compatibility.
  */
 
 import { store } from '../../data/store';
@@ -14,10 +15,9 @@ import { actionByNumber as action_by_number, actionHasResult as action_has_resul
 import { utype_can_do_action } from '../../data/unittype';
 import { ACTIVITY_IDLE, ACTIVITY_LAST, ACTRES_PARADROP, ACTRES_PARADROP_CONQUER, ACTION_AIRLIFT } from '../../data/fcTypes';
 import { ACTION_COUNT, RENDERER_2DCANVAS } from '../../core/constants';
-import { sendUnitSscsSet, sendUnitOrders, sendPlayerPhaseDone, sendGotoPathReq, sendInfoTextReq } from '../../net/commands';
+import { sendUnitSscsSet, sendUnitOrders, sendInfoTextReq } from '../../net/commands';
 import { isTouchDevice as is_touch_device } from '../../utils/helpers';
 import { clientIsObserver as client_is_observer, clientPlaying } from '../../client/clientState';
-import { isLongturn } from '../../client/clientCore';
 import { message_log } from '../../core/messages';
 import { E_BEGINNER_HELP, E_BAD_COMMAND } from '../../data/eventConstants';
 import { canvas_pos_to_tile, center_tile_mapcanvas_2d } from '../../renderer/mapviewCommon';
@@ -28,7 +28,7 @@ import * as S from './controlState';
 // Circular imports — OK, only used inside functions
 import { set_unit_focus_and_redraw, set_unit_focus_and_activate, update_unit_focus, update_active_units_dialog, find_visible_unit, find_a_focus_unit_tile_to_center_on } from './unitFocus';
 import { request_unit_do_action, request_unit_act_sel_vs } from './unitCommands';
-import { update_mouse_cursor } from './mouse';
+import { deactivate_goto, request_goto_path } from './gotoPath';
 
 const USSDT_QUEUE = UnitSSDataType.QUEUE;
 const ORDER_LAST = Order.LAST;
@@ -322,142 +322,6 @@ export function find_active_dialog() {
   return null;
 }
 
-export function activate_goto() {
-  clear_goto_tiles();
-  activate_goto_last(ORDER_LAST, ACTION_COUNT);
-}
-
-export function activate_goto_last(last_order: number, last_action: number) {
-  S.setGotoActive(true);
-  const canvasDiv = document.getElementById("canvas_div");
-  if (canvasDiv) canvasDiv.style.cursor = "crosshair";
-
-  S.setGotoLastOrder(last_order);
-  S.setGotoLastAction(last_action);
-
-  if (S.current_focus.length > 0) {
-    if (S.intro_click_description) {
-      if (is_touch_device()) {
-        message_log.update({
-          event: E_BEGINNER_HELP,
-          message: "Carefully drag unit to the tile you want it to go to."
-        });
-      } else {
-        message_log.update({
-          event: E_BEGINNER_HELP,
-          message: "Click on the tile to send this unit to."
-        });
-      }
-      S.setIntroClickDescription(false);
-    }
-
-  } else {
-    message_log.update({
-      event: E_BEGINNER_HELP,
-      message: "First select a unit to move by clicking on it, then click on the"
-        + " goto button or the 'G' key, then click on the position to move to."
-    });
-    deactivate_goto(false);
-  }
-
-}
-
-export function deactivate_goto(will_advance_unit_focus: boolean) {
-  S.setGotoActive(false);
-  const canvasDivEl = document.getElementById("canvas_div");
-  if (canvasDivEl) canvasDivEl.style.cursor = "default";
-  S.setGotoRequestMap({});
-  S.setGotoTurnsRequestMap({});
-  clear_goto_tiles();
-
-  S.setGotoLastOrder(ORDER_LAST);
-  S.setGotoLastAction(ACTION_COUNT);
-
-  if (will_advance_unit_focus) setTimeout(update_unit_focus, 600);
-}
-
-export function send_end_turn() {
-  if (store.gameInfo == null) return;
-
-  const turnDoneBtn = document.getElementById("turn_done_button") as HTMLButtonElement | null;
-  if (turnDoneBtn) turnDoneBtn.disabled = true;
-
-  sendPlayerPhaseDone(store.gameInfo['turn']);
-  // update_turn_change_timer is a legacy function, may not exist
-  // update_turn_change_timer was a legacy function — removed
-
-  if (isLongturn()) {
-    show_dialog_message("Turn done!",
-      "Your turn in this Freeciv-web: One Turn per Day game is now over. In this game one turn is played every day. " +
-      "To play your next turn in this game, go to " + window.location.host + " and click <b>Games</b> in the menu, then <b>Multiplayer</b> " +
-      "and there you will find this Freeciv-web: One Turn per Day game in the list. You can also bookmark this page.<br>" +
-      "See you again soon!");
-  }
-}
-
-export function request_goto_path(unit_id: number, dst_x: number, dst_y: number) {
-  if (S.goto_request_map[unit_id + "," + dst_x + "," + dst_y] == null) {
-    S.goto_request_map[unit_id + "," + dst_x + "," + dst_y] = true;
-
-    sendGotoPathReq(unit_id, map_pos_to_tile(dst_x, dst_y)['index']);
-    S.setCurrentGotoTurns(null as any);
-    const unitTextDetails = document.getElementById("unit_text_details");
-    if (unitTextDetails) unitTextDetails.textContent = "Choose unit goto";
-    setTimeout(update_mouse_cursor, 700);
-  } else {
-    const cached = S.goto_request_map[unit_id + "," + dst_x + "," + dst_y];
-    if (cached !== true) update_goto_path(cached);
-  }
-}
-
-export function check_request_goto_path() {
-  if (S.goto_active && S.current_focus.length > 0
-    && S.prev_mouse_x == S.mouse_x && S.prev_mouse_y == S.mouse_y) {
-    let ptile: Tile | null;
-    clear_goto_tiles();
-    ptile = canvas_pos_to_tile(S.mouse_x, S.mouse_y);
-    if (ptile != null) {
-      for (let i = 0; i < S.current_focus.length; i++) {
-        request_goto_path(S.current_focus[i]['id'], ptile['x'], ptile['y']);
-      }
-    }
-  }
-  S.setPrevMouseX(S.mouse_x);
-  S.setPrevMouseY(S.mouse_y);
-}
-
-export function update_goto_path(goto_packet: Record<string, unknown> & { unit_id: number; dest: number; dir: number[]; length: number; turns: number }) {
-  const punit = store.units[goto_packet['unit_id']];
-  if (punit == null) return;
-  const t0 = index_to_tile(punit['tile']);
-  let ptile = t0;
-  const goaltile = index_to_tile(goto_packet['dest']);
-
-  for (let i = 0; i < goto_packet['dir'].length; i++) {
-    if (ptile == null) break;
-    const dir = goto_packet['dir'][i];
-
-    if (dir == -1) {
-      continue;
-    }
-
-    ptile['goto_dir'] = dir;
-    ptile = mapstep(ptile, dir);
-  }
-
-  S.setCurrentGotoTurns(goto_packet['turns']);
-
-  S.goto_request_map[goto_packet['unit_id'] + "," + goaltile['x'] + "," + goaltile['y']] = goto_packet;
-  S.goto_turns_request_map[goto_packet['unit_id'] + "," + goaltile['x'] + "," + goaltile['y']]
-    = S.current_goto_turns;
-
-  if (S.current_goto_turns != undefined) {
-    const activeUnitInfo = document.getElementById("active_unit_info");
-    if (activeUnitInfo) activeUnitInfo.textContent = "Turns for goto: " + S.current_goto_turns;
-  }
-  update_mouse_cursor();
-}
-
 export function center_tile_mapcanvas(ptile: Tile | null) {
   if (ptile == null) return;
   center_tile_mapcanvas_2d(ptile);
@@ -500,3 +364,8 @@ export function center_on_any_city() {
     return;
   }
 }
+
+// ---------------------------------------------------------------------------
+// Re-exports from gotoPath.ts for backward compatibility
+// ---------------------------------------------------------------------------
+export { activate_goto, activate_goto_last, deactivate_goto, send_end_turn, request_goto_path, check_request_goto_path, update_goto_path } from './gotoPath';
