@@ -477,7 +477,7 @@ export function city_insert_in_worklist(): void {
 
   if (worklist_selection.length === 0) {
 
-    wl.splice(...[0, 0].concat(production_selection) as [number, number, ...any[]]);
+    wl.splice(...([0, 0] as any[]).concat(production_selection) as [number, number, ...any[]]);
 
     // Initialize the selection with the inserted items
     for (i = 0; i < count; i++) {
@@ -486,7 +486,7 @@ export function city_insert_in_worklist(): void {
 
   } else {
 
-    wl.splice(...[worklist_selection[0], 0].concat(production_selection) as [number, number, ...any[]]);
+    wl.splice(...([worklist_selection[0], 0] as any[]).concat(production_selection) as [number, number, ...any[]]);
 
     for (i = 0; i < worklist_selection.length; i++) {
       worklist_selection[i] += count;
@@ -569,7 +569,7 @@ export function city_exchange_worklist_task(): void {
     }
   } else if (task_l === 1) {
     i = worklist_selection[0];
-    wl.splice(...[i, 1].concat(production_selection) as [number, number, ...any[]]);
+    wl.splice(...([i, 1] as any[]).concat(production_selection) as [number, number, ...any[]]);
     same = false;
     while (--prod_l) {
       worklist_selection.push(++i);

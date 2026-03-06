@@ -15,8 +15,8 @@ export let goods: Record<number, any> = {};
 
 export let active_city: City | null = null;
 export let worklist_dialog_active: boolean = false;
-export let production_selection: any[] = [];
-export let worklist_selection: any[] = [];
+export let production_selection: { kind: number; value: number }[] = [];
+export let worklist_selection: number[] = [];
 
 /* The city_options enum. */
 export const CITYO_DISBAND: number = 0;
@@ -53,7 +53,7 @@ export const city_screen_updater: EventAggregator = new EventAggregator(_update_
                                               250, 3, 250);
 
 /* Information for mapping workable tiles of a city to local index */
-export let city_tile_map: any = null;
+export let city_tile_map: { radius_sq: number; radius: number; base_sorted: number[][]; maps: number[][] } | null = null;
 
 export let opt_show_unreachable_items: boolean = false;
 
@@ -62,8 +62,8 @@ export function set_citydlg_map_width(v: number): void { citydlg_map_width = v; 
 export function set_citydlg_map_height(v: number): void { citydlg_map_height = v; }
 export function set_active_city(v: City | null): void { active_city = v; }
 export function set_worklist_dialog_active(v: boolean): void { worklist_dialog_active = v; }
-export function set_production_selection(v: any[]): void { production_selection = v; }
-export function set_worklist_selection(v: any[]): void { worklist_selection = v; }
+export function set_production_selection(v: { kind: number; value: number }[]): void { production_selection = v; }
+export function set_worklist_selection(v: number[]): void { worklist_selection = v; }
 export function set_city_tab_index(v: number): void { city_tab_index = v; }
 export function set_city_prod_clicks(v: number): void { city_prod_clicks = v; }
 export function set_opt_show_unreachable_items(v: boolean): void { opt_show_unreachable_items = v; }

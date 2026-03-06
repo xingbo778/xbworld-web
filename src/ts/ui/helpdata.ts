@@ -27,7 +27,7 @@ import { ruledir_from_ruleset_name } from '../core/pregame';
 import { get_advances_text } from './techDialog';
 import { toTitleCase, stringUnqualify } from '../utils/helpers';
 import { store } from '../data/store';
-import type { Improvement, UnitType } from '../data/types';
+import type { Improvement, UnitType, Tech, Terrain, Government } from '../data/types';
 
 function get_helpdata_order(): string[] { return (store as any).helpdata_order || []; }
 function get_helpdata(): Record<string, { text: string }> { return (store as any).helpdata || {}; }
@@ -128,7 +128,7 @@ export function show_help_intro(): void {
 **************************************************************************/
 export function generate_help_menu(key: string): void {
   let impr_id: string;
-  let improvement: any;
+  let improvement: Improvement;
   if (key === "help_gen_terrain") {
     for (const terrain_id in store.terrains) {
       const terrain = store.terrains[terrain_id as any];
@@ -150,7 +150,7 @@ export function generate_help_menu(key: string): void {
     const unit_ids = unittype_ids_alphabetic();
     for (let i = 0; i < unit_ids.length; i++) {
       const unit_id = unit_ids[i];
-      const punit_type: any = (store.unitTypes as any)[unit_id];
+      const punit_type: UnitType = (store.unitTypes as any)[unit_id];
       appendLi("help_units_ul", key + "_" + punit_type["id"], punit_type["name"]);
     }
   } else if (key === "help_gen_techs") {
@@ -318,7 +318,7 @@ export function generate_help_text(key: string): void {
       "<br>Food/Prod/Trade: " +
       terrain["output"][0] + "/" + terrain["output"][1] + "/" + terrain["output"][2];
   } else if (key.indexOf("help_gen_improvements") !== -1 || key.indexOf("help_gen_wonders") !== -1) {
-    const improvement: any = store.improvements[
+    const improvement: Improvement = store.improvements[
       parseInt(key.replace("help_gen_wonders_", "").replace("help_gen_improvements_", ""))
     ];
     msg =
@@ -337,8 +337,8 @@ export function generate_help_text(key: string): void {
     msg += "<br><br>";
     msg += wiki_on_item_button(improvement["name"]);
   } else if (key.indexOf("help_gen_units") !== -1) {
-    let obsolete_by: any;
-    const punit_type: any = store.unitTypes[parseInt(key.replace("help_gen_units_", ""))];
+    let obsolete_by: UnitType | undefined;
+    const punit_type: UnitType = store.unitTypes[parseInt(key.replace("help_gen_units_", ""))];
 
     msg = "<h1>" + punit_type["name"] + "</h1>";
     msg += render_sprite(get_unit_type_image_sprite(punit_type));
@@ -353,7 +353,7 @@ export function generate_help_text(key: string): void {
     msg += "<div id='utype_fact_move_rate'>Moves: " + move_points_text(punit_type["move_rate"]) + "</div>";
     msg += "<div id='utype_fact_vision'>Vision: " + punit_type["vision_radius_sq"] + "</div>";
 
-    const ireqs = get_improvement_requirements(punit_type["impr_requirement"]);
+    const ireqs = get_improvement_requirements(punit_type["impr_requirement"] as any);
     if (ireqs != null && ireqs.length > 0) {
       msg += "<div id='utype_fact_req_building'>Building Requirements: ";
       for (let m = 0; m < ireqs.length; m++) {
@@ -362,14 +362,14 @@ export function generate_help_text(key: string): void {
       msg += "</div>";
     }
 
-    const treq = punit_type["tech_requirement"];
+    const treq = punit_type["tech_requirement"] as any;
     if (treq != null && store.techs[treq] != null) {
       msg += "<div id='utype_fact_req_tech'>Tech Requirements: " + store.techs[treq]["name"] + "</div>";
     }
 
-    obsolete_by = store.unitTypes[punit_type["obsoleted_by"]];
+    obsolete_by = store.unitTypes[punit_type["obsoleted_by"] as any];
     msg += "<div id='utype_fact_obsolete'>Obsolete by: ";
-    if (obsolete_by === U_NOT_OBSOLETED) {
+    if (obsolete_by === U_NOT_OBSOLETED || obsolete_by == null) {
       msg += "None";
     } else {
       msg += obsolete_by["name"];
@@ -380,7 +380,7 @@ export function generate_help_text(key: string): void {
     msg += wiki_on_item_button(punit_type["name"]);
     msg += "<div id='datastore' hidden='true'></div>";
   } else if (key.indexOf("help_gen_techs") !== -1) {
-    const tech: any = store.techs[parseInt(key.replace("help_gen_techs_", ""))];
+    const tech: Tech = store.techs[parseInt(key.replace("help_gen_techs_", ""))];
     msg =
       "<h1>" + tech["name"] + "</h1>" +
       render_sprite(get_technology_image_sprite(tech)) +
