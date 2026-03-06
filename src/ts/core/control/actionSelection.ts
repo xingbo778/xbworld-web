@@ -15,6 +15,7 @@ import { game_find_unit_by_number } from '../../data/game';
 import { canClientIssueOrders as can_client_issue_orders } from '../../client/clientState';
 import { popup_actor_arrival } from '../../ui/options';
 import * as S from './controlState';
+import type { Unit } from '../../data/types';
 // Circular import — OK because only used inside functions (not at init time)
 import { unit_is_in_focus, unit_focus_urgent } from './unitFocus';
 
@@ -31,7 +32,7 @@ const REQEST_PLAYER_INITIATED = 0;
 // Public API
 // ---------------------------------------------------------------------------
 
-export function should_ask_server_for_actions(punit: any): boolean {
+export function should_ask_server_for_actions(punit: Unit): boolean {
   return (punit['action_decision_want'] === FC_ACT_DEC_ACTIVE
     || (punit['action_decision_want'] === FC_ACT_DEC_PASSIVE
       && popup_actor_arrival));
@@ -41,7 +42,7 @@ export function can_ask_server_for_actions(): boolean {
   return S.action_selection_in_progress_for === FC_IDENTITY_NUMBER_ZERO;
 }
 
-export function ask_server_for_actions(punit: any): boolean {
+export function ask_server_for_actions(punit: Unit): boolean {
   if (store.observing || punit == null) {
     return false;
   }
@@ -53,13 +54,14 @@ export function ask_server_for_actions(punit: any): boolean {
   }
   S.setActionSelectionInProgressFor(punit.id);
 
-  const ptile = index_to_tile(punit['action_decision_tile']);
+  const decTile = punit['action_decision_tile'] ?? 0;
+  const ptile = index_to_tile(decTile);
 
   if (ptile != null) {
     sendUnitGetActions(
       punit['id'],
       FC_IDENTITY_NUMBER_ZERO,
-      punit['action_decision_tile'],
+      decTile,
       FC_EXTRA_NONE,
       REQEST_PLAYER_INITIATED
     );
@@ -98,7 +100,7 @@ export function action_selection_next_in_focus(old_actor_id: number): void {
   }
 }
 
-export function action_decision_request(actor_unit: any): void {
+export function action_decision_request(actor_unit: Unit): void {
   if (actor_unit == null) {
     console.log("action_decision_request(): No actor unit");
     return;

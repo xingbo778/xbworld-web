@@ -82,6 +82,8 @@ export interface Unit {
   done_moving: boolean;
   ai: boolean;
   goto_tile: number;
+  action_decision_want?: number;
+  action_decision_tile?: number;
   [key: string]: unknown;
 }
 

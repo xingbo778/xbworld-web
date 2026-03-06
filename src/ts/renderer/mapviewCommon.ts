@@ -7,7 +7,7 @@ import { WRAP_X, WRAP_Y, wrapHasFlag as wrap_has_flag } from '../data/map';
 import { clientState as client_state, C_S_RUNNING } from '../client/clientState';
 import { globalEvents } from '../core/events';
 import { logNormal, logError } from '../core/log';
-import { LAYER_COUNT, LAYER_SPECIAL1, LAYER_CITY1, LAYER_GOTO } from './tilespec';
+import { LAYER_COUNT, LAYER_SPECIAL1, LAYER_CITY1, LAYER_GOTO, type SpriteEntry } from './tilespec';
 import { FC_WRAP, DIVIDE } from '../utils/helpers';
 import { mapToNativePos, nativeToMapPos } from '../data/map';
 import { RENDERER_2DCANVAS } from '../core/constants';
@@ -55,8 +55,8 @@ export let mapview: {
   store_height: number;
   [key: string]: unknown;
 } = { width: 0, height: 0, gui_x0: 0, gui_y0: 0, store_width: 0, store_height: 0 };
-export let mapdeco_highlight_table: { [key: string]: any } = {};
-export let mapdeco_crosshair_table: { [key: string]: any } = {};
+export let mapdeco_highlight_table: Record<string, boolean> = {};
+export let mapdeco_crosshair_table: Record<string, boolean> = {};
 export let last_redraw_time: number = 0;
 export const MAPVIEW_REFRESH_INTERVAL: number = 10;
 
@@ -463,7 +463,7 @@ export function put_one_tile(pcanvas: CanvasRenderingContext2D, layer: number, p
 **************************************************************************/
 export function put_one_element(pcanvas: CanvasRenderingContext2D, layer: number, ptile: Tile | null, pedge: unknown, pcorner: { tile?: (Tile | null)[] } | null, punit: Unit | null,
   pcity: City | null, canvas_x: number, canvas_y: number, citymode: City | null): void {
-  const tile_sprs = fill_sprite_array(layer, ptile, pedge, pcorner, punit, pcity, !!citymode);
+  const tile_sprs = fill_sprite_array(layer, ptile, pedge, pcorner as { tile: (Tile | null)[] } | null, punit, pcity, !!citymode);
 
   const fog = (ptile != null && draw_fog_of_war
     && TILE_KNOWN_UNSEEN == tile_get_known(ptile));

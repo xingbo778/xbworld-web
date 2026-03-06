@@ -28,10 +28,10 @@ const is_longturn = isLongturn;
 const civclient_state = clientState();
 
 export let chatbox_active: boolean = true;
-export const message_log: any = new EventAggregator(update_chatbox, 125,
+export const message_log: EventAggregator = new EventAggregator(update_chatbox, 125,
                                       EventAggregator.DP_ALL, 1000, 0);
 export let previous_scroll: number = 0;
-export let current_message_dialog_state: any = null;
+export let current_message_dialog_state: string | null = null;
 export const max_chat_message_length: number = 350;
 
 /**************************************************************************
@@ -99,9 +99,9 @@ export function reclassify_chat_message(text: string | null): number
  This adds new text to the main message chatbox. See update_chatbox() which
  does the actual update to the screen.
 **************************************************************************/
-export function add_chatbox_text(packet: any): void
+export function add_chatbox_text(packet: Record<string, unknown>): void
 {
-    let text: string | null = packet['message'];
+    let text = packet['message'] as string | null;
 
     if (text == null) return;
     if (!check_text_with_banlist(text)) return;
@@ -162,15 +162,15 @@ export function clear_chatbox(): void
 /**************************************************************************
  Updates the chatbox text window.
 **************************************************************************/
-export function update_chatbox(messages: any[]): void
+export function update_chatbox(messages: Record<string, unknown>[]): void
 {
   const scrollDiv: HTMLElement | null = get_chatbox_msg_list();
 
   if (scrollDiv != null) {
     for (let i = 0; i < messages.length; i++) {
         const item: HTMLLIElement = document.createElement('li');
-        item.className = fc_e_events[messages[i].event] || '';
-        item.innerHTML = messages[i].message;
+        item.className = fc_e_events[messages[i]['event'] as number] || '';
+        item.innerHTML = messages[i]['message'] as string;
         scrollDiv.appendChild(item);
     }
 

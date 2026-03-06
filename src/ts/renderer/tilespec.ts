@@ -10,7 +10,7 @@ import { unit_is_in_focus, should_ask_server_for_actions } from '../core/control
 import type { Tile, Unit, City, Terrain, Extra, UnitType } from '../data/types';
 
 /** A single sprite entry passed to the renderer. */
-interface SpriteEntry { key?: string | null; [prop: string]: unknown }
+export interface SpriteEntry { key?: string | null; [prop: string]: unknown }
 
 import { TILE_KNOWN_SEEN, TILE_KNOWN_UNSEEN, TILE_UNKNOWN } from '../data/tile';
 import {
@@ -292,7 +292,7 @@ function tileset_extra_id_rmactivity_graphic_tag(extra_id: number): string | nul
   citymode specifies whether this is part of a citydlg. If so some drawing
   is done differently.
 ****************************************************************************/
-export function fill_sprite_array(layer: number, ptile: Tile | null, pedge: any, pcorner: any, punit: Unit | null, pcity: City | null, citymode: boolean): SpriteEntry[] {
+export function fill_sprite_array(layer: number, ptile: Tile | null, pedge: unknown, pcorner: { tile: (Tile | null)[] } | null, punit: Unit | null, pcity: City | null, citymode: boolean): SpriteEntry[] {
   let sprite_array: SpriteEntry[] = [];
 
   switch (layer) {
@@ -710,8 +710,8 @@ function fill_unit_sprite_array(punit: Unit, stacked: boolean, backdrop: boolean
   }
   const agent = get_unit_agent_sprite(punit);
   if (agent != null) {
-    (agent as any)['offset_x'] = (agent as any)['offset_x'] + unit_offset['x'];
-    (agent as any)['offset_y'] = (agent as any)['offset_y'] + unit_offset['y'];
+    agent['offset_x'] = (agent['offset_x'] as number) + unit_offset['x'];
+    agent['offset_y'] = (agent['offset_y'] as number) + unit_offset['y'];
     result.push(agent);
   }
 
@@ -1169,7 +1169,7 @@ function get_city_sprite(pcity: City): SpriteEntry {
 /****************************************************************************
   Add store.sprites for fog (and some forms of darkness).
 ****************************************************************************/
-function fill_fog_sprite_array(ptile: Tile | null, pedge: any, pcorner: any): SpriteEntry[] {
+function fill_fog_sprite_array(ptile: Tile | null, pedge: unknown, pcorner: { tile: (Tile | null)[] } | null): SpriteEntry[] {
 
   let i, tileno = 0;
 
@@ -1182,7 +1182,7 @@ function fill_fog_sprite_array(ptile: Tile | null, pedge: any, pcorner: any): Sp
     if (pcorner['tile'][i] == null) {
       value = unknown;
     } else {
-      switch (tile_get_known(pcorner['tile'][i])) {
+      switch (tile_get_known(pcorner['tile'][i]!)) {
         case TILE_KNOWN_SEEN:
           value = known;
           break;

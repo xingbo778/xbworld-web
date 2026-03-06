@@ -21,6 +21,7 @@ import * as S from './controlState';
 import { find_visible_unit, set_unit_focus, update_active_units_dialog } from './unitFocus';
 import { activate_goto } from './mapClick';
 import { redraw_overview } from '../overview';
+import type { Tile } from '../../data/types';
 
 
 // ---------------------------------------------------------------------------
@@ -116,7 +117,7 @@ export function update_mouse_cursor(): void {
   }
 }
 
-export function set_mouse_touch_started_on_unit(ptile: any): void {
+export function set_mouse_touch_started_on_unit(ptile: Tile | null): void {
   if (ptile == null) return;
   const sunit = find_visible_unit(ptile);
   if (sunit != null && clientPlaying() != null && sunit['owner'] == clientPlaying().playerno) {
@@ -126,7 +127,7 @@ export function set_mouse_touch_started_on_unit(ptile: any): void {
   }
 }
 
-export function check_mouse_drag_unit(ptile: any): void {
+export function check_mouse_drag_unit(ptile: Tile | null): void {
   if (ptile == null || !S.mouse_touch_started_on_unit) return;
 
   const sunit = find_visible_unit(ptile);

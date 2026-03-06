@@ -26,9 +26,9 @@ export const U_LAST: number = MAX_NUM_UNITS;
 
 export const unit_classes: Record<number, any> = {};
 
-export function utype_can_do_action(putype: any, action_id: number): boolean {
+export function utype_can_do_action(putype: UnitType | null | undefined | Record<string, unknown>, action_id: number): boolean {
   if (putype == null || putype['utype_actions'] == null) return false;
-  return putype['utype_actions'].isSet(action_id);
+  return (putype['utype_actions'] as { isSet(id: number): boolean }).isSet(action_id);
 }
 
 export function utype_can_do_action_result(putype: UnitType, result: number): boolean {
@@ -43,17 +43,19 @@ export function utype_can_do_action_result(putype: UnitType, result: number): bo
   return false;
 }
 
-export function can_player_build_unit_direct(p: any, punittype: any): boolean {
+export function can_player_build_unit_direct(p: Player | null, punittype: UnitType | null): boolean {
   if (punittype == null || p == null) return false;
 
-  if (punittype['tech_requirement'] != null && punittype['tech_requirement'] >= 0) {
-    if (player_invention_state(p, punittype['tech_requirement']) !== TECH_KNOWN) {
+  const techReq = punittype['tech_requirement'] as number | null | undefined;
+  if (techReq != null && techReq >= 0) {
+    if (player_invention_state(p, techReq) !== TECH_KNOWN) {
       return false;
     }
   }
 
-  if (punittype['obsoleted_by'] != null && punittype['obsoleted_by'] >= 0) {
-    const obs_type = store.unitTypes[punittype['obsoleted_by']];
+  const obsoletedBy = punittype['obsoleted_by'] as number | null | undefined;
+  if (obsoletedBy != null && obsoletedBy >= 0) {
+    const obs_type = store.unitTypes[obsoletedBy];
     if (obs_type != null) {
       const obsTechReq = obs_type['tech_requirement'] as number | null | undefined;
       if (obsTechReq == null || obsTechReq < 0) {

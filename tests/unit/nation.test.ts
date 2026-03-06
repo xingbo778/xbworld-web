@@ -12,6 +12,7 @@ import {
 } from '@/data/nation';
 import { store } from '@/data/store';
 import { PlayerFlag } from '@/data/player';
+import type { Player } from '@/data/types';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -85,12 +86,12 @@ describe('loveText', () => {
 
 describe('getScoreText', () => {
   it('should return score when >= 0', () => {
-    expect(getScoreText({ score: 100 })).toBe(100);
-    expect(getScoreText({ score: 0 })).toBe(0);
+    expect(getScoreText({ score: 100 } as unknown as Player)).toBe(100);
+    expect(getScoreText({ score: 0 } as unknown as Player)).toBe(0);
   });
 
   it('should return "?" when score is negative', () => {
-    expect(getScoreText({ score: -1 })).toBe('?');
+    expect(getScoreText({ score: -1 } as unknown as Player)).toBe('?');
   });
 });
 
@@ -121,7 +122,7 @@ describe('colLove', () => {
       playerno: 0,
       flags: { isSet: () => true },
       love: { 0: 500 },
-    };
+    } as unknown as Player;
     expect(colLove(pplayer)).toBe('-');
   });
 
@@ -131,7 +132,7 @@ describe('colLove', () => {
       playerno: 1,
       flags: { isSet: () => true },
       love: { 0: 500 },
-    };
+    } as unknown as Player;
     expect(colLove(pplayer)).toBe('-');
   });
 
@@ -140,7 +141,7 @@ describe('colLove', () => {
       playerno: 1,
       flags: { isSet: () => false },
       love: { 0: 500 },
-    };
+    } as unknown as Player;
     expect(colLove(pplayer)).toBe('-');
   });
 
@@ -149,7 +150,7 @@ describe('colLove', () => {
       playerno: 1,
       flags: { isSet: (flag: number) => flag === PlayerFlag.PLRF_AI },
       love: { 0: 500 },
-    };
+    } as unknown as Player;
     expect(colLove(pplayer)).toBe('Helpful');
   });
 
@@ -158,7 +159,7 @@ describe('colLove', () => {
       playerno: 1,
       flags: { isSet: (flag: number) => flag === PlayerFlag.PLRF_AI },
       love: { 0: -950 },
-    };
+    } as unknown as Player;
     expect(colLove(pplayer)).toBe('Genocidal');
   });
 });

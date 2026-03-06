@@ -33,12 +33,13 @@ const freeciv_wiki_docs = new Proxy({} as Record<string, any>, {
   get: (_target, prop: string) => (store.freecivWikiDocs || {})[prop],
 });
 import { mouse_x, mouse_y } from '../core/control/controlState';
+import type { Tech, UnitType, Improvement } from '../data/types';
 
 function byId(id: string): HTMLElement | null { return document.getElementById(id); }
 function setHtml(id: string, html: string): void { const el = byId(id); if (el) el.innerHTML = html; }
 
-export const techs: { [key: string]: any } = {};
-export const techcoststyle1: { [key: string]: any } = {};
+export const techs: Record<string, Tech> = {};
+export const techcoststyle1: Record<string, unknown> = {};
 
 export let tech_canvas_text_font: string = "18px Arial";
 
@@ -94,7 +95,7 @@ export const tech_item_height: number = 52;
 export let maxleft: number = 0;
 export let clicked_tech_id: number | null = null;
 
-export const bulbs_output_updater: any = new EventAggregator(update_bulbs_output_info, 250,
+export const bulbs_output_updater: EventAggregator = new EventAggregator(update_bulbs_output_info, 250,
                                                EventAggregator.DP_NONE,
                                                250, 3, 250);
 
@@ -183,8 +184,9 @@ export function update_tech_tree(): void {
 
     const sx: number = Math.floor(reqtree[tech_id + '']['x'] * tech_xscale);  //scale in X direction.
     const sy: number = reqtree[tech_id + '']['y'];
-    for (let i: number = 0; i < ptech['research_reqs'].length; i++) {
-      const rid: number = ptech['research_reqs'][i]['value'];
+    const reqs = ptech['research_reqs'] as { value: number }[];
+    for (let i: number = 0; i < reqs.length; i++) {
+      const rid: number = reqs[i]['value'];
       if (rid == 0 || reqtree[rid + ''] == null) continue;
 
       const dx: number = Math.floor(reqtree[rid + '']['x'] * tech_xscale);  //scale in X direction.
@@ -369,17 +371,17 @@ export function get_advances_text(tech_id: number): string {
 
   const ptech = techs[tech_id];
 
-  return tech_span(ptech.name, null, null) + ' (' + Math.floor(ptech.cost) + ')'
+  return tech_span(ptech.name, null, null) + ' (' + Math.floor(ptech['cost'] as number) + ')'
     + format_list_with_intro(' allows',
       [
         format_list_with_intro('building unit', get_units_from_tech(tech_id)
-          .map((unit: any) => tech_span(unit.name, unit.id, null, unit.helptext))),
+          .map((unit: UnitType) => tech_span(unit.name, unit.id, null, unit['helptext'] as string))),
         format_list_with_intro('building', get_improvements_from_tech(tech_id)
-          .map((impr: any) => tech_span(impr.name, null, impr.id, impr.helptext))),
+          .map((impr: Improvement) => tech_span(impr.name, null, impr.id, impr['helptext'] as string))),
         format_list_with_intro('researching', Object.keys(techs)
           .filter(is_valid_and_required)
           .map((tid: string) => techs[tid])
-          .map((tech: any) => tech_span(tech.name, null, null)))
+          .map((tech: Tech) => tech_span(tech.name, null, null)))
       ]) + '.';
 }
 
@@ -512,7 +514,7 @@ export function show_tech_gained_dialog(tech_gained_id: number): void {
   let message: string = "The " + store.nations[pplayer['nation']]['adjective'] + " have discovered " + tech['name'] + ".<br>";
   message += "<span id='tech_advance_helptext'>" + get_advances_text(tech_gained_id) + "</span>";
 
-  const tech_choices: any[] = [];
+  const tech_choices: Tech[] = [];
   for (let next_tech_id in techs) {
     const ntech = techs[next_tech_id];
     if (!(next_tech_id + '' in reqtree)) continue;

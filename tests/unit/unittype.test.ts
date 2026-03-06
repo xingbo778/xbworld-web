@@ -107,7 +107,7 @@ describe('can_player_build_unit_direct', () => {
   });
 
   it('should return false for null player', () => {
-    expect(can_player_build_unit_direct(null, { tech_requirement: 5 })).toBe(false);
+    expect(can_player_build_unit_direct(null, { tech_requirement: 5 } as any)).toBe(false);
   });
 
   it('should return false for null unittype', () => {
@@ -116,25 +116,25 @@ describe('can_player_build_unit_direct', () => {
 
   it('should return true when player knows required tech', () => {
     const player = makePlayerWithTechs([10]);
-    const utype = { tech_requirement: 10 };
+    const utype = { tech_requirement: 10 } as any;
     expect(can_player_build_unit_direct(player, utype)).toBe(true);
   });
 
   it('should return false when player lacks required tech', () => {
     const player = makePlayerWithTechs([5]);
-    const utype = { tech_requirement: 10 };
+    const utype = { tech_requirement: 10 } as any;
     expect(can_player_build_unit_direct(player, utype)).toBe(false);
   });
 
   it('should return true when no tech requirement', () => {
     const player = makePlayerWithTechs([]);
-    const utype = { tech_requirement: -1 };
+    const utype = { tech_requirement: -1 } as any;
     expect(can_player_build_unit_direct(player, utype)).toBe(true);
   });
 
   it('should return false when obsoleted_by unit is buildable', () => {
     const player = makePlayerWithTechs([10, 20]);
-    const utype = { tech_requirement: 10, obsoleted_by: 2 };
+    const utype = { tech_requirement: 10, obsoleted_by: 2 } as any;
     (store as any).unitTypes = {
       2: { tech_requirement: 20 },
     };
@@ -143,7 +143,7 @@ describe('can_player_build_unit_direct', () => {
 
   it('should return true when obsoleting unit tech is not known', () => {
     const player = makePlayerWithTechs([10]);
-    const utype = { tech_requirement: 10, obsoleted_by: 2 };
+    const utype = { tech_requirement: 10, obsoleted_by: 2 } as any;
     (store as any).unitTypes = {
       2: { tech_requirement: 20 },
     };
