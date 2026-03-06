@@ -194,23 +194,3 @@ export function is_capital(pcity: City): boolean {
   return false;
 }
 
-// ---------------------------------------------------------------------------
-// Expose all public functions to legacy JS via window
-// ---------------------------------------------------------------------------
-// Expose constants that legacy JS references as globals
-const _w = window as unknown as Record<string, unknown>;
-_w['MAX_NUM_PLAYERS'] = MAX_NUM_PLAYERS;
-_w['MAX_AI_LOVE'] = MAX_AI_LOVE;
-// DiplState enum values (const enum is inlined, so expose manually)
-_w['DS_ARMISTICE'] = DiplState.DS_ARMISTICE;
-_w['DS_WAR'] = DiplState.DS_WAR;
-_w['DS_CEASEFIRE'] = DiplState.DS_CEASEFIRE;
-_w['DS_PEACE'] = DiplState.DS_PEACE;
-_w['DS_ALLIANCE'] = DiplState.DS_ALLIANCE;
-_w['DS_NO_CONTACT'] = DiplState.DS_NO_CONTACT;
-_w['DS_TEAM'] = DiplState.DS_TEAM;
-_w['DS_LAST'] = DiplState.DS_LAST;
-// PlayerFlag enum values
-_w['PLRF_AI'] = PlayerFlag.PLRF_AI;
-_w['PLRF_SCENARIO_RESERVED'] = PlayerFlag.PLRF_SCENARIO_RESERVED;
-_w['PLRF_COUNT'] = PlayerFlag.PLRF_COUNT;
