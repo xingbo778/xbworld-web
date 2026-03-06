@@ -4682,6 +4682,13 @@ function loadWikiDocs() {
 const freeciv_wiki_docs = new Proxy({}, {
   get: (_target, prop) => (window.freeciv_wiki_docs || {})[prop]
 });
+function byId$1(id) {
+  return document.getElementById(id);
+}
+function setHtml$1(id, html) {
+  const el = byId$1(id);
+  if (el) el.innerHTML = html;
+}
 const techs = {};
 let tech_canvas_text_font = "18px Arial";
 let is_tech_tree_init = false;
@@ -4707,8 +4714,11 @@ const bulbs_output_updater = new EventAggregator(
 );
 function init_tech_screen() {
   if (isSmallScreen()) tech_canvas_text_font = "20px Arial";
-  $("#technologies").width($(window).width() - 20);
-  $("#technologies").height($(window).height() - $("#technologies").offset().top - 15);
+  const techEl = byId$1("technologies");
+  if (techEl) {
+    techEl.style.width = window.innerWidth - 20 + "px";
+    techEl.style.height = window.innerHeight - techEl.getBoundingClientRect().top - 15 + "px";
+  }
   if (is_tech_tree_init) return;
   tech_canvas = document.getElementById("tech_canvas");
   if (tech_canvas == null) {
@@ -4738,9 +4748,12 @@ function init_tech_screen() {
     if (tech_canvas_ctx) {
       tech_canvas_ctx.scale(0.6, 0.6);
     }
-    $("#tech_result_text").css("font-size", "85%");
-    $("#tech_color_help").css("font-size", "65%");
-    $("#tech_progress_box").css("padding-left", "10px");
+    const trt = byId$1("tech_result_text");
+    if (trt) trt.style.fontSize = "85%";
+    const tch = byId$1("tech_color_help");
+    if (tch) tch.style.fontSize = "65%";
+    const tpb = byId$1("tech_progress_box");
+    if (tpb) tpb.style.paddingLeft = "10px";
   }
   is_tech_tree_init = true;
   clicked_tech_id = null;
@@ -4868,18 +4881,18 @@ function update_tech_screen() {
   if (techs[clientPlaying()["tech_goal"]] != null) {
     research_goal_text = research_goal_text + "<br>Research Goal: " + techs[clientPlaying()["tech_goal"]]["name"];
   }
-  $("#tech_goal_box").html(research_goal_text);
-  $("#tech_progress_text").html("Research progress: " + clientPlaying()["bulbs_researched"] + " / " + clientPlaying()["researching_cost"]);
+  setHtml$1("tech_goal_box", research_goal_text);
+  setHtml$1("tech_progress_text", "Research progress: " + clientPlaying()["bulbs_researched"] + " / " + clientPlaying()["researching_cost"]);
   const pct_progress = 100 * (clientPlaying()["bulbs_researched"] / clientPlaying()["researching_cost"]);
-  $("#progress_fg").css("width", pct_progress + "%");
+  const progressFg = byId$1("progress_fg");
+  if (progressFg) progressFg.style.width = pct_progress + "%";
   if (clicked_tech_id != null) {
-    $("#tech_result_text").html("<span id='tech_advance_helptext'>" + get_advances_text(clicked_tech_id) + "</span>");
-    $("#tech_advance_helptext").tooltip({ disabled: false });
+    setHtml$1("tech_result_text", "<span id='tech_advance_helptext'>" + get_advances_text(clicked_tech_id) + "</span>");
   } else if (techs[clientPlaying()["researching"]] != null) {
-    $("#tech_result_text").html("<span id='tech_advance_helptext'>" + get_advances_text(clientPlaying()["researching"]) + "</span>");
-    $("#tech_advance_helptext").tooltip({ disabled: false });
+    setHtml$1("tech_result_text", "<span id='tech_advance_helptext'>" + get_advances_text(clientPlaying()["researching"]) + "</span>");
   }
-  $("#tech_tab_item").css("color", "#000000");
+  const techTabItem = byId$1("tech_tab_item");
+  if (techTabItem) techTabItem.style.color = "#000000";
   maxleft = maxleft - 280;
   if (maxleft < 0) maxleft = 0;
   if (!tech_dialog_active) {
@@ -4903,11 +4916,12 @@ function get_advances_text(tech_id) {
   ) + ".";
 }
 function scroll_tech_tree() {
-  $("#technologies").scrollLeft(maxleft);
+  const el = byId$1("technologies");
+  if (el) el.scrollLeft = maxleft;
 }
 function send_player_research(tech_id) {
   sendPlayerResearch(tech_id);
-  $("#tech_dialog").dialog("close");
+  byId$1("tech_dialog")?.remove();
 }
 function send_player_tech_goal(tech_id) {
   sendPlayerTechGoal(tech_id);
@@ -4925,16 +4939,21 @@ function tech_mapview_mouse_click(e2) {
     rightclick = false;
   }
   if (rightclick) {
-    if (mouse_x > $(window).width() / 2) {
-      $("#technologies").scrollLeft($("#technologies").scrollLeft() + 150);
-    } else {
-      $("#technologies").scrollLeft($("#technologies").scrollLeft() - 150);
+    const techEl = byId$1("technologies");
+    if (techEl) {
+      if (mouse_x > window.innerWidth / 2) {
+        techEl.scrollLeft += 150;
+      } else {
+        techEl.scrollLeft -= 150;
+      }
     }
     return;
   }
   if (tech_canvas != null) {
-    const tech_mouse_x = mouse_x - $("#technologies").offset().left + $("#technologies").scrollLeft();
-    const tech_mouse_y = mouse_y - $("#technologies").offset().top + $("#technologies").scrollTop();
+    const techEl = byId$1("technologies");
+    const rect = techEl.getBoundingClientRect();
+    const tech_mouse_x = mouse_x - rect.left + techEl.scrollLeft;
+    const tech_mouse_y = mouse_y - rect.top + techEl.scrollTop;
     for (let tech_id in techs) {
       const ptech = techs[tech_id];
       if (!(tech_id + "" in reqtree)) continue;
@@ -4980,7 +4999,8 @@ function queue_tech_gained_dialog(tech_gained_id) {
 }
 function show_tech_gained_dialog(tech_gained_id) {
   if (clientIsObserver() || C_S_RUNNING != clientState()) return;
-  $("#tech_tab_item").css("color", "#aa0000");
+  const tti = byId$1("tech_tab_item");
+  if (tti) tti.style.color = "#aa0000";
   const pplayer = clientPlaying();
   const tech = techs[tech_gained_id];
   if (tech == null) return;
@@ -4998,45 +5018,45 @@ function show_tech_gained_dialog(tech_gained_id) {
   message += "<br>You can now research:<br><div id='tech_gained_choice'>";
   for (let i2 = 0; i2 < tech_choices.length; i2++) {
     const html = get_tech_infobox_html(tech_choices[i2]["id"]);
-    if (html) {
-      message += html;
-    }
+    if (html) message += html;
   }
   message += "</div>";
-  $("#tech_dialog").remove();
-  $("<div id='tech_dialog'></div>").appendTo("div#game_page");
-  $("#tech_dialog").html(message);
-  $("#tech_dialog").attr("title", title);
-  $("#tech_dialog").dialog({
-    bgiframe: true,
-    modal: false,
-    width: isSmallScreen() ? "90%" : "60%",
-    buttons: [
-      {
-        text: "Close",
-        click: function() {
-          $("#tech_dialog").dialog("close");
-          $("#game_text_input").blur();
-        }
-      },
-      {
-        text: "Show Technology Tree",
-        click: function() {
-          setActiveTab("#tabs", 2);
-          update_tech_screen();
-          $("#tech_dialog").dialog("close");
-        }
-      }
-    ]
+  byId$1("tech_dialog")?.remove();
+  const dlg = document.createElement("div");
+  dlg.id = "tech_dialog";
+  dlg.style.cssText = "position:fixed;z-index:5000;background:#222;border:1px solid #555;padding:16px;top:10%;left:50%;transform:translateX(-50%);width:" + (isSmallScreen() ? "90%" : "60%") + ";max-height:80vh;overflow-y:auto;color:#fff;";
+  const titleEl = document.createElement("h3");
+  titleEl.textContent = title;
+  titleEl.style.margin = "0 0 8px";
+  dlg.appendChild(titleEl);
+  const body = document.createElement("div");
+  body.innerHTML = message;
+  dlg.appendChild(body);
+  const btnContainer = document.createElement("div");
+  btnContainer.style.cssText = "margin-top:8px;display:flex;gap:8px;";
+  const closeBtn = document.createElement("button");
+  closeBtn.textContent = "Close";
+  closeBtn.addEventListener("click", function() {
+    dlg.remove();
+    byId$1("game_text_input")?.blur();
   });
-  $("#tech_dialog").dialog("open");
-  $("#game_text_input").blur();
-  $("#tech_advance_helptext").tooltip({ disabled: false });
-  $(".specific_tech").tooltip({ disabled: false });
+  const treeBtn = document.createElement("button");
+  treeBtn.textContent = "Show Technology Tree";
+  treeBtn.addEventListener("click", function() {
+    setActiveTab("#tabs", 2);
+    update_tech_screen();
+    dlg.remove();
+  });
+  btnContainer.appendChild(closeBtn);
+  btnContainer.appendChild(treeBtn);
+  dlg.appendChild(btnContainer);
+  byId$1("game_page")?.appendChild(dlg);
+  byId$1("game_text_input")?.blur();
 }
 function show_tech_info_dialog(tech_name, unit_type_id, improvement_id) {
   loadWikiDocs();
-  $("#tech_tab_item").css("color", "#aa0000");
+  const tti = byId$1("tech_tab_item");
+  if (tti) tti.style.color = "#aa0000";
   let message = "";
   if (unit_type_id != null) {
     const punit_type = store.unitTypes[unit_type_id];
@@ -5050,29 +5070,34 @@ function show_tech_info_dialog(tech_name, unit_type_id, improvement_id) {
     }
     message += freeciv_wiki_docs[tech_name]["summary"];
   }
-  $("#wiki_dialog").remove();
-  $("<div id='wiki_dialog'></div>").appendTo("div#game_page");
-  $("#wiki_dialog").html(message);
-  $("#wiki_dialog").attr("title", tech_name);
-  $("#wiki_dialog").dialog({
-    bgiframe: true,
-    modal: true,
-    width: isSmallScreen() ? "95%" : "70%",
-    height: $(window).height() - 60,
-    buttons: {
-      Ok: function() {
-        $("#wiki_dialog").dialog("close");
-      }
-    }
+  byId$1("wiki_dialog")?.remove();
+  const dlg = document.createElement("div");
+  dlg.id = "wiki_dialog";
+  dlg.style.cssText = "position:fixed;z-index:5000;background:#222;border:1px solid #555;padding:16px;top:10%;left:50%;transform:translateX(-50%);width:" + (isSmallScreen() ? "95%" : "70%") + ";height:" + (window.innerHeight - 60) + "px;overflow-y:auto;color:#fff;";
+  const titleEl = document.createElement("h3");
+  titleEl.textContent = tech_name;
+  titleEl.style.margin = "0 0 8px";
+  dlg.appendChild(titleEl);
+  const body = document.createElement("div");
+  body.innerHTML = message;
+  dlg.appendChild(body);
+  const okBtn = document.createElement("button");
+  okBtn.textContent = "Ok";
+  okBtn.style.marginTop = "8px";
+  okBtn.addEventListener("click", function() {
+    dlg.remove();
   });
-  $("#wiki_dialog").dialog("open");
-  $("#game_text_input").blur();
+  dlg.appendChild(okBtn);
+  byId$1("game_page")?.appendChild(dlg);
+  byId$1("game_text_input")?.blur();
 }
 function update_tech_dialog_cursor() {
   if (!tech_canvas) return;
   tech_canvas.style.cursor = "default";
-  const tech_mouse_x = mouse_x - $("#technologies").offset().left + $("#technologies").scrollLeft();
-  const tech_mouse_y = mouse_y - $("#technologies").offset().top + $("#technologies").scrollTop();
+  const techEl = byId$1("technologies");
+  const rect = techEl.getBoundingClientRect();
+  const tech_mouse_x = mouse_x - rect.left + techEl.scrollLeft;
+  const tech_mouse_y = mouse_y - rect.top + techEl.scrollTop;
   for (let tech_id in techs) {
     const ptech = techs[tech_id];
     if (!(tech_id + "" in reqtree)) continue;
@@ -5090,8 +5115,7 @@ function update_tech_dialog_cursor() {
       } else {
         tech_canvas.style.cursor = "not-allowed";
       }
-      $("#tech_result_text").html("<span id='tech_advance_helptext'>" + get_advances_text(ptech["id"]) + "</span>");
-      $("#tech_advance_helptext").tooltip({ disabled: false });
+      setHtml$1("tech_result_text", "<span id='tech_advance_helptext'>" + get_advances_text(ptech["id"]) + "</span>");
     }
   }
 }
