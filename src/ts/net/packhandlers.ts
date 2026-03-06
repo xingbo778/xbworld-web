@@ -367,7 +367,7 @@ export function client_handle_packet(packets: any[]): void {
     }
     if (packets.length > 0) {
       if (store.debugActive) clinet_debug_collect();
-      if ((window as any).renderer === RENDERER_2DCANVAS) update_map_canvas_check();
+      if (store.renderer === RENDERER_2DCANVAS) update_map_canvas_check();
     }
   } catch (e) {
     console.error(e);

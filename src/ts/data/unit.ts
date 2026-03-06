@@ -3,6 +3,8 @@
  * Migrated from unit.js.
  */
 
+import { store } from './store';
+
 import type { Unit, UnitType, City, Tile, Player } from './types';
 import { player_by_number } from './player';
 import { indexToTile as index_to_tile } from './map';
@@ -177,7 +179,7 @@ export function get_unit_moves_left(punit: Unit | null): string | 0 {
 export function move_points_text(moves: number): string {
   // Read SINGLE_MOVE from window because it is set by legacy packhand.js
   // (handle_ruleset_terrain_control), not by TS code.
-  const sm: number = (window as any).SINGLE_MOVE;
+  const sm: number = store.singleMove ?? 1;
   let result: string;
 
   if (moves % sm !== 0) {

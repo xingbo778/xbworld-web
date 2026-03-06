@@ -41,7 +41,8 @@ const ORDER_MOVE = Order.MOVE;
 const ORDER_ACTION_MOVE = Order.ACTION_MOVE;
 const ORDER_PERFORM_ACTION = Order.PERFORM_ACTION;
 
-const EXTRA_HUT = (window as any).EXTRA_HUT;
+// EXTRA_HUT is set at runtime by server, read lazily
+function EXTRA_HUT(): number { return store.extraIds['EXTRA_HUT'] ?? -1; }
 
 import { swal } from '../../components/Dialogs/SwalDialog';
 
@@ -494,7 +495,7 @@ export function key_unit_move(dir: number) {
       })
       && (tile_city(newtile) == null
         || tile_city(newtile)!['owner'] == clientPlaying()?.playerno)
-      && !tile_has_extra(newtile, EXTRA_HUT)
+      && !tile_has_extra(newtile, EXTRA_HUT())
       && (newtile['extras_owner'] == clientPlaying().playerno
         || !tile_has_territory_claiming_extra(newtile))) {
       order["order"] = ORDER_MOVE;

@@ -205,7 +205,10 @@ export function init_cache_sprites(): void {
     }
 
     sprites_init = true;
-    (window as any).sprites = sprites;
+    store.sprites = sprites;
+    (window as any).sprites = sprites;  // also needed by tilespec.ts _w.sprites
+    // Sync tileset from window to store (loaded externally by tileset JS)
+    if ((window as any).tileset) store.tileset = (window as any).tileset;
     tileset_images[0] = null as any; // Set to null to free memory
     tileset_images[1] = null as any; // Set to null to free memory
     tileset_images = null as any; // Set to null to free memory
@@ -222,7 +225,7 @@ export function init_cache_sprites(): void {
 export function mapview_window_resized(): void {
   if (active_city != null || !resize_enabled) return;
   setupWindowSize();
-  if (_win.renderer == RENDERER_2DCANVAS) {
+  if (store.renderer == RENDERER_2DCANVAS) {
     if (typeof mark_all_dirty === 'function') mark_all_dirty();
     update_map_canvas_full();
   }

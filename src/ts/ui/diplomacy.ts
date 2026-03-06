@@ -390,7 +390,7 @@ export function meeting_paint_custom_flag(nation: any, flag_canvas: HTMLCanvasEl
   const flag_canvas_ctx = flag_canvas.getContext("2d");
   if (flag_canvas_ctx) {
     flag_canvas_ctx.scale(1.5, 1.5);
-    flag_canvas_ctx.drawImage((window as any).sprites[tag], 0, 0);
+    flag_canvas_ctx.drawImage(store.sprites[tag], 0, 0);
   }
 }
 

@@ -606,7 +606,7 @@ export function update_map_canvas_dirty(): void {
 **************************************************************************/
 export function update_map_canvas_check(): void {
   const time = new Date().getTime() - last_redraw_time;
-  if (time > MAPVIEW_REFRESH_INTERVAL && (window as any).renderer == RENDERER_2DCANVAS) {
+  if (time > MAPVIEW_REFRESH_INTERVAL && store.renderer == RENDERER_2DCANVAS) {
     if (dirty_all || dirty_count > DIRTY_FULL_THRESHOLD) {
       update_map_canvas_full();
     } else if (dirty_count > 0) {
@@ -616,7 +616,7 @@ export function update_map_canvas_check(): void {
     }
   }
   try {
-    if ((window as any).renderer == RENDERER_2DCANVAS && window.requestAnimationFrame != null) requestAnimationFrame(update_map_canvas_check);
+    if (store.renderer == RENDERER_2DCANVAS && window.requestAnimationFrame != null) requestAnimationFrame(update_map_canvas_check);
   } catch (e: any) {
     if (e.name == 'NS_ERROR_NOT_AVAILABLE') {
       setTimeout(update_map_canvas_check, 100);

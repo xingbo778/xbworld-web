@@ -172,7 +172,7 @@ export function popup_action_selection(actor_unit: any, action_probabilities: an
     }
 
     for (let action_id = 0; action_id < ACTION_COUNT; action_id++) {
-      if ((window as any).actions[action_id]['tgt_kind'] == tgt_kind
+      if (store.actions[action_id]['tgt_kind'] == tgt_kind
         && action_prob_possible(action_probabilities[action_id])) {
         const b = create_act_sel_button("#" + dlgId, actor_unit['id'],
           tgt_id, sub_tgt_id, action_id, action_probabilities);

@@ -26,7 +26,7 @@ import { governments } from '../ui/governmentDialog';
 import { showIntelDialog } from '../components/Dialogs/IntelDialog';
 
 export function show_intelligence_report_dialog(): void {
-  const selected_player = (window as any).selected_player;
+  const selected_player = store.selectedPlayer;
   if (selected_player === -1) return;
   const pplayer: any = store.players[selected_player];
 

@@ -46,13 +46,13 @@ if ((window as any)['selected_player'] === undefined) (window as any)['selected_
 // Helpers to access shared window globals
 // ---------------------------------------------------------------------------
 export function getDiplstates(): Record<number, number> {
-  return (window as any).diplstates;
+  return store.diplstates;
 }
 function getSelectedPlayer(): number {
-  return (window as any).selected_player;
+  return store.selectedPlayer;
 }
 function setSelectedPlayer(v: number): void {
-  (window as any).selected_player = v;
+  store.selectedPlayer = v;
 }
 
 // ---------------------------------------------------------------------------
@@ -309,8 +309,8 @@ export function updateNationScreen(): void {
     if (flag_canvas) {
       const flag_canvas_ctx = flag_canvas.getContext('2d');
       const tag = 'f.' + store.nations[pplayer['nation']]['graphic_str'];
-      if (flag_canvas_ctx != null && (window as any).sprites[tag] != null) {
-        flag_canvas_ctx.drawImage((window as any).sprites[tag], 0, 0);
+      if (flag_canvas_ctx != null && store.sprites[tag] != null) {
+        flag_canvas_ctx.drawImage(store.sprites[tag], 0, 0);
       }
     }
   }
@@ -326,7 +326,7 @@ export function updateNationScreen(): void {
   }
 
   /* Fetch online (connected) players on this game from Freeciv-proxy. */
-  const statusUrl = '/civsocket/' + (parseInt((window as any).civserverport) + 1000) + '/status';
+  const statusUrl = '/civsocket/' + (parseInt(store.civserverport) + 1000) + '/status';
   fetch(statusUrl, { cache: 'no-store' })
     .then(function (response) { return response.text(); })
     .then(function (data: string) {

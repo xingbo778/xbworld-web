@@ -35,20 +35,20 @@ export function update_game_info_pregame(): void {
 
   let game_info_html = "";
 
-  if ((window as any).scenario_info != null && (window as any).scenario_info['is_scenario']) {
+  if (store.scenarioInfo != null && store.scenarioInfo['is_scenario']) {
     game_info_html += "<p>";
-    game_info_html += (window as any).scenario_info['description'].replace(/\n/g, "<br>");
+    game_info_html += store.scenarioInfo['description'].replace(/\n/g, "<br>");
     game_info_html += "</p>";
 
-    if ((window as any).scenario_info['authors']) {
+    if (store.scenarioInfo['authors']) {
       game_info_html += "<p>Scenario by ";
-      game_info_html += (window as any).scenario_info['authors'].replace(/\n/g, "<br>");
+      game_info_html += store.scenarioInfo['authors'].replace(/\n/g, "<br>");
       game_info_html += "</p>";
     }
 
-    if ((window as any).scenario_info['prevent_new_cities']) {
+    if (store.scenarioInfo['prevent_new_cities']) {
       game_info_html += "<p>";
-      game_info_html += (window as any).scenario_info['name'] + " forbids the founding of new cities.";
+      game_info_html += store.scenarioInfo['name'] + " forbids the founding of new cities.";
       game_info_html += "</p>";
     }
   }
@@ -104,8 +104,8 @@ export function update_player_info_pregame_real(): void {
       if (plrEl) plrEl.prepend(flag_canvas);
       const flag_canvas_ctx = flag_canvas.getContext("2d");
       const tag = "f." + store.nations[player['nation']]['graphic_str'];
-      if ((window as any).sprites[tag] != null && flag_canvas_ctx != null) {
-        flag_canvas_ctx.drawImage((window as any).sprites[tag], 0, 0);
+      if (store.sprites[tag] != null && flag_canvas_ctx != null) {
+        flag_canvas_ctx.drawImage(store.sprites[tag], 0, 0);
       }
     }
     if (!plrEl) continue;

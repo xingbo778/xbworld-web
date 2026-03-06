@@ -84,11 +84,11 @@ export function handle_endgame_report(_packet: any): void {
 }
 
 export function handle_scenario_info(packet: any): void {
-  (window as any).scenario_info = packet;
+  store.scenarioInfo = packet;
 }
 
 export function handle_scenario_description(packet: any): void {
-  (window as any).scenario_info['description'] = packet['description'];
+  store.scenarioInfo['description'] = packet['description'];
   const { update_game_info_pregame } = require('../../core/pregame');
   update_game_info_pregame();
 }

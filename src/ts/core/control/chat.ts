@@ -59,7 +59,7 @@ export function chat_context_get_recipients(): any[] {
     pm.push({
       id: player_id,
       description: pplayer['name'] + " of the " + nation['adjective'],
-      flag: (window as any).sprites["f." + nation['graphic_str']]
+      flag: store.sprites["f." + nation['graphic_str']]
     });
 
     if (getDiplstates()[player_id] == FC_DS_ALLIANCE) {
@@ -208,7 +208,7 @@ export function set_chat_direction(player_id: number | null): void {
     player_name = pplayer['name']
       + " of the " + store.nations[pplayer['nation']]['adjective'];
     ctx.clearRect(0, 0, 29, 20);
-    const flag = (window as any).sprites["f." + store.nations[pplayer['nation']]['graphic_str']];
+    const flag = store.sprites["f." + store.nations[pplayer['nation']]['graphic_str']];
     if (flag != null) {
       ctx.drawImage(flag, 0, 0);
     }

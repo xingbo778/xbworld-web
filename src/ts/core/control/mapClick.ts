@@ -16,6 +16,7 @@ import { ACTION_COUNT, RENDERER_2DCANVAS } from '../../core/constants';
 import { sendUnitSscsSet, sendUnitOrders, sendPlayerPhaseDone, sendGotoPathReq, sendInfoTextReq } from '../../net/commands';
 import { isTouchDevice as is_touch_device } from '../../utils/helpers';
 import { clientIsObserver as client_is_observer, clientPlaying } from '../../client/clientState';
+import { isLongturn } from '../../client/clientCore';
 import { message_log } from '../../core/messages';
 import { E_BEGINNER_HELP, E_BAD_COMMAND } from '../../data/eventConstants';
 import { canvas_pos_to_tile, center_tile_mapcanvas_2d } from '../../renderer/mapviewCommon';
@@ -40,7 +41,7 @@ const ORDER_FULL_MP = Order.FULL_MP;
 // ---------------------------------------------------------------------------
 
 export function order_wants_direction(order: number, act_id: number, ptile: any): boolean {
-  const action = (window as any).actions[act_id];
+  const action = store.actions[act_id];
 
   if (order == S.goto_last_order && action == null) {
     console.log("Asked to put invalid action " + act_id + " in an order.");
@@ -107,7 +108,7 @@ export function do_map_click(ptile: any, qtype: any, first_time_called: boolean)
     if (S.goto_active && !is_touch_device()) {
       deactivate_goto(false);
     }
-    if ((window as any).renderer == RENDERER_2DCANVAS) {
+    if (store.renderer == RENDERER_2DCANVAS) {
       document.getElementById("canvas")?.dispatchEvent(new Event("contextmenu"));
     } else {
       document.getElementById("canvas_div")?.dispatchEvent(new Event("contextmenu"));
@@ -250,7 +251,7 @@ export function do_map_click(ptile: any, qtype: any, first_time_called: boolean)
         if (sunits != null && sunits.length > 0
           && sunits[0]['activity'] == ACTIVITY_IDLE) {
           set_unit_focus_and_redraw(sunits[0]);
-          if ((window as any).renderer == RENDERER_2DCANVAS) {
+          if (store.renderer == RENDERER_2DCANVAS) {
             document.getElementById("canvas")?.dispatchEvent(new Event("contextmenu"));
           } else {
             document.getElementById("canvas_div")?.dispatchEvent(new Event("contextmenu"));
@@ -276,7 +277,7 @@ export function do_map_click(ptile: any, qtype: any, first_time_called: boolean)
         }
 
         if (is_touch_device()) {
-          if ((window as any).renderer == RENDERER_2DCANVAS) {
+          if (store.renderer == RENDERER_2DCANVAS) {
             document.getElementById("canvas")?.dispatchEvent(new Event("contextmenu"));
           } else {
             document.getElementById("canvas_div")?.dispatchEvent(new Event("contextmenu"));
@@ -373,11 +374,10 @@ export function send_end_turn() {
   if (turnDoneBtn) turnDoneBtn.disabled = true;
 
   sendPlayerPhaseDone(store.gameInfo['turn']);
-  const update_turn_change_timer = (window as any).update_turn_change_timer;
-  if (update_turn_change_timer) update_turn_change_timer();
+  // update_turn_change_timer is a legacy function, may not exist
+  (window as any).update_turn_change_timer?.();
 
-  const is_longturn = (window as any).is_longturn;
-  if (is_longturn && is_longturn()) {
+  if (isLongturn()) {
     show_dialog_message("Turn done!",
       "Your turn in this Freeciv-web: One Turn per Day game is now over. In this game one turn is played every day. " +
       "To play your next turn in this game, go to " + window.location.host + " and click <b>Games</b> in the menu, then <b>Multiplayer</b> " +

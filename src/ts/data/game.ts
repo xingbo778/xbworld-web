@@ -10,7 +10,7 @@ export const IDENTITY_NUMBER_ZERO = 0;
 export function game_init(): void {
   store.mapInfo = {} as typeof store.mapInfo;
   store.terrains = {};
-  (window as any).resources = {};
+  store.resources = {};
   store.players = {};
   store.units = {};
   store.unitTypes = {};
@@ -111,7 +111,7 @@ export function update_game_status_panel(): void {
   }
 
   let page_title =
-    'XBWorld - ' + store.username + '  (turn:' + store.gameInfo!['turn'] + ', port:' + (window as any).civserverport + ') ';
+    'XBWorld - ' + store.username + '  (turn:' + store.gameInfo!['turn'] + ', port:' + store.civserverport + ') ';
   if (store.serverSettings['metamessage'] != null) {
     page_title += store.serverSettings['metamessage']['val'];
   }
@@ -157,13 +157,4 @@ export function sum_width(): number {
 
 // ---------------------------------------------------------------------------
 // Expose to legacy JS via window
-// ---------------------------------------------------------------------------
-// Ensure global variables exist (previously declared in game.js)
-// These are also synced via bridge/sync.ts, but need initial values
-// before sync runs.
-if ((window as any)['game_info'] === undefined) (window as any)['game_info'] = null;
-if ((window as any)['calendar_info'] === undefined) (window as any)['calendar_info'] = null;
-if ((window as any)['game_rules'] === undefined) (window as any)['game_rules'] = null;
-if ((window as any)['ruleset_control'] === undefined) (window as any)['ruleset_control'] = null;
-if ((window as any)['ruleset_summary'] === undefined) (window as any)['ruleset_summary'] = null;
-if ((window as any)['ruleset_description'] === undefined) (window as any)['ruleset_description'] = null;
+// Legacy global init guards removed — all state now lives in store.

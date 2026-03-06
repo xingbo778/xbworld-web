@@ -5,6 +5,7 @@
  * civclient_handle_key, map_handle_key, handle_context_menu_callback.
  */
 
+import { store } from '../../data/store';
 import { clientState as client_state, C_S_RUNNING, clientIsObserver } from '../../client/clientState';
 import { isTouchDevice as is_touch_device, civclient_benchmark } from '../../utils/helpers';
 import { showDebugInfo } from '../../client/clientDebug';
@@ -51,7 +52,7 @@ export function global_keyboard_listener(ev: KeyboardEvent) {
   }
   civclient_handle_key(keyboard_key, ev.keyCode, ev['ctrlKey'], ev['altKey'], ev['shiftKey'], ev);
 
-  if ((window as any).renderer == RENDERER_2DCANVAS) {
+  if (store.renderer == RENDERER_2DCANVAS) {
     const canvasEl = document.getElementById('canvas');
     (canvasEl as any)?.contextMenu?.('hide');
   }
@@ -255,7 +256,7 @@ export function map_handle_key(keyboard_key: string, key_code: number, ctrl: boo
       S.setMapviewMouseMovement(false);
 
       S.setContextMenuActive(true);
-      if ((window as any).renderer == RENDERER_2DCANVAS) {
+      if (store.renderer == RENDERER_2DCANVAS) {
         const canvasEl = document.getElementById('canvas');
         (canvasEl as any)?.contextMenu?.(true);
       } else {

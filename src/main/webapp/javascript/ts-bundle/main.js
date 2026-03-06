@@ -1007,6 +1007,31 @@ class GameStore {
   improvements = {};
   extras = {};
   serverSettings = {};
+  // Ruleset data (previously window globals)
+  resources = {};
+  gameRules = null;
+  specialists = {};
+  nationGroups = [];
+  cityRules = {};
+  actions = {};
+  goods = {};
+  clauseInfos = {};
+  effects = {};
+  unitClasses = {};
+  terrainControl = {};
+  singleMove = void 0;
+  extraIds = {};
+  // EXTRA_ROAD, EXTRA_RAIL, etc.
+  // Rendering/runtime state (previously window globals)
+  renderer = 0;
+  // RENDERER_2DCANVAS etc.
+  sprites = {};
+  tileset = {};
+  scenarioInfo = null;
+  selectedPlayer = -1;
+  diplstates = {};
+  civserverport = "";
+  freecivWikiDocs = {};
   client = {
     conn: { id: 0, playing: null }
   };
@@ -1849,7 +1874,7 @@ function get_unit_moves_left(punit) {
   return "Moves:" + move_points_text(punit.movesleft);
 }
 function move_points_text(moves) {
-  const sm = window.SINGLE_MOVE;
+  const sm = store.singleMove ?? 1;
   let result;
   if (moves % sm !== 0) {
     if (Math.floor(moves / sm) > 0) {
@@ -3254,7 +3279,9 @@ function init_cache_sprites() {
       }
     }
     sprites_init = true;
+    store.sprites = sprites;
     window.sprites = sprites;
+    if (window.tileset) store.tileset = window.tileset;
     tileset_images[0] = null;
     tileset_images[1] = null;
     tileset_images = null;
@@ -3265,7 +3292,7 @@ function init_cache_sprites() {
 function mapview_window_resized() {
   if (active_city != null || !resize_enabled) return;
   setupWindowSize();
-  if (_win.renderer == RENDERER_2DCANVAS$1) {
+  if (store.renderer == RENDERER_2DCANVAS$1) {
     if (typeof mark_all_dirty === "function") mark_all_dirty();
     update_map_canvas_full();
   }
@@ -3500,7 +3527,7 @@ function enable_mapview_slide(ptile) {
   mapview$1["height"] = old_height;
 }
 function actionByNumber(actId) {
-  const actions = window.actions;
+  const actions = store.actions;
   if (actions[actId] == void 0) {
     console.log("Asked for non existing action numbered %d", actId);
     return null;
@@ -3753,8 +3780,8 @@ function update_player_info_pregame_real() {
       if (plrEl) plrEl.prepend(flag_canvas);
       const flag_canvas_ctx = flag_canvas.getContext("2d");
       const tag = "f." + store.nations[player["nation"]]["graphic_str"];
-      if (window.sprites[tag] != null && flag_canvas_ctx != null) {
-        flag_canvas_ctx.drawImage(window.sprites[tag], 0, 0);
+      if (store.sprites[tag] != null && flag_canvas_ctx != null) {
+        flag_canvas_ctx.drawImage(store.sprites[tag], 0, 0);
       }
     }
     if (!plrEl) continue;
@@ -3840,7 +3867,9 @@ const SSA_NONE$1 = ServerSideAgent.NONE;
 const ORDER_MOVE$1 = Order.MOVE;
 const ORDER_ACTION_MOVE$1 = Order.ACTION_MOVE;
 const ORDER_PERFORM_ACTION = Order.PERFORM_ACTION;
-const EXTRA_HUT = window.EXTRA_HUT;
+function EXTRA_HUT() {
+  return store.extraIds["EXTRA_HUT"] ?? -1;
+}
 function observerGuard() {
   return clientIsObserver();
 }
@@ -4227,7 +4256,7 @@ function key_unit_move(dir) {
     };
     if (punit["transported"] && clientPlaying() != null && newtile["units"].every(function(ounit) {
       return ounit["owner"] == clientPlaying()?.playerno;
-    }) && (tileCity(newtile) == null || tileCity(newtile)["owner"] == clientPlaying()?.playerno) && !tileHasExtra(newtile, EXTRA_HUT) && (newtile["extras_owner"] == clientPlaying().playerno || !tileHasTerritoryClaimingExtra(newtile))) {
+    }) && (tileCity(newtile) == null || tileCity(newtile)["owner"] == clientPlaying()?.playerno) && !tileHasExtra(newtile, EXTRA_HUT()) && (newtile["extras_owner"] == clientPlaying().playerno || !tileHasTerritoryClaimingExtra(newtile))) {
       order["order"] = ORDER_MOVE$1;
     }
     sendUnitOrders({
@@ -4675,12 +4704,12 @@ function loadWikiDocs() {
   if (_wikiDocsLoaded) return;
   _wikiDocsLoaded = true;
   fetch("/javascript/wiki-docs.json").then((r2) => r2.json()).then((data) => {
-    window.freeciv_wiki_docs = data;
+    store.freecivWikiDocs = data;
   }).catch(() => {
   });
 }
 const freeciv_wiki_docs = new Proxy({}, {
-  get: (_target, prop) => (window.freeciv_wiki_docs || {})[prop]
+  get: (_target, prop) => (store.freecivWikiDocs || {})[prop]
 });
 function byId$4(id) {
   return document.getElementById(id);
@@ -4851,7 +4880,7 @@ function update_tech_tree() {
     for (let i2 = 0; i2 < prunits.length; i2++) {
       const utype = prunits[i2];
       const tag2 = tileset_unit_type_graphic_tag(utype);
-      const sprite = tag2 != null ? window.sprites[tag2] : null;
+      const sprite = tag2 != null ? store.sprites[tag2] : null;
       if (sprite != null) {
         tech_canvas_ctx.drawImage(sprite, x2 + 50 + tech_things++ * 30, y2 + 23, 28, 24);
       }
@@ -4860,7 +4889,7 @@ function update_tech_tree() {
     for (let i2 = 0; i2 < primprovements.length; i2++) {
       const pimpr = primprovements[i2];
       const tag3 = tileset_building_graphic_tag(pimpr);
-      const sprite = tag3 != null ? window.sprites[tag3] : null;
+      const sprite = tag3 != null ? store.sprites[tag3] : null;
       if (sprite != null) {
         tech_canvas_ctx.drawImage(sprite, x2 + 50 + tech_things++ * 30, y2 + 23, 28, 24);
       }
@@ -4980,11 +5009,11 @@ function get_tech_infobox_html(tech_id) {
   const ptech = techs[tech_id];
   const tag = tileset_tech_graphic_tag(ptech);
   if (tag == null) return null;
-  const tileset_x = window.tileset[tag][0];
-  const tileset_y = window.tileset[tag][1];
-  const width = window.tileset[tag][2];
-  const height = window.tileset[tag][3];
-  const i2 = window.tileset[tag][4];
+  const tileset_x = store.tileset[tag][0];
+  const tileset_y = store.tileset[tag][1];
+  const width = store.tileset[tag][2];
+  const height = store.tileset[tag][3];
+  const i2 = store.tileset[tag][4];
   const image_src = "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i2 + getTilesetFileExtension() + "?ts=" + window.ts;
   if (isSmallScreen()) {
     infobox_html += "<div class='specific_tech' onclick='send_player_research(" + tech_id + ");' title='" + get_advances_text(tech_id).replace(/(<([^>]+)>)/ig, "") + "'>" + ptech["name"] + "</div>";
@@ -5536,22 +5565,22 @@ function handle_ruleset_terrain(packet) {
   store.terrains[packet["id"]] = packet;
 }
 function handle_ruleset_resource(packet) {
-  window.resources[packet["id"]] = packet;
+  store.resources[packet["id"]] = packet;
 }
 function handle_ruleset_game(packet) {
-  window.game_rules = packet;
+  store.gameRules = packet;
 }
 function handle_ruleset_specialist(packet) {
-  window.specialists[packet["id"]] = packet;
+  store.specialists[packet["id"]] = packet;
 }
 function handle_ruleset_nation_groups(packet) {
-  window.nation_groups = packet["groups"];
+  store.nationGroups = packet["groups"];
 }
 function handle_ruleset_nation(packet) {
   store.nations[packet["id"]] = packet;
 }
 function handle_ruleset_city(packet) {
-  window.city_rules[packet["style_id"]] = packet;
+  store.cityRules[packet["style_id"]] = packet;
 }
 function handle_ruleset_government(packet) {
   store.governments[packet["id"]] = packet;
@@ -5567,20 +5596,20 @@ function handle_ruleset_description_part(packet) {
   }
 }
 function handle_ruleset_action(packet) {
-  window.actions[packet["id"]] = packet;
+  store.actions[packet["id"]] = packet;
   packet["enablers"] = [];
 }
 function handle_ruleset_goods(packet) {
-  window.goods[packet["id"]] = packet;
+  store.goods[packet["id"]] = packet;
 }
 function handle_ruleset_clause(packet) {
-  window.clause_infos[packet["type"]] = packet;
+  store.clauseInfos[packet["type"]] = packet;
 }
 function handle_ruleset_effect(packet) {
-  if (window.effects[packet["effect_type"]] == null) {
-    window.effects[packet["effect_type"]] = [];
+  if (store.effects[packet["effect_type"]] == null) {
+    store.effects[packet["effect_type"]] = [];
   }
-  window.effects[packet["effect_type"]].push(packet);
+  store.effects[packet["effect_type"]].push(packet);
 }
 function handle_ruleset_unit(packet) {
   if (packet["name"] != null && packet["name"].indexOf("?unit:") === 0) {
@@ -5624,15 +5653,15 @@ function handle_ruleset_tech_flag(_packet) {
 }
 function handle_ruleset_terrain_control(packet) {
   terrain_control = packet;
-  window.terrain_control = packet;
-  window.SINGLE_MOVE = packet["move_fragments"];
+  store.terrainControl = packet;
+  store.singleMove = packet["move_fragments"];
 }
 function handle_ruleset_building(packet) {
   store.improvements[packet["id"]] = packet;
 }
 function handle_ruleset_unit_class(packet) {
   packet["flags"] = new BitVector$1(packet["flags"]);
-  window.unit_classes[packet["id"]] = packet;
+  store.unitClasses[packet["id"]] = packet;
 }
 function handle_ruleset_disaster(_packet) {
 }
@@ -5681,7 +5710,7 @@ function handle_ruleset_road(packet) {
   console.log(packet);
 }
 function handle_ruleset_action_enabler(packet) {
-  const paction = window.actions[packet.enabled_action];
+  const paction = store.actions[packet.enabled_action];
   if (paction === void 0) {
     console.log("Unknown action " + packet.action + " for enabler ");
     console.log(packet);
@@ -5701,9 +5730,9 @@ function handle_ruleset_extra(packet) {
   if (isExtraCausedBy(packet, EC_BASE) && packet["buildable"]) {
     bases.push(packet);
   }
-  if (packet["rule_name"] === "Railroad") window["EXTRA_RAIL"] = packet["id"];
-  else if (packet["rule_name"] === "Oil Well") window["EXTRA_OIL_WELL"] = packet["id"];
-  else window["EXTRA_" + packet["rule_name"].toUpperCase()] = packet["id"];
+  if (packet["rule_name"] === "Railroad") store.extraIds["EXTRA_RAIL"] = packet["id"];
+  else if (packet["rule_name"] === "Oil Well") store.extraIds["EXTRA_OIL_WELL"] = packet["id"];
+  else store.extraIds["EXTRA_" + packet["rule_name"].toUpperCase()] = packet["id"];
 }
 function handle_ruleset_counter(_packet) {
 }
@@ -5736,36 +5765,36 @@ function handle_play_music(_packet) {
 function handle_ruleset_control(packet) {
   store.rulesControl = packet;
   setClientState(C_S_PREPARING);
-  window.effects = {};
+  store.effects = {};
   store.rulesSummary = null;
   store.rulesDescription = null;
-  window.game_rules = null;
-  window.nation_groups = [];
+  store.gameRules = null;
+  store.nationGroups = [];
   store.nations = {};
-  window.specialists = {};
+  store.specialists = {};
   store.techs = {};
   store.governments = {};
   terrain_control = {};
-  window.terrain_control = {};
-  window.SINGLE_MOVE = void 0;
+  store.terrainControl = {};
+  store.singleMove = void 0;
   store.unitTypes = {};
-  window.unit_classes = {};
-  window.city_rules = {};
+  store.unitClasses = {};
+  store.cityRules = {};
   store.terrains = {};
-  window.resources = {};
-  window.goods = {};
-  window.actions = {};
+  store.resources = {};
+  store.goods = {};
+  store.actions = {};
   improvements_init();
   for (const extra in store.extras) {
     const ename = store.extras[extra]["rule_name"];
-    if (ename === "Railroad") delete window["EXTRA_RAIL"];
-    else if (ename === "Oil Well") delete window["EXTRA_OIL_WELL"];
-    else delete window["EXTRA_" + ename.toUpperCase()];
+    if (ename === "Railroad") delete store.extraIds["EXTRA_RAIL"];
+    else if (ename === "Oil Well") delete store.extraIds["EXTRA_OIL_WELL"];
+    else delete store.extraIds["EXTRA_" + ename.toUpperCase()];
   }
   store.extras = {};
   roads = [];
   bases = [];
-  window.clause_infos = {};
+  store.clauseInfos = {};
 }
 function handle_game_info(packet) {
   store.gameInfo = packet;
@@ -5818,10 +5847,10 @@ function handle_endgame_report(_packet) {
   setClientState(C_S_OVER);
 }
 function handle_scenario_info(packet) {
-  window.scenario_info = packet;
+  store.scenarioInfo = packet;
 }
 function handle_scenario_description(packet) {
-  window.scenario_info["description"] = packet["description"];
+  store.scenarioInfo["description"] = packet["description"];
   const { update_game_info_pregame } = require("../../core/pregame");
   update_game_info_pregame();
 }
@@ -6148,7 +6177,7 @@ function meeting_paint_custom_flag(nation, flag_canvas) {
   const flag_canvas_ctx = flag_canvas.getContext("2d");
   if (flag_canvas_ctx) {
     flag_canvas_ctx.scale(1.5, 1.5);
-    flag_canvas_ctx.drawImage(window.sprites[tag], 0, 0);
+    flag_canvas_ctx.drawImage(store.sprites[tag], 0, 0);
   }
 }
 function create_clauses_menu(content) {
@@ -6652,7 +6681,7 @@ function popup_action_selection(actor_unit, action_probabilities, target_tile, t
         break;
     }
     for (let action_id = 0; action_id < ACTION_COUNT$1; action_id++) {
-      if (window.actions[action_id]["tgt_kind"] == tgt_kind && actionProbPossible(action_probabilities[action_id])) {
+      if (store.actions[action_id]["tgt_kind"] == tgt_kind && actionProbPossible(action_probabilities[action_id])) {
         const b2 = create_act_sel_button(
           "#" + dlgId,
           actor_unit["id"],
@@ -6935,7 +6964,7 @@ function format_action_probability(probability) {
   }
 }
 function format_action_label(action_id, action_probabilities) {
-  return window.actions[action_id]["ui_name"].replace("%s", "").replace(
+  return store.actions[action_id]["ui_name"].replace("%s", "").replace(
     "%s",
     format_action_probability(action_probabilities[action_id])
   );
@@ -7190,15 +7219,15 @@ function handle_player_diplstate(packet) {
       need_players_dialog_update = true;
     }
   }
-  if (packet["type"] === DiplState.DS_WAR && packet["plr2"] === clientPlaying()["playerno"] && window.diplstates[packet["plr1"]] !== DiplState.DS_WAR && window.diplstates[packet["plr1"]] !== DiplState.DS_NO_CONTACT) {
+  if (packet["type"] === DiplState.DS_WAR && packet["plr2"] === clientPlaying()["playerno"] && store.diplstates[packet["plr1"]] !== DiplState.DS_WAR && store.diplstates[packet["plr1"]] !== DiplState.DS_NO_CONTACT) {
     window.alert_war(packet["plr1"]);
-  } else if (packet["type"] === DiplState.DS_WAR && packet["plr1"] === clientPlaying()["playerno"] && window.diplstates[packet["plr2"]] !== DiplState.DS_WAR && window.diplstates[packet["plr2"]] !== DiplState.DS_NO_CONTACT) {
+  } else if (packet["type"] === DiplState.DS_WAR && packet["plr1"] === clientPlaying()["playerno"] && store.diplstates[packet["plr2"]] !== DiplState.DS_WAR && store.diplstates[packet["plr2"]] !== DiplState.DS_NO_CONTACT) {
     window.alert_war(packet["plr2"]);
   }
   if (packet["plr1"] === clientPlaying()["playerno"]) {
-    window.diplstates[packet["plr2"]] = packet["type"];
+    store.diplstates[packet["plr2"]] = packet["type"];
   } else if (packet["plr2"] === clientPlaying()["playerno"]) {
-    window.diplstates[packet["plr1"]] = packet["type"];
+    store.diplstates[packet["plr1"]] = packet["type"];
   }
   if (store.players[packet["plr1"]].diplstates === void 0) {
     store.players[packet["plr1"]].diplstates = [];
@@ -7694,7 +7723,7 @@ function client_handle_packet(packets) {
     }
     if (packets.length > 0) {
       if (store.debugActive) clinet_debug_collect();
-      if (window.renderer === RENDERER_2DCANVAS$1) update_map_canvas_check();
+      if (store.renderer === RENDERER_2DCANVAS$1) update_map_canvas_check();
     }
   } catch (e2) {
     console.error(e2);
@@ -7718,31 +7747,31 @@ function hideEl(id) {
 const tile_units_func = tile_units;
 const map_city_tile = cityTile;
 function FC_EXTRA_ROAD() {
-  return window.EXTRA_ROAD ?? 0;
+  return store.extraIds["EXTRA_ROAD"] ?? 0;
 }
 function FC_EXTRA_RIVER() {
-  return window.EXTRA_RIVER ?? 1;
+  return store.extraIds["EXTRA_RIVER"] ?? 1;
 }
 function FC_EXTRA_RAIL() {
-  return window.EXTRA_RAIL ?? 2;
+  return store.extraIds["EXTRA_RAIL"] ?? 2;
 }
 function FC_EXTRA_MAGLEV() {
-  return window.EXTRA_MAGLEV ?? 3;
+  return store.extraIds["EXTRA_MAGLEV"] ?? 3;
 }
 function FC_EXTRA_MINE() {
-  return window.EXTRA_MINE ?? 4;
+  return store.extraIds["EXTRA_MINE"] ?? 4;
 }
 function FC_EXTRA_POLLUTION() {
-  return window.EXTRA_POLLUTION ?? 5;
+  return store.extraIds["EXTRA_POLLUTION"] ?? 5;
 }
 function FC_EXTRA_FALLOUT() {
-  return window.EXTRA_FALLOUT ?? 6;
+  return store.extraIds["EXTRA_FALLOUT"] ?? 6;
 }
 function FC_EXTRA_IRRIGATION() {
-  return window.EXTRA_IRRIGATION ?? 7;
+  return store.extraIds["EXTRA_IRRIGATION"] ?? 7;
 }
 function FC_EXTRA_FARMLAND() {
-  return window.EXTRA_FARMLAND ?? 8;
+  return store.extraIds["EXTRA_FARMLAND"] ?? 8;
 }
 function get_focus_unit_on_tile(ptile) {
   const funits = get_units_in_focus();
@@ -7918,7 +7947,7 @@ function update_unit_order_commands() {
         hideEl("order_maglev");
         showEl("order_railroad");
         unit_actions["railroad"] = { name: "Build railroad (R)" };
-      } else if (typeof window.EXTRA_MAGLEV !== "undefined" && !tileHasExtra(ptile, FC_EXTRA_MAGLEV()) && playerInventionState(
+      } else if (typeof store.extraIds["EXTRA_MAGLEV"] !== "undefined" && !tileHasExtra(ptile, FC_EXTRA_MAGLEV()) && playerInventionState(
         clientPlaying(),
         techIdByName("Superconductors")
       ) == FC_TECH_KNOWN && tileHasExtra(ptile, FC_EXTRA_RAIL())) {
@@ -8320,7 +8349,7 @@ const ORDER_MOVE = Order.MOVE;
 const ORDER_ACTION_MOVE = Order.ACTION_MOVE;
 const ORDER_FULL_MP = Order.FULL_MP;
 function order_wants_direction(order, act_id, ptile) {
-  const action = window.actions[act_id];
+  const action = store.actions[act_id];
   if (order == goto_last_order && action == null) {
     console.log("Asked to put invalid action " + act_id + " in an order.");
     return false;
@@ -8379,7 +8408,7 @@ function do_map_click(ptile, qtype, first_time_called) {
     if (goto_active && !isTouchDevice()) {
       deactivate_goto(false);
     }
-    if (window.renderer == RENDERER_2DCANVAS$1) {
+    if (store.renderer == RENDERER_2DCANVAS$1) {
       document.getElementById("canvas")?.dispatchEvent(new Event("contextmenu"));
     } else {
       document.getElementById("canvas_div")?.dispatchEvent(new Event("contextmenu"));
@@ -8503,7 +8532,7 @@ function do_map_click(ptile, qtype, first_time_called) {
       if (clientPlaying() != null && pcity["owner"] == clientPlaying().playerno) {
         if (sunits != null && sunits.length > 0 && sunits[0]["activity"] == ACTIVITY_IDLE) {
           set_unit_focus_and_redraw(sunits[0]);
-          if (window.renderer == RENDERER_2DCANVAS$1) {
+          if (store.renderer == RENDERER_2DCANVAS$1) {
             document.getElementById("canvas")?.dispatchEvent(new Event("contextmenu"));
           } else {
             document.getElementById("canvas_div")?.dispatchEvent(new Event("contextmenu"));
@@ -8526,7 +8555,7 @@ function do_map_click(ptile, qtype, first_time_called) {
           update_active_units_dialog();
         }
         if (isTouchDevice()) {
-          if (window.renderer == RENDERER_2DCANVAS$1) {
+          if (store.renderer == RENDERER_2DCANVAS$1) {
             document.getElementById("canvas")?.dispatchEvent(new Event("contextmenu"));
           } else {
             document.getElementById("canvas_div")?.dispatchEvent(new Event("contextmenu"));
@@ -8608,10 +8637,8 @@ function send_end_turn() {
   const turnDoneBtn = document.getElementById("turn_done_button");
   if (turnDoneBtn) turnDoneBtn.disabled = true;
   sendPlayerPhaseDone(store.gameInfo["turn"]);
-  const update_turn_change_timer = window.update_turn_change_timer;
-  if (update_turn_change_timer) update_turn_change_timer();
-  const is_longturn2 = window.is_longturn;
-  if (is_longturn2 && is_longturn2()) {
+  window.update_turn_change_timer?.();
+  if (isLongturn()) {
     showDialogMessage(
       "Turn done!",
       "Your turn in this Freeciv-web: One Turn per Day game is now over. In this game one turn is played every day. To play your next turn in this game, go to " + window.location.host + " and click <b>Games</b> in the menu, then <b>Multiplayer</b> and there you will find this Freeciv-web: One Turn per Day game in the list. You can also bookmark this page.<br>See you again soon!"
@@ -8704,13 +8731,13 @@ if (!window["nation_groups"]) window["nation_groups"] = [];
 if (!window["diplstates"]) window["diplstates"] = {};
 if (window["selected_player"] === void 0) window["selected_player"] = -1;
 function getDiplstates() {
-  return window.diplstates;
+  return store.diplstates;
 }
 function getSelectedPlayer() {
-  return window.selected_player;
+  return store.selectedPlayer;
 }
 function setSelectedPlayer(v2) {
-  window.selected_player = v2;
+  store.selectedPlayer = v2;
 }
 function jqButtonEnable(id) {
   const el = document.getElementById(id);
@@ -8854,8 +8881,8 @@ function updateNationScreen() {
     if (flag_canvas) {
       const flag_canvas_ctx = flag_canvas.getContext("2d");
       const tag = "f." + store.nations[pplayer["nation"]]["graphic_str"];
-      if (flag_canvas_ctx != null && window.sprites[tag] != null) {
-        flag_canvas_ctx.drawImage(window.sprites[tag], 0, 0);
+      if (flag_canvas_ctx != null && store.sprites[tag] != null) {
+        flag_canvas_ctx.drawImage(store.sprites[tag], 0, 0);
       }
     }
   }
@@ -8867,7 +8894,7 @@ function updateNationScreen() {
       nationsEl.style.width = (mapview$1["width"] ?? 800) + "px";
     }
   }
-  const statusUrl = "/civsocket/" + (parseInt(window.civserverport) + 1e3) + "/status";
+  const statusUrl = "/civsocket/" + (parseInt(store.civserverport) + 1e3) + "/status";
   fetch(statusUrl, { cache: "no-store" }).then(function(response) {
     return response.text();
   }).then(function(data) {
@@ -9124,7 +9151,7 @@ function chat_context_get_recipients() {
     pm.push({
       id: player_id,
       description: pplayer["name"] + " of the " + nation["adjective"],
-      flag: window.sprites["f." + nation["graphic_str"]]
+      flag: store.sprites["f." + nation["graphic_str"]]
     });
     if (getDiplstates()[player_id] == FC_DS_ALLIANCE) {
       allies = true;
@@ -9255,7 +9282,7 @@ function set_chat_direction(player_id) {
     if (pplayer == null) return;
     player_name = pplayer["name"] + " of the " + store.nations[pplayer["nation"]]["adjective"];
     ctx.clearRect(0, 0, 29, 20);
-    const flag = window.sprites["f." + store.nations[pplayer["nation"]]["graphic_str"]];
+    const flag = store.sprites["f." + store.nations[pplayer["nation"]]["graphic_str"]];
     if (flag != null) {
       ctx.drawImage(flag, 0, 0);
     }
@@ -10147,6 +10174,7 @@ function show_city_dialog(pcity) {
     el.style.height = tabHeight + "px";
   });
   city_worklist_dialog(pcity);
+  store.renderer;
   set_citydlg_dimensions(pcity);
   set_city_mapview_active();
   center_tile_mapcanvas(cityTile(pcity));
@@ -10241,11 +10269,11 @@ function show_city_dialog(pcity) {
     }
   }
   for (let u2 = 0; u2 < pcity["specialists_size"]; u2++) {
-    const spec_type_name = window.specialists[u2]["plural_name"];
-    "specialist." + window.specialists[u2]["rule_name"] + "_0";
+    const spec_type_name = store.specialists[u2]["plural_name"];
+    "specialist." + store.specialists[u2]["rule_name"] + "_0";
     for (let j2 = 0; j2 < pcity["specialists"][u2]; j2++) {
       sprite = get_specialist_image_sprite();
-      specialist_html = specialist_html + "<div class='specialist_item' style='cursor:pointer;cursor:hand; background: transparent url(" + sprite["image-src"] + ");background-position:-" + sprite["tileset-x"] + "px -" + sprite["tileset-y"] + "px;  width: " + sprite["width"] + "px;height: " + sprite["height"] + "px;float:left; ' onclick='city_change_specialist(" + pcity["id"] + "," + window.specialists[u2]["id"] + ");' title='" + spec_type_name + " (click to change)'></div>";
+      specialist_html = specialist_html + "<div class='specialist_item' style='cursor:pointer;cursor:hand; background: transparent url(" + sprite["image-src"] + ");background-position:-" + sprite["tileset-x"] + "px -" + sprite["tileset-y"] + "px;  width: " + sprite["width"] + "px;height: " + sprite["height"] + "px;float:left; ' onclick='city_change_specialist(" + pcity["id"] + "," + store.specialists[u2]["id"] + ");' title='" + spec_type_name + " (click to change)'></div>";
     }
   }
   specialist_html += "<div style='clear: both;'></div>";
@@ -10338,7 +10366,7 @@ function city_dialog_close_handler() {
     setupWindowSize();
     center_tile_mapcanvas(cityTile(active_city));
     set_active_city(null);
-    if (window.renderer == RENDERER_2DCANVAS$1) {
+    if (store.renderer == RENDERER_2DCANVAS$1) {
       update_map_canvas_full();
     }
   }
@@ -11837,7 +11865,7 @@ function update_map_canvas_dirty() {
 }
 function update_map_canvas_check() {
   const time = (/* @__PURE__ */ new Date()).getTime() - last_redraw_time;
-  if (time > MAPVIEW_REFRESH_INTERVAL && window.renderer == RENDERER_2DCANVAS$1) {
+  if (time > MAPVIEW_REFRESH_INTERVAL && store.renderer == RENDERER_2DCANVAS$1) {
     if (dirty_all || dirty_count > DIRTY_FULL_THRESHOLD) {
       update_map_canvas_full();
     } else if (dirty_count > 0) {
@@ -11847,7 +11875,7 @@ function update_map_canvas_check() {
     }
   }
   try {
-    if (window.renderer == RENDERER_2DCANVAS$1 && window.requestAnimationFrame != null) requestAnimationFrame(update_map_canvas_check);
+    if (store.renderer == RENDERER_2DCANVAS$1 && window.requestAnimationFrame != null) requestAnimationFrame(update_map_canvas_check);
   } catch (e2) {
     if (e2.name == "NS_ERROR_NOT_AVAILABLE") {
       setTimeout(update_map_canvas_check, 100);
@@ -12291,16 +12319,8 @@ function IntroDialog() {
     }
   );
 }
-if (window.client === void 0 || Object.keys(window.client).length === 0) {
-  if (window.client === void 0) window.client = {};
-}
-if (window.client_frozen === void 0) window.client_frozen = false;
-if (window.phase_start_time === void 0) window.phase_start_time = 0;
-if (window.debug_active === void 0) window.debug_active = false;
-if (window.autostart === void 0) window.autostart = false;
-if (window.username === void 0) window.username = null;
+store.renderer = RENDERER_2DCANVAS$1;
 if (window.fc_seedrandom === void 0) window.fc_seedrandom = null;
-if (window.game_type === void 0) window.game_type = "";
 if (window.audio === void 0) window.audio = null;
 if (window.audio_enabled === void 0) window.audio_enabled = false;
 if (window.last_turn_change_time === void 0) window.last_turn_change_time = 0;
@@ -12309,8 +12329,6 @@ if (window.seconds_to_phasedone === void 0) window.seconds_to_phasedone = 0;
 if (window.seconds_to_phasedone_sync === void 0) window.seconds_to_phasedone_sync = 0;
 if (window.dialog_close_trigger === void 0) window.dialog_close_trigger = "";
 if (window.dialog_message_close_task === void 0) window.dialog_message_close_task = void 0;
-if (window.RENDERER_2DCANVAS === void 0) window.RENDERER_2DCANVAS = RENDERER_2DCANVAS$1;
-if (window.renderer === void 0) window.renderer = RENDERER_2DCANVAS$1;
 if (!window.music_list) {
   window.music_list = [
     "battle-epic",
@@ -12827,7 +12845,7 @@ function global_keyboard_listener(ev) {
     }
   }
   civclient_handle_key(keyboard_key, ev.keyCode, ev["ctrlKey"], ev["altKey"], ev["shiftKey"]);
-  if (window.renderer == RENDERER_2DCANVAS$1) {
+  if (store.renderer == RENDERER_2DCANVAS$1) {
     const canvasEl = document.getElementById("canvas");
     canvasEl?.contextMenu?.("hide");
   }
@@ -13001,7 +13019,7 @@ function map_handle_key(keyboard_key, key_code, ctrl, alt, shift, the_event) {
       setMapSelectCheck(false);
       setMapviewMouseMovement(false);
       setContextMenuActive(true);
-      if (window.renderer == RENDERER_2DCANVAS$1) {
+      if (store.renderer == RENDERER_2DCANVAS$1) {
         const canvasEl = document.getElementById("canvas");
         canvasEl?.contextMenu?.(true);
       } else {
@@ -13532,7 +13550,7 @@ function IntelDialog() {
   );
 }
 function show_intelligence_report_dialog() {
-  const selected_player = window.selected_player;
+  const selected_player = store.selectedPlayer;
   if (selected_player === -1) return;
   const pplayer = store.players[selected_player];
   if (clientIsObserver() || clientPlaying()?.["real_embassy"]?.isSet(selected_player)) {
@@ -14312,7 +14330,7 @@ let getCityTileMapForPos = function(x2, y2) {
 function game_init() {
   store.mapInfo = {};
   store.terrains = {};
-  window.resources = {};
+  store.resources = {};
   store.players = {};
   store.units = {};
   store.unitTypes = {};
@@ -14387,7 +14405,7 @@ function update_game_status_panel() {
       panelBottom.innerHTML = status_html;
     }
   }
-  let page_title = "XBWorld - " + store.username + "  (turn:" + store.gameInfo["turn"] + ", port:" + window.civserverport + ") ";
+  let page_title = "XBWorld - " + store.username + "  (turn:" + store.gameInfo["turn"] + ", port:" + store.civserverport + ") ";
   if (store.serverSettings["metamessage"] != null) {
     page_title += store.serverSettings["metamessage"]["val"];
   }
@@ -14419,12 +14437,6 @@ function sum_width() {
   }
   return sum;
 }
-if (window["game_info"] === void 0) window["game_info"] = null;
-if (window["calendar_info"] === void 0) window["calendar_info"] = null;
-if (window["game_rules"] === void 0) window["game_rules"] = null;
-if (window["ruleset_control"] === void 0) window["ruleset_control"] = null;
-if (window["ruleset_summary"] === void 0) window["ruleset_summary"] = null;
-if (window["ruleset_description"] === void 0) window["ruleset_description"] = null;
 const _$ = window.jQuery;
 if (!_$) throw new Error("jqueryUiShim requires jQuery");
 const dialogStore = /* @__PURE__ */ new WeakMap();

@@ -56,6 +56,31 @@ class GameStore {
   extras: Record<number, Extra> = {};
   serverSettings: Record<string, ServerSetting> = {};
 
+  // Ruleset data (previously window globals)
+  resources: Record<number, any> = {};
+  gameRules: any = null;
+  specialists: Record<number, any> = {};
+  nationGroups: any[] = [];
+  cityRules: Record<number, any> = {};
+  actions: Record<number, any> = {};
+  goods: Record<number, any> = {};
+  clauseInfos: Record<number, any> = {};
+  effects: Record<string, any[]> = {};
+  unitClasses: Record<number, any> = {};
+  terrainControl: any = {};
+  singleMove: number | undefined = undefined;
+  extraIds: Record<string, number> = {};  // EXTRA_ROAD, EXTRA_RAIL, etc.
+
+  // Rendering/runtime state (previously window globals)
+  renderer: number = 0;  // RENDERER_2DCANVAS etc.
+  sprites: Record<string, any> = {};
+  tileset: Record<string, any> = {};
+  scenarioInfo: any = null;
+  selectedPlayer: number = -1;
+  diplstates: Record<number, any> = {};
+  civserverport: string | number = '';
+  freecivWikiDocs: Record<string, string> = {};
+
   client: ClientState = {
     conn: { id: 0, playing: null },
   };

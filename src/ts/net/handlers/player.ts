@@ -85,17 +85,17 @@ export function handle_player_diplstate(packet: any): void {
   }
 
   if (packet['type'] === DiplState.DS_WAR && packet['plr2'] === clientPlaying()['playerno']
-      && (window as any).diplstates[packet['plr1']] !== DiplState.DS_WAR && (window as any).diplstates[packet['plr1']] !== DiplState.DS_NO_CONTACT) {
+      && store.diplstates[packet['plr1']] !== DiplState.DS_WAR && store.diplstates[packet['plr1']] !== DiplState.DS_NO_CONTACT) {
     (window as any).alert_war(packet['plr1']);
   } else if (packet['type'] === DiplState.DS_WAR && packet['plr1'] === clientPlaying()['playerno']
-      && (window as any).diplstates[packet['plr2']] !== DiplState.DS_WAR && (window as any).diplstates[packet['plr2']] !== DiplState.DS_NO_CONTACT) {
+      && store.diplstates[packet['plr2']] !== DiplState.DS_WAR && store.diplstates[packet['plr2']] !== DiplState.DS_NO_CONTACT) {
     (window as any).alert_war(packet['plr2']);
   }
 
   if (packet['plr1'] === clientPlaying()['playerno']) {
-    (window as any).diplstates[packet['plr2']] = packet['type'];
+    store.diplstates[packet['plr2']] = packet['type'];
   } else if (packet['plr2'] === clientPlaying()['playerno']) {
-    (window as any).diplstates[packet['plr1']] = packet['type'];
+    store.diplstates[packet['plr1']] = packet['type'];
   }
 
   if ((store.players[packet['plr1']] as any).diplstates === undefined) {

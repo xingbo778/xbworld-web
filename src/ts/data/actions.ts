@@ -2,8 +2,10 @@
  * XBWorld — Actions data module (migrated from actions.js)
  *
  * Pure query/calculation functions for game actions.
- * All functions read from `window.actions` (set by Legacy packhand.js).
+ * All functions read from `store.actions`.
  */
+
+import { store } from './store';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -30,7 +32,7 @@ interface Action {
  * Returns null if no action with the given id exists.
  */
 export function actionByNumber(actId: number): Action | null {
-  const actions = (window as any).actions as Record<number, Action>;
+  const actions = store.actions as Record<number, Action>;
   if (actions[actId] == undefined) {
     console.log('Asked for non existing action numbered %d', actId);
     return null;

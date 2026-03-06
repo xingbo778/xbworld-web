@@ -1,5 +1,5 @@
 /**
- * Ruleset packet handlers — pure data assignment to store/window globals.
+ * Ruleset packet handlers — pure data assignment to store.
  */
 import { store } from '../../data/store';
 import { VUT_ADVANCE, REQ_RANGE_PLAYER, EC_BASE, EC_ROAD } from '../../data/fcTypes';
@@ -23,19 +23,19 @@ export function handle_ruleset_terrain(packet: any): void {
 }
 
 export function handle_ruleset_resource(packet: any): void {
-  (window as any).resources[packet['id']] = packet;
+  store.resources[packet['id']] = packet;
 }
 
 export function handle_ruleset_game(packet: any): void {
-  (window as any).game_rules = packet;
+  store.gameRules = packet;
 }
 
 export function handle_ruleset_specialist(packet: any): void {
-  (window as any).specialists[packet['id']] = packet;
+  store.specialists[packet['id']] = packet;
 }
 
 export function handle_ruleset_nation_groups(packet: any): void {
-  (window as any).nation_groups = packet['groups'];
+  store.nationGroups = packet['groups'];
 }
 
 export function handle_ruleset_nation(packet: any): void {
@@ -43,7 +43,7 @@ export function handle_ruleset_nation(packet: any): void {
 }
 
 export function handle_ruleset_city(packet: any): void {
-  (window as any).city_rules[packet['style_id']] = packet;
+  store.cityRules[packet['style_id']] = packet;
 }
 
 export function handle_ruleset_government(packet: any): void {
@@ -63,23 +63,23 @@ export function handle_ruleset_description_part(packet: any): void {
 }
 
 export function handle_ruleset_action(packet: any): void {
-  (window as any).actions[packet['id']] = packet;
+  store.actions[packet['id']] = packet;
   packet['enablers'] = [];
 }
 
 export function handle_ruleset_goods(packet: any): void {
-  (window as any).goods[packet['id']] = packet;
+  store.goods[packet['id']] = packet;
 }
 
 export function handle_ruleset_clause(packet: any): void {
-  (window as any).clause_infos[packet['type']] = packet;
+  store.clauseInfos[packet['type']] = packet;
 }
 
 export function handle_ruleset_effect(packet: any): void {
-  if ((window as any).effects[packet['effect_type']] == null) {
-    (window as any).effects[packet['effect_type']] = [];
+  if (store.effects[packet['effect_type']] == null) {
+    store.effects[packet['effect_type']] = [];
   }
-  (window as any).effects[packet['effect_type']].push(packet);
+  store.effects[packet['effect_type']].push(packet);
 }
 
 export function handle_ruleset_unit(packet: any): void {
@@ -129,8 +129,8 @@ export function handle_ruleset_tech_flag(_packet: any): void { /* TODO */ }
 
 export function handle_ruleset_terrain_control(packet: any): void {
   terrain_control = packet;
-  (window as any).terrain_control = packet;
-  (window as any).SINGLE_MOVE = packet['move_fragments'];
+  store.terrainControl = packet;
+  store.singleMove = packet['move_fragments'];
 }
 
 export function handle_ruleset_building(packet: any): void {
@@ -139,7 +139,7 @@ export function handle_ruleset_building(packet: any): void {
 
 export function handle_ruleset_unit_class(packet: any): void {
   packet['flags'] = new BitVector(packet['flags']);
-  (window as any).unit_classes[packet['id']] = packet;
+  store.unitClasses[packet['id']] = packet;
 }
 
 export function handle_ruleset_disaster(_packet: any): void { /* TODO */ }
@@ -183,7 +183,7 @@ export function handle_ruleset_road(packet: any): void {
 }
 
 export function handle_ruleset_action_enabler(packet: any): void {
-  const paction = (window as any).actions[packet.enabled_action];
+  const paction = store.actions[packet.enabled_action];
   if (paction === undefined) {
     console.log("Unknown action " + packet.action + " for enabler ");
     console.log(packet);
@@ -206,9 +206,9 @@ export function handle_ruleset_extra(packet: any): void {
     bases.push(packet);
   }
 
-  if (packet['rule_name'] === 'Railroad') (window as any)['EXTRA_RAIL'] = packet['id'];
-  else if (packet['rule_name'] === 'Oil Well') (window as any)['EXTRA_OIL_WELL'] = packet['id'];
-  else (window as any)['EXTRA_' + packet['rule_name'].toUpperCase()] = packet['id'];
+  if (packet['rule_name'] === 'Railroad') store.extraIds['EXTRA_RAIL'] = packet['id'];
+  else if (packet['rule_name'] === 'Oil Well') store.extraIds['EXTRA_OIL_WELL'] = packet['id'];
+  else store.extraIds['EXTRA_' + packet['rule_name'].toUpperCase()] = packet['id'];
 }
 
 export function handle_ruleset_counter(_packet: any): void { /* TODO */ }
@@ -230,37 +230,37 @@ export function handle_ruleset_control(packet: any): void {
   store.rulesControl = packet;
   set_client_state(C_S_PREPARING);
 
-  (window as any).effects = {};
+  store.effects = {};
   store.rulesSummary = null;
   store.rulesDescription = null;
-  (window as any).game_rules = null;
-  (window as any).nation_groups = [];
+  store.gameRules = null;
+  store.nationGroups = [];
   store.nations = {};
-  (window as any).specialists = {};
+  store.specialists = {};
   store.techs = {};
   store.governments = {};
   terrain_control = {};
-  (window as any).terrain_control = {};
-  (window as any).SINGLE_MOVE = undefined;
+  store.terrainControl = {};
+  store.singleMove = undefined;
   store.unitTypes = {};
-  (window as any).unit_classes = {};
-  (window as any).city_rules = {};
+  store.unitClasses = {};
+  store.cityRules = {};
   store.terrains = {};
-  (window as any).resources = {};
-  (window as any).goods = {};
-  (window as any).actions = {};
+  store.resources = {};
+  store.goods = {};
+  store.actions = {};
 
   improvements_init();
 
   for (const extra in store.extras) {
     const ename = (store.extras as any)[extra]['rule_name'];
-    if (ename === 'Railroad') delete (window as any)['EXTRA_RAIL'];
-    else if (ename === 'Oil Well') delete (window as any)['EXTRA_OIL_WELL'];
-    else delete (window as any)['EXTRA_' + ename.toUpperCase()];
+    if (ename === 'Railroad') delete store.extraIds['EXTRA_RAIL'];
+    else if (ename === 'Oil Well') delete store.extraIds['EXTRA_OIL_WELL'];
+    else delete store.extraIds['EXTRA_' + ename.toUpperCase()];
   }
   store.extras = {};
   roads = [];
   bases = [];
 
-  (window as any).clause_infos = {};
+  store.clauseInfos = {};
 }

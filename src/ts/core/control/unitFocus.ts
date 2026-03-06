@@ -63,15 +63,15 @@ const map_city_tile = city_tile;
 
 // Runtime extra IDs assigned by server — accessed from window globals.
 // These are read lazily at call time since they are set after module init.
-function FC_EXTRA_ROAD(): number { return (window as any).EXTRA_ROAD ?? 0; }
-function FC_EXTRA_RIVER(): number { return (window as any).EXTRA_RIVER ?? 1; }
-function FC_EXTRA_RAIL(): number { return (window as any).EXTRA_RAIL ?? 2; }
-function FC_EXTRA_MAGLEV(): number { return (window as any).EXTRA_MAGLEV ?? 3; }
-function FC_EXTRA_MINE(): number { return (window as any).EXTRA_MINE ?? 4; }
-function FC_EXTRA_POLLUTION(): number { return (window as any).EXTRA_POLLUTION ?? 5; }
-function FC_EXTRA_FALLOUT(): number { return (window as any).EXTRA_FALLOUT ?? 6; }
-function FC_EXTRA_IRRIGATION(): number { return (window as any).EXTRA_IRRIGATION ?? 7; }
-function FC_EXTRA_FARMLAND(): number { return (window as any).EXTRA_FARMLAND ?? 8; }
+function FC_EXTRA_ROAD(): number { return store.extraIds['EXTRA_ROAD'] ?? 0; }
+function FC_EXTRA_RIVER(): number { return store.extraIds['EXTRA_RIVER'] ?? 1; }
+function FC_EXTRA_RAIL(): number { return store.extraIds['EXTRA_RAIL'] ?? 2; }
+function FC_EXTRA_MAGLEV(): number { return store.extraIds['EXTRA_MAGLEV'] ?? 3; }
+function FC_EXTRA_MINE(): number { return store.extraIds['EXTRA_MINE'] ?? 4; }
+function FC_EXTRA_POLLUTION(): number { return store.extraIds['EXTRA_POLLUTION'] ?? 5; }
+function FC_EXTRA_FALLOUT(): number { return store.extraIds['EXTRA_FALLOUT'] ?? 6; }
+function FC_EXTRA_IRRIGATION(): number { return store.extraIds['EXTRA_IRRIGATION'] ?? 7; }
+function FC_EXTRA_FARMLAND(): number { return store.extraIds['EXTRA_FARMLAND'] ?? 8; }
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -311,7 +311,7 @@ export function update_unit_order_commands(): { [key: string]: any } {
         hideEl('order_maglev');
         showEl('order_railroad');
         unit_actions['railroad'] = { name: "Build railroad (R)" };
-      } else if (typeof (window as any).EXTRA_MAGLEV !== 'undefined'
+      } else if (typeof store.extraIds['EXTRA_MAGLEV'] !== 'undefined'
         && !tile_has_extra(ptile, FC_EXTRA_MAGLEV())
         && player_invention_state(clientPlaying(),
           tech_id_by_name('Superconductors') as unknown as number) == FC_TECH_KNOWN

@@ -186,13 +186,13 @@ export function show_city_dialog(pcity: any): void {
 
   city_worklist_dialog(pcity);
 
-  const orig_renderer: any = (window as any).renderer;
-  // (window as any).renderer = RENDERER_2DCANVAS; // This line is commented out in the original JS, so it's commented here too.
+  const orig_renderer: any = store.renderer;
+  // store.renderer = RENDERER_2DCANVAS; // This line is commented out in the original JS, so it's commented here too.
   set_citydlg_dimensions(pcity);
   set_city_mapview_active();
   center_tile_mapcanvas(cityTile(pcity));
   update_map_canvas(0, 0, mapview['store_width'] ?? 0, mapview['store_height'] ?? 0);
-  // (window as any).renderer = orig_renderer; // This line is commented out in the original JS, so it's commented here too.
+  // store.renderer = orig_renderer; // This line is commented out in the original JS, so it's commented here too.
 
   let governor_text: string = "";
   if (typeof pcity['cma_enabled'] !== 'undefined') {
@@ -335,8 +335,8 @@ export function show_city_dialog(pcity: any): void {
   }
 
   for (let u = 0; u < pcity['specialists_size']; u++) {
-    const spec_type_name: string = (window as any).specialists[u]['plural_name'];
-    const spec_gfx_key: string = "specialist." + (window as any).specialists[u]['rule_name'] + "_0";
+    const spec_type_name: string = store.specialists[u]['plural_name'];
+    const spec_gfx_key: string = "specialist." + store.specialists[u]['rule_name'] + "_0";
     for (let j = 0; j < pcity['specialists'][u]; j++) {
       sprite = get_specialist_image_sprite(spec_gfx_key);
       specialist_html = specialist_html +
@@ -344,7 +344,7 @@ export function show_city_dialog(pcity: any): void {
            + sprite['image-src'] +
            ");background-position:-" + sprite['tileset-x'] + "px -" + sprite['tileset-y']
            + "px;  width: " + sprite['width'] + "px;height: " + sprite['height'] + "px;float:left; '"
-           + " onclick='city_change_specialist(" + pcity['id'] + "," + (window as any).specialists[u]['id'] + ");'"
+           + " onclick='city_change_specialist(" + pcity['id'] + "," + store.specialists[u]['id'] + ");'"
            +" title='" + spec_type_name + " (click to change)'></div>";
 
     }
@@ -462,7 +462,7 @@ export function city_dialog_close_handler(): void {
       *       Both those duplicate calls and the stopping of map updates due
       *       to the 2D rendered being used to draw the minimap should go.
       */
-    if ((window as any).renderer == RENDERER_2DCANVAS) {
+    if (store.renderer == RENDERER_2DCANVAS) {
       update_map_canvas_full();
     }
 

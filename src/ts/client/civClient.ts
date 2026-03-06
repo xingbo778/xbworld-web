@@ -33,17 +33,11 @@ import { store } from '../data/store';
 // ---------------------------------------------------------------------------
 // Global state guards (active once civclient.js is deleted)
 // ---------------------------------------------------------------------------
-if ((window as any).client === undefined || Object.keys((window as any).client).length === 0) {
-  // Only set if truly absent — civclient.js sets this to {}
-  if ((window as any).client === undefined) (window as any).client = {};
-}
-if ((window as any).client_frozen === undefined)          (window as any).client_frozen = false;
-if ((window as any).phase_start_time === undefined)       (window as any).phase_start_time = 0;
-if ((window as any).debug_active === undefined)           (window as any).debug_active = false;
-if ((window as any).autostart === undefined)              (window as any).autostart = false;
-if ((window as any).username === undefined)               (window as any).username = null;
+// Initialize store defaults (renderer, etc.)
+store.renderer = RENDERER_2DCANVAS;
+
+// Legacy window globals that are still needed by external JS / audio
 if ((window as any).fc_seedrandom === undefined)          (window as any).fc_seedrandom = null;
-if ((window as any).game_type === undefined)              (window as any).game_type = '';
 if ((window as any).audio === undefined)                  (window as any).audio = null;
 if ((window as any).audio_enabled === undefined)          (window as any).audio_enabled = false;
 if ((window as any).last_turn_change_time === undefined)  (window as any).last_turn_change_time = 0;
@@ -52,8 +46,6 @@ if ((window as any).seconds_to_phasedone === undefined)   (window as any).second
 if ((window as any).seconds_to_phasedone_sync === undefined) (window as any).seconds_to_phasedone_sync = 0;
 if ((window as any).dialog_close_trigger === undefined)   (window as any).dialog_close_trigger = '';
 if ((window as any).dialog_message_close_task === undefined) (window as any).dialog_message_close_task = undefined;
-if ((window as any).RENDERER_2DCANVAS === undefined)      (window as any).RENDERER_2DCANVAS = RENDERER_2DCANVAS;
-if ((window as any).renderer === undefined)               (window as any).renderer = RENDERER_2DCANVAS;
 if (!(window as any).music_list) {
   (window as any).music_list = [
     'battle-epic', 'battle2', 'battle3', 'battle4',
