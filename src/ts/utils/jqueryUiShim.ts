@@ -87,7 +87,11 @@ function createDialogWrapper(el: HTMLElement, options: any): DialogData {
   buttonPane.style.cssText = 'padding:4px 8px;text-align:right;';
 
   if (options.buttons) {
-    for (const btn of options.buttons) {
+    // Support both jQuery UI formats: object {label: fn} and array [{text, click}]
+    const btns: Array<{text: string; click: () => void}> = Array.isArray(options.buttons)
+      ? options.buttons
+      : Object.entries(options.buttons).map(([text, click]) => ({ text, click: click as () => void }));
+    for (const btn of btns) {
       const b = document.createElement('button');
       b.className = 'ui-button ui-widget';
       b.textContent = btn.text || '';
