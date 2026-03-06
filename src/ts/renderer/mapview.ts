@@ -209,9 +209,9 @@ export function init_cache_sprites(): void {
     store.sprites = sprites;
     // Sync tileset from window to store (loaded externally by tileset JS)
     if (tileset) store.tileset = tileset;
-    tileset_images[0] = null as any; // Set to null to free memory
-    tileset_images[1] = null as any; // Set to null to free memory
-    tileset_images = null as any; // Set to null to free memory
+    tileset_images[0] = null!; // Set to null to free memory
+    tileset_images[1] = null!; // Set to null to free memory
+    tileset_images = null!; // Set to null to free memory
 
   } catch (e: unknown) {
     console.log("Problem caching sprite: " + (e instanceof Error ? e.message : e));
@@ -281,7 +281,7 @@ export function canvas_put_select_rectangle(canvas_context: CanvasRenderingConte
 export function mapview_put_city_bar(pcanvas: CanvasRenderingContext2D, city: City, canvas_x: number, canvas_y: number): void {
   const text: string = decodeURIComponent(city['name']).toUpperCase();
   const size: number = city['size'];
-  const color: string = (store.nations[city_owner(city)['nation']] as any)['color'];
+  const color: string = store.nations[city_owner(city)['nation'] as number]?.['color'] as string;
   const prod_type = get_city_production_type(city);
 
   const txt_measure = pcanvas.measureText(text);
@@ -323,7 +323,7 @@ export function mapview_put_city_bar(pcanvas: CanvasRenderingContext2D, city: Ci
     if (city['production_kind'] == VUT_UTYPE) {
       tag = tileset_unit_type_graphic_tag(prod_type as UnitType);
     } else {
-      tag = tileset_ruleset_entity_tag_str_or_alt(prod_type as any, "building");
+      tag = tileset_ruleset_entity_tag_str_or_alt(prod_type as { graphic_str: string; graphic_alt: string; name: string }, "building");
     }
 
     if (tag == null) {

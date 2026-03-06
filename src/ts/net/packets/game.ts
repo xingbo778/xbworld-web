@@ -4,6 +4,8 @@ import { store } from '../../data/store';
 import { globalEvents } from '../../core/events';
 import { mapAllocate } from '../../data/map';
 import { send_message as sendMessage } from '../connection';
+import type { GameInfo, CalendarInfo, MapInfo } from '../../data/types';
+import type { ServerJoinReplyPacket } from '../handlers/packetTypes';
 
 export function registerGameHandlers(): void {
   registerHandler(PacketType.PROCESSING_STARTED, () => {
@@ -16,9 +18,9 @@ export function registerGameHandlers(): void {
   });
 
   registerHandler(PacketType.SERVER_JOIN_REPLY, (packet) => {
-    const p = packet as Record<string, unknown>;
+    const p = packet as unknown as ServerJoinReplyPacket;
     if (p.you_can_join) {
-      store.client.conn.id = (p.conn_id as number) ?? 0;
+      store.client.conn.id = p.conn_id ?? 0;
       globalEvents.emit('net:joined');
       if (store.observing) {
         sendMessage('/observe ');
@@ -28,23 +30,23 @@ export function registerGameHandlers(): void {
         title: 'Join failed',
         text: (p.reason as string) ?? 'Cannot join',
         type: 'error',
-      } as any);
+      });
     }
   });
 
   registerHandler(PacketType.GAME_INFO, (packet) => {
-    store.gameInfo = packet as any;
+    store.gameInfo = packet as unknown as GameInfo;
     globalEvents.emit('game:info', packet);
   });
 
   registerHandler(PacketType.MAP_INFO, (packet) => {
-    store.mapInfo = packet as any;
+    store.mapInfo = packet as unknown as MapInfo;
     mapAllocate();
     globalEvents.emit('map:allocated');
   });
 
   registerHandler(PacketType.CALENDAR_INFO, (packet) => {
-    store.calendarInfo = packet as any;
+    store.calendarInfo = packet as unknown as CalendarInfo;
   });
 
   registerHandler(PacketType.TIMEOUT_INFO, (packet) => {
@@ -89,6 +91,6 @@ export function registerGameHandlers(): void {
       title: 'Server Shutdown',
       text: (p.message as string) ?? (p.reason as string) ?? 'Server is shutting down',
       type: 'error',
-    } as any);
+    });
   });
 }

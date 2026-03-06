@@ -100,8 +100,8 @@ export function formatResourceStats(pcity: City): ResourceStats | null {
 /** Generate the improvements list HTML for a city. */
 export function buildImprovementsHtml(pcity: City): string {
   let improvements_html: string = "";
-  for (let z = 0; z < ((store.rulesControl as any)?.num_impr_types ?? 0); z++) {
-    if (pcity['improvements'] != null && (pcity['improvements'] as any).isSet(z)) {
+  for (let z = 0; z < ((store.rulesControl as Record<string, unknown> | null)?.['num_impr_types'] as number ?? 0); z++) {
+    if (pcity['improvements'] != null && (pcity['improvements'] as unknown as { isSet(bit: number): boolean }).isSet(z)) {
       const sprite: SpriteInfo | null = get_improvement_image_sprite(store.improvements[z]);
       if (sprite == null) {
         console.log("Missing sprite for improvement " + z);
@@ -181,8 +181,8 @@ export function buildSpecialistHtml(
   let specialist_html: string = "";
   const citizen_types: string[] = ["angry", "unhappy", "content", "happy"];
   for (let s = 0; s < citizen_types.length; s++) {
-    if ((pcity as any)['ppl_' + citizen_types[s]] == null) continue;
-    for (let i = 0; i < (pcity as any)['ppl_' + citizen_types[s]][FEELING_FINAL]; i++) {
+    if (pcity['ppl_' + citizen_types[s]] == null) continue;
+    for (let i = 0; i < (pcity['ppl_' + citizen_types[s]] as number[])[FEELING_FINAL]; i++) {
       const sprite = getSpecialistSprite("citizen." + citizen_types[s] + "_"
         + (i % 2));
       if (sprite == null) continue;
@@ -195,10 +195,10 @@ export function buildSpecialistHtml(
     }
   }
 
-  for (let u = 0; u < (pcity as any)['specialists_size']; u++) {
+  for (let u = 0; u < (pcity['specialists_size'] as number); u++) {
     const spec_type_name: string = store.specialists[u]['plural_name'] as string;
     const spec_gfx_key: string = "specialist." + (store.specialists[u]['rule_name'] as string) + "_0";
-    for (let j = 0; j < (pcity as any)['specialists'][u]; j++) {
+    for (let j = 0; j < (pcity['specialists'] as number[])[u]; j++) {
       const sprite = getSpecialistSprite(spec_gfx_key);
       if (sprite == null) continue;
       specialist_html = specialist_html +
@@ -222,7 +222,7 @@ export function buildCityListHtml(): { html: string; count: number } {
     + "<th>Surplus<br>Food/Prod/Trade</th><th>Economy<br>Gold/Luxury/Science</th></tr></thead><tbody>";
   let count: number = 0;
   for (const city_id in cities) {
-    const pcity: City = cities[city_id as any];
+    const pcity: City = cities[city_id as unknown as number];
     if (clientPlaying() != null && cityOwner(pcity) != null && cityOwner(pcity).playerno == clientPlaying()!.playerno) {
       count++;
       const prod_type = get_city_production_type(pcity);

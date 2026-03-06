@@ -30,9 +30,9 @@ import { toTitleCase, stringUnqualify } from '../utils/helpers';
 import { store } from '../data/store';
 import type { Improvement, UnitType, Tech, Terrain, Government } from '../data/types';
 
-function get_helpdata_order(): string[] { return (store as any).helpdata_order || []; }
-function get_helpdata(): Record<string, { text: string }> { return (store as any).helpdata || {}; }
-function get_freeciv_wiki_docs(): Record<string, any> { return (store as any).freeciv_wiki_docs || {}; }
+function get_helpdata_order(): string[] { return (store as unknown as Record<string, unknown>)['helpdata_order'] as string[] || []; }
+function get_helpdata(): Record<string, { text: string }> { return (store as unknown as Record<string, unknown>)['helpdata'] as Record<string, { text: string }> || {}; }
+function get_freeciv_wiki_docs(): Record<string, unknown> { return (store as unknown as Record<string, unknown>)['freeciv_wiki_docs'] as Record<string, unknown> || {}; }
 
 function byId(id: string): HTMLElement | null { return document.getElementById(id); }
 function setHtml(id: string, html: string): void { const el = byId(id); if (el) domSetHtml(el, html); }
@@ -132,18 +132,18 @@ export function generate_help_menu(key: string): void {
   let improvement: Improvement;
   if (key === "help_gen_terrain") {
     for (const terrain_id in store.terrains) {
-      const terrain = store.terrains[terrain_id as any];
+      const terrain = store.terrains[Number(terrain_id)];
       appendLi("help_terrain_ul", key + "_" + terrain["id"], terrain["name"]);
     }
   } else if (key === "help_gen_improvements") {
     for (impr_id in store.improvements) {
-      improvement = store.improvements[impr_id as any];
+      improvement = store.improvements[Number(impr_id)];
       if (is_wonder(improvement)) continue;
       appendLi("help_city_improvements_ul", key + "_" + improvement["id"], improvement["name"]);
     }
   } else if (key === "help_gen_wonders") {
     for (impr_id in store.improvements) {
-      improvement = store.improvements[impr_id as any];
+      improvement = store.improvements[Number(impr_id)];
       if (!is_wonder(improvement)) continue;
       appendLi("help_wonders_of_the_world_ul", key + "_" + improvement["id"], improvement["name"]);
     }
@@ -151,18 +151,18 @@ export function generate_help_menu(key: string): void {
     const unit_ids = unittype_ids_alphabetic();
     for (let i = 0; i < unit_ids.length; i++) {
       const unit_id = unit_ids[i];
-      const punit_type: UnitType = (store.unitTypes as any)[unit_id];
+      const punit_type: UnitType = store.unitTypes[Number(unit_id)];
       appendLi("help_units_ul", key + "_" + punit_type["id"], punit_type["name"]);
     }
   } else if (key === "help_gen_techs") {
     for (const tech_id in store.techs) {
       if (tech_id === "0") continue;
-      const tech = store.techs[tech_id as any];
+      const tech = store.techs[Number(tech_id)];
       appendLi("help_technology_ul", key + "_" + tech["id"], tech["name"]);
     }
   } else if (key === "help_gen_governments") {
     for (const gov_id in store.governments) {
-      const pgov = store.governments[gov_id as any];
+      const pgov = store.governments[Number(gov_id)];
       appendLi("help_government_ul", key + "_" + pgov["id"], pgov["name"]);
     }
   } else if (key === "help_gen_ruleset") {
@@ -291,7 +291,7 @@ export function wiki_on_item_button(item_name: string): string {
 export function helpdata_format_current_ruleset(): string {
   let msg = "";
   if (store.rulesControl != null) {
-    msg += "<h1>" + (store.rulesControl as any)["name"] + "</h1>";
+    msg += "<h1>" + (store.rulesControl as Record<string, unknown>)["name"] + "</h1>";
   }
   if (store.rulesSummary != null) {
     msg += "<p>" + store.rulesSummary.replace(/\n/g, "<br>") + "</p>";
@@ -306,7 +306,7 @@ export function helpdata_format_current_ruleset(): string {
 ...
 **************************************************************************/
 export function generate_help_text(key: string): void {
-  const rulesetdir: string = ruledir_from_ruleset_name((store.rulesControl as any)?.["name"] ?? "", "");
+  const rulesetdir: string = ruledir_from_ruleset_name((store.rulesControl as Record<string, unknown> | null)?.["name"] as string ?? "", "");
   let msg = "";
 
   if (key.indexOf("help_gen_terrain") !== -1) {
@@ -354,7 +354,7 @@ export function generate_help_text(key: string): void {
     msg += "<div id='utype_fact_move_rate'>Moves: " + move_points_text(punit_type["move_rate"]) + "</div>";
     msg += "<div id='utype_fact_vision'>Vision: " + punit_type["vision_radius_sq"] + "</div>";
 
-    const ireqs = get_improvement_requirements(punit_type["impr_requirement"] as any);
+    const ireqs = get_improvement_requirements(punit_type["impr_requirement"] as number);
     if (ireqs != null && ireqs.length > 0) {
       msg += "<div id='utype_fact_req_building'>Building Requirements: ";
       for (let m = 0; m < ireqs.length; m++) {
@@ -363,12 +363,12 @@ export function generate_help_text(key: string): void {
       msg += "</div>";
     }
 
-    const treq = punit_type["tech_requirement"] as any;
+    const treq = punit_type["tech_requirement"] as number;
     if (treq != null && store.techs[treq] != null) {
       msg += "<div id='utype_fact_req_tech'>Tech Requirements: " + store.techs[treq]["name"] + "</div>";
     }
 
-    obsolete_by = store.unitTypes[punit_type["obsoleted_by"] as any];
+    obsolete_by = store.unitTypes[punit_type["obsoleted_by"] as number];
     msg += "<div id='utype_fact_obsolete'>Obsolete by: ";
     if (obsolete_by === U_NOT_OBSOLETED || obsolete_by == null) {
       msg += "None";

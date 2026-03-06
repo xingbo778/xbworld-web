@@ -107,7 +107,7 @@ export function client_remove_unit(punit: Unit): void {
 
 export function tile_units(ptile: Tile | null): Unit[] | null {
   if (ptile == null) return null;
-  return (ptile as any)['units'] as Unit[];
+  return ptile['units'] as Unit[];
 }
 
 export function get_supported_units(pcity: City | null): Unit[] | null {
@@ -236,15 +236,15 @@ export function update_unit_anim_list(old_unit: Unit | null, new_unit: Unit | nu
 
   if (store.renderer === RENDERER_2DCANVAS && !is_unit_visible(new_unit)) return;
 
-  if ((old_unit as any)['anim_list'] == null) (old_unit as any)['anim_list'] = [];
+  if (old_unit['anim_list'] == null) old_unit['anim_list'] = [];
 
-  if ((new_unit as any)['transported'] === true) {
-    (old_unit as any)['anim_list'] = [];
+  if (new_unit['transported'] === true) {
+    old_unit['anim_list'] = [];
     return;
   }
 
   anim_units_count += 1;
-  const animList: AnimTuple[] = (old_unit as any)['anim_list'];
+  const animList: AnimTuple[] = old_unit['anim_list'] as AnimTuple[];
   let has_old_pos = false;
   let has_new_pos = false;
   for (let i = 0; i < animList.length; i++) {
@@ -269,7 +269,7 @@ export function update_unit_anim_list(old_unit: Unit | null, new_unit: Unit | nu
 export function get_unit_anim_offset(punit: Unit): { x: number; y: number } {
   const offset = { x: 0, y: 0 };
 
-  const animList: AnimTuple[] | null = (punit as any)['anim_list'];
+  const animList: AnimTuple[] | null = punit['anim_list'] as AnimTuple[] | null;
 
   if (animList != null && animList.length >= 2) {
     const anim_tuple_src = animList[0];
@@ -392,13 +392,14 @@ export function get_unit_city_info(punit: Unit): string {
 
   result += ptype!['name'] + '\nFood/Shield/Gold: ';
 
-  if ((punit as any)['upkeep'] != null) {
+  const upkeep = punit['upkeep'] as number[] | undefined;
+  if (upkeep != null) {
     result +=
-      (punit as any)['upkeep'][O_FOOD] +
+      upkeep[O_FOOD] +
       '/' +
-      (punit as any)['upkeep'][O_SHIELD] +
+      upkeep[O_SHIELD] +
       '/' +
-      (punit as any)['upkeep'][O_GOLD];
+      upkeep[O_GOLD];
   }
 
   result += '\n' + get_unit_moves_left(punit) + '\n';
@@ -437,11 +438,13 @@ export function get_what_can_unit_pillage_from(punit: Unit | null, ptile: Tile |
     }
   }
 
-  for (let i = 0; i < (store.rulesControl as any)['num_extra_types']; i++) {
+  const numExtraTypes = (store.rulesControl?.['num_extra_types'] ?? 0) as number;
+  for (let i = 0; i < numExtraTypes; i++) {
     if (tile_has_extra(ptile, i)) {
-      const extra = store.extras[i] as any;
-      for (let j = 0; j < extra.reqs.length; j++) {
-        const req = extra.reqs[j];
+      const extra = store.extras[i];
+      const reqs = extra['reqs'] as { kind: number; present: boolean; value: number }[];
+      for (let j = 0; j < reqs.length; j++) {
+        const req = reqs[j];
         if (req.kind === VUT_EXTRA && req.present === true) {
           cannot_pillage.set(req.value);
         }
@@ -451,7 +454,7 @@ export function get_what_can_unit_pillage_from(punit: Unit | null, ptile: Tile |
     }
   }
 
-  for (let i = 0; i < (store.rulesControl as any)['num_extra_types']; i++) {
+  for (let i = 0; i < numExtraTypes; i++) {
     if (is_extra_removed_by(store.extras[i], ERM_PILLAGE) && !cannot_pillage.isSet(i)) {
       if (store.gameInfo!.pillage_select) {
         targets.push(i);

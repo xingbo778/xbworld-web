@@ -517,13 +517,13 @@ export function fill_sprite_array(layer: number, ptile: Tile | null, pedge: unkn
         const d = map_distance_vector(ctile, ptile);
         const idx = get_city_dxy_to_index(d[0], d[1], active_city);
 
-        let food_output = (active_city as any)['output_food'][idx];
-        let shield_output = (active_city as any)['output_shield'][idx];
-        let trade_output = (active_city as any)['output_trade'][idx];
+        let food_output = (active_city['output_food'] as number[])[idx];
+        let shield_output = (active_city['output_shield'] as number[])[idx];
+        let trade_output = (active_city['output_trade'] as number[])[idx];
 
         /* The ruleset may use large values scaled down to get greater
          * granularity. */
-        const gran = (store.gameInfo as any)?.granularity ?? 1;
+        const gran = (store.gameInfo?.['granularity'] as number) ?? 1;
         food_output = Math.floor(food_output / gran);
         shield_output = Math.floor(shield_output / gran);
         trade_output = Math.floor(trade_output / gran);
@@ -541,8 +541,8 @@ export function fill_sprite_array(layer: number, ptile: Tile | null, pedge: unkn
         sprite_array = sprite_array.concat(fill_goto_line_sprite_array(ptile));
       }
 
-      if (ptile != null && ((ptile as any)['nuke'] as number) > 0) {
-        (ptile as any)['nuke'] = ((ptile as any)['nuke'] as number) - 1;
+      if (ptile != null && (ptile['nuke'] as number) > 0) {
+        (ptile as Record<string, unknown>)['nuke'] = (ptile['nuke'] as number) - 1;
         sprite_array.push({
           "key": "explode.nuke",
           "offset_x": -45,

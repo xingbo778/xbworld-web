@@ -2,6 +2,22 @@ import { registerHandler } from './index';
 import { PacketType } from './protocol';
 import { store } from '../../data/store';
 import { globalEvents } from '../../core/events';
+import type {
+  UnitType,
+  Tech,
+  Government,
+  Nation,
+  Improvement,
+  Terrain,
+  Extra,
+  Player,
+} from '../../data/types';
+import type {
+  RulesetControlPacket,
+  RulesetSummaryPacket,
+  RulesetDescriptionPartPacket,
+  PlayerRemovePacket,
+} from '../handlers/packetTypes';
 
 const RULESET_GENERIC = [
   PacketType.RULESET_GAME,
@@ -38,42 +54,42 @@ const SERVER_SETTING_TYPES = [
 
 export function registerRulesetHandlers(): void {
   registerHandler(PacketType.RULESET_UNIT, (packet) => {
-    const p = packet as any;
+    const p = packet as unknown as UnitType;
     store.unitTypes[p.id] = p;
   });
   registerHandler(PacketType.RULESET_TECH, (packet) => {
-    const p = packet as any;
+    const p = packet as unknown as Tech;
     store.techs[p.id] = p;
   });
   registerHandler(PacketType.RULESET_GOVERNMENT, (packet) => {
-    const p = packet as any;
+    const p = packet as unknown as Government;
     store.governments[p.id] = p;
   });
   registerHandler(PacketType.RULESET_NATION, (packet) => {
-    const p = packet as any;
+    const p = packet as unknown as Nation;
     store.nations[p.id] = p;
   });
   registerHandler(PacketType.RULESET_BUILDING, (packet) => {
-    const p = packet as any;
+    const p = packet as unknown as Improvement;
     store.improvements[p.id] = p;
   });
   registerHandler(PacketType.RULESET_TERRAIN, (packet) => {
-    const p = packet as any;
+    const p = packet as unknown as Terrain;
     store.terrains[p.id] = p;
   });
   registerHandler(PacketType.RULESET_EXTRA, (packet) => {
-    const p = packet as any;
+    const p = packet as unknown as Extra;
     store.extras[p.id] = p;
   });
   registerHandler(PacketType.RULESET_CONTROL, (packet) => {
-    store.rulesControl = packet as any;
+    store.rulesControl = packet as unknown as RulesetControlPacket;
     globalEvents.emit('rules:control', packet);
   });
   registerHandler(PacketType.RULESET_SUMMARY, (packet) => {
-    store.rulesSummary = (packet as any).text;
+    store.rulesSummary = (packet as unknown as RulesetSummaryPacket).text;
   });
   registerHandler(PacketType.RULESET_DESCRIPTION_PART, (packet) => {
-    store.rulesDescription = (packet as any).text;
+    store.rulesDescription = (packet as unknown as RulesetDescriptionPartPacket).text;
   });
   registerHandler(PacketType.RULESETS_READY, () => {
     globalEvents.emit('rules:ready');
@@ -82,12 +98,12 @@ export function registerRulesetHandlers(): void {
     globalEvents.emit('rules:terraincontrol', packet);
   });
   registerHandler(PacketType.PLAYER_INFO, (packet) => {
-    const p = packet as any;
+    const p = packet as unknown as Player;
     store.players[p.playerno] = p;
     globalEvents.emit('player:updated', packet);
   });
   registerHandler(PacketType.PLAYER_REMOVE, (packet) => {
-    const p = packet as any;
+    const p = packet as unknown as PlayerRemovePacket;
     delete store.players[p.playerno];
     globalEvents.emit('player:removed', packet);
   });

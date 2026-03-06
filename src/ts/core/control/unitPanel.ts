@@ -168,7 +168,7 @@ export function update_unit_order_commands(): { [key: string]: { name: string } 
       showEl('order_auto_workers');
       showEl('order_clean');
       if (!tile_has_extra(ptile, FC_EXTRA_MINE())
-        && (tile_terrain(ptile) as any)['mining_time'] > 0) {
+        && (tile_terrain(ptile)?.['mining_time'] as number) > 0) {
         showEl('order_mine');
         unit_actions["mine"] = { name: "Mine (M)" };
       } else {
@@ -183,13 +183,13 @@ export function update_unit_order_commands(): { [key: string]: { name: string } 
         hideEl('order_clean');
       }
 
-      if ((tile_terrain(ptile) as any)['cultivate_time'] > 0) {
+      if ((tile_terrain(ptile)?.['cultivate_time'] as number) > 0) {
         showEl('order_forest_remove');
         unit_actions["cultivate"] = { name: "Cultivate (I)" };
       } else {
         hideEl('order_forest_remove');
       }
-      if ((tile_terrain(ptile) as any)['irrigation_time'] > 0) {
+      if ((tile_terrain(ptile)?.['irrigation_time'] as number) > 0) {
         if (!tile_has_extra(ptile, FC_EXTRA_IRRIGATION())) {
           showEl('order_irrigate');
           hideEl('order_build_farmland');
@@ -206,7 +206,7 @@ export function update_unit_order_commands(): { [key: string]: { name: string } 
         hideEl('order_irrigate');
         hideEl('order_build_farmland');
       }
-      if ((tile_terrain(ptile) as any)['plant_time'] > 0) {
+      if ((tile_terrain(ptile)?.['plant_time'] as number) > 0) {
         showEl('order_forest_add');
         unit_actions["plant"] = { name: "Plant (M)" };
       } else {
@@ -291,8 +291,8 @@ export function update_unit_order_commands(): { [key: string]: { name: string } 
       for (let r = 0; r < units_on_tile.length; r++) {
         const tunit = units_on_tile[r];
         if (tunit['id'] == punit['id']) continue;
-        const ntype = unit_type(tunit) as any;
-        if (ntype != null && ntype['transport_capacity'] > 0) unit_actions["unit_load"] = { name: "Load on transport (L)" };
+        const ntype = unit_type(tunit);
+        if (ntype != null && (ntype['transport_capacity'] as number) > 0) unit_actions["unit_load"] = { name: "Load on transport (L)" };
       }
     }
 
