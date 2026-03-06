@@ -290,7 +290,7 @@ export function handle_unit_actions(packet: any): void {
     break;
   case REQEST_BACKGROUND_REFRESH:
     action_selection_refresh(pdiplomat,
-                               target_city, target_unit, ptile,
+                               target_city ?? null, target_unit, ptile,
                                target_extra,
                                action_probabilities);
     break;

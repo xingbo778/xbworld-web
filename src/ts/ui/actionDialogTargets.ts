@@ -1,4 +1,5 @@
 import { store } from '../data/store';
+import type { Unit, Tile, Extra } from '../data/types';
 import { unit_owner, get_unit_homecity_name, unit_can_do_action } from '../data/unit';
 import { isExtraRemovedBy as is_extra_removed_by, isExtraCausedBy as is_extra_caused_by, extraOwner as extra_owner } from '../data/extra';
 import { tileHasExtra as tile_has_extra } from '../data/tile';
@@ -34,9 +35,8 @@ const REQEST_PLAYER_INITIATED = 0;
   Needed because of JavaScript's scoping rules.
 **************************************************************************/
 export function create_select_tgt_unit_button(parent_id: string, actor_unit_id: number,
-  target_tile_id: number, target_unit_id: number): any {
+  target_tile_id: number, target_unit_id: number): { text: string; click: () => void } {
   let text: string = "";
-  let button: any = {};
 
   const target_unit = store.units[target_unit_id];
 
@@ -50,7 +50,7 @@ export function create_select_tgt_unit_button(parent_id: string, actor_unit_id: 
   text += store.nations[unit_owner(target_unit)!['nation']]['adjective'];
   text += ")";
 
-  button = {
+  return {
     text: text,
     click: function () {
       const packet = {
@@ -66,16 +66,14 @@ export function create_select_tgt_unit_button(parent_id: string, actor_unit_id: 
       document.querySelector(parent_id)?.remove();
     }
   };
-
-  /* The button is ready. */
-  return button;
 }
 
 /**************************************************************************
   List potential extra targets at target_tile
 **************************************************************************/
-export function list_potential_target_extras(act_unit: any, target_tile: any): any[] {
-  const potential_targets: any[] = [];
+export function list_potential_target_extras(act_unit: Unit, target_tile: Tile | null): Extra[] {
+  const potential_targets: Extra[] = [];
+  if (!target_tile) return potential_targets;
 
   for (let i = 0; i < ((store.rulesControl as any)?.num_extra_types ?? 0); i++) {
     const pextra = store.extras[i];
@@ -116,9 +114,8 @@ export function list_potential_target_extras(act_unit: any, target_tile: any): a
 **************************************************************************/
 export function create_select_tgt_extra_button(parent_id: string, actor_unit_id: number,
   target_unit_id: number,
-  target_tile_id: number, target_extra_id: number): any {
+  target_tile_id: number, target_extra_id: number): { text: string; click: () => void } {
   let text: string = "";
-  let button: any = {};
 
   const target_tile = index_to_tile(target_tile_id);
 
@@ -127,7 +124,7 @@ export function create_select_tgt_extra_button(parent_id: string, actor_unit_id:
   text += " (";
   if (tile_has_extra(target_tile, target_extra_id)) {
     if (extra_owner(target_tile) != null) {
-      text += store.nations[extra_owner(target_tile)['nation']]['adjective'];
+      text += store.nations[extra_owner(target_tile)!['nation'] as number]['adjective'];
     } else {
       text += "target";
     }
@@ -136,7 +133,7 @@ export function create_select_tgt_extra_button(parent_id: string, actor_unit_id:
   }
   text += ")";
 
-  button = {
+  return {
     text: text,
     click: function () {
       const packet = {
@@ -152,14 +149,11 @@ export function create_select_tgt_extra_button(parent_id: string, actor_unit_id:
       document.querySelector(parent_id)?.remove();
     }
   };
-
-  /* The button is ready. */
-  return button;
 }
 
-export function select_tgt_unit(actor_unit: any, target_tile: any, potential_tgt_units: any[]): void {
+export function select_tgt_unit(actor_unit: Unit, target_tile: Tile | null, potential_tgt_units: Unit[]): void {
   // TODO: implement
 }
-export function select_tgt_extra(actor_unit: any, target_unit: any, target_tile: any, potential_tgt_extras: any[]): void {
+export function select_tgt_extra(actor_unit: Unit, target_unit: Unit | null, target_tile: Tile | null, potential_tgt_extras: Extra[]): void {
   // TODO: implement
 }

@@ -17,16 +17,17 @@
 
 ***********************************************************************/
 
+import type { Unit } from '../data/types';
 import { unit_type, is_unit_visible as _is_unit_visible } from '../data/unit';
 import { store } from '../data/store';
 
 const sounds_enabled_get = (): boolean => store.soundsEnabled;
-const soundset_get = (): Record<string, any> => (window as any).soundset ?? {};
-const is_unit_visible = (punit: any): boolean => _is_unit_visible(punit);
+const soundset_get = (): Record<string, string> => (window as any).soundset ?? {};
+const is_unit_visible = (punit: Unit): boolean => _is_unit_visible(punit);
 
 export let sound_path: string = "/sounds/";
 
-export function check_unit_sound_play(old_unit: any, new_unit: any): void {
+export function check_unit_sound_play(old_unit: Unit | null, new_unit: Unit | null): void {
   if (!sounds_enabled_get()) return;
   if (old_unit == null || new_unit == null) return;
   /* unit is in same position. */
@@ -38,7 +39,7 @@ export function check_unit_sound_play(old_unit: any, new_unit: any): void {
     return;
   }
 
-  const ptype: any = unit_type(new_unit);
+  const ptype = unit_type(new_unit) as any;
   if (soundset_get()[ptype['sound_move']] != null) {
     play_sound(soundset_get()[ptype['sound_move']]);
   } else if (soundset_get()[ptype['sound_move_alt']] != null) {
@@ -46,7 +47,7 @@ export function check_unit_sound_play(old_unit: any, new_unit: any): void {
   }
 }
 
-export function unit_move_sound_play(unit: any): void {
+export function unit_move_sound_play(unit: Unit | null): void {
   if (!sounds_enabled_get()) return;
   if (unit == null) return;
 
@@ -55,7 +56,7 @@ export function unit_move_sound_play(unit: any): void {
     return;
   }
 
-  const ptype: any = unit_type(unit);
+  const ptype = unit_type(unit) as any;
   if (soundset_get()[ptype['sound_move']] != null) {
     play_sound(soundset_get()[ptype['sound_move']]);
   } else if (soundset_get()[ptype['sound_move_alt']] != null) {
@@ -63,7 +64,7 @@ export function unit_move_sound_play(unit: any): void {
   }
 }
 
-export function play_combat_sound(unit: any): void {
+export function play_combat_sound(unit: Unit | null): void {
   if (!sounds_enabled_get()) return;
   if (unit == null) return;
   if (!is_unit_visible(unit)) return;
@@ -73,7 +74,7 @@ export function play_combat_sound(unit: any): void {
     return;
   }
 
-  const ptype: any = unit_type(unit);
+  const ptype = unit_type(unit) as any;
   if (soundset_get()[ptype['sound_fight']] != null) {
     play_sound(soundset_get()[ptype['sound_fight']]);
   } else if (soundset_get()[ptype['sound_fight_alt']] != null) {
@@ -94,7 +95,7 @@ export function play_sound(sound_file: string): void {
   }
 }
 
-export function sound_error_handler(err: any): void {
+export function sound_error_handler(err: unknown): void {
   store.soundsEnabled = false;
   const trackJs = (window as any).trackJs;
   if (trackJs) {

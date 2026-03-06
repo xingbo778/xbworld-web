@@ -5,6 +5,7 @@
  */
 
 import { store } from './store';
+import type { Extra, Tile, Player } from './types';
 import { player_by_number } from './player';
 
 // ---------------------------------------------------------------------------
@@ -22,7 +23,7 @@ export const BASE_GUI_AIRBASE = 1;
 /**
  * Return extras type of given id.
  */
-export function extraByNumber(id: number): any {
+export function extraByNumber(id: number): Extra | null {
   if (id === EXTRA_NONE) {
     return null;
   }
@@ -38,29 +39,30 @@ export function extraByNumber(id: number): any {
 /**
  * Who owns extras on tile.
  */
-export function extraOwner(ptile: any): any {
-  return player_by_number(ptile['extras_owner']);
+export function extraOwner(ptile: Tile): Player | null {
+  return player_by_number(ptile['extras_owner'] as number);
 }
 
 /**
  * Is given cause one of the causes for the given extra?
  */
-export function isExtraCausedBy(pextra: any, cause: number): boolean {
-  return pextra.causes.isSet(cause);
+export function isExtraCausedBy(pextra: Extra, cause: number): boolean {
+  return (pextra.causes as any).isSet(cause);
 }
 
 /**
  * Is given cause one of the removal causes for the given extra?
  */
-export function isExtraRemovedBy(pextra: any, rmcause: number): boolean {
-  return pextra.rmcauses.isSet(rmcause);
+export function isExtraRemovedBy(pextra: Extra, rmcause: number): boolean {
+  return (pextra.rmcauses as any).isSet(rmcause);
 }
 
 /**
  * Does this extra type claim territory?
  */
-export function territoryClaimingExtra(pextra: any): boolean {
-  return pextra['base'] && pextra['base']['border_sq'] > -1;
+export function territoryClaimingExtra(pextra: Extra): boolean {
+  const base = pextra['base'] as any;
+  return base && base['border_sq'] > -1;
 }
 
 // ---------------------------------------------------------------------------
