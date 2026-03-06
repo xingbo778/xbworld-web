@@ -44,6 +44,7 @@ export let tech_canvas_text_font: string = "18px Arial";
 
 export let is_tech_tree_init: boolean = false;
 export let tech_dialog_active: boolean = false;
+export function setTechDialogActive(v: boolean): void { tech_dialog_active = v; }
 
 export const tech_xscale: number = 1.2;
 export const wikipedia_url: string = "http://en.wikipedia.org/wiki/";

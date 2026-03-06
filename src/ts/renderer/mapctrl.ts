@@ -26,7 +26,7 @@ import { tile_units } from '../data/unit';
 import { find_visible_unit, set_unit_focus, action_selection_next_in_focus, update_active_units_dialog } from '../core/control';
 import { current_focus, goto_active, goto_request_map, request_goto_path, context_menu_active, keyboard_input as keyboard_input_ref, mapview_mouse_movement as mapview_mouse_movement_ref, SELECT_POPUP, popit, do_map_click, update_mouse_cursor, set_mouse_touch_started_on_unit, check_mouse_drag_unit } from '../core/control';
 import { mouse_moved_cb } from '../core/control/mouse';
-import { setMapviewMouseMovement } from '../core/control/controlState';
+import { setMapviewMouseMovement, setContextMenuActive, setKeyboardInput, setCurrentFocus } from '../core/control/controlState';
 import { player_by_full_username, get_player_connection_status } from '../data/player';
 import { clientIsObserver as client_is_observer, clientPlaying, canClientChangeView as can_client_change_view } from '../client/clientState';
 import { isTouchDevice as is_touch_device, isRightMouseSelectionSupported as is_right_mouse_selection_supported } from '../utils/helpers';
@@ -88,9 +88,11 @@ export function mapview_mouse_click(e: any): void {
   if (rightclick) {
     /* right click to recenter. */
     if (!map_select_active || !map_select_setting_enabled) {
+      setContextMenuActive(true);
       (window as any).context_menu_active = true;
       recenter_button_pressed(mouse_x, mouse_y);
     } else {
+      setContextMenuActive(false);
       (window as any).context_menu_active = false;
       map_select_units(mouse_x, mouse_y);
     }
@@ -100,9 +102,11 @@ export function mapview_mouse_click(e: any): void {
   } else if (!middleclick) {
     /* Left mouse button*/
     action_button_pressed(mouse_x, mouse_y, SELECT_POPUP);
+    setMapviewMouseMovement(false);
     (window as any).mapview_mouse_movement = false;
     update_mouse_cursor();
   }
+  setKeyboardInput(true);
   (window as any).keyboard_input = true;
 }
 
@@ -142,6 +146,7 @@ export function mapview_mouse_down(e: any): boolean | void {
 
     /* The context menu blocks the right click mouse up event on some
      * browsers. */
+    setContextMenuActive(false);
     (window as any).context_menu_active = false;
   }
 }
@@ -293,6 +298,7 @@ export function map_select_units(canvas_x: number, canvas_y: number): void {
     }
   }
 
+  setCurrentFocus(selected_units);
   (window as any).current_focus = selected_units;
   action_selection_next_in_focus(IDENTITY_NUMBER_ZERO);
   update_active_units_dialog();

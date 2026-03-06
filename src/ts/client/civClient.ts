@@ -28,6 +28,7 @@ import { packet_authentication_reply } from '../net/packetConstants';
 import { showMessageDialog, closeMessageDialog } from '../components/Dialogs/MessageDialog';
 import { showAuthDialog as showAuthDialogPreact } from '../components/Dialogs/AuthDialog';
 import { showIntroDialog } from '../components/Dialogs/IntroDialog';
+import { store } from '../data/store';
 
 // ---------------------------------------------------------------------------
 // Global state guards (active once civclient.js is deleted)
@@ -68,17 +69,18 @@ if (!(window as any).music_list) {
  * Main client initialisation — called from index.html $(document).ready.
  */
 export function civClientInit(): void {
-  const _w = window as any;
   // Always observer mode
-  _w.observing = true;
-  _w.game_type = 'observe';
+  store.observing = true;
+  (window as any).observing = true;
+  store.gameType = 'observe';
+  (window as any).game_type = 'observe';
   // Remove observer-irrelevant UI elements
   for (const id of ['civ_tab', 'cities_tab', 'pregame_buttons', 'game_unit_orders_default', 'civ_dialog', 'game_unit_panel']) {
     document.getElementById(id)?.remove();
   }
 
   // Initialise seeded random number generator
-  _w.fc_seedrandom = new (_w.Math.seedrandom || _w.seedrandom)('xbworld');
+  (window as any).fc_seedrandom = new ((window as any).Math.seedrandom || (window as any).seedrandom)('xbworld');
 
   if (window.requestAnimationFrame == null) {
     swal('Please upgrade your browser.');
@@ -90,22 +92,22 @@ export function civClientInit(): void {
   // Tabs initialization (vanilla JS replacement for jQuery UI tabs)
   initTabs('#tabs', { heightStyle: 'fill' });
   control_init();
-  _w.timeoutTimerId = setInterval(function () {
-    if (typeof _w.update_timeout === 'function') _w.update_timeout();
+  (window as any).timeoutTimerId = setInterval(function () {
+    if (typeof (window as any).update_timeout === 'function') (window as any).update_timeout();
   }, 1000);
   update_game_status_panel();
-  _w.statusTimerId = setInterval(function () {
+  (window as any).statusTimerId = setInterval(function () {
     update_game_status_panel();
   }, 6000);
 
-  if (_w.overviewTimerId == null || _w.overviewTimerId === -1) {
-    _w.OVERVIEW_REFRESH = 6000;
-    _w.overviewTimerId = setInterval(function () {
+  if ((window as any).overviewTimerId == null || (window as any).overviewTimerId === -1) {
+    (window as any).OVERVIEW_REFRESH = 6000;
+    (window as any).overviewTimerId = setInterval(function () {
       redraw_overview();
-    }, _w.OVERVIEW_REFRESH);
+    }, (window as any).OVERVIEW_REFRESH);
   }
 
-  if (typeof _w.motd_init === 'function') _w.motd_init();
+  if (typeof (window as any).motd_init === 'function') (window as any).motd_init();
 
   // Set tab container and tab panel heights
   const tabs = document.getElementById('tabs');
@@ -116,31 +118,31 @@ export function civClientInit(): void {
   }
   // jQuery UI .button() styling no longer needed — CSS handles it
 
-  _w.sounds_enabled = JSON.parse(localStorage.getItem('sndFX') ?? 'null');
-  if (_w.sounds_enabled == null) {
-    _w.sounds_enabled = navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome') ? false : true;
+  (window as any).sounds_enabled = JSON.parse(localStorage.getItem('sndFX') ?? 'null');
+  if ((window as any).sounds_enabled == null) {
+    (window as any).sounds_enabled = navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome') ? false : true;
   }
 
   /* Initialise audio.js music player */
-  if (_w.audiojs) {
-    _w.audiojs.events.ready(function () {
-      const as = _w.audiojs.createAll({
+  if ((window as any).audiojs) {
+    (window as any).audiojs.events.ready(function () {
+      const as = (window as any).audiojs.createAll({
         trackEnded: function () {
-          const list: string[] = _w.music_list;
+          const list: string[] = (window as any).music_list;
           const track = list[Math.floor(Math.random() * list.length)];
-          const ext = (typeof _w.supports_mp3 === 'function' && !_w.supports_mp3()) ? '.ogg' : '.mp3';
-          if (_w.audio) {
-            _w.audio.load('/music/' + track + ext);
-            _w.audio.play();
+          const ext = (typeof (window as any).supports_mp3 === 'function' && !(window as any).supports_mp3()) ? '.ogg' : '.mp3';
+          if ((window as any).audio) {
+            (window as any).audio.load('/music/' + track + ext);
+            (window as any).audio.play();
           }
         }
       });
-      _w.audio = as[0];
+      (window as any).audio = as[0];
     });
   }
 
   initCommonIntroDialog();
-  if (typeof _w.setup_window_size === 'function') _w.setup_window_size();
+  if (typeof (window as any).setup_window_size === 'function') (window as any).setup_window_size();
 }
 
 // ---------------------------------------------------------------------------
@@ -153,7 +155,8 @@ export function civClientInit(): void {
 export function initCommonIntroDialog(): void {
   // Set default username and auto-connect
   const saved = localStorage.getItem('username');
-  (window as any).username = saved || 'Observer';
+  store.username = saved || 'Observer';
+  (window as any).username = store.username;
   // Show intro dialog (non-blocking)
   showIntroDialog('Welcome to XBWorld', 'You are joining the game as an observer. Please enter your name:');
   // Auto-connect immediately (dialog can still update username).

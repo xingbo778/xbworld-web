@@ -23,6 +23,7 @@ import { update_map_canvas, update_map_canvas_full, mapview } from '../renderer/
 import { setDefaultMapviewActive as set_default_mapview_active } from '../client/clientMain';
 import { request_unit_do_action } from '../core/control';
 import { ACTION_FOUND_CITY } from '../data/fcTypes';
+import { keyboard_input } from '../core/control/controlState';
 import { act_sel_queue_done } from '../ui/actionDialog';
 
 declare const $: any;
@@ -1204,7 +1205,7 @@ export function city_worklist_task_remove(): void {
 }
 
 export function update_city_screen(): void {
-  if ((window as any).observing) return;
+  if (store.observing) return;
 
   const sortList: number[][] = [];
   document.querySelectorAll('#city_table thead th').forEach((th: Element) => {
@@ -1268,7 +1269,7 @@ export function get_city_state(pcity: any): string | undefined {
 
 export function city_keyboard_listener(ev: any): void {
   // Check if focus is in chat field, where these keyboard events are ignored.
-  if ($('input:focus').length > 0 || !(window as any).keyboard_input) return;
+  if ($('input:focus').length > 0 || !keyboard_input) return;
 
   if (C_S_RUNNING != client_state()) return;
 

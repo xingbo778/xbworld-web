@@ -590,7 +590,7 @@ export function toggleAiClicked(): void {
  */
 export function takePlayer(player_name: string): void {
   send_message('/take ' + player_name);
-  (window as any).observing = false;
+  store.observing = false;
 }
 
 /**
@@ -599,7 +599,7 @@ export function takePlayer(player_name: string): void {
  */
 export function aitogglePlayer(player_name: string): void {
   send_message('/aitoggle ' + player_name);
-  (window as any).observing = false;
+  store.observing = false;
 }
 
 /**

@@ -278,7 +278,7 @@ export function canvas_put_select_rectangle(canvas_context: CanvasRenderingConte
 export function mapview_put_city_bar(pcanvas: CanvasRenderingContext2D, city: any, canvas_x: number, canvas_y: number): void {
   const text: string = decodeURIComponent(city['name']).toUpperCase();
   const size: number = city['size'];
-  const color: string = _win.nations[city_owner(city)['nation']]['color'];
+  const color: string = (store.nations[city_owner(city)['nation']] as any)['color'];
   const prod_type: any = get_city_production_type(city);
 
   const txt_measure = pcanvas.measureText(text);

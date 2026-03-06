@@ -26,19 +26,23 @@ import {
   EC_BASE, EC_ROAD,
 } from '../data/fcTypes';
 import { TECH_KNOWN, A_NONE } from '../data/tech';
-import { EXTRA_NONE, isExtraCausedBy } from '../data/extra';
+import { tileCity, tileOwner } from '../data/tile';
+import { actionProbPossible } from '../data/actions';
+import { removeCity, cityUnhappy } from '../data/city';
+import { EXTRA_NONE, isExtraCausedBy, extraByNumber } from '../data/extra';
 import { IDENTITY_NUMBER_ZERO, RENDERER_2DCANVAS } from '../core/constants';
 import { E_SCRIPT, E_UNDEFINED } from '../data/eventConstants';
 import { store } from '../data/store';
-import { mapInitTopology, mapAllocate } from '../data/map';
+import { mapInitTopology, mapAllocate, indexToTile } from '../data/map';
 import { BitVector } from '../utils/bitvector';
 import { stringUnqualify } from '../utils/helpers';
 import { freelog } from '../core/log';
 import { C_S_RUNNING, C_S_PREPARING, C_S_OVER, clientState, clientIsObserver, clientPlaying } from '../client/clientState';
 import { setClientState as set_client_state } from '../client/clientMain';
-import { setPhaseStart, requestObserveGame } from '../client/clientCore';
+import { showDialogMessage, showAuthDialog } from '../client/civClient';
+import { setPhaseStart, requestObserveGame, isLongturn } from '../client/clientCore';
 import { set_client_page, get_client_page, PAGE_MAIN, PAGE_NETWORK, PAGE_START } from '../core/pages';
-import { valid_player_by_number, player_find_unit_by_id } from '../data/player';
+import { valid_player_by_number, player_find_unit_by_id, DiplState, research_data } from '../data/player';
 import { game_find_city_by_number, game_find_unit_by_number, update_game_status_panel } from '../data/game';
 import {
   unit_owner, client_remove_unit, update_tile_unit, clear_tile_unit,
@@ -47,7 +51,8 @@ import {
 import { utype_can_do_action } from '../data/unittype';
 import { improvements_init } from '../data/improvement';
 import { mark_tile_dirty, mark_all_dirty, mapdeco_init, update_map_canvas_check } from '../renderer/mapviewCommon';
-import { assign_nation_color } from '../renderer/tilespec';
+import { handle_web_info_text_message } from '../renderer/mapctrl';
+import { assign_nation_color, explosion_anim_map } from '../renderer/tilespec';
 import { play_sound } from '../audio/sounds';
 import { add_chatbox_text, chatbox_clip_messages, wait_for_text } from '../core/messages';
 import { update_player_info_pregame, update_game_info_pregame } from '../core/pregame';
@@ -63,13 +68,15 @@ import {
   auto_center_on_focus_unit, update_active_units_dialog,
 } from '../core/control/unitFocus';
 import { request_unit_do_action } from '../core/control/unitCommands';
+import { current_focus, goto_active, action_selection_in_progress_for, waiting_units_list, setWaitingUnitsList } from '../core/control/controlState';
 import { update_goto_path } from '../core/control/mapClick';
 import { update_net_income } from '../ui/rates';
-import { show_city_dialog_by_id, city_name_dialog } from '../ui/cityDialog';
-import { update_tech_screen, queue_tech_gained_dialog } from '../ui/techDialog';
+import { show_city_dialog_by_id, city_name_dialog, city_trade_routes } from '../ui/cityDialog';
+import { update_tech_screen, queue_tech_gained_dialog, is_tech_tree_init, tech_dialog_active, bulbs_output_updater } from '../ui/techDialog';
 import {
   show_diplomacy_dialog, accept_treaty, cancel_meeting,
   discard_diplomacy_dialogs, show_diplomacy_clauses, remove_clause,
+  diplomacy_clause_map,
 } from '../ui/diplomacy';
 import {
   act_sel_queue_done, popup_action_selection, popup_bribe_dialog,
@@ -103,30 +110,30 @@ const REQEST_BACKGROUND_FAST_AUTO_ATTACK = 2;
 // ============================================================================
 
 export function handle_processing_started(_packet: any): void {
-  (window as any).client_frozen = true;
+  store.frozen = true;
 }
 
 export function handle_processing_finished(_packet: any): void {
-  (window as any).client_frozen = false;
+  store.frozen = false;
 }
 
 export function handle_investigate_started(_packet: any): void { /* no-op */ }
 export function handle_investigate_finished(_packet: any): void { /* no-op */ }
 
 export function handle_freeze_hint(_packet: any): void {
-  (window as any).client_frozen = true;
+  store.frozen = true;
 }
 
 export function handle_thaw_hint(_packet: any): void {
-  (window as any).client_frozen = false;
+  store.frozen = false;
 }
 
 export function handle_freeze_client(_packet: any): void {
-  (window as any).client_frozen = true;
+  store.frozen = true;
 }
 
 export function handle_thaw_client(_packet: any): void {
-  (window as any).client_frozen = false;
+  store.frozen = false;
 }
 
 // ============================================================================
@@ -168,14 +175,14 @@ export function handle_ruleset_government(packet: any): void {
 }
 
 export function handle_ruleset_summary(packet: any): void {
-  (window as any).ruleset_summary = packet['text'];
+  store.rulesSummary = packet['text'];
 }
 
 export function handle_ruleset_description_part(packet: any): void {
-  if ((window as any).ruleset_description == null) {
-    (window as any).ruleset_description = packet['text'];
+  if (store.rulesDescription == null) {
+    store.rulesDescription = packet['text'];
   } else {
-    (window as any).ruleset_description += packet['text'];
+    store.rulesDescription += packet['text'];
   }
 }
 
@@ -206,7 +213,7 @@ export function handle_game_info(packet: any): void {
     // Defer slightly so that remaining init packets (players, tiles) arrive first.
     setTimeout(() => {
       if (clientState() !== C_S_RUNNING) {
-        (window as any).observing = true;
+        store.observing = true;
         set_client_state(C_S_RUNNING);
       }
     }, 2000);
@@ -242,10 +249,10 @@ export function handle_timeout_info(packet: any): void {
 }
 
 export function handle_trade_route_info(packet: any): void {
-  if ((window as any).city_trade_routes[packet['city']] == null) {
-    (window as any).city_trade_routes[packet['city']] = {};
+  if (city_trade_routes[packet['city']] == null) {
+    city_trade_routes[packet['city']] = {};
   }
-  (window as any).city_trade_routes[packet['city']][packet['index']] = packet;
+  city_trade_routes[packet['city']][packet['index']] = packet;
 }
 
 export function handle_endgame_player(packet: any): void {
@@ -253,7 +260,7 @@ export function handle_endgame_player(packet: any): void {
 }
 
 export function handle_unknown_research(packet: any): void {
-  delete (window as any).research_data[packet['id']];
+  delete research_data[packet['id']];
 }
 
 // ============================================================================
@@ -440,13 +447,13 @@ export function handle_server_join_reply(packet: any): void {
       (window as any).change_ruleset(urlRuleset);
     }
 
-    if ((window as any).autostart) {
+    if (store.autostart) {
       if ((window as any).loadTimerId === -1) {
         wait_for_text('You are logged in as', (window as any).pregame_start_game);
       } else {
         wait_for_text('Load complete', (window as any).pregame_start_game);
       }
-    } else if ((window as any).observing) {
+    } else if (store.observing) {
       wait_for_text('You are logged in as', requestObserveGame);
     }
   } else {
@@ -513,13 +520,13 @@ export function handle_chat_msg(packet: any): void {
   }
 
   if (store.connections[conn_id] != null) {
-    if (!(window as any).is_longturn()) {
+    if (!isLongturn()) {
       message = '<b>' + store.connections[conn_id]['username'] + ':</b>' + message;
     }
   } else if (packet['event'] === E_SCRIPT) {
     const regxp = /\n/gi;
     message = message.replace(regxp, '<br>\n');
-    (window as any).show_dialog_message('Message for you:', message);
+    showDialogMessage('Message for you:', message);
     return;
   } else {
     if (message.indexOf('/metamessage') !== -1) return;
@@ -547,12 +554,12 @@ export function handle_city_info(packet: any): void {
   packet['name'] = decodeURIComponent(packet['name']);
   packet['improvements'] = new BitVector(packet['improvements']);
   packet['city_options'] = new BitVector(packet['city_options']);
-  packet['unhappy'] = (window as any).city_unhappy(packet);
+  packet['unhappy'] = cityUnhappy(packet);
 
   if (store.cities[packet['id']] == null) {
     const pcity = packet;
     store.cities[packet['id']] = packet;
-    if (C_S_RUNNING === clientState() && !(window as any).observing && (window as any).benchmark_start === 0
+    if (C_S_RUNNING === clientState() && !store.observing && (window as any).benchmark_start === 0
         && !clientIsObserver() && packet['owner'] === clientPlaying()?.playerno) {
       show_city_dialog_by_id(packet['id']);
     }
@@ -651,7 +658,7 @@ export function handle_web_player_info_addition(packet: any): void {
   }
   update_player_info_pregame();
 
-  if ((window as any).is_tech_tree_init && (window as any).tech_dialog_active) update_tech_screen();
+  if (is_tech_tree_init && tech_dialog_active) update_tech_screen();
 
   assign_nation_color(store.players[packet['playerno']]['nation']);
 }
@@ -678,19 +685,19 @@ export function handle_map_info(packet: any): void {
 }
 
 export function handle_authentication_req(packet: any): void {
-  (window as any).show_auth_dialog(packet);
+  showAuthDialog(packet);
 }
 
 export function handle_server_shutdown(_packet: any): void { /* TODO */ }
 
 export function handle_nuke_tile_info(packet: any): void {
-  const ptile = (window as any).index_to_tile(packet['tile']);
+  const ptile = indexToTile(packet['tile']);
   ptile['nuke'] = 60;
   play_sound('LrgExpl.ogg');
 }
 
 export function handle_city_remove(packet: any): void {
-  (window as any).remove_city(packet['city_id']);
+  removeCity(packet['city_id']);
 }
 
 export function handle_connect_msg(packet: any): void {
@@ -736,7 +743,7 @@ export function handle_unit_remove(packet: any): void {
     mark_tile_dirty(punit['tile']);
   }
 
-  if ((window as any).action_selection_in_progress_for === punit.id) {
+  if (action_selection_in_progress_for === punit.id) {
     action_selection_close();
     action_selection_next_in_focus(punit.id);
   }
@@ -801,10 +808,10 @@ export function action_decision_maybe_auto(
 ): void {
   for (let a = 0; a < auto_attack_actions.length; a++) {
     const action = auto_attack_actions[a];
-    if ((window as any).action_prob_possible(action_probabilities[action]) && (window as any).auto_attack) {
+    if (actionProbPossible(action_probabilities[action]) && (window as any).auto_attack) {
       let target = target_tile['index'];
       if (action === ACTION_NUKE_CITY) {
-        const tc = (window as any).tile_city(target_tile);
+        const tc = tileCity(target_tile);
         if (!tc) continue;
         target = tc['id'];
       }
@@ -838,7 +845,7 @@ export function handle_unit_packet_common(packet_unit: any): void {
   }
 
   let old_tile: any = null;
-  if (punit != null) old_tile = (window as any).index_to_tile(punit['tile']);
+  if (punit != null) old_tile = indexToTile(punit['tile']);
 
   if (store.units[packet_unit['id']] == null) {
     // New unit
@@ -860,10 +867,10 @@ export function handle_unit_packet_common(packet_unit: any): void {
     }
     Object.assign(store.units[packet_unit['id']], packet_unit);
     // Also update current_focus references
-    if ((window as any).current_focus != null) {
-      for (let i = 0; i < (window as any).current_focus.length; i++) {
-        if ((window as any).current_focus[i]['id'] === packet_unit['id']) {
-          Object.assign((window as any).current_focus[i], packet_unit);
+    if (current_focus != null) {
+      for (let i = 0; i < current_focus.length; i++) {
+        if (current_focus[i]['id'] === packet_unit['id']) {
+          Object.assign(current_focus[i], packet_unit);
         }
       }
     }
@@ -871,12 +878,12 @@ export function handle_unit_packet_common(packet_unit: any): void {
 
   update_tile_unit(store.units[packet_unit['id']]);
 
-  if ((window as any).current_focus != null && (window as any).current_focus.length > 0
-      && (window as any).current_focus[0]['id'] === packet_unit['id']) {
+  if (current_focus != null && current_focus.length > 0
+      && current_focus[0]['id'] === packet_unit['id']) {
     update_active_units_dialog();
     update_unit_order_commands();
 
-    if ((window as any).current_focus[0]['done_moving'] !== packet_unit['done_moving']) {
+    if (current_focus[0]['done_moving'] !== packet_unit['done_moving']) {
       update_unit_focus();
     }
   }
@@ -890,10 +897,10 @@ export function handle_unit_combat_info(packet: any): void {
   const defender_hp = packet['defender_hp'];
 
   if (attacker_hp === 0 && is_unit_visible(attacker)) {
-    (window as any).explosion_anim_map[attacker['tile']] = 25;
+    explosion_anim_map[attacker['tile']] = 25;
   }
   if (defender_hp === 0 && is_unit_visible(defender)) {
-    (window as any).explosion_anim_map[defender['tile']] = 25;
+    explosion_anim_map[defender['tile']] = 25;
   }
 }
 
@@ -961,14 +968,14 @@ export function handle_unit_actions(packet: any): void {
   const pdiplomat = game_find_unit_by_number(actor_unit_id);
   const target_unit = game_find_unit_by_number(target_unit_id);
   const target_city = game_find_city_by_number(target_city_id);
-  const ptile = (window as any).index_to_tile(target_tile_id);
-  const target_extra = (window as any).extra_by_number(target_extra_id);
+  const ptile = indexToTile(target_tile_id);
+  const target_extra = extraByNumber(target_extra_id);
 
   let hasActions = false;
 
   if (pdiplomat != null && ptile != null) {
     action_probabilities.forEach(function(prob: any) {
-      if ((window as any).action_prob_possible(prob)) {
+      if (actionProbPossible(prob)) {
         hasActions = true;
       }
     });
@@ -1004,7 +1011,7 @@ export function handle_unit_actions(packet: any): void {
 }
 
 export function handle_diplomacy_init_meeting(packet: any): void {
-  (window as any).diplomacy_clause_map[packet['counterpart']] = [];
+  diplomacy_clause_map[packet['counterpart']] = [];
   show_diplomacy_dialog(packet['counterpart']);
   show_diplomacy_clauses(packet['counterpart']);
 }
@@ -1015,10 +1022,10 @@ export function handle_diplomacy_cancel_meeting(packet: any): void {
 
 export function handle_diplomacy_create_clause(packet: any): void {
   const counterpart_id = packet['counterpart'];
-  if ((window as any).diplomacy_clause_map[counterpart_id] == null) {
-    (window as any).diplomacy_clause_map[counterpart_id] = [];
+  if (diplomacy_clause_map[counterpart_id] == null) {
+    diplomacy_clause_map[counterpart_id] = [];
   }
-  (window as any).diplomacy_clause_map[counterpart_id].push(packet);
+  diplomacy_clause_map[counterpart_id].push(packet);
   show_diplomacy_clauses(counterpart_id);
 }
 
@@ -1047,13 +1054,13 @@ export function handle_page_msg_part(packet: any): void {
   if (page_msg['missing_parts'] === 0) {
     const regxp = /\n/gi;
     page_msg['message'] = page_msg['message'].replace(regxp, '<br>\n');
-    (window as any).show_dialog_message(page_msg['headline'], page_msg['message']);
+    showDialogMessage(page_msg['headline'], page_msg['message']);
     page_msg = {};
   }
 }
 
 export function handle_conn_ping_info(packet: any): void {
-  if ((window as any).debug_active) {
+  if (store.debugActive) {
     (window as any).conn_ping_info = packet;
     (window as any).debug_ping_list.push(packet['ping_time'][0] * 1000);
   }
@@ -1074,8 +1081,8 @@ export function handle_ruleset_control(packet: any): void {
   set_client_state(C_S_PREPARING);
 
   (window as any).effects = {};
-  (window as any).ruleset_summary = null;
-  (window as any).ruleset_description = null;
+  store.rulesSummary = null;
+  store.rulesDescription = null;
   (window as any).game_rules = null;
   (window as any).nation_groups = [];
   store.nations = {};
@@ -1175,11 +1182,11 @@ export function handle_player_diplstate(packet: any): void {
     }
   }
 
-  if (packet['type'] === (window as any).DS_WAR && packet['plr2'] === clientPlaying()['playerno']
-      && (window as any).diplstates[packet['plr1']] !== (window as any).DS_WAR && (window as any).diplstates[packet['plr1']] !== (window as any).DS_NO_CONTACT) {
+  if (packet['type'] === DiplState.DS_WAR && packet['plr2'] === clientPlaying()['playerno']
+      && (window as any).diplstates[packet['plr1']] !== DiplState.DS_WAR && (window as any).diplstates[packet['plr1']] !== DiplState.DS_NO_CONTACT) {
     (window as any).alert_war(packet['plr1']);
-  } else if (packet['type'] === (window as any).DS_WAR && packet['plr1'] === clientPlaying()['playerno']
-      && (window as any).diplstates[packet['plr2']] !== (window as any).DS_WAR && (window as any).diplstates[packet['plr2']] !== (window as any).DS_NO_CONTACT) {
+  } else if (packet['type'] === DiplState.DS_WAR && packet['plr1'] === clientPlaying()['playerno']
+      && (window as any).diplstates[packet['plr2']] !== DiplState.DS_WAR && (window as any).diplstates[packet['plr2']] !== DiplState.DS_NO_CONTACT) {
     (window as any).alert_war(packet['plr2']);
   }
 
@@ -1210,8 +1217,8 @@ export function handle_player_diplstate(packet: any): void {
         || (action_selection_target_city() !== IDENTITY_NUMBER_ZERO
             && ((tgt_city = game_find_city_by_number(action_selection_target_city())))
             && tgt_city['owner'] === packet['plr1'])
-        || ((tgt_tile = (window as any).index_to_tile(action_selection_target_tile()))
-            && (window as any).tile_owner(tgt_tile) === packet['plr1'])) {
+        || ((tgt_tile = indexToTile(action_selection_target_tile()))
+            && tileOwner(tgt_tile) === packet['plr1'])) {
       const refresh_packet = {
         'pid': packet_unit_get_actions,
         'actor_unit_id': action_selection_actor_unit(),
@@ -1226,18 +1233,18 @@ export function handle_player_diplstate(packet: any): void {
 }
 
 export function handle_web_goto_path(packet: any): void {
-  if ((window as any).goto_active) {
+  if (goto_active) {
     update_goto_path(packet);
   }
 }
 
 export function handle_research_info(packet: any): void {
   let old_inventions: any = null;
-  if ((window as any).research_data[packet['id']] != null) {
-    old_inventions = (window as any).research_data[packet['id']]['inventions'];
+  if (research_data[packet['id']] != null) {
+    old_inventions = research_data[packet['id']]['inventions'];
   }
 
-  (window as any).research_data[packet['id']] = packet;
+  research_data[packet['id']] = packet;
 
   if ((store.gameInfo as any)?.['team_pooled_research']) {
     for (const player_id in store.players) {
@@ -1265,8 +1272,8 @@ export function handle_research_info(packet: any): void {
     }
   }
 
-  if ((window as any).is_tech_tree_init && (window as any).tech_dialog_active) update_tech_screen();
-  (window as any).bulbs_output_updater.update();
+  if (is_tech_tree_init && tech_dialog_active) update_tech_screen();
+  bulbs_output_updater.update();
 }
 
 // ============================================================================
@@ -1276,14 +1283,14 @@ export function handle_research_info(packet: any): void {
 export function handle_begin_turn(_packet: any): void {
   if (typeof mark_all_dirty === 'function') mark_all_dirty();
 
-  if (!(window as any).observing) {
+  if (!store.observing) {
     const btn = document.getElementById('turn_done_button') as HTMLButtonElement | null;
     if (btn) {
       btn.disabled = false;
       btn.textContent = 'Turn Done';
     }
   }
-  (window as any).waiting_units_list = [];
+  setWaitingUnitsList([]);
   update_unit_focus();
   update_active_units_dialog();
   update_game_status_panel();
@@ -1293,12 +1300,12 @@ export function handle_begin_turn(_packet: any): void {
     auto_center_on_focus_unit();
   }
 
-  if ((window as any).is_tech_tree_init && (window as any).tech_dialog_active) update_tech_screen();
+  if (is_tech_tree_init && tech_dialog_active) update_tech_screen();
 }
 
 export function handle_end_turn(_packet: any): void {
   reset_unit_anim_list();
-  if (!(window as any).observing) {
+  if (!store.observing) {
     const btn = document.getElementById('turn_done_button') as HTMLButtonElement | null;
     if (btn) btn.disabled = true;
   }
@@ -1452,10 +1459,8 @@ export const packet_hand_table: Record<number, (packet: any) => void> = {
   // 290: handle_web_info_text_message — defined in 2dcanvas/mapctrl.js
 };
 
-// Register handle_web_info_text_message from legacy mapctrl.js (loaded before TS bundle)
-if (typeof (window as any).handle_web_info_text_message === 'function') {
-  packet_hand_table[290] = (window as any).handle_web_info_text_message;
-}
+// Register handle_web_info_text_message from mapctrl
+packet_hand_table[290] = handle_web_info_text_message;
 
 /**
  * Main packet dispatch function.
@@ -1475,7 +1480,7 @@ export function client_handle_packet(packets: any[]): void {
       }
     }
     if (packets.length > 0) {
-      if ((window as any).debug_active) clinet_debug_collect();
+      if (store.debugActive) clinet_debug_collect();
       if ((window as any).renderer === RENDERER_2DCANVAS) update_map_canvas_check();
     }
   } catch (e) {

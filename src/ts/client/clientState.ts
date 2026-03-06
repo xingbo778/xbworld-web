@@ -9,8 +9,9 @@
  */
 
 import { ClientState } from '../core/constants';
+import { store } from '../data/store';
 // ---------------------------------------------------------------------------
-// State accessors — read from legacy globals directly
+// State accessors — read from store
 // ---------------------------------------------------------------------------
 
 /**
@@ -25,7 +26,7 @@ export function clientState(): number {
  * Returns TRUE if the client can change the view (mapview is active).
  */
 export function canClientChangeView(): boolean {
-  const playing = (window as any).client?.conn?.playing;
+  const playing = store.client?.conn?.playing;
   const observer = clientIsObserver();
   return (
     (playing != null || observer) &&
@@ -62,8 +63,8 @@ export function canClientIssueOrders(): boolean {
  * early, matching Legacy's effective behavior.
  */
 export function clientIsObserver(): boolean {
-  const c = (window as any).client;
-  const obs = (window as any).observing;
+  const c = store.client;
+  const obs = store.observing;
 
   // If client or conn is not yet initialized, we are NOT an observer —
   // we simply don't know yet. Legacy would throw here; we return false.
@@ -79,8 +80,7 @@ export function clientIsObserver(): boolean {
  * Typed as `any` to avoid TS2571 "Object is of type unknown" in callers.
  */
 export function clientPlaying(): any {
-  const c = (window as any).client;
-  return c?.conn?.playing ?? null;
+  return store.client?.conn?.playing ?? null;
 }
 
 // ---------------------------------------------------------------------------

@@ -17,6 +17,8 @@
 
 ***********************************************************************/
 
+import { unit_type } from '../data/unit';
+
 const sounds_enabled_get = (): boolean => (window as any).sounds_enabled ?? false;
 const soundset_get = (): Record<string, any> => (window as any).soundset ?? {};
 const is_unit_visible = (punit: any): boolean => (window as any).is_unit_visible?.(punit) ?? false;

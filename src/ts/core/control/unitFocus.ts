@@ -42,6 +42,7 @@ import * as S from './controlState';
 import { should_ask_server_for_actions, can_ask_server_for_actions, action_selection_next_in_focus } from './actionSelection';
 import { request_new_unit_activity } from './unitCommands';
 import { center_tile_mapcanvas } from './mapClick';
+import { terrain_control } from '../../net/packhandlers';
 
 const FC_ACTIVITY_IDLE = ACTIVITY_IDLE;
 const FC_SSA_NONE = ServerSideAgent.NONE;
@@ -376,11 +377,11 @@ export function update_unit_order_commands(): { [key: string]: any } {
         hideEl('order_forest_add');
       }
       if (player_invention_state(clientPlaying(), tech_id_by_name('Construction') as unknown as number) == FC_TECH_KNOWN) {
-        unit_actions["fortress"] = { name: string_unqualify((window as any).terrain_control['gui_type_base0']) + " (Shift-F)" };
+        unit_actions["fortress"] = { name: string_unqualify(terrain_control['gui_type_base0']) + " (Shift-F)" };
       }
 
       if (player_invention_state(clientPlaying(), tech_id_by_name('Radio') as unknown as number) == FC_TECH_KNOWN) {
-        unit_actions["airbase"] = { name: string_unqualify((window as any).terrain_control['gui_type_base1']) + " (E)" };
+        unit_actions["airbase"] = { name: string_unqualify(terrain_control['gui_type_base1']) + " (E)" };
       }
 
     } else {

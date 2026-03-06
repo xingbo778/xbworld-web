@@ -8,6 +8,8 @@
  * request_report) are NOT migrated — they remain in Legacy.
  */
 
+import { store } from './store';
+
 // ---------------------------------------------------------------------------
 // Functions
 // ---------------------------------------------------------------------------
@@ -40,8 +42,8 @@ export function governmentMaxRate(govtId: number): number {
  * Uses the JavaScript implementation of the requirement system.
  */
 export function canPlayerGetGov(govtId: number): boolean {
-  const client = (window as any).client;
-  const governments = (window as any).governments as Record<number, any>;
+  const client = store.client;
+  const governments = store.governments as Record<number, any>;
   const playerHasWonder = (window as any).player_has_wonder as
     (playerno: number, wonderId: number) => boolean;
   const areReqsActive = (window as any).are_reqs_active as (
@@ -50,9 +52,9 @@ export function canPlayerGetGov(govtId: number): boolean {
   const RPT_CERTAIN = (window as any).RPT_CERTAIN as number;
 
   return (
-    playerHasWonder(client.conn.playing.playerno, 63) || // hack for Statue of Liberty
+    playerHasWonder(client.conn.playing!.playerno, 63) || // hack for Statue of Liberty
     areReqsActive(
-      client.conn.playing,
+      client.conn.playing!,
       null,
       null,
       null,

@@ -24,11 +24,12 @@ import { center_on_any_city } from '../core/control/mapClick';
 import { advance_unit_focus, init_game_unit_panel, update_active_units_dialog } from '../core/control/unitFocus';
 import { unitpanel_active, setAllowRightClick, setKeyboardInput } from '../core/control/controlState';
 import { is_small_screen } from '../renderer/mapview';
-import { init_overview, overview_active, overview_current_state } from '../core/overview';
+import { init_overview, overview_active, overview_current_state, setOverviewActive } from '../core/overview';
 import { mark_all_dirty, mapview } from '../renderer/mapviewCommon';
 import { unblockUI } from '../utils/dom';
 import { showMessageDialog } from '../components/Dialogs/MessageDialog';
 import { getActiveTab, setActiveTab } from '../ui/tabs';
+import { setTechDialogActive } from '../ui/techDialog';
 
 const _w = window as any;
 
@@ -152,6 +153,7 @@ export function setupWindowSize(): void {
     document.querySelectorAll('.overview_dialog').forEach((el: any) => el.style.display = 'none');
     document.querySelectorAll('.ui-dialog-titlebar').forEach((el: any) => el.style.display = 'none');
     _hide('freeciv_logo');
+    setOverviewActive(false);
     _w.overview_active = false;
     _el('game_unit_orders_default')?.remove();
     _el('game_unit_orders_settlers')?.remove();
@@ -226,6 +228,7 @@ export function setDefaultMapviewActive(): void {
   setActiveTab('#tabs', 0);
   const tabsMap = document.getElementById('tabs-map');
   if (tabsMap) tabsMap.style.height = 'auto';
+  setTechDialogActive(false);
   _w.tech_dialog_active = false;
   setAllowRightClick(false);
   setKeyboardInput(true);

@@ -52,6 +52,7 @@ export let palette_color_offset: number = 0;
 export let palette_terrain_offset: number = 0;
 
 export let overview_active: boolean = false;
+export function setOverviewActive(v: boolean): void { overview_active = v; }
 
 export const COLOR_OVERVIEW_UNKNOWN: number = 0; /* Black */
 export const COLOR_OVERVIEW_MY_CITY: number = 1; /* white */
