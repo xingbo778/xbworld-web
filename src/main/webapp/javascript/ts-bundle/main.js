@@ -4682,11 +4682,11 @@ function loadWikiDocs() {
 const freeciv_wiki_docs = new Proxy({}, {
   get: (_target, prop) => (window.freeciv_wiki_docs || {})[prop]
 });
-function byId$3(id) {
+function byId$4(id) {
   return document.getElementById(id);
 }
 function setHtml$3(id, html) {
-  const el = byId$3(id);
+  const el = byId$4(id);
   if (el) el.innerHTML = html;
 }
 const techs = {};
@@ -4714,7 +4714,7 @@ const bulbs_output_updater = new EventAggregator(
 );
 function init_tech_screen() {
   if (isSmallScreen()) tech_canvas_text_font = "20px Arial";
-  const techEl = byId$3("technologies");
+  const techEl = byId$4("technologies");
   if (techEl) {
     techEl.style.width = window.innerWidth - 20 + "px";
     techEl.style.height = window.innerHeight - techEl.getBoundingClientRect().top - 15 + "px";
@@ -4748,11 +4748,11 @@ function init_tech_screen() {
     if (tech_canvas_ctx) {
       tech_canvas_ctx.scale(0.6, 0.6);
     }
-    const trt = byId$3("tech_result_text");
+    const trt = byId$4("tech_result_text");
     if (trt) trt.style.fontSize = "85%";
-    const tch = byId$3("tech_color_help");
+    const tch = byId$4("tech_color_help");
     if (tch) tch.style.fontSize = "65%";
-    const tpb = byId$3("tech_progress_box");
+    const tpb = byId$4("tech_progress_box");
     if (tpb) tpb.style.paddingLeft = "10px";
   }
   is_tech_tree_init = true;
@@ -4884,14 +4884,14 @@ function update_tech_screen() {
   setHtml$3("tech_goal_box", research_goal_text);
   setHtml$3("tech_progress_text", "Research progress: " + clientPlaying()["bulbs_researched"] + " / " + clientPlaying()["researching_cost"]);
   const pct_progress = 100 * (clientPlaying()["bulbs_researched"] / clientPlaying()["researching_cost"]);
-  const progressFg = byId$3("progress_fg");
+  const progressFg = byId$4("progress_fg");
   if (progressFg) progressFg.style.width = pct_progress + "%";
   if (clicked_tech_id != null) {
     setHtml$3("tech_result_text", "<span id='tech_advance_helptext'>" + get_advances_text(clicked_tech_id) + "</span>");
   } else if (techs[clientPlaying()["researching"]] != null) {
     setHtml$3("tech_result_text", "<span id='tech_advance_helptext'>" + get_advances_text(clientPlaying()["researching"]) + "</span>");
   }
-  const techTabItem = byId$3("tech_tab_item");
+  const techTabItem = byId$4("tech_tab_item");
   if (techTabItem) techTabItem.style.color = "#000000";
   maxleft = maxleft - 280;
   if (maxleft < 0) maxleft = 0;
@@ -4916,12 +4916,12 @@ function get_advances_text(tech_id) {
   ) + ".";
 }
 function scroll_tech_tree() {
-  const el = byId$3("technologies");
+  const el = byId$4("technologies");
   if (el) el.scrollLeft = maxleft;
 }
 function send_player_research(tech_id) {
   sendPlayerResearch(tech_id);
-  byId$3("tech_dialog")?.remove();
+  byId$4("tech_dialog")?.remove();
 }
 function send_player_tech_goal(tech_id) {
   sendPlayerTechGoal(tech_id);
@@ -4939,7 +4939,7 @@ function tech_mapview_mouse_click(e2) {
     rightclick = false;
   }
   if (rightclick) {
-    const techEl = byId$3("technologies");
+    const techEl = byId$4("technologies");
     if (techEl) {
       if (mouse_x > window.innerWidth / 2) {
         techEl.scrollLeft += 150;
@@ -4950,7 +4950,7 @@ function tech_mapview_mouse_click(e2) {
     return;
   }
   if (tech_canvas != null) {
-    const techEl = byId$3("technologies");
+    const techEl = byId$4("technologies");
     const rect = techEl.getBoundingClientRect();
     const tech_mouse_x = mouse_x - rect.left + techEl.scrollLeft;
     const tech_mouse_y = mouse_y - rect.top + techEl.scrollTop;
@@ -4999,7 +4999,7 @@ function queue_tech_gained_dialog(tech_gained_id) {
 }
 function show_tech_gained_dialog(tech_gained_id) {
   if (clientIsObserver() || C_S_RUNNING != clientState()) return;
-  const tti = byId$3("tech_tab_item");
+  const tti = byId$4("tech_tab_item");
   if (tti) tti.style.color = "#aa0000";
   const pplayer = clientPlaying();
   const tech = techs[tech_gained_id];
@@ -5021,7 +5021,7 @@ function show_tech_gained_dialog(tech_gained_id) {
     if (html) message += html;
   }
   message += "</div>";
-  byId$3("tech_dialog")?.remove();
+  byId$4("tech_dialog")?.remove();
   const dlg = document.createElement("div");
   dlg.id = "tech_dialog";
   dlg.style.cssText = "position:fixed;z-index:5000;background:#222;border:1px solid #555;padding:16px;top:10%;left:50%;transform:translateX(-50%);width:" + (isSmallScreen() ? "90%" : "60%") + ";max-height:80vh;overflow-y:auto;color:#fff;";
@@ -5038,7 +5038,7 @@ function show_tech_gained_dialog(tech_gained_id) {
   closeBtn.textContent = "Close";
   closeBtn.addEventListener("click", function() {
     dlg.remove();
-    byId$3("game_text_input")?.blur();
+    byId$4("game_text_input")?.blur();
   });
   const treeBtn = document.createElement("button");
   treeBtn.textContent = "Show Technology Tree";
@@ -5050,12 +5050,12 @@ function show_tech_gained_dialog(tech_gained_id) {
   btnContainer.appendChild(closeBtn);
   btnContainer.appendChild(treeBtn);
   dlg.appendChild(btnContainer);
-  byId$3("game_page")?.appendChild(dlg);
-  byId$3("game_text_input")?.blur();
+  byId$4("game_page")?.appendChild(dlg);
+  byId$4("game_text_input")?.blur();
 }
 function show_tech_info_dialog(tech_name, unit_type_id, improvement_id) {
   loadWikiDocs();
-  const tti = byId$3("tech_tab_item");
+  const tti = byId$4("tech_tab_item");
   if (tti) tti.style.color = "#aa0000";
   let message = "";
   if (unit_type_id != null) {
@@ -5070,7 +5070,7 @@ function show_tech_info_dialog(tech_name, unit_type_id, improvement_id) {
     }
     message += freeciv_wiki_docs[tech_name]["summary"];
   }
-  byId$3("wiki_dialog")?.remove();
+  byId$4("wiki_dialog")?.remove();
   const dlg = document.createElement("div");
   dlg.id = "wiki_dialog";
   dlg.style.cssText = "position:fixed;z-index:5000;background:#222;border:1px solid #555;padding:16px;top:10%;left:50%;transform:translateX(-50%);width:" + (isSmallScreen() ? "95%" : "70%") + ";height:" + (window.innerHeight - 60) + "px;overflow-y:auto;color:#fff;";
@@ -5088,13 +5088,13 @@ function show_tech_info_dialog(tech_name, unit_type_id, improvement_id) {
     dlg.remove();
   });
   dlg.appendChild(okBtn);
-  byId$3("game_page")?.appendChild(dlg);
-  byId$3("game_text_input")?.blur();
+  byId$4("game_page")?.appendChild(dlg);
+  byId$4("game_text_input")?.blur();
 }
 function update_tech_dialog_cursor() {
   if (!tech_canvas) return;
   tech_canvas.style.cursor = "default";
-  const techEl = byId$3("technologies");
+  const techEl = byId$4("technologies");
   const rect = techEl.getBoundingClientRect();
   const tech_mouse_x = mouse_x - rect.left + techEl.scrollLeft;
   const tech_mouse_y = mouse_y - rect.top + techEl.scrollTop;
@@ -5882,7 +5882,9 @@ function handle_end_turn(_packet) {
     if (btn) btn.disabled = true;
   }
 }
-const _$$1 = window.$;
+function byId$3(id) {
+  return document.getElementById(id);
+}
 const CLAUSE_ADVANCE = 0;
 const CLAUSE_GOLD = 1;
 const CLAUSE_MAP = 2;
@@ -6053,38 +6055,37 @@ function create_diplomacy_dialog(counterpart, template) {
   const pplayer = clientPlaying();
   const counterpart_id = counterpart["playerno"];
   cleanup_diplomacy_dialog(counterpart_id);
-  _$$1("#game_page").append(template({
-    self: meeting_template_data(pplayer, counterpart),
-    counterpart: meeting_template_data(counterpart, pplayer)
-  }));
+  const gamePage = byId$3("game_page");
+  if (gamePage) {
+    gamePage.insertAdjacentHTML("beforeend", template({
+      self: meeting_template_data(pplayer, counterpart),
+      counterpart: meeting_template_data(counterpart, pplayer)
+    }));
+  }
   const title = "Diplomacy: " + counterpart["name"] + " of the " + store.nations[counterpart["nation"]]["adjective"];
-  const diplomacy_dialog = _$$1("#diplomacy_dialog_" + counterpart_id);
-  diplomacy_dialog.attr("title", title);
-  diplomacy_dialog.dialog({
-    bgiframe: true,
-    modal: false,
-    width: isSmallScreen() ? "90%" : "50%",
-    height: 500,
-    buttons: {
-      "Accept treaty": function() {
-        accept_treaty_req(counterpart_id);
-      },
-      "Cancel meeting": function() {
-        cancel_meeting_req(counterpart_id);
-      }
-    },
-    close: function() {
-      cancel_meeting_req(counterpart_id);
-    }
-  }).dialogExtend({
-    "minimizable": true,
-    "closable": true,
-    "icons": {
-      "minimize": "ui-icon-circle-minus",
-      "restore": "ui-icon-bullet"
-    }
-  });
-  diplomacy_dialog.dialog("open");
+  const diplomacy_dialog = byId$3("diplomacy_dialog_" + counterpart_id);
+  if (diplomacy_dialog) {
+    const wrapper = document.createElement("div");
+    wrapper.style.cssText = "position:fixed;z-index:1000;background:#222;border:1px solid #555;padding:0;top:10%;left:50%;transform:translateX(-50%);width:" + (isSmallScreen() ? "90%" : "50%") + ";height:500px;overflow:visible;color:#fff;";
+    const titleBar = document.createElement("div");
+    titleBar.style.cssText = "background:#333;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #555;";
+    titleBar.innerHTML = '<span style="font-weight:bold;">' + title + "</span>";
+    const btnRow = document.createElement("div");
+    btnRow.style.cssText = "display:flex;gap:6px;";
+    const acceptBtn = document.createElement("button");
+    acceptBtn.textContent = "Accept treaty";
+    acceptBtn.addEventListener("click", () => accept_treaty_req(counterpart_id));
+    const cancelBtn = document.createElement("button");
+    cancelBtn.textContent = "Cancel meeting";
+    cancelBtn.addEventListener("click", () => cancel_meeting_req(counterpart_id));
+    btnRow.appendChild(acceptBtn);
+    btnRow.appendChild(cancelBtn);
+    titleBar.appendChild(btnRow);
+    wrapper.appendChild(titleBar);
+    diplomacy_dialog.parentNode?.insertBefore(wrapper, diplomacy_dialog);
+    wrapper.appendChild(diplomacy_dialog);
+    diplomacy_dialog.style.overflow = "visible";
+  }
   let nation = store.nations[pplayer["nation"]];
   if (nation["customized"]) {
     meeting_paint_custom_flag(nation, document.getElementById("flag_self_" + counterpart_id));
@@ -6093,8 +6094,10 @@ function create_diplomacy_dialog(counterpart, template) {
   if (nation["customized"]) {
     meeting_paint_custom_flag(nation, document.getElementById("flag_counterpart_" + counterpart_id));
   }
-  create_clauses_menu(_$$1("#hierarchy_self_" + counterpart_id));
-  create_clauses_menu(_$$1("#hierarchy_counterpart_" + counterpart_id));
+  const selfHier = byId$3("hierarchy_self_" + counterpart_id);
+  if (selfHier) create_clauses_menu(selfHier);
+  const counterHier = byId$3("hierarchy_counterpart_" + counterpart_id);
+  if (counterHier) create_clauses_menu(counterHier);
   if (store.gameInfo.trading_gold && clause_infos[CLAUSE_GOLD]["enabled"]) {
     const selfGold = document.getElementById("self_gold_" + counterpart_id);
     const counterGold = document.getElementById("counterpart_gold_" + counterpart_id);
@@ -6139,8 +6142,6 @@ function create_diplomacy_dialog(counterpart, template) {
       if (counterGold.parentElement) counterGold.parentElement.style.display = "none";
     }
   }
-  diplomacy_dialog.css("overflow", "visible");
-  diplomacy_dialog.parent().css("z-index", 1e3);
 }
 function meeting_paint_custom_flag(nation, flag_canvas) {
   const tag = "f." + nation["graphic_str"];
@@ -6151,38 +6152,36 @@ function meeting_paint_custom_flag(nation, flag_canvas) {
   }
 }
 function create_clauses_menu(content) {
-  content.css("position", "relative");
-  const children = content.children();
-  const button = children.eq(0);
-  const menu = children.eq(1);
-  menu.menu();
-  menu.hide();
-  menu.css({
-    position: "absolute",
-    top: button.height() + parseFloat(button.css("paddingTop")) + parseFloat(button.css("paddingBottom")) + parseFloat(button.css("borderTopWidth")),
-    left: parseFloat(button.css("marginLeft"))
-  });
+  content.style.position = "relative";
+  const children = content.children;
+  const button = children[0];
+  const menu = children[1];
+  if (!button || !menu) return;
+  const cs = getComputedStyle(button);
+  menu.style.position = "absolute";
+  menu.style.top = button.offsetHeight + parseFloat(cs.paddingTop || "0") + parseFloat(cs.paddingBottom || "0") + parseFloat(cs.borderTopWidth || "0") + "px";
+  menu.style.left = parseFloat(cs.marginLeft || "0") + "px";
+  menu.style.display = "none";
+  let isOpen = false;
   const menu_open = function() {
-    menu.show();
-    menu.data("diplAdd", "open");
+    menu.style.display = "";
+    isOpen = true;
   };
   const menu_close = function() {
-    menu.hide();
-    menu.data("diplAdd", "closed");
+    menu.style.display = "none";
+    isOpen = false;
   };
-  button.click(function() {
-    if (menu.data("diplAdd") === "open") {
-      menu_close();
-    } else {
-      menu_open();
-    }
+  button.addEventListener("click", function() {
+    if (isOpen) menu_close();
+    else menu_open();
   });
-  menu.click(function(e2) {
-    if (e2 && e2.target && e2.target.tagName === "A") {
+  menu.addEventListener("click", function(e2) {
+    if (e2.target && e2.target.tagName === "A") {
       menu_close();
     }
   });
-  content.hover(menu_open, menu_close);
+  content.addEventListener("mouseenter", menu_open);
+  content.addEventListener("mouseleave", menu_close);
 }
 function meeting_gold_change_req(counterpart_id, giver, gold) {
   const clauses = diplomacy_clause_map[counterpart_id];

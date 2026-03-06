@@ -19,7 +19,7 @@ import { get_treaty_agree_thumb_up, get_treaty_disagree_thumb_down } from '../re
 import { DiplState } from '../data/player';
 
 // jQuery partially removed — native DOM where possible
-const _$ = (window as any).$;
+function byId(id: string): HTMLElement | null { return document.getElementById(id); }
 
 export const CLAUSE_ADVANCE = 0;
 export const CLAUSE_GOLD = 1;
@@ -298,42 +298,46 @@ export function create_diplomacy_dialog(counterpart: any, template: any): void {
   // reset diplomacy_dialog div.
   // TODO: check whether this is still needed
   cleanup_diplomacy_dialog(counterpart_id);
-  _$("#game_page").append(template({
-    self: meeting_template_data(pplayer, counterpart),
-    counterpart: meeting_template_data(counterpart, pplayer)
-  }));
+  const gamePage = byId('game_page');
+  if (gamePage) {
+    gamePage.insertAdjacentHTML('beforeend', template({
+      self: meeting_template_data(pplayer, counterpart),
+      counterpart: meeting_template_data(counterpart, pplayer)
+    }));
+  }
 
   const title = "Diplomacy: " + counterpart['name']
     + " of the " + store.nations[counterpart['nation']]['adjective'];
 
-  const diplomacy_dialog = _$("#diplomacy_dialog_" + counterpart_id);
-  diplomacy_dialog.attr("title", title);
-  diplomacy_dialog.dialog({
-    bgiframe: true,
-    modal: false,
-    width: is_small_screen() ? "90%" : "50%",
-    height: 500,
-    buttons: {
-      "Accept treaty": function () {
-        accept_treaty_req(counterpart_id);
-      },
-      "Cancel meeting": function () {
-        cancel_meeting_req(counterpart_id);
-      }
-    },
-    close: function () {
-      cancel_meeting_req(counterpart_id);
-    }
-  }).dialogExtend({
-    "minimizable": true,
-    "closable": true,
-    "icons": {
-      "minimize": "ui-icon-circle-minus",
-      "restore": "ui-icon-bullet"
-    }
-  });
+  const diplomacy_dialog = byId('diplomacy_dialog_' + counterpart_id);
+  if (diplomacy_dialog) {
+    // Wrap in a positioned container acting as a dialog
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'position:fixed;z-index:1000;background:#222;border:1px solid #555;padding:0;'
+      + 'top:10%;left:50%;transform:translateX(-50%);width:' + (is_small_screen() ? '90%' : '50%') + ';'
+      + 'height:500px;overflow:visible;color:#fff;';
+    // Title bar
+    const titleBar = document.createElement('div');
+    titleBar.style.cssText = 'background:#333;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #555;';
+    titleBar.innerHTML = '<span style="font-weight:bold;">' + title + '</span>';
+    const btnRow = document.createElement('div');
+    btnRow.style.cssText = 'display:flex;gap:6px;';
+    const acceptBtn = document.createElement('button');
+    acceptBtn.textContent = 'Accept treaty';
+    acceptBtn.addEventListener('click', () => accept_treaty_req(counterpart_id));
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = 'Cancel meeting';
+    cancelBtn.addEventListener('click', () => cancel_meeting_req(counterpart_id));
+    btnRow.appendChild(acceptBtn);
+    btnRow.appendChild(cancelBtn);
+    titleBar.appendChild(btnRow);
+    wrapper.appendChild(titleBar);
 
-  diplomacy_dialog.dialog('open');
+    // Move the diplomacy_dialog content into wrapper
+    diplomacy_dialog.parentNode?.insertBefore(wrapper, diplomacy_dialog);
+    wrapper.appendChild(diplomacy_dialog);
+    diplomacy_dialog.style.overflow = 'visible';
+  }
 
   let nation = store.nations[pplayer['nation']];
   if (nation['customized']) {
@@ -344,8 +348,10 @@ export function create_diplomacy_dialog(counterpart: any, template: any): void {
     meeting_paint_custom_flag(nation, document.getElementById('flag_counterpart_' + counterpart_id) as HTMLCanvasElement);
   }
 
-  create_clauses_menu(_$('#hierarchy_self_' + counterpart_id));
-  create_clauses_menu(_$('#hierarchy_counterpart_' + counterpart_id));
+  const selfHier = byId('hierarchy_self_' + counterpart_id);
+  if (selfHier) create_clauses_menu(selfHier);
+  const counterHier = byId('hierarchy_counterpart_' + counterpart_id);
+  if (counterHier) create_clauses_menu(counterHier);
 
   if (store.gameInfo!.trading_gold && clause_infos[CLAUSE_GOLD]['enabled']) {
     const selfGold = document.getElementById("self_gold_" + counterpart_id) as HTMLInputElement | null;
@@ -377,8 +383,6 @@ export function create_diplomacy_dialog(counterpart: any, template: any): void {
     if (counterGold) { counterGold.disabled = true; if (counterGold.parentElement) counterGold.parentElement.style.display = 'none'; }
   }
 
-  diplomacy_dialog.css("overflow", "visible");
-  diplomacy_dialog.parent().css("z-index", 1000);
 }
 
 export function meeting_paint_custom_flag(nation: any, flag_canvas: HTMLCanvasElement): void {
@@ -390,42 +394,41 @@ export function meeting_paint_custom_flag(nation: any, flag_canvas: HTMLCanvasEl
   }
 }
 
-export function create_clauses_menu(content: any): void {
-  content.css('position', 'relative');
-  const children = content.children();
-  const button = children.eq(0);
-  const menu = children.eq(1);
-  menu.menu();
-  menu.hide();
-  menu.css({
-    position: 'absolute',
-    top: button.height()
-      + parseFloat(button.css('paddingTop'))
-      + parseFloat(button.css('paddingBottom'))
-      + parseFloat(button.css('borderTopWidth')),
-    left: parseFloat(button.css('marginLeft'))
-  });
+export function create_clauses_menu(content: HTMLElement): void {
+  content.style.position = 'relative';
+  const children = content.children;
+  const button = children[0] as HTMLElement;
+  const menu = children[1] as HTMLElement;
+  if (!button || !menu) return;
+
+  const cs = getComputedStyle(button);
+  menu.style.position = 'absolute';
+  menu.style.top = (button.offsetHeight
+    + parseFloat(cs.paddingTop || '0')
+    + parseFloat(cs.paddingBottom || '0')
+    + parseFloat(cs.borderTopWidth || '0')) + 'px';
+  menu.style.left = parseFloat(cs.marginLeft || '0') + 'px';
+  menu.style.display = 'none';
+
+  let isOpen = false;
   const menu_open = function () {
-    menu.show();
-    menu.data('diplAdd', 'open');
+    menu.style.display = '';
+    isOpen = true;
   };
   const menu_close = function () {
-    menu.hide();
-    menu.data('diplAdd', 'closed');
+    menu.style.display = 'none';
+    isOpen = false;
   };
-  button.click(function () {
-    if (menu.data('diplAdd') === 'open') {
-      menu_close();
-    } else {
-      menu_open();
-    }
+  button.addEventListener('click', function () {
+    if (isOpen) menu_close(); else menu_open();
   });
-  menu.click(function (e: any) {
-    if (e && e.target && e.target.tagName === 'A') {
+  menu.addEventListener('click', function (e) {
+    if (e.target && (e.target as HTMLElement).tagName === 'A') {
       menu_close();
     }
   });
-  content.hover(menu_open, menu_close);
+  content.addEventListener('mouseenter', menu_open);
+  content.addEventListener('mouseleave', menu_close);
 }
 
 /**************************************************************************
