@@ -1,7 +1,5 @@
 import { EventAggregator } from '../utils/EventAggregator';
 
-declare const $: any;
-
 export let citydlg_map_width: number = 384;      // default values for most rulesets
 export let citydlg_map_height: number = 192;     // default value for most rulesets
 

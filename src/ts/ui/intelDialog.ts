@@ -17,8 +17,6 @@
 
 ***********************************************************************/
 
-declare const $: any;
-
 import { store } from '../data/store';
 import { player_capital, get_diplstate_text, research_get, DiplState } from '../data/player';
 import { TECH_KNOWN } from '../data/tech';

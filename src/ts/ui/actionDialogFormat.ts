@@ -28,7 +28,7 @@ import { act_sel_queue_may_be_done } from './actionDialogSelState';
 
 const REQEST_PLAYER_INITIATED = 0;
 
-declare const $: any; // Declare jQuery
+// jQuery removed — using native DOM
 
 /**************************************************************************
   Returns TRUE iff the given action probability represents that support
@@ -115,7 +115,7 @@ export function act_sel_click_function(parent_id: string,
           action_id);
 
         set_is_more_user_input_needed(true);
-        $(parent_id).remove();
+        document.querySelector(parent_id)?.remove();
       };
     case ACTION_SPY_TARGETED_SABOTAGE_CITY:
     case ACTION_SPY_TARGETED_SABOTAGE_CITY_ESC:
@@ -134,7 +134,7 @@ export function act_sel_click_function(parent_id: string,
         sendRequest(JSON.stringify(packet));
 
         set_is_more_user_input_needed(true);
-        $(parent_id).remove();
+        document.querySelector(parent_id)?.remove();
       };
     case ACTION_FOUND_CITY:
       return function () {
@@ -146,12 +146,12 @@ export function act_sel_click_function(parent_id: string,
         sendRequest(JSON.stringify(packet));
 
         set_is_more_user_input_needed(true);
-        $(parent_id).remove();
+        document.querySelector(parent_id)?.remove();
       };
     default:
       return function () {
         request_unit_do_action(action_id, actor_unit_id, tgt_id, sub_tgt_id);
-        $(parent_id).remove();
+        document.querySelector(parent_id)?.remove();
         act_sel_queue_may_be_done(actor_unit_id);
       };
   }

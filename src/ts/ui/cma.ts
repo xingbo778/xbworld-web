@@ -17,13 +17,21 @@
 
 ***********************************************************************/
 
-declare const $: any;
 import { active_city } from './cityDialog';
 import { clientIsObserver as client_is_observer, clientPlaying } from '../client/clientState';
 import { cityOwnerPlayerId as city_owner_player_id } from '../data/city';
 
 import { sendCmaSet, sendCmaClear } from '../net/commands';
 import { store } from '../data/store';
+
+function checkedById(id: string): boolean {
+  const el = document.getElementById(id) as HTMLInputElement | null;
+  return el ? el.checked : false;
+}
+function setCheckedById(id: string, val: boolean): void {
+  const el = document.getElementById(id) as HTMLInputElement | null;
+  if (el) el.checked = val;
+}
 
 // Governor Clipboard for copy/paste:
 export let _cma_val_sliders: number[] = [1,0,0,0,0,0];
@@ -42,23 +50,17 @@ export function show_city_governor_tab(): boolean | void {
   if (client_is_observer() || clientPlaying() == null) return false;
   if (!active_city) return false;
   if (city_owner_player_id(active_city) != clientPlaying().playerno) {
-    $("#city_governor_tab").html("City Governor available only for domestic cities.");
+    const govTab = document.getElementById('city_governor_tab');
+    if (govTab) govTab.innerHTML = "City Governor available only for domestic cities.";
     return false;
   }
+  const cmaIds = ['cma_food', 'cma_shield', 'cma_trade', 'cma_gold', 'cma_luxury', 'cma_science'];
   if (typeof active_city['cm_parameter'] !== 'undefined') {
-    $("#cma_food").prop('checked', active_city['cm_parameter']['factor'][0] >= 5);
-    $("#cma_shield").prop('checked', active_city['cm_parameter']['factor'][1] >= 5);
-    $("#cma_trade").prop('checked', active_city['cm_parameter']['factor'][2] >= 5);
-    $("#cma_gold").prop('checked', active_city['cm_parameter']['factor'][3] >= 5);
-    $("#cma_luxury").prop('checked', active_city['cm_parameter']['factor'][4] >= 5);
-    $("#cma_science").prop('checked', active_city['cm_parameter']['factor'][5] >= 5);
+    for (let i = 0; i < cmaIds.length; i++) {
+      setCheckedById(cmaIds[i], active_city['cm_parameter']['factor'][i] >= 5);
+    }
   } else {
-    $("#cma_food").prop('checked', false);
-    $("#cma_shield").prop('checked', false);
-    $("#cma_trade").prop('checked', false);
-    $("#cma_gold").prop('checked', false);
-    $("#cma_luxury").prop('checked', false);
-    $("#cma_science").prop('checked', false);
+    for (const id of cmaIds) setCheckedById(id, false);
   }
 }
 
@@ -68,40 +70,9 @@ export function show_city_governor_tab(): boolean | void {
 export function request_new_cma(city_id: any): void {
   const cm_parameter: any = {};
 
-  if ($("#cma_food").prop('checked')) {
-    _cma_val_sliders[0] = 6;
-  } else {
-    _cma_val_sliders[0] = 0;
-  }
-
-  if ($("#cma_shield").prop('checked')) {
-    _cma_val_sliders[1] = 6;
-  } else {
-    _cma_val_sliders[1] = 0;
-  }
-
-  if ($("#cma_trade").prop('checked')) {
-    _cma_val_sliders[2] = 6;
-  } else {
-    _cma_val_sliders[2] = 0;
-  }
-
-  if ($("#cma_gold").prop('checked')) {
-    _cma_val_sliders[3] = 6;
-  } else {
-    _cma_val_sliders[3] = 0;
-  }
-
-  if ($("#cma_luxury").prop('checked')) {
-    _cma_val_sliders[4] = 6;
-  } else {
-    _cma_val_sliders[4] = 0;
-  }
-
-  if ($("#cma_science").prop('checked')) {
-    _cma_val_sliders[5] = 6;
-  } else {
-    _cma_val_sliders[5] = 0;
+  const cmaIds = ['cma_food', 'cma_shield', 'cma_trade', 'cma_gold', 'cma_luxury', 'cma_science'];
+  for (let i = 0; i < cmaIds.length; i++) {
+    _cma_val_sliders[i] = checkedById(cmaIds[i]) ? 6 : 0;
   }
 
   cm_parameter['minimal_surplus'] = [..._cma_min_sliders];
@@ -112,8 +83,7 @@ export function request_new_cma(city_id: any): void {
   cm_parameter['factor'] = [..._cma_val_sliders];
   cm_parameter['happy_factor'] = _cma_happy_slider;
 
-  const cma_disabled = (!$("#cma_food").prop('checked') && !$("#cma_shield").prop('checked') && !$("#cma_trade").prop('checked')
-                   && !$("#cma_gold").prop('checked') && !$("#cma_luxury").prop('checked') && !$("#cma_science").prop('checked') );
+  const cma_disabled = !cmaIds.some(id => checkedById(id));
 
   if (!cma_disabled) {
     sendCmaSet(city_id, cm_parameter);

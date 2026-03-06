@@ -26,7 +26,7 @@ import {
 
 const REQEST_PLAYER_INITIATED = 0;
 
-declare const $: any; // Declare jQuery
+// jQuery removed — using native DOM
 
 /**************************************************************************
   Create a button that selects a target unit.
@@ -63,7 +63,7 @@ export function create_select_tgt_unit_button(parent_id: string, actor_unit_id: 
       };
       sendRequest(JSON.stringify(packet));
 
-      $(parent_id).remove();
+      document.querySelector(parent_id)?.remove();
     }
   };
 
@@ -149,7 +149,7 @@ export function create_select_tgt_extra_button(parent_id: string, actor_unit_id:
       };
       sendRequest(JSON.stringify(packet));
 
-      $(parent_id).remove();
+      document.querySelector(parent_id)?.remove();
     }
   };
 

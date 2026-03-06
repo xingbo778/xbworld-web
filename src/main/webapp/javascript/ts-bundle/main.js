@@ -3789,43 +3789,35 @@ function ruledir_from_ruleset_name(ruleset_name, fall_back_dir) {
 function popup_pillage_selection_dialog(punit, tgt) {
   if (punit == null || typeof clientIsObserver === "function" && clientIsObserver()) return;
   if (tgt.length === 0) return;
-  const id = "#pillage_sel_dialog_" + punit["id"];
-  $(id).remove();
-  $("<div id='pillage_sel_dialog_" + punit["id"] + "'></div>").appendTo("div#game_page");
-  $(id).append(document.createTextNode("Your " + store.unitTypes[punit["type"]]["name"] + " is waiting for you to select what to pillage."));
-  const button_id_prefix = "pillage_sel_" + punit["id"] + "_";
-  const buttons = [];
+  const dlgId = "pillage_sel_dialog_" + punit["id"];
+  document.getElementById(dlgId)?.remove();
+  const dlg = document.createElement("div");
+  dlg.id = dlgId;
+  dlg.style.cssText = "position:fixed;z-index:5000;background:#222;border:1px solid #555;padding:16px;top:30%;left:50%;transform:translateX(-50%);width:390px;";
+  dlg.appendChild(document.createTextNode("Your " + store.unitTypes[punit["type"]]["name"] + " is waiting for you to select what to pillage."));
+  const btnContainer = document.createElement("div");
+  btnContainer.style.cssText = "margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;";
   for (let i2 = 0; i2 < tgt.length; i2++) {
     const extra_id = tgt[i2];
     if (extra_id === EXTRA_NONE$1) continue;
-    buttons.push({
-      id: button_id_prefix + extra_id,
-      "class": "act_sel_button",
-      text: store.extras[extra_id]["name"],
-      click: pillage_target_selected
+    const btn = document.createElement("button");
+    btn.id = "pillage_sel_" + punit["id"] + "_" + extra_id;
+    btn.className = "act_sel_button";
+    btn.textContent = store.extras[extra_id]["name"];
+    btn.addEventListener("click", function(ev) {
+      pillage_target_selected(ev);
     });
+    btnContainer.appendChild(btn);
   }
-  buttons.push({
-    id: "pillage_sel_cancel_" + punit["id"],
-    "class": "act_sel_button",
-    text: "Cancel",
-    click: function() {
-      $(this).dialog("close");
-    }
+  const cancelBtn = document.createElement("button");
+  cancelBtn.className = "act_sel_button";
+  cancelBtn.textContent = "Cancel";
+  cancelBtn.addEventListener("click", function() {
+    dlg.remove();
   });
-  $(id).attr("title", "Choose Your Target");
-  $(id).dialog({
-    bgiframe: true,
-    modal: false,
-    dialogClass: "act_sel_dialog",
-    width: 390,
-    buttons,
-    close: function() {
-      $(this).remove();
-    },
-    autoOpen: true
-  });
-  $(id).dialog("open");
+  btnContainer.appendChild(cancelBtn);
+  dlg.appendChild(btnContainer);
+  document.getElementById("game_page")?.appendChild(dlg);
 }
 function pillage_target_selected(ev) {
   const id = ev.target.id;
@@ -3839,7 +3831,8 @@ function pillage_target_selected(ev) {
     store.units[punit_id].tile,
     extra_id
   );
-  $(this).dialog("close");
+  const dlg = ev.target.closest('[id^="pillage_sel_dialog_"]');
+  if (dlg) dlg.remove();
 }
 const SSA_AUTOEXPLORE$1 = ServerSideAgent.AUTOEXPLORE;
 const SSA_AUTOWORKER$1 = ServerSideAgent.AUTOWORKER;
@@ -7008,7 +7001,7 @@ function act_sel_click_function(parent_id, actor_unit_id, tgt_id, sub_tgt_id, ac
           action_id
         );
         set_is_more_user_input_needed(true);
-        $(parent_id).remove();
+        document.querySelector(parent_id)?.remove();
       };
     case ACTION_SPY_TARGETED_SABOTAGE_CITY:
     case ACTION_SPY_TARGETED_SABOTAGE_CITY_ESC:
@@ -7026,7 +7019,7 @@ function act_sel_click_function(parent_id, actor_unit_id, tgt_id, sub_tgt_id, ac
         };
         send_request(JSON.stringify(packet));
         set_is_more_user_input_needed(true);
-        $(parent_id).remove();
+        document.querySelector(parent_id)?.remove();
       };
     case ACTION_FOUND_CITY:
       return function() {
@@ -7036,12 +7029,12 @@ function act_sel_click_function(parent_id, actor_unit_id, tgt_id, sub_tgt_id, ac
         };
         send_request(JSON.stringify(packet));
         set_is_more_user_input_needed(true);
-        $(parent_id).remove();
+        document.querySelector(parent_id)?.remove();
       };
     default:
       return function() {
         request_unit_do_action(action_id, actor_unit_id, tgt_id, sub_tgt_id);
-        $(parent_id).remove();
+        document.querySelector(parent_id)?.remove();
         act_sel_queue_may_be_done(actor_unit_id);
       };
   }
@@ -14969,6 +14962,10 @@ function setupOrderButtons() {
     if (el) on(el, "click", handler);
   }
 }
+function checkedById(id) {
+  const el = document.getElementById(id);
+  return el ? el.checked : false;
+}
 let _cma_val_sliders = [1, 0, 0, 0, 0, 0];
 let _cma_min_sliders = [0, 0, 0, 0, 0, 0];
 let _cma_happy_slider = 0;
@@ -14978,35 +14975,9 @@ let _cma_max_growth = false;
 let _cma_allow_specialists = true;
 function request_new_cma(city_id) {
   const cm_parameter = {};
-  if ($("#cma_food").prop("checked")) {
-    _cma_val_sliders[0] = 6;
-  } else {
-    _cma_val_sliders[0] = 0;
-  }
-  if ($("#cma_shield").prop("checked")) {
-    _cma_val_sliders[1] = 6;
-  } else {
-    _cma_val_sliders[1] = 0;
-  }
-  if ($("#cma_trade").prop("checked")) {
-    _cma_val_sliders[2] = 6;
-  } else {
-    _cma_val_sliders[2] = 0;
-  }
-  if ($("#cma_gold").prop("checked")) {
-    _cma_val_sliders[3] = 6;
-  } else {
-    _cma_val_sliders[3] = 0;
-  }
-  if ($("#cma_luxury").prop("checked")) {
-    _cma_val_sliders[4] = 6;
-  } else {
-    _cma_val_sliders[4] = 0;
-  }
-  if ($("#cma_science").prop("checked")) {
-    _cma_val_sliders[5] = 6;
-  } else {
-    _cma_val_sliders[5] = 0;
+  const cmaIds = ["cma_food", "cma_shield", "cma_trade", "cma_gold", "cma_luxury", "cma_science"];
+  for (let i2 = 0; i2 < cmaIds.length; i2++) {
+    _cma_val_sliders[i2] = checkedById(cmaIds[i2]) ? 6 : 0;
   }
   cm_parameter["minimal_surplus"] = [..._cma_min_sliders];
   cm_parameter["require_happy"] = _cma_celebrate;
@@ -15015,7 +14986,7 @@ function request_new_cma(city_id) {
   cm_parameter["allow_specialists"] = _cma_allow_specialists;
   cm_parameter["factor"] = [..._cma_val_sliders];
   cm_parameter["happy_factor"] = _cma_happy_slider;
-  const cma_disabled = !$("#cma_food").prop("checked") && !$("#cma_shield").prop("checked") && !$("#cma_trade").prop("checked") && !$("#cma_gold").prop("checked") && !$("#cma_luxury").prop("checked") && !$("#cma_science").prop("checked");
+  const cma_disabled = !cmaIds.some((id) => checkedById(id));
   if (!cma_disabled) {
     sendCmaSet(city_id, cm_parameter);
   } else {
