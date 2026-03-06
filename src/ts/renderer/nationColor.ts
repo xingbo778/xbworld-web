@@ -4,18 +4,16 @@
  */
 import { store } from '../data/store';
 
-const _w = window as any;
-
 export function assign_nation_color(nation_id: number): void {
   const nation = store.nations[nation_id];
   if (nation == null || nation['color'] != null) return;
 
   const flag_key = "f." + nation['graphic_str'];
-  const flag_sprite = _w.sprites[flag_key];
+  const flag_sprite = store.sprites[flag_key];
   if (flag_sprite == null) return;
   const c = flag_sprite.getContext('2d');
-  const width = _w.tileset[flag_key][2];
-  const height = _w.tileset[flag_key][3];
+  const width = store.tileset[flag_key][2];
+  const height = store.tileset[flag_key][3];
   const color_counts: Record<string, number> = {};
   if (c == null) return;
   const img_data = c.getImageData(1, 1, width - 2, height - 2).data;

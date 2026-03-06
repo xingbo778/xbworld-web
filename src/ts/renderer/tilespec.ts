@@ -59,8 +59,7 @@ const DIR8_SOUTHWEST = 5;
 const DIR8_SOUTH = 6;
 const DIR8_SOUTHEAST = 7;
 
-// Runtime globals that remain on window (sprites, tileset position data, EXTRA_* ids, fog)
-const _w = window as any;
+// Access sprites/tileset/fullfog/extraIds through the store (no more window access)
 
 let num_cardinal_tileset_dirs: number = 4;
 let cardinal_tileset_dirs: number[] = [DIR8_NORTH, DIR8_EAST, DIR8_SOUTH, DIR8_WEST];
@@ -117,16 +116,16 @@ let terrain_match: { [key: string]: number } = {
 };
 
 /**************************************************************************
-  Returns true iff the _w.tileset has graphics for the specified tag.
+  Returns true iff the store.tileset has graphics for the specified tag.
 **************************************************************************/
 function tileset_has_tag(tagname: string): boolean {
-  return (_w.sprites[tagname] != null);
+  return (store.sprites[tagname] != null);
 }
 
 /**************************************************************************
   Returns the tag name of the sprite of a ruleset entity where the
   preferred tag name is in the 'graphic_str' field, the fall back tag in
-  case the _w.tileset don't support the first tag is the 'graphic_alt' field
+  case the store.tileset don't support the first tag is the 'graphic_alt' field
   and the entity name is stored in the 'name' field.
 **************************************************************************/
 export function tileset_ruleset_entity_tag_str_or_alt(entity: any, kind_name: string): string | null {
@@ -335,39 +334,39 @@ export function fill_sprite_array(layer: number, ptile: any, pedge: any, pcorner
         if (spec_sprite != null) sprite_array.push(spec_sprite);
 
 
-        if (tile_has_extra(ptile, _w.EXTRA_MINE)) {
+        if (tile_has_extra(ptile, store.extraIds['EXTRA_MINE'])) {
           sprite_array.push({
             "key":
-              tileset_extra_id_graphic_tag(_w.EXTRA_MINE)
+              tileset_extra_id_graphic_tag(store.extraIds['EXTRA_MINE'])
           });
         }
-        if (tile_has_extra(ptile, _w.EXTRA_OIL_WELL)) {
+        if (tile_has_extra(ptile, store.extraIds['EXTRA_OIL_WELL'])) {
           sprite_array.push({
             "key":
-              tileset_extra_id_graphic_tag(_w.EXTRA_OIL_WELL)
+              tileset_extra_id_graphic_tag(store.extraIds['EXTRA_OIL_WELL'])
           });
         }
 
         sprite_array = sprite_array.concat(fill_layer1_sprite_array(ptile, pcity));
 
-        if (tile_has_extra(ptile, _w.EXTRA_HUT)) {
+        if (tile_has_extra(ptile, store.extraIds['EXTRA_HUT'])) {
           sprite_array.push({
             "key":
-              tileset_extra_id_graphic_tag(_w.EXTRA_HUT)
+              tileset_extra_id_graphic_tag(store.extraIds['EXTRA_HUT'])
           });
         }
 
-        if (tile_has_extra(ptile, _w.EXTRA_POLLUTION)) {
+        if (tile_has_extra(ptile, store.extraIds['EXTRA_POLLUTION'])) {
           sprite_array.push({
             "key":
-              tileset_extra_id_graphic_tag(_w.EXTRA_POLLUTION)
+              tileset_extra_id_graphic_tag(store.extraIds['EXTRA_POLLUTION'])
           });
         }
 
-        if (tile_has_extra(ptile, _w.EXTRA_FALLOUT)) {
+        if (tile_has_extra(ptile, store.extraIds['EXTRA_FALLOUT'])) {
           sprite_array.push({
             "key":
-              tileset_extra_id_graphic_tag(_w.EXTRA_FALLOUT)
+              tileset_extra_id_graphic_tag(store.extraIds['EXTRA_FALLOUT'])
           });
         }
 
@@ -525,7 +524,7 @@ export function fill_sprite_array(layer: number, ptile: any, pedge: any, pcorner
 
 
 /****************************************************************************
-  Add _w.sprites for the base tile to the sprite list. This doesn't
+  Add store.sprites for the base tile to the sprite list. This doesn't
   include specials or rivers.
 ****************************************************************************/
 function fill_terrain_sprite_layer(layer_num: number, ptile: any, pterrain: any, tterrain_near: any): any[] {
@@ -585,7 +584,7 @@ function fill_terrain_sprite_array(l: number, ptile: any, pterrain: any, tterrai
                 }
               }
               const gfx_key = "t.l" + l + "." + pterrain['graphic_str'] + "_" + cardinal_index_str(tileno);
-              const y = tileset_tile_height - _w.tileset[gfx_key][3];
+              const y = tileset_tile_height - store.tileset[gfx_key][3];
 
               return [{ "key": gfx_key, "offset_x": 0, "offset_y": y }];
             }
@@ -598,8 +597,8 @@ function fill_terrain_sprite_array(l: number, ptile: any, pterrain: any, tterrai
         /* Divide the tile up into four rectangular cells. Each of these
          * cells covers one corner, and each is adjacent to 3 different
          * tiles. For each cell we pick a sprite based upon the adjacent
-         * terrains at each of those tiles. Thus, we have 8 different _w.sprites
-         * for each of the 4 cells (32 _w.sprites total).
+         * terrains at each of those tiles. Thus, we have 8 different store.sprites
+         * for each of the 4 cells (32 store.sprites total).
          *
          * These arrays correspond to the direction4 ordering. */
 
@@ -723,7 +722,7 @@ function fill_unit_sprite_array(punit: any, stacked: boolean, backdrop: boolean)
 }
 
 /**************************************************************************
-  Return the _w.tileset name of the direction. This is similar to
+  Return the store.tileset name of the direction. This is similar to
   dir_get_name but you shouldn't change this or all tilesets will break.
 **************************************************************************/
 function dir_get_tileset_name(dir: number): string {
@@ -976,7 +975,7 @@ function get_unit_veteran_sprite(punit: any): any {
 ***********************************************************************/
 function get_unit_activity_sprite(punit: any): any | null {
   if (punit['ssa_controller'] == SSA_AUTOEXPLORE) {
-    // FIXME: Currently can't have SSA_AUTOEXPLORE sprite with activity _w.sprites
+    // FIXME: Currently can't have SSA_AUTOEXPLORE sprite with activity store.sprites
     return null;
   }
 
@@ -1150,7 +1149,7 @@ function get_city_sprite(pcity: any): any {
   const city_walls = pcity['walls'] ? "wall" : "city";
 
   let tag = city_rule['graphic'] + "_" + city_walls + "_" + size;
-  if (_w.sprites[tag] == null) {
+  if (store.sprites[tag] == null) {
     tag = city_rule['graphic_alt'] + "_" + city_walls + "_" + size;
   }
 
@@ -1159,7 +1158,7 @@ function get_city_sprite(pcity: any): any {
 
 
 /****************************************************************************
-  Add _w.sprites for fog (and some forms of darkness).
+  Add store.sprites for fog (and some forms of darkness).
 ****************************************************************************/
 function fill_fog_sprite_array(ptile: any, pedge: any, pcorner: any): any[] {
 
@@ -1191,7 +1190,7 @@ function fill_fog_sprite_array(ptile: any, pedge: any, pcorner: any): any[] {
 
   if (tileno >= 80) return [];
 
-  return [{ "key": _w.fullfog[tileno] }];
+  return [{ "key": store.fullfog[tileno] }];
 
 }
 
@@ -1247,13 +1246,13 @@ function get_tile_river_sprite(ptile: any): any | null {
     return null;
   }
 
-  if (tile_has_extra(ptile, _w.EXTRA_RIVER)) {
+  if (tile_has_extra(ptile, store.extraIds['EXTRA_RIVER'])) {
     let river_str = "";
     for (let i = 0; i < num_cardinal_tileset_dirs; i++) {
       const dir = cardinal_tileset_dirs[i];
       const checktile = mapstep(ptile, dir);
       if (checktile
-        && (tile_has_extra(checktile, _w.EXTRA_RIVER) || is_ocean_tile(checktile))) {
+        && (tile_has_extra(checktile, store.extraIds['EXTRA_RIVER']) || is_ocean_tile(checktile))) {
         river_str = river_str + dir_get_tileset_name(dir) + "1";
       } else {
         river_str = river_str + dir_get_tileset_name(dir) + "0";
@@ -1268,7 +1267,7 @@ function get_tile_river_sprite(ptile: any): any | null {
     for (let i = 0; i < num_cardinal_tileset_dirs; i++) {
       const dir = cardinal_tileset_dirs[i];
       const checktile = mapstep(ptile, dir);
-      if (checktile != null && tile_has_extra(checktile, _w.EXTRA_RIVER)) {
+      if (checktile != null && tile_has_extra(checktile, store.extraIds['EXTRA_RIVER'])) {
         return { "key": "road.river_outlet_" + dir_get_tileset_name(dir) };
       }
     }
@@ -1285,10 +1284,10 @@ function get_tile_river_sprite(ptile: any): any | null {
     - Properly support generic extra hiding properties
 ****************************************************************************/
 function fill_path_sprite_array(ptile: any, pcity: any): any[] {
-  const rs_maglev = typeof _w.EXTRA_MAGLEV !== 'undefined';
-  const road = tile_has_extra(ptile, _w.EXTRA_ROAD);
-  const rail = tile_has_extra(ptile, _w.EXTRA_RAIL);
-  const maglev = rs_maglev && tile_has_extra(ptile, _w.EXTRA_MAGLEV);
+  const rs_maglev = typeof store.extraIds['EXTRA_MAGLEV'] !== 'undefined';
+  const road = tile_has_extra(ptile, store.extraIds['EXTRA_ROAD']);
+  const rail = tile_has_extra(ptile, store.extraIds['EXTRA_RAIL']);
+  const maglev = rs_maglev && tile_has_extra(ptile, store.extraIds['EXTRA_MAGLEV']);
   const road_near: boolean[] = [];
   const rail_near: boolean[] = [];
   const maglev_near: boolean[] = [];
@@ -1315,9 +1314,9 @@ function fill_path_sprite_array(ptile: any, pcity: any): any[] {
     /* Check if there is adjacent road/rail/maglev. */
     const tile1 = mapstep(ptile, dir);
     if (tile1 != null && tile_get_known(tile1) != TILE_UNKNOWN) {
-      road_near[dir] = tile_has_extra(tile1, _w.EXTRA_ROAD);
-      rail_near[dir] = tile_has_extra(tile1, _w.EXTRA_RAIL);
-      maglev_near[dir] = rs_maglev && tile_has_extra(tile1, _w.EXTRA_MAGLEV);
+      road_near[dir] = tile_has_extra(tile1, store.extraIds['EXTRA_ROAD']);
+      rail_near[dir] = tile_has_extra(tile1, store.extraIds['EXTRA_RAIL']);
+      maglev_near[dir] = rs_maglev && tile_has_extra(tile1, store.extraIds['EXTRA_MAGLEV']);
 
       /* Draw path if there is a connection from this tile to the
        * adjacent tile. But don't draw path if there is also an extra
@@ -1338,7 +1337,7 @@ function fill_layer1_sprite_array(ptile: any, pcity: any): any[] {
   const result_sprites: any[] = [];
 
   if (pcity == null) {
-    if (tile_has_extra(ptile, _w.EXTRA_FORTRESS)) {
+    if (tile_has_extra(ptile, store.extraIds['EXTRA_FORTRESS'])) {
       result_sprites.push({"key": "base.fortress_bg",
                            "offset_y": -normal_tile_height / 2});
     }
@@ -1354,16 +1353,16 @@ function fill_layer2_sprite_array(ptile: any, pcity: any): any[] {
   const result_sprites: any[] = [];
 
   if (pcity == null) {
-    if (tile_has_extra(ptile, _w.EXTRA_AIRBASE)) {
+    if (tile_has_extra(ptile, store.extraIds['EXTRA_AIRBASE'])) {
       result_sprites.push({"key": "base.airbase_mg",
                            "offset_y": -normal_tile_height / 2});
     }
-    if (tile_has_extra(ptile, _w.EXTRA_BUOY)) {
+    if (tile_has_extra(ptile, store.extraIds['EXTRA_BUOY'])) {
       result_sprites.push(get_base_flag_sprite(ptile));
       result_sprites.push({"key": "base.buoy_mg",
                            "offset_y": -normal_tile_height / 2});
     }
-    if (tile_has_extra(ptile, _w.EXTRA_RUINS)) {
+    if (tile_has_extra(ptile, store.extraIds['EXTRA_RUINS'])) {
       result_sprites.push({"key": "extra.ruins_mg",
                            "offset_y": -normal_tile_height / 2});
     }
@@ -1379,7 +1378,7 @@ function fill_layer3_sprite_array(ptile: any, pcity: any): any[] {
   const result_sprites: any[] = [];
 
   if (pcity == null) {
-    if (tile_has_extra(ptile, _w.EXTRA_FORTRESS)) {
+    if (tile_has_extra(ptile, store.extraIds['EXTRA_FORTRESS'])) {
       result_sprites.push({"key": "base.fortress_fg",
                            "offset_y": -normal_tile_height / 2});
     }

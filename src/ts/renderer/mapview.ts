@@ -123,7 +123,6 @@ export function init_mapview(): void {
     fullfog[i] = buf;
   }
   store.fullfog = fullfog;
-  (window as any).fullfog = fullfog;  // tilespec.ts reads _w.fullfog
 
   if (is_small_screen()) _win.MAPVIEW_REFRESH_INTERVAL = 12;
 
@@ -210,7 +209,6 @@ export function init_cache_sprites(): void {
 
     sprites_init = true;
     store.sprites = sprites;
-    (window as any).sprites = sprites;  // also needed by tilespec.ts _w.sprites
     // Sync tileset from window to store (loaded externally by tileset JS)
     if ((window as any).tileset) store.tileset = (window as any).tileset;
     tileset_images[0] = null as any; // Set to null to free memory
