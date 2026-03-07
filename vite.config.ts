@@ -24,9 +24,7 @@ export default defineConfig({
       fileName: () => 'main.js',
       name: 'XBWorld',
     },
-    rollupOptions: {
-      external: ['pixi.js'],
-    },
+    rollupOptions: {},
     target: 'es2022',
     minify: 'esbuild',
   },

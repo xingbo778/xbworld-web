@@ -1,118 +1,72 @@
 /**
  * PixiJS-based WebGL map renderer.
- * Replaces the legacy 2D Canvas renderer with GPU-accelerated sprite batching.
+ *
+ * Strategy: reuse fill_sprite_array() (the canonical 2D-canvas sprite logic)
+ * as the data source. PixiRenderer is a pure "rendering backend" that maps
+ * SpriteEntry[] → Pixi.js display objects, gaining GPU sprite-batching with
+ * zero duplication of game logic.
+ *
+ * Architecture:
+ *   - 13 ordered layer Containers (painter's algorithm)
+ *   - Per-tile Containers within each layer, positioned at GUI coordinates
+ *   - mapContainer offset = -mapview.gui_x0/-gui_y0 → O(1) panning
+ *   - Texture cache: store.sprites[key] → Pixi Texture (on-demand)
+ *   - Dirty-tile system: only rebuild changed tiles
+ *   - Fog: simple diamond overlay for TILE_KNOWN_UNSEEN (corner fog = TODO)
  */
 
-import { Application, Container, Sprite, Texture, Assets, Graphics } from 'pixi.js';
+import { Application, Container, Sprite, Texture, Graphics, Text, TextStyle } from 'pixi.js';
 import { store } from '../data/store';
 import { globalEvents } from '../core/events';
-import { TILE_KNOWN_UNSEEN, tileGetKnown } from '../data/tile';
-import { mapPosToTile } from '../data/map';
+import { TILE_KNOWN_UNSEEN, TILE_UNKNOWN, tileGetKnown, tileCity } from '../data/tile';
 import { logNormal, logError } from '../core/log';
-import type { Tile } from '../data/types';
+import type { Tile, City } from '../data/types';
+import { fill_sprite_array, LAYER_COUNT, type SpriteEntry } from './tilespec';
+import { mapview } from './mapviewCommon';
+import { map_to_gui_pos } from './mapCoords';
+import { tileset_tile_width, tileset_tile_height } from './tilesetConfig';
+import { get_drawable_unit } from '../core/control/unitFocus';
+import { draw_fog_of_war } from '../ui/options';
+import { clientState, C_S_RUNNING } from '../client/clientState';
+
+// LAYER_FOG = 8 (from tilespec.ts — skipped for corner-based rendering)
+const LAYER_FOG_INDEX = 8;
 
 export interface RendererConfig {
-  tileWidth: number;
-  tileHeight: number;
   container: HTMLElement;
 }
 
-const DEFAULT_TILE_W = 96;
-const DEFAULT_TILE_H = 48;
-
-const TERRAIN_COLORS: Record<string, number> = {
-  grassland: 0x7ccd7c,
-  grass: 0x7ccd7c,
-  plains: 0xcdb79e,
-  plain: 0xcdb79e,
-  ocean: 0x1e5090,
-  deep_ocean: 0x0a2a5e,
-  lake: 0x4682b4,
-  coast: 0x4a90d9,
-  desert: 0xedc9af,
-  desert2: 0xedc9af,
-  forest: 0x2e8b57,
-  hills: 0x8b7355,
-  mountains: 0x8b8378,
-  mountain: 0x8b8378,
-  jungle: 0x006400,
-  swamp: 0x556b2f,
-  tundra: 0xb0c4de,
-  arctic: 0xf0f8ff,
-  glacier: 0xe0e8f0,
-  inaccessible: 0x333333,
-};
-
-const TERRAIN_COLORS_BY_ID: Record<number, number> = {
-  0: 0x4a90d9,
-  1: 0x1e5090,
-  2: 0xedc9af,
-  3: 0x2e8b57,
-  4: 0x7ccd7c,
-  5: 0x8b7355,
-  6: 0x006400,
-  7: 0x8b8378,
-  8: 0xcdb79e,
-  9: 0x556b2f,
-  10: 0xb0c4de,
-  11: 0xf0f8ff,
-  12: 0x4682b4,
-  13: 0x0a2a5e,
-};
-
-const PLAYER_COLORS = [
-  0xff0000, 0x0000ff, 0x00cc00, 0xffff00, 0xff00ff, 0x00ffff, 0xff8800, 0x8800ff, 0x88ff00,
-  0xff0088, 0x0088ff, 0x888888, 0xffbb00, 0x00ff88, 0xbb00ff, 0xff4444,
-];
-
 export class PixiRenderer {
-  private app: Application;
-  private mapContainer: Container;
-  private tileLayer: Container;
-  private unitLayer: Container;
-  private cityLayer: Container;
-  private overlayLayer: Container;
-  private fogLayer: Container;
+  private app!: Application;
 
-  private tileSprites = new Map<number, Sprite>();
-  private unitSprites = new Map<number, Sprite>();
-  private citySprites = new Map<number, Sprite>();
+  // mapContainer offset implements O(1) panning: x = -gui_x0, y = -gui_y0
+  private mapContainer!: Container;
 
-  private tileW: number;
-  private tileH: number;
+  // 13 layer Containers in painter's-algorithm draw order
+  private layers: Container[] = [];
 
-  private viewX = 0;
-  private viewY = 0;
-  private isDragging = false;
-  private dragStartX = 0;
-  private dragStartY = 0;
-  private viewStartX = 0;
-  private viewStartY = 0;
+  // Per-tile-per-layer display containers
+  // key: `${tileIndex}_${layer}` → Container holding that tile's sprites
+  private tileLayerContainers = new Map<string, Container>();
 
-  private tilesetTextures = new Map<string, Texture>();
-  private terrainColorTextures = new Map<number, Texture>();
-  private loaded = false;
+  // Texture cache: sprite key → Pixi Texture (created from store.sprites)
+  private texCache = new Map<string, Texture | null>();
 
-  constructor(private config: RendererConfig) {
-    this.tileW = config.tileWidth || DEFAULT_TILE_W;
-    this.tileH = config.tileHeight || DEFAULT_TILE_H;
+  // Dirty tracking
+  private dirtyTiles = new Set<number>();
+  private dirtyAll = true; // start dirty so first game-state render works
 
-    this.app = new Application();
-    this.mapContainer = new Container();
-    this.tileLayer = new Container();
-    this.unitLayer = new Container();
-    this.cityLayer = new Container();
-    this.overlayLayer = new Container();
-    this.fogLayer = new Container();
+  private rafHandle: number | null = null;
+  private initialized = false;
 
-    this.mapContainer.addChild(this.tileLayer);
-    this.mapContainer.addChild(this.fogLayer);
-    this.mapContainer.addChild(this.cityLayer);
-    this.mapContainer.addChild(this.unitLayer);
-    this.mapContainer.addChild(this.overlayLayer);
-  }
+  constructor(private config: RendererConfig) {}
+
+  // ---------------------------------------------------------------------------
+  // Init
+  // ---------------------------------------------------------------------------
 
   async init(): Promise<void> {
+    this.app = new Application();
     await this.app.init({
       resizeTo: this.config.container,
       backgroundColor: 0x000000,
@@ -122,352 +76,356 @@ export class PixiRenderer {
     });
 
     this.config.container.appendChild(this.app.canvas as HTMLCanvasElement);
+
+    this.mapContainer = new Container();
     this.app.stage.addChild(this.mapContainer);
 
-    this.setupInput();
+    for (let i = 0; i < LAYER_COUNT; i++) {
+      const layer = new Container();
+      this.layers.push(layer);
+      this.mapContainer.addChild(layer);
+    }
+
     this.setupEventListeners();
+    this.startRenderLoop();
+    this.initialized = true;
 
     logNormal('PixiJS renderer initialized');
   }
 
-  async loadTileset(basePath: string, spriteData: Record<string, number[]>): Promise<void> {
+  // ---------------------------------------------------------------------------
+  // Texture cache
+  // ---------------------------------------------------------------------------
+
+  private getTexture(key: string): Texture | null {
+    if (this.texCache.has(key)) return this.texCache.get(key)!;
+
+    const sp = (store.sprites as Record<string, HTMLCanvasElement | ImageBitmap>)[key];
+    if (!sp) {
+      this.texCache.set(key, null);
+      return null;
+    }
+
     try {
-      const sheetNames = [
-        'freeciv-web-tileset-amplio2-0.png',
-        'freeciv-web-tileset-amplio2-1.png',
-        'freeciv-web-tileset-amplio2-2.png',
-      ];
-
-      const baseTextures: Texture[] = [];
-      for (const name of sheetNames) {
-        const tex = await Assets.load(`${basePath}/${name}`);
-        baseTextures.push(tex);
-      }
-
-      for (const [key, coords] of Object.entries(spriteData)) {
-        if (!coords || coords.length < 4) continue;
-        const [x, y, w, h, sheet = 0] = coords;
-        const baseTex = baseTextures[sheet] ?? baseTextures[0];
-        if (!baseTex) continue;
-
-        const frame = new Texture({
-          source: baseTex.source,
-          frame: { x, y, width: w, height: h } as unknown as import('pixi.js').Rectangle,
-        });
-        this.tilesetTextures.set(key, frame);
-      }
-
-      this.loaded = true;
-      logNormal(`Loaded ${this.tilesetTextures.size} tile sprites`);
+      // Pixi v8: Texture.from() accepts ImageBitmap and HTMLCanvasElement
+      const tex = Texture.from(sp as Parameters<typeof Texture.from>[0]);
+      this.texCache.set(key, tex);
+      return tex;
     } catch (e) {
-      logError('Failed to load tileset:', e);
+      logError('PixiRenderer: texture creation failed for', key, e);
+      this.texCache.set(key, null);
+      return null;
     }
   }
 
-  /** Convert map (iso) coordinates to screen pixel coordinates. */
-  isoToScreen(mapX: number, mapY: number): { sx: number; sy: number } {
-    const sx = (mapX - mapY) * (this.tileW / 2);
-    const sy = (mapX + mapY) * (this.tileH / 2);
-    return { sx, sy };
-  }
-
-  /** Convert screen pixel coordinates to map (iso) coordinates. */
-  screenToIso(sx: number, sy: number): { mapX: number; mapY: number } {
-    const mx = sx + this.viewX;
-    const my = sy + this.viewY;
-    const mapX = Math.floor((mx / (this.tileW / 2) + my / (this.tileH / 2)) / 2);
-    const mapY = Math.floor((my / (this.tileH / 2) - mx / (this.tileW / 2)) / 2);
-    return { mapX, mapY };
-  }
-
-  renderMap(): void {
-    if (!store.mapInfo) return;
-
-    const mi = store.mapInfo;
-    const screenW = this.app.screen.width;
-    const screenH = this.app.screen.height;
-
-    const margin = 4;
-    const topLeft = this.screenToIso(-margin * this.tileW, -margin * this.tileH);
-    const bottomRight = this.screenToIso(
-      screenW + margin * this.tileW,
-      screenH + margin * this.tileH,
-    );
-
-    const xMin = Math.max(0, topLeft.mapX - margin);
-    const xMax = Math.min(mi.xsize - 1, bottomRight.mapX + margin);
-    const yMin = Math.max(0, topLeft.mapY - margin);
-    const yMax = Math.min(mi.ysize - 1, bottomRight.mapY + margin);
-
-    const visibleIndices = new Set<number>();
-
-    for (let x = xMin; x <= xMax; x++) {
-      for (let y = yMin; y <= yMax; y++) {
-        const tile = mapPosToTile(x, y);
-        if (!tile) continue;
-        visibleIndices.add(tile.index);
-        this.renderTile(tile as Tile);
-      }
+  /** Must be called when store.sprites is replaced (new game / reload). */
+  clearTextureCache(): void {
+    for (const tex of this.texCache.values()) {
+      if (tex) tex.destroy();
     }
-
-    for (const [idx, sprite] of this.tileSprites) {
-      if (!visibleIndices.has(idx)) {
-        sprite.removeFromParent();
-        this.tileSprites.delete(idx);
-      }
-    }
+    this.texCache.clear();
   }
 
-  private getTerrainColorTexture(terrainId: number): Texture {
-    if (this.terrainColorTextures.has(terrainId)) {
-      return this.terrainColorTextures.get(terrainId)!;
+  // ---------------------------------------------------------------------------
+  // Tile layer container management
+  // ---------------------------------------------------------------------------
+
+  private getTileLayerContainer(tileIndex: number, layer: number): Container {
+    const key = `${tileIndex}_${layer}`;
+    let c = this.tileLayerContainers.get(key);
+    if (!c) {
+      c = new Container();
+      this.layers[layer].addChild(c);
+      this.tileLayerContainers.set(key, c);
     }
-    const terrainData = store.terrains[terrainId];
-    const name = terrainData?.graphic_str ?? terrainData?.name?.toLowerCase() ?? '';
-    const color = TERRAIN_COLORS[name] ?? TERRAIN_COLORS_BY_ID[terrainId] ?? 0x228b22;
-    const g = new Graphics();
-    g.rect(0, 0, this.tileW, this.tileH).fill(color);
-    const tex = this.app.renderer.generateTexture(g);
-    this.terrainColorTextures.set(terrainId, tex);
-    return tex;
+    return c;
   }
 
-  private renderTile(tile: Tile): void {
-    const known = tileGetKnown(tile);
-    if (known === 0) return;
-
-    const { sx, sy } = this.isoToScreen(tile.x, tile.y);
-    const screenX = sx - this.viewX;
-    const screenY = sy - this.viewY;
-
-    let sprite = this.tileSprites.get(tile.index);
-
-    let texture: Texture | undefined;
-    if (this.loaded) {
-      const terrainData = store.terrains[tile.terrain];
-      const texKey = terrainData ? `t.l0.${terrainData.graphic_str}1` : 't.l0.grassland1';
-      texture = this.tilesetTextures.get(texKey);
-    }
-    if (!texture) {
-      texture = this.getTerrainColorTexture(tile.terrain);
-    }
-
-    if (!sprite) {
-      sprite = new Sprite(texture);
-      sprite.width = this.tileW;
-      sprite.height = this.tileH;
-      this.tileLayer.addChild(sprite);
-      this.tileSprites.set(tile.index, sprite);
-    } else {
-      sprite.texture = texture;
-    }
-
-    sprite.x = screenX;
-    sprite.y = screenY;
-    sprite.alpha = known === TILE_KNOWN_UNSEEN ? 0.5 : 1.0;
+  private clearTileLayer(tileIndex: number, layer: number): void {
+    const c = this.tileLayerContainers.get(`${tileIndex}_${layer}`);
+    if (c) c.removeChildren().forEach(ch => (ch as Container).destroy({ children: true }));
   }
 
-  private unitColorTextures = new Map<number, Texture>();
+  // ---------------------------------------------------------------------------
+  // SpriteEntry rendering
+  // ---------------------------------------------------------------------------
 
-  private getUnitTexture(owner: number): Texture {
-    if (this.unitColorTextures.has(owner)) return this.unitColorTextures.get(owner)!;
-    const color = PLAYER_COLORS[owner % PLAYER_COLORS.length];
-    const size = Math.floor(this.tileW / 3);
-    const g = new Graphics();
-    g.roundRect(0, 0, size, size, 3).fill(color).stroke({ width: 1, color: 0x000000 });
-    const tex = this.app.renderer.generateTexture(g);
-    this.unitColorTextures.set(owner, tex);
-    return tex;
-  }
+  private renderSpriteEntry(
+    entry: SpriteEntry,
+    baseGX: number,
+    baseGY: number,
+    container: Container,
+    fogAlpha: number,
+  ): void {
+    const e = entry as Record<string, unknown>;
+    const ox = typeof e['offset_x'] === 'number' ? (e['offset_x'] as number) : 0;
+    const oy = typeof e['offset_y'] === 'number' ? (e['offset_y'] as number) : 0;
 
-  renderUnits(): void {
-    const rendered = new Set<number>();
-    for (const [id, unit] of Object.entries(store.units)) {
-      const uid = Number(id);
-      rendered.add(uid);
-      const tile = store.tiles[unit.tile];
-      if (!tile) continue;
-
-      const { sx, sy } = this.isoToScreen(tile.x, tile.y);
-      const screenX = sx - this.viewX + this.tileW / 3;
-      const screenY = sy - this.viewY + this.tileH / 6;
-
-      let sprite = this.unitSprites.get(uid);
-
-      let texture: Texture | undefined;
-      if (this.loaded) {
-        const ut = store.unitTypes[unit.type];
-        const texKey = ut ? `u.${ut.graphic_str}` : 'u.warriors';
-        texture = this.tilesetTextures.get(texKey);
-      }
-      if (!texture) {
-        texture = this.getUnitTexture(unit.owner ?? 0);
-      }
-
-      if (!sprite) {
-        sprite = new Sprite(texture);
-        this.unitLayer.addChild(sprite);
-        this.unitSprites.set(uid, sprite);
-      } else {
-        sprite.texture = texture;
-      }
-
-      sprite.x = screenX;
-      sprite.y = screenY;
-    }
-
-    for (const [uid, sprite] of this.unitSprites) {
-      if (!rendered.has(uid)) {
-        sprite.removeFromParent();
-        this.unitSprites.delete(uid);
-      }
-    }
-  }
-
-  private cityColorTextures = new Map<number, Texture>();
-
-  private getCityTexture(owner: number): Texture {
-    if (this.cityColorTextures.has(owner)) return this.cityColorTextures.get(owner)!;
-    const color = PLAYER_COLORS[owner % PLAYER_COLORS.length];
-    const w = Math.floor(this.tileW * 0.6);
-    const h = Math.floor(this.tileH * 0.8);
-    const g = new Graphics();
-    g.roundRect(0, 0, w, h, 4).fill(color).stroke({ width: 2, color: 0xffffff });
-    const tex = this.app.renderer.generateTexture(g);
-    this.cityColorTextures.set(owner, tex);
-    return tex;
-  }
-
-  renderCities(): void {
-    const rendered = new Set<number>();
-    for (const [id, city] of Object.entries(store.cities)) {
-      const cid = Number(id);
-      rendered.add(cid);
-      const tile = store.tiles[city.tile];
-      if (!tile) continue;
-
-      const { sx, sy } = this.isoToScreen(tile.x, tile.y);
-      const screenX = sx - this.viewX + this.tileW * 0.2;
-      const screenY = sy - this.viewY - this.tileH / 4;
-
-      let sprite = this.citySprites.get(cid);
-
-      let texture: Texture | undefined;
-      if (this.loaded) {
-        texture = this.tilesetTextures.get('city.european_city_0');
-      }
-      if (!texture) {
-        texture = this.getCityTexture(city.owner ?? 0);
-      }
-
-      if (!sprite) {
-        sprite = new Sprite(texture);
-        this.cityLayer.addChild(sprite);
-        this.citySprites.set(cid, sprite);
-      } else {
-        sprite.texture = texture;
-      }
-
-      sprite.x = screenX;
-      sprite.y = screenY;
-    }
-
-    for (const [cid, sprite] of this.citySprites) {
-      if (!rendered.has(cid)) {
-        sprite.removeFromParent();
-        this.citySprites.delete(cid);
-      }
-    }
-  }
-
-  centerOnTile(tile: Tile): void {
-    const { sx, sy } = this.isoToScreen(tile.x, tile.y);
-    this.viewX = sx - this.app.screen.width / 2;
-    this.viewY = sy - this.app.screen.height / 2;
-    this.renderAll();
-  }
-
-  renderAll(): void {
-    this.renderMap();
-    this.renderCities();
-    this.renderUnits();
-  }
-
-  private setupInput(): void {
-    const canvas = this.app.canvas as HTMLCanvasElement;
-
-    canvas.addEventListener('pointerdown', (e) => {
-      this.isDragging = true;
-      this.dragStartX = e.clientX;
-      this.dragStartY = e.clientY;
-      this.viewStartX = this.viewX;
-      this.viewStartY = this.viewY;
-    });
-
-    canvas.addEventListener('pointermove', (e) => {
-      if (!this.isDragging) return;
-      const dx = e.clientX - this.dragStartX;
-      const dy = e.clientY - this.dragStartY;
-      this.viewX = this.viewStartX - dx;
-      this.viewY = this.viewStartY - dy;
-      this.renderAll();
-    });
-
-    canvas.addEventListener('pointerup', (e) => {
-      const moved = Math.abs(e.clientX - this.dragStartX) + Math.abs(e.clientY - this.dragStartY);
-      if (moved < 5) {
-        const rect = canvas.getBoundingClientRect();
-        const sx = e.clientX - rect.left;
-        const sy = e.clientY - rect.top;
-        const { mapX, mapY } = this.screenToIso(sx, sy);
-        const tile = mapPosToTile(mapX, mapY);
-        if (tile) {
-          globalEvents.emit('map:tileclick', { tile, event: e });
+    switch (e['key']) {
+      case 'city_text':
+        this.renderCityBar(e['city'] as City, baseGX + ox, baseGY + oy, container);
+        break;
+      case 'border':
+        this.renderBorder(e['dir'] as number, e['color'] as string, baseGX, baseGY, container);
+        break;
+      case 'goto_line':
+        this.renderGotoLine(e['goto_dir'] as number, baseGX, baseGY, container);
+        break;
+      case 'tile_label':
+        this.renderTileLabel(e['tile'] as Tile, baseGX + ox, baseGY + oy, container);
+        break;
+      case null:
+      case undefined:
+      case '':
+        break;
+      default: {
+        const tex = this.getTexture(e['key'] as string);
+        if (tex) {
+          const sp = new Sprite(tex);
+          sp.x = baseGX + ox;
+          sp.y = baseGY + oy;
+          sp.alpha = fogAlpha;
+          container.addChild(sp);
         }
+        break;
       }
-      this.isDragging = false;
-    });
-
-    canvas.addEventListener(
-      'wheel',
-      (e) => {
-        e.preventDefault();
-        // Scroll to pan
-        this.viewX += e.deltaX;
-        this.viewY += e.deltaY;
-        this.renderAll();
-      },
-      { passive: false },
-    );
+    }
   }
 
-  private renderScheduled = false;
-
-  private scheduleRender(): void {
-    if (this.renderScheduled) return;
-    this.renderScheduled = true;
-    requestAnimationFrame(() => {
-      this.renderScheduled = false;
-      this.renderAll();
+  private renderCityBar(city: City, x: number, y: number, container: Container): void {
+    if (!city) return;
+    const c = city as Record<string, unknown>;
+    const name = (c['name'] as string) ?? '';
+    const size = (c['size'] as number) ?? 0;
+    const style = new TextStyle({
+      fontSize: 11,
+      fill: '#ffffff',
+      fontFamily: 'Arial, sans-serif',
+      stroke: { color: '#000000', width: 2 },
     });
+    const t = new Text({ text: `${name} (${size})`, style });
+    t.x = x;
+    t.y = y;
+    container.addChild(t);
   }
+
+  private renderTileLabel(tile: Tile, x: number, y: number, container: Container): void {
+    const label = (tile as Record<string, unknown>)['label'] as string;
+    if (!label) return;
+    const style = new TextStyle({ fontSize: 10, fill: '#ffff00', fontFamily: 'Arial, sans-serif' });
+    const t = new Text({ text: label, style });
+    t.x = x;
+    t.y = y;
+    container.addChild(t);
+  }
+
+  private renderBorder(
+    dir: number,
+    colorStr: string,
+    baseGX: number,
+    baseGY: number,
+    container: Container,
+  ): void {
+    const tw = tileset_tile_width;
+    const th = tileset_tile_height;
+    const hw = tw / 2, hh = th / 2;
+    const color = this.parseCSSColor(colorStr);
+    const g = new Graphics();
+
+    // Each border segment is one edge of the isometric diamond
+    // DIR8: N=1, E=4, S=6, W=3
+    switch (dir) {
+      case 1: g.moveTo(baseGX + hw, baseGY).lineTo(baseGX + tw, baseGY + hh); break;
+      case 4: g.moveTo(baseGX + tw, baseGY + hh).lineTo(baseGX + hw, baseGY + th); break;
+      case 6: g.moveTo(baseGX + hw, baseGY + th).lineTo(baseGX, baseGY + hh); break;
+      case 3: g.moveTo(baseGX, baseGY + hh).lineTo(baseGX + hw, baseGY); break;
+    }
+    g.stroke({ width: 2, color });
+    container.addChild(g);
+  }
+
+  private renderGotoLine(
+    gotoDir: number,
+    baseGX: number,
+    baseGY: number,
+    container: Container,
+  ): void {
+    if (gotoDir == null) return;
+    const tw = tileset_tile_width, th = tileset_tile_height;
+    const hw = tw / 2, hh = th / 2;
+    const cx = baseGX + hw, cy = baseGY + hh;
+
+    // Half-tile offsets per DIR8 direction
+    const offsets: Record<number, [number, number]> = {
+      0: [-hw, -hh], 1: [0, -th], 2: [hw, -hh],
+      3: [-tw, 0],               4: [tw, 0],
+      5: [-hw,  hh], 6: [0,  th], 7: [hw,  hh],
+    };
+    const off = offsets[gotoDir];
+    if (!off) return;
+
+    const g = new Graphics();
+    g.moveTo(cx, cy).lineTo(cx + off[0] * 0.7, cy + off[1] * 0.7);
+    g.stroke({ width: 2, color: 0xffffff, alpha: 0.85 });
+    container.addChild(g);
+  }
+
+  private addFogOverlay(gx: number, gy: number, container: Container): void {
+    const tw = tileset_tile_width, th = tileset_tile_height;
+    const hw = tw / 2, hh = th / 2;
+    const g = new Graphics();
+    // Diamond-shaped semi-transparent dark overlay
+    g.poly([gx + hw, gy, gx + tw, gy + hh, gx + hw, gy + th, gx, gy + hh])
+      .fill({ color: 0x000000, alpha: 0.45 });
+    container.addChild(g);
+  }
+
+  private parseCSSColor(color: string): number {
+    const hex = color.startsWith('#') ? color.slice(1) : '';
+    if (/^[0-9a-f]{6}$/i.test(hex)) return parseInt(hex, 16);
+    const rgb = color.match(/\d+/g);
+    if (rgb && rgb.length >= 3) {
+      return (parseInt(rgb[0]) << 16) | (parseInt(rgb[1]) << 8) | parseInt(rgb[2]);
+    }
+    return 0xffffff;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Per-tile rebuild
+  // ---------------------------------------------------------------------------
+
+  private rebuildTile(tile: Tile): void {
+    const known = tileGetKnown(tile);
+
+    if (known === TILE_UNKNOWN) {
+      for (let l = 0; l < LAYER_COUNT; l++) this.clearTileLayer(tile.index, l);
+      return;
+    }
+
+    const pos = map_to_gui_pos(tile.x, tile.y);
+    const gx = pos['gui_dx'];
+    const gy = pos['gui_dy'];
+    const fog = draw_fog_of_war && known === TILE_KNOWN_UNSEEN;
+    const fogAlpha = fog ? 0.5 : 1.0;
+    const punit = get_drawable_unit(tile, false);
+    const pcity = tileCity(tile);
+
+    for (let layer = 0; layer < LAYER_COUNT; layer++) {
+      this.clearTileLayer(tile.index, layer);
+
+      if (layer === LAYER_FOG_INDEX) {
+        // Corner-based fog sprites require pcorner iteration (TODO Phase 1.5).
+        // For now: draw a simple overlay on fogged tiles.
+        if (fog) {
+          const c = this.getTileLayerContainer(tile.index, layer);
+          this.addFogOverlay(gx, gy, c);
+        }
+        continue;
+      }
+
+      const entries = fill_sprite_array(layer, tile, null, null, punit, pcity, false);
+      if (entries.length === 0) continue;
+
+      const c = this.getTileLayerContainer(tile.index, layer);
+      for (const entry of entries) {
+        this.renderSpriteEntry(entry, gx, gy, c, fogAlpha);
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Render loop
+  // ---------------------------------------------------------------------------
+
+  private processFrame(): void {
+    if (!store.tiles || clientState() < C_S_RUNNING) return;
+    if (!store.sprites || Object.keys(store.sprites).length === 0) return;
+
+    // O(1) panning: shift the entire map container
+    this.mapContainer.x = -mapview['gui_x0'];
+    this.mapContainer.y = -mapview['gui_y0'];
+
+    const tiles = store.tiles as Tile[];
+
+    if (this.dirtyAll) {
+      for (const tile of tiles) {
+        if (tile) this.rebuildTile(tile);
+      }
+      this.dirtyAll = false;
+      this.dirtyTiles.clear();
+    } else if (this.dirtyTiles.size > 0) {
+      for (const idx of this.dirtyTiles) {
+        const tile = tiles[idx];
+        if (tile) this.rebuildTile(tile);
+      }
+      this.dirtyTiles.clear();
+    }
+  }
+
+  private startRenderLoop(): void {
+    const loop = (): void => {
+      this.processFrame();
+      this.rafHandle = requestAnimationFrame(loop);
+    };
+    this.rafHandle = requestAnimationFrame(loop);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Dirty API (called by game event handlers)
+  // ---------------------------------------------------------------------------
+
+  markDirty(tileIndex: number): void {
+    if (!this.dirtyAll) this.dirtyTiles.add(tileIndex);
+  }
+
+  markAllDirty(): void {
+    this.dirtyAll = true;
+    this.dirtyTiles.clear();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Event listeners
+  // ---------------------------------------------------------------------------
 
   private setupEventListeners(): void {
-    globalEvents.on('tile:updated', () => this.scheduleRender());
-    globalEvents.on('unit:updated', () => this.scheduleRender());
-    globalEvents.on('unit:removed', () => this.scheduleRender());
-    globalEvents.on('city:updated', () => this.scheduleRender());
-    globalEvents.on('city:removed', () => this.scheduleRender());
-    globalEvents.on('map:allocated', () => this.renderAll());
-    globalEvents.on('game:beginturn', () => this.scheduleRender());
+    globalEvents.on('tile:updated', (data: unknown) => {
+      const d = data as Record<string, unknown> | null;
+      const idx = d?.['tileIndex'] ?? (d?.['tile'] as Record<string, unknown> | undefined)?.['index'];
+      typeof idx === 'number' ? this.markDirty(idx) : this.markAllDirty();
+    });
+    globalEvents.on('unit:updated', () => this.markAllDirty());
+    globalEvents.on('unit:removed', () => this.markAllDirty());
+    globalEvents.on('city:updated', () => this.markAllDirty());
+    globalEvents.on('city:removed', () => this.markAllDirty());
+    globalEvents.on('map:allocated', () => {
+      this.clearTextureCache();
+      this.markAllDirty();
+    });
+    globalEvents.on('game:beginturn', () => this.markAllDirty());
 
     window.addEventListener('resize', () => {
       this.app.resize();
-      this.renderAll();
+      this.markAllDirty();
     });
   }
 
+  // ---------------------------------------------------------------------------
+  // View control
+  // ---------------------------------------------------------------------------
+
+  centerOnTile(tile: Tile): void {
+    const pos = map_to_gui_pos(tile.x, tile.y);
+    mapview['gui_x0'] = pos['gui_dx'] - this.app.screen.width / 2;
+    mapview['gui_y0'] = pos['gui_dy'] - this.app.screen.height / 2;
+  }
+
+  resize(): void {
+    this.app.resize();
+  }
+
   destroy(): void {
+    if (this.rafHandle != null) cancelAnimationFrame(this.rafHandle);
+    this.clearTextureCache();
     this.app.destroy(true);
   }
 }

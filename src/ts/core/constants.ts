@@ -447,6 +447,7 @@ export const enum ClientState {
 
 // ─── Renderer Type ───────────────────────────────────────────────────────────
 export const RENDERER_2DCANVAS = 1;
+export const RENDERER_PIXI = 2;
 
 // ─── Directions (8-way) ─────────────────────────────────────────────────────
 export const DIR8_NORTHWEST = 0;

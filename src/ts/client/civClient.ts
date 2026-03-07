@@ -18,11 +18,12 @@
 import { seedrandom } from '../utils/seedrandom';
 import { initTabs } from '../ui/tabs';
 import { swal } from '../components/Dialogs/SwalDialog';
-import { RENDERER_2DCANVAS } from '../core/constants';
+import { RENDERER_2DCANVAS, RENDERER_PIXI } from '../core/constants';
 import { redraw_overview } from '../core/overview';
 import { control_init } from '../core/control';
 import { game_init, update_game_status_panel } from '../data/game';
 import { init_mapview, is_small_screen } from '../renderer/mapview';
+import { PixiRenderer } from '../renderer/PixiRenderer';
 import { send_request } from '../net/connection';
 import { packet_authentication_reply } from '../net/packetConstants';
 import { showMessageDialog, closeMessageDialog } from '../components/Dialogs/MessageDialog';
@@ -35,8 +36,9 @@ import { music_list, audio, setAudio, supports_mp3 } from '../audio/audioState';
 // ---------------------------------------------------------------------------
 // Global state guards (active once civclient.js is deleted)
 // ---------------------------------------------------------------------------
-// Initialize store defaults (renderer, etc.)
-store.renderer = RENDERER_2DCANVAS;
+// Select renderer: ?renderer=pixi activates PixiJS/WebGL; default is 2D canvas.
+const _rendererParam = new URLSearchParams(window.location.search).get('renderer');
+store.renderer = _rendererParam === 'pixi' ? RENDERER_PIXI : RENDERER_2DCANVAS;
 
 // music_list is now initialised in audio/audioState.ts
 
@@ -64,7 +66,15 @@ export function civClientInit(): void {
     return;
   }
 
-  init_mapview();
+  if (store.renderer === RENDERER_PIXI) {
+    const container = document.getElementById('canvas_div') ?? document.body;
+    const pixi = new PixiRenderer({ container });
+    pixi.init().then(() => {
+      (store as Record<string, unknown>)['pixiRenderer'] = pixi;
+    }).catch(e => console.error('PixiRenderer init failed:', e));
+  } else {
+    init_mapview();
+  }
   game_init();
   // Tabs initialization (vanilla JS replacement for jQuery UI tabs)
   initTabs('#tabs', { heightStyle: 'fill' });
