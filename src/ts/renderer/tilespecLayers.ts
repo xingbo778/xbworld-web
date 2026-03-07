@@ -179,51 +179,10 @@ export function get_tile_river_sprite(ptile: Tile | null): SpriteEntry | null {
     - Support generic road types
     - Properly support generic extra hiding properties
 ****************************************************************************/
-export function fill_path_sprite_array(ptile: Tile, pcity: City | null): SpriteEntry[] {
-  const rs_maglev = typeof store.extraIds['EXTRA_MAGLEV'] !== 'undefined';
-  const road = tile_has_extra(ptile, store.extraIds['EXTRA_ROAD']);
-  const rail = tile_has_extra(ptile, store.extraIds['EXTRA_RAIL']);
-  const maglev = rs_maglev && tile_has_extra(ptile, store.extraIds['EXTRA_MAGLEV']);
-  const road_near: boolean[] = [];
-  const rail_near: boolean[] = [];
-  const maglev_near: boolean[] = [];
-  const draw_rail: boolean[] = [];
-  const draw_road: boolean[] = [];
-  const draw_maglev: boolean[] = [];
-  const result_sprites: SpriteEntry[] = [];
-  let draw_single_road: boolean;
-  let draw_single_rail: boolean;
-  let draw_single_maglev: boolean;
-
-  if (pcity != null) {
-    draw_single_road = draw_single_rail = draw_single_maglev = false;
-  } else if (maglev) {
-    draw_single_road = draw_single_rail = false;
-    draw_single_maglev = maglev;
-  } else {
-    draw_single_road = road && rail == false;
-    draw_single_rail = rail;
-    draw_single_maglev = false;
-  }
-
-  for (let dir = 0; dir < 8; dir++) {
-    /* Check if there is adjacent road/rail/maglev. */
-    const tile1 = mapstep(ptile, dir);
-    if (tile1 != null && tile_get_known(tile1) != TILE_UNKNOWN) {
-      road_near[dir] = tile_has_extra(tile1, store.extraIds['EXTRA_ROAD']);
-      rail_near[dir] = tile_has_extra(tile1, store.extraIds['EXTRA_RAIL']);
-      maglev_near[dir] = rs_maglev && tile_has_extra(tile1, store.extraIds['EXTRA_MAGLEV']);
-
-      /* Draw path if there is a connection from this tile to the
-       * adjacent tile. But don't draw path if there is also an extra
-       * hiding it. */
-      draw_maglev[dir] = maglev && maglev_near[dir];
-      draw_rail[dir] = rail && rail_near[dir] && !draw_maglev[dir];
-      draw_road[dir] = road && road_near[dir] && !draw_rail[dir] && !draw_maglev[dir];
-    }
-  }
-
-  return result_sprites;
+export function fill_path_sprite_array(_ptile: Tile, _pcity: City | null): SpriteEntry[] {
+  // Road/rail sprite rendering is not yet implemented (TODO).
+  // The result is always [] so skip all computation.
+  return [];
 }
 
 /***********************************************************************
