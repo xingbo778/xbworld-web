@@ -66,6 +66,10 @@ export const COLOR_OVERVIEW_VIEWRECT: number = 7; /* white */
 
 export let overview_hash: number = -1;
 export let overview_current_state: Record<string, unknown> | null = null;
+let overview_dirty: boolean = true;
+
+/** Call when any tile data changes to trigger the next overview redraw. */
+export function mark_overview_dirty(): void { overview_dirty = true; }
 
 
 /****************************************************************************
@@ -109,6 +113,10 @@ export function redraw_overview(): void {
   if (!overview_active || mapview_slide['active'] || C_S_RUNNING > client_state()
       || store.mapInfo!.xsize == null || store.mapInfo!.ysize == null
       || !document.getElementById('overview_map')) return;
+
+  // Skip the O(n) hash scan if nothing has changed.
+  if (!overview_dirty) return;
+  overview_dirty = false;
 
   const hash: number = generate_overview_hash(store.mapInfo!.xsize, store.mapInfo!.ysize);
 

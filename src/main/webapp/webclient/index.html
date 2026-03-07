@@ -12,6 +12,10 @@
   <link rel="stylesheet" href="/css/webclient.min.css">
   <link rel="stylesheet" href="/javascript/ts-bundle/xbworld-web.css">
   <link rel="modulepreload" href="/javascript/ts-bundle/main.js">
+  <!-- Preload tileset images so browser fetches them in parallel with JS parse -->
+  <link rel="preload" as="image" href="/tileset/freeciv-web-tileset-amplio2-0.webp" type="image/webp">
+  <link rel="preload" as="image" href="/tileset/freeciv-web-tileset-amplio2-1.webp" type="image/webp">
+  <link rel="preload" as="image" href="/tileset/freeciv-web-tileset-amplio2-2.webp" type="image/webp">
 </head>
 <body>
 <div id="pregame_page">
