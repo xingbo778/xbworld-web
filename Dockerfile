@@ -25,7 +25,11 @@ RUN npm ci
 COPY src/ts/ ./src/ts/
 COPY vite.config.ts tsconfig.json ./
 RUN mkdir -p src/main/webapp/javascript/ts-bundle && \
-    npx vite build
+    npx vite build && \
+    if [ -f src/main/webapp/javascript/ts-bundle/xbworld-web.css ]; then \
+        mv src/main/webapp/javascript/ts-bundle/xbworld-web.css \
+           src/main/webapp/javascript/ts-bundle/main.css; \
+    fi
 
 ###############################################################################
 # Stage 2: nginx to serve static files + reverse proxy to backend

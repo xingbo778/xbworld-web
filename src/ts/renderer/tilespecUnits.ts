@@ -21,7 +21,6 @@ import {
   city_flag_offset_x, city_flag_offset_y,
   normal_tile_height, normal_tile_width,
 } from './tilesetConfig';
-import { city_rules } from '../ui/cityDialogState';
 import { tileGetKnown as tile_get_known } from '../data/tile';
 
 // SSA constants from ServerSideAgent enum
@@ -399,7 +398,8 @@ export function get_unit_agent_sprite(punit: Unit): SpriteEntry | null {
 export function get_city_sprite(pcity: City): SpriteEntry {
   let style_id = pcity['style'] as number;
   if (style_id == -1) style_id = 0;   /* Sometimes a player has no city_style. */
-  const city_rule = city_rules[style_id];
+  const city_rule = store.cityRules[style_id];
+  if (city_rule == null) return { "key": "cd.city_city_0", "offset_x": 0, "offset_y": -unit_offset_y };
 
   let size = 0;
   if (pcity['size'] >= 4 && pcity['size'] <= 7) {
