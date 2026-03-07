@@ -17,7 +17,23 @@ export function tileTerrain(ptile: Tile): Terrain | undefined {
   return store.terrains[ptile.terrain];
 }
 
+// Per-tile cache for adjacent terrain — invalidated when tile is marked dirty.
+// Within a single frame, each tile is processed for 3 terrain layers; caching
+// saves 2/3 of tileTerrainNear computations (800 hits per 400-tile viewport).
+let _terrainNearCache: Record<number, (Terrain | undefined)[]> = Object.create(null);
+
+export function invalidateTerrainNearCache(tileIndex: number): void {
+  delete _terrainNearCache[tileIndex];
+}
+
+export function clearTerrainNearCache(): void {
+  _terrainNearCache = Object.create(null);
+}
+
 export function tileTerrainNear(ptile: Tile): (Terrain | undefined)[] {
+  const cached = _terrainNearCache[ptile.index];
+  if (cached !== undefined) return cached;
+
   const near: (Terrain | undefined)[] = [];
   for (let dir = 0; dir < 8; dir++) {
     const tile1 = mapstep(ptile, dir);
@@ -31,6 +47,7 @@ export function tileTerrainNear(ptile: Tile): (Terrain | undefined)[] {
     }
     near[dir] = tileTerrain(ptile);
   }
+  _terrainNearCache[ptile.index] = near;
   return near;
 }
 

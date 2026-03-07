@@ -37,6 +37,7 @@ import {
 } from './mapview';
 import { fill_sprite_array } from './tilespec';
 import { tileset_tile_width, tileset_tile_height } from './tilesetConfig';
+import { invalidateTerrainNearCache, clearTerrainNearCache } from '../data/terrain';
 
 // --- Coordinate functions (extracted to mapCoords.ts) ---
 import {
@@ -93,6 +94,7 @@ _setMapviewRef(mapview);
 _setDirtyAllSetter((val: boolean) => { dirty_all = val; });
 
 export function mark_tile_dirty(tile_id: number): void {
+  invalidateTerrainNearCache(tile_id);
   if (dirty_all) return;
   dirty_tiles[tile_id] = true;
   dirty_count++;
@@ -102,6 +104,7 @@ export function mark_tile_dirty(tile_id: number): void {
 }
 
 export function mark_all_dirty(): void {
+  clearTerrainNearCache();
   dirty_all = true;
 }
 
