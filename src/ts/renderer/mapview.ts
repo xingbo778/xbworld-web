@@ -69,14 +69,11 @@ export function init_mapview(): void {
       if (text) (0, eval)(text); // eslint-disable-line no-eval
     });
 
-  Promise.all([
-    loadScriptAsync('/javascript/2dcanvas/tileset_config_amplio2.js'),
-    loadScriptAsync('/javascript/2dcanvas/tileset_spec_amplio2.js'),
-  ]).then(() => {
-    init_sprites();
-  }).catch(err => {
-    console.error('Failed to load tileset scripts:', err);
-  });
+  // Only tileset_spec is needed: it defines `var tileset = {...}`.
+  // tileset_config is redundant — all its constants are already in tilesetConfig.ts.
+  loadScriptAsync('/javascript/2dcanvas/tileset_spec_amplio2.js')
+    .then(() => { init_sprites(); })
+    .catch(err => { console.error('Failed to load tileset spec:', err); });
 
   mapview_canvas = document.getElementById('canvas') as HTMLCanvasElement;
   mapview_canvas_ctx = mapview_canvas.getContext("2d");
