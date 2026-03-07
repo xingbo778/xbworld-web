@@ -85,7 +85,7 @@ export function supportsMp3(): boolean {
 }
 
 export function getTilesetFileExtension(): string {
-  return '.png';
+  return '.webp';
 }
 
 /**

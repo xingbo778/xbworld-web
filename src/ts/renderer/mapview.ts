@@ -178,6 +178,11 @@ export function preload_check(): void {
   ...
 **************************************************************************/
 export function init_cache_sprites(): void {
+  // Guard: don't run until all tileset images have finished loading.
+  // update_map_canvas_full() may call this early; the real init happens
+  // via preload_check() once loaded_images == tileset_image_count.
+  if (loaded_images < tileset_image_count) return;
+
   try {
 
     if (typeof tileset === 'undefined') {

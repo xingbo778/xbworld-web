@@ -85,6 +85,7 @@ export function init_overview(): void {
   }
 
   palette = generate_palette();
+  overview_hash = -1;  // Force full redraw with fresh palette
 
   redraw_overview();
 
@@ -307,12 +308,21 @@ export function generate_palette(): number[][] {
   palette[COLOR_OVERVIEW_ENEMY_UNIT] = [255,0,0];
   palette[COLOR_OVERVIEW_VIEWRECT] = [200,200,255];
   palette_terrain_offset = palette.length;
+  // Index terrain colors by terrain ID (not sequential push) so that
+  // overview_tile_color()'s "palette_terrain_offset + terrain.id" lookup
+  // finds the correct entry even when terrain IDs are not 0-based sequential.
+  let max_terrain_id = -1;
   for (const terrain_id in store.terrains) {
-    const terrain: Terrain = store.terrains[Number(terrain_id)];
-    palette.push([terrain['color_red'] as number, terrain['color_green'] as number, terrain['color_blue'] as number]);
+    const id = Number(terrain_id);
+    if (id > max_terrain_id) max_terrain_id = id;
+  }
+  for (const terrain_id in store.terrains) {
+    const id = Number(terrain_id);
+    const terrain: Terrain = store.terrains[id];
+    palette[palette_terrain_offset + id] = [terrain['color_red'] as number, terrain['color_green'] as number, terrain['color_blue'] as number];
   }
 
-  palette_color_offset = palette.length;
+  palette_color_offset = max_terrain_id >= 0 ? palette_terrain_offset + max_terrain_id + 1 : palette_terrain_offset;
   const player_count: number = Object.keys(store.players).length;
 
   for (const player_id_str in store.players) {
@@ -367,7 +377,9 @@ export function overview_tile_color(map_x: number, map_y: number): number {
     if (ptile.owner != null && ptile.owner != 255) {
       return palette_color_offset + ptile.owner;
     } else {
-      return palette_terrain_offset + tile_terrain(ptile)!['id'];
+      const terrain = tile_terrain(ptile);
+      if (terrain == null) return COLOR_OVERVIEW_UNKNOWN;
+      return palette_terrain_offset + (terrain['id'] as number);
     }
   }
 
