@@ -27,6 +27,18 @@ let NUM_CORNER_DIRS: number = 4;
 
 let DIR4_TO_DIR8: number[] = [DIR8_NORTH, DIR8_SOUTH, DIR8_EAST, DIR8_WEST];
 
+// Precomputed corner cell offsets for CELL_CORNER rendering (avoid per-call allocation)
+// Values set lazily from normal_tile_width / normal_tile_height (available at runtime)
+let _iso_offsets: readonly (readonly number[])[] | null = null;
+function getIsoOffsets(): readonly (readonly number[])[] {
+  if (_iso_offsets == null) {
+    const W = normal_tile_width;
+    const H = normal_tile_height;
+    _iso_offsets = [[W / 4, 0], [W / 4, H / 2], [W / 2, H / 4], [0, H / 4]] as const;
+  }
+  return _iso_offsets;
+}
+
 /**************************************************************************
   Return the store.tileset name of the direction. This is similar to
   dir_get_name but you shouldn't change this or all tilesets will break.
@@ -151,14 +163,13 @@ export function fill_terrain_sprite_array(l: number, ptile: Tile, pterrain: Terr
          *
          * These arrays correspond to the direction4 ordering. */
 
-        const W = normal_tile_width;
-        const H = normal_tile_height;
-        const iso_offsets = [[W / 4, 0], [W / 4, H / 2], [W / 2, H / 4], [0, H / 4]];
-        const this_match_index = ('l' + l + '.' + pterrain!['graphic_str'] in tile_types_setup) ? tile_types_setup['l' + l + '.' + pterrain!['graphic_str']]['match_index'][0] : -1;
+        // dlp is already tile_types_setup[_tts_key] — reuse it instead of rebuilding the key
+        const this_match_index = dlp['match_index'][0] ?? -1;
         /* var that_match_index = ('l' + l + '.' + pterrain!['graphic_str'] in tile_types_setup) ? tile_types_setup['l' + l + '.' + pterrain!['graphic_str']]['match_index'][1] : -1; */
         const result_sprites: SpriteEntry[] = [];
 
         /* Put corner cells */
+        const iso_offsets = getIsoOffsets();
         for (let i = 0; i < NUM_CORNER_DIRS; i++) {
           const count = dlp['match_indices'];
           let array_index = 0;
