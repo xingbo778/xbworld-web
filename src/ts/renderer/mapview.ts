@@ -51,7 +51,6 @@ let dashedSupport: boolean = false;
   ...
 **************************************************************************/
 export function init_mapview(): void {
-
   // Create canvas element
   const canvasDiv = document.getElementById('canvas_div');
   if (canvasDiv) {
@@ -60,20 +59,24 @@ export function init_mapview(): void {
     canvasDiv.appendChild(canvas);
   }
 
-  // Load tileset definition files synchronously (required before rendering)
-  function loadScriptSync(url: string): void {
-    const xhr = new XMLHttpRequest();
-    xhr.open('GET', url, false); // synchronous
-    xhr.send();
-    if (xhr.status === 200) {
-      // eslint-disable-next-line no-eval
-      (0, eval)(xhr.responseText);
-    } else {
-      console.error('Unable to load ' + url);
-    }
-  }
-  loadScriptSync('/javascript/2dcanvas/tileset_config_amplio2.js');
-  loadScriptSync('/javascript/2dcanvas/tileset_spec_amplio2.js');
+  // Async fetch of tileset definition files (replaces blocking sync XHR).
+  // Fetch both in parallel; eval each when received; then start image loading.
+  const loadScriptAsync = (url: string) =>
+    fetch(url).then(r => {
+      if (!r.ok) { console.error('Unable to load ' + url); return; }
+      return r.text();
+    }).then(text => {
+      if (text) (0, eval)(text); // eslint-disable-line no-eval
+    });
+
+  Promise.all([
+    loadScriptAsync('/javascript/2dcanvas/tileset_config_amplio2.js'),
+    loadScriptAsync('/javascript/2dcanvas/tileset_spec_amplio2.js'),
+  ]).then(() => {
+    init_sprites();
+  }).catch(err => {
+    console.error('Failed to load tileset scripts:', err);
+  });
 
   mapview_canvas = document.getElementById('canvas') as HTMLCanvasElement;
   mapview_canvas_ctx = mapview_canvas.getContext("2d");
@@ -126,7 +129,7 @@ export function init_mapview(): void {
   if (is_small_screen()) (window as unknown as Record<string, unknown>)['MAPVIEW_REFRESH_INTERVAL'] = 12;
 
   orientation_changed();
-  init_sprites();
+  // init_sprites() is now called inside the async tileset script loader above
   if (mapview_canvas) {
     requestAnimationFrame(update_map_canvas_check);
   }
