@@ -88,12 +88,11 @@ export function fill_terrain_sprite_layer(layer_num: number, ptile: Tile, pterra
 export function fill_terrain_sprite_array(l: number, ptile: Tile, pterrain: Terrain | undefined, tterrain_near: (Terrain | undefined)[]): SpriteEntry[] {
   if (pterrain == null) return [];
 
-  if (tile_types_setup["l" + l + "." + pterrain!['graphic_str']] == null) {
-    //console.log("missing " + "l" + l + "." + pterrain!['graphic_str']);
+  const _tts_key = "l" + l + "." + pterrain!['graphic_str'];
+  const dlp = tile_types_setup[_tts_key];
+  if (dlp == null) {
     return [];
   }
-
-  const dlp = tile_types_setup["l" + l + "." + pterrain!['graphic_str']];
 
   switch (dlp['sprite_type']) {
     case CELL_WHOLE:

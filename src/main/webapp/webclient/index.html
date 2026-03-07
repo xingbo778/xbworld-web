@@ -16,8 +16,8 @@
   <link rel="preload" as="image" href="/tileset/freeciv-web-tileset-amplio2-0.webp" type="image/webp">
   <link rel="preload" as="image" href="/tileset/freeciv-web-tileset-amplio2-1.webp" type="image/webp">
   <link rel="preload" as="image" href="/tileset/freeciv-web-tileset-amplio2-2.webp" type="image/webp">
-  <!-- Preload tileset spec JS (loaded async in init_mapview) -->
-  <link rel="preload" as="fetch" href="/javascript/2dcanvas/tileset_spec_amplio2.js">
+  <!-- Preload tileset spec JSON (loaded async in init_mapview, native JSON.parse = faster than eval) -->
+  <link rel="preload" as="fetch" href="/javascript/2dcanvas/tileset_spec_amplio2.json" crossorigin>
 </head>
 <body>
 <div id="pregame_page">

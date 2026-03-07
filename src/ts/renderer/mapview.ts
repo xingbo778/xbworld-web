@@ -60,19 +60,16 @@ export function init_mapview(): void {
   }
 
   // Async fetch of tileset definition files (replaces blocking sync XHR).
-  // Fetch both in parallel; eval each when received; then start image loading.
-  const loadScriptAsync = (url: string) =>
-    fetch(url).then(r => {
-      if (!r.ok) { console.error('Unable to load ' + url); return; }
-      return r.text();
-    }).then(text => {
-      if (text) (0, eval)(text); // eslint-disable-line no-eval
-    });
-
-  // Only tileset_spec is needed: it defines `var tileset = {...}`.
-  // tileset_config is redundant — all its constants are already in tilesetConfig.ts.
-  loadScriptAsync('/javascript/2dcanvas/tileset_spec_amplio2.js')
-    .then(() => { init_sprites(); })
+  // Fetch tileset spec as JSON (faster than eval'd JS) and assign to window.tileset.
+  fetch('/javascript/2dcanvas/tileset_spec_amplio2.json')
+    .then(r => {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
+    .then((data: unknown) => {
+      (window as unknown as Record<string, unknown>)['tileset'] = data;
+      init_sprites();
+    })
     .catch(err => { console.error('Failed to load tileset spec:', err); });
 
   mapview_canvas = document.getElementById('canvas') as HTMLCanvasElement;
