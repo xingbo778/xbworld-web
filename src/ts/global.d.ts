@@ -39,16 +39,3 @@ declare const soundset: Record<string, string> | undefined;
 /** TrackJS error-tracking library (optional) */
 declare const trackJs: { console: { log(v: unknown): void }; track(msg: string): void } | undefined;
 
-/** Coordinate → GUI pixel conversion from mapviewCommon */
-declare function map_to_gui_pos(x: number, y: number): { gui_dx: number; gui_dy: number };
-
-/** Mapview viewport state — exposed on window from mapviewCommon.ts */
-declare const mapview: {
-  width: number;
-  height: number;
-  gui_x0: number;
-  gui_y0: number;
-  store_width: number;
-  store_height: number;
-  [key: string]: unknown;
-};

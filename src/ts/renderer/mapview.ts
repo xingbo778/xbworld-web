@@ -120,8 +120,6 @@ export function init_mapview(): void {
   }
   store.fullfog = fullfog;
 
-  if (is_small_screen()) (window as unknown as Record<string, unknown>)['MAPVIEW_REFRESH_INTERVAL'] = 12;
-
   orientation_changed();
   // init_sprites() is now called inside the async tileset script loader above
   if (mapview_canvas) {
