@@ -33,8 +33,9 @@ let city_canvas_ctx: CanvasRenderingContext2D | null = null;
 let city_canvas: HTMLCanvasElement | null = null;
 
 let tileset_images: HTMLImageElement[] = [];
-let sprites: { [key: string]: HTMLCanvasElement } = {};
+let sprites: { [key: string]: HTMLCanvasElement | ImageBitmap } = {};
 let loaded_images: number = 0;
+let sprites_loading: boolean = false;
 
 export let sprites_init: boolean = false;
 
@@ -170,7 +171,8 @@ export function preload_check(): void {
 
   if (loaded_images == tileset_image_count) {
     init_cache_sprites();
-    unblockUI();
+    // unblockUI() is called inside init_cache_sprites() once sprites are ready
+    // (async: in Promise.all().then(); sync fallback: directly after loop)
   }
 }
 
@@ -182,46 +184,64 @@ export function init_cache_sprites(): void {
   // update_map_canvas_full() may call this early; the real init happens
   // via preload_check() once loaded_images == tileset_image_count.
   if (loaded_images < tileset_image_count) return;
+  // Prevent re-entry while async bitmaps are in flight, or after completion.
+  if (sprites_loading || sprites_init) return;
+  sprites_loading = true;
 
-  try {
-
-    if (typeof tileset === 'undefined') {
-      alert("Tileset not generated correctly. Run sync.sh in "
-        + "freeciv-img-extract and recompile.");
-      return;
-    }
-
-    for (const tile_tag in tileset) {
-      const x = tileset[tile_tag][0];
-      const y = tileset[tile_tag][1];
-      const w = tileset[tile_tag][2];
-      const h = tileset[tile_tag][3];
-      const i = tileset[tile_tag][4];
-
-      const newCanvas = document.createElement('canvas');
-      newCanvas.height = h;
-      newCanvas.width = w;
-      const newCtx = newCanvas.getContext('2d');
-
-      if (newCtx) {
-        newCtx.drawImage(tileset_images[i], x, y,
-          w, h, 0, 0, w, h);
-        sprites[tile_tag] = newCanvas;
-      }
-    }
-
-    sprites_init = true;
-    store.sprites = sprites;
-    // Sync tileset from window to store (loaded externally by tileset JS)
-    if (tileset) store.tileset = tileset;
-    tileset_images[0] = null!; // Set to null to free memory
-    tileset_images[1] = null!; // Set to null to free memory
-    tileset_images = null!; // Set to null to free memory
-
-  } catch (e: unknown) {
-    console.log("Problem caching sprite: " + (e instanceof Error ? e.message : e));
+  if (typeof tileset === 'undefined') {
+    alert("Tileset not generated correctly. Run sync.sh in "
+      + "freeciv-img-extract and recompile.");
+    sprites_loading = false;
+    return;
   }
 
+  if (typeof createImageBitmap === 'function') {
+    // Async path: createImageBitmap is off-main-thread in supporting browsers,
+    // avoids creating 2770 individual HTMLCanvasElements.
+    const entries = Object.keys(tileset);
+    const bitmapPromises = entries.map(tile_tag => {
+      const [x, y, w, h, i] = tileset[tile_tag] as [number, number, number, number, number];
+      return createImageBitmap(tileset_images[i], x, y, w, h)
+        .then((bmp: ImageBitmap) => { sprites[tile_tag] = bmp; })
+        .catch(() => { /* skip missing sprite */ });
+    });
+    Promise.all(bitmapPromises).then(() => {
+      sprites_init = true;
+      sprites_loading = false;
+      store.sprites = sprites as Record<string, HTMLCanvasElement>;
+      if (tileset) store.tileset = tileset;
+      tileset_images = null!;
+      unblockUI();
+    });
+  } else {
+    // Fallback: synchronous canvas-based sprite caching
+    try {
+      for (const tile_tag in tileset) {
+        const x = tileset[tile_tag][0];
+        const y = tileset[tile_tag][1];
+        const w = tileset[tile_tag][2];
+        const h = tileset[tile_tag][3];
+        const i = tileset[tile_tag][4];
+        const newCanvas = document.createElement('canvas');
+        newCanvas.height = h;
+        newCanvas.width = w;
+        const newCtx = newCanvas.getContext('2d');
+        if (newCtx) {
+          newCtx.drawImage(tileset_images[i], x, y, w, h, 0, 0, w, h);
+          sprites[tile_tag] = newCanvas;
+        }
+      }
+      sprites_init = true;
+      sprites_loading = false;
+      store.sprites = sprites as Record<string, HTMLCanvasElement>;
+      if (tileset) store.tileset = tileset;
+      tileset_images = null!;
+    } catch (e: unknown) {
+      console.log("Problem caching sprite: " + (e instanceof Error ? e.message : e));
+      sprites_loading = false;
+    }
+    unblockUI();
+  }
 }
 
 /**************************************************************************
