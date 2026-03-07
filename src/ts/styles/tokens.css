@@ -75,6 +75,37 @@
   --xb-transition-fast: 100ms ease;
   --xb-transition-normal: 200ms ease;
   --xb-transition-slow: 300ms ease;
+
+  /* Button component tokens */
+  --xb-btn-primary-bg: linear-gradient(to bottom, #5b9bd5, #3a7cc0);
+  --xb-btn-primary-color: #fff;
+  --xb-btn-primary-border-color: #2a6ca0;
+  --xb-btn-secondary-bg: linear-gradient(to bottom, #555, #444);
+  --xb-btn-secondary-color: #ddd;
+  --xb-btn-secondary-border-color: #666;
+  --xb-btn-danger-bg: linear-gradient(to bottom, #d55b5b, #c03a3a);
+  --xb-btn-danger-color: #fff;
+  --xb-btn-danger-border-color: #a02a2a;
+  --xb-btn-padding: 6px 16px;
+  --xb-btn-font-size: 13px;
+  --xb-btn-radius: 4px;
+
+  /* Dialog titlebar tokens */
+  --xb-dialog-titlebar-bg: linear-gradient(to bottom, #4a4a4a, #333);
+  --xb-dialog-titlebar-color: #fff;
+  --xb-dialog-titlebar-close-color: #ccc;
+  --xb-dialog-titlebar-padding: 6px 10px;
+  --xb-dialog-titlebar-font-size: var(--xb-font-size-md);
+  --xb-dialog-titlebar-radius: 4px 4px 0 0;
+
+  /* Dialog content tokens */
+  --xb-dialog-content-bg: var(--xb-bg-surface);
+  --xb-dialog-content-color: var(--xb-text-primary);
+  --xb-dialog-content-border-color: #444;
+  --xb-dialog-content-padding: var(--xb-space-md);
+
+  /* Dialog backdrop */
+  --xb-dialog-backdrop-bg: rgba(0, 0, 0, 0.5);
 }
 
 /* Scrollbar styling (replaces mCustomScrollbar) */

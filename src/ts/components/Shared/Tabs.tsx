@@ -40,7 +40,7 @@ export function Tabs({ tabs, activeTab, onTabChange, children }: TabsProps) {
               padding: '6px 14px',
               fontSize: 'var(--xb-font-size-sm, 12px)',
               fontWeight: t.id === activeTab ? 'bold' : 'normal',
-              color: t.id === activeTab ? '#fff' : 'var(--xb-text-secondary, #8b949e)',
+              color: t.id === activeTab ? 'var(--xb-text-primary, #e6edf3)' : 'var(--xb-text-secondary, #8b949e)',
               background: t.id === activeTab
                 ? 'var(--xb-bg-surface, #1a1a2e)'
                 : 'transparent',

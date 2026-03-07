@@ -47,7 +47,7 @@ export function ProgressBar({
             alignItems: 'center',
             justifyContent: 'center',
             fontSize: 'var(--xb-font-size-xs, 11px)',
-            color: '#fff',
+            color: 'var(--xb-text-primary, #e6edf3)',
             textShadow: '0 1px 2px rgba(0,0,0,0.6)',
             pointerEvents: 'none',
           }}

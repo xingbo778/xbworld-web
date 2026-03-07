@@ -9,7 +9,7 @@ export default defineConfig({
   reporter: 'html',
   timeout: 30_000,
   use: {
-    baseURL: 'http://localhost:8080',
+    baseURL: 'http://localhost:3000',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
@@ -20,8 +20,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'BACKEND_URL=http://localhost:8002 npx vite --config vite.config.dev.ts --port 8080',
-    port: 8080,
+    command: 'BACKEND_URL=http://localhost:8002 npx vite --config vite.config.dev.ts --port 3000',
+    port: 3000,
     reuseExistingServer: !process.env.CI,
     timeout: 30_000,
   },
