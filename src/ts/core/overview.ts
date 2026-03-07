@@ -118,13 +118,11 @@ export function redraw_overview(): void {
   if (!overview_dirty) return;
   overview_dirty = false;
 
-  const hash: number = generate_overview_hash(store.mapInfo!.xsize, store.mapInfo!.ysize);
+  // Single-pass: build grid and hash together (avoids iterating all tiles twice).
+  const { grid, hash } = generate_overview_grid_and_hash(store.mapInfo!.xsize, store.mapInfo!.ysize);
 
   if (hash != overview_hash) {
-    renderOverviewToCanvas(
-      generate_overview_grid(store.mapInfo!.xsize, store.mapInfo!.ysize),
-      palette
-    );
+    renderOverviewToCanvas(grid, palette);
     overview_hash = hash;
     render_viewrect();
   }
@@ -164,41 +162,24 @@ function renderOverviewToCanvas(grid: number[][], pal: number[][]): void {
 }
 
 /****************************************************************************
-  Creates a grid representing the image for the overview map.
+  Single-pass: build both the overview grid and its hash simultaneously.
+  Avoids iterating all tiles twice (once for hash, once for grid).
 ****************************************************************************/
-export function generate_overview_grid(cols: number, rows: number): number[][] {
-  // Loop variables
-  let row: number;
-
-  if (cols & 1) cols -= 1;  //Bugfix, the overview map doesn't support map size which is odd.
+export function generate_overview_grid_and_hash(cols: number, rows: number): { grid: number[][], hash: number } {
+  if (cols & 1) cols -= 1;
   if (rows & 1) rows -= 1;
 
-  // The grid of points that make up the image.
-  const grid: number[][] = Array(rows*OVERVIEW_TILE_SIZE);
-  for (row = 0; row < rows * OVERVIEW_TILE_SIZE; row++) {
+  const grid: number[][] = Array(rows * OVERVIEW_TILE_SIZE);
+  for (let row = 0; row < rows * OVERVIEW_TILE_SIZE; row++) {
     grid[row] = Array(cols * OVERVIEW_TILE_SIZE);
   }
 
-  for (let x = 0; x < rows ; x++) {
+  let hash = 0;
+  for (let x = 0; x < rows; x++) {
     for (let y = 0; y < cols; y++) {
       const ocolor: number = overview_tile_color(y, x);
       render_multipixel(grid, x, y, ocolor);
-    }
-  }
-
-  return grid;
-}
-
-/****************************************************************************
-  Creates a hash of the current overview map.
-****************************************************************************/
-export function generate_overview_hash(cols: number, rows: number): number {
-
-  let hash: number = 0;
-
-  for (let x = 0; x < rows ; x++) {
-    for (let y = 0; y < cols; y++) {
-      hash += overview_tile_color(y, x);
+      hash += ocolor;
     }
   }
 
@@ -207,7 +188,22 @@ export function generate_overview_hash(cols: number, rows: number): number {
     hash += r['map_x'];
     hash += r['map_y'];
   }
-  return hash;
+
+  return { grid, hash };
+}
+
+/****************************************************************************
+  Creates a grid representing the image for the overview map.
+****************************************************************************/
+export function generate_overview_grid(cols: number, rows: number): number[][] {
+  return generate_overview_grid_and_hash(cols, rows).grid;
+}
+
+/****************************************************************************
+  Creates a hash of the current overview map.
+****************************************************************************/
+export function generate_overview_hash(cols: number, rows: number): number {
+  return generate_overview_grid_and_hash(cols, rows).hash;
 }
 
 /****************************************************************************
