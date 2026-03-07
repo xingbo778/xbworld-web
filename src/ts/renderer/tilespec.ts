@@ -329,7 +329,7 @@ export function fill_sprite_array(layer: number, ptile: Tile | null, pedge: unkn
       if (ptile != null) {
         const tterrain_near = tile_terrain_near(ptile);
         const pterrain = tile_terrain(ptile);
-        sprite_array = sprite_array.concat(fill_terrain_sprite_layer(0, ptile, pterrain, tterrain_near));
+        sprite_array.push(...fill_terrain_sprite_layer(0, ptile, pterrain, tterrain_near));
 
       }
       break;
@@ -338,7 +338,7 @@ export function fill_sprite_array(layer: number, ptile: Tile | null, pedge: unkn
       if (ptile != null) {
         const tterrain_near = tile_terrain_near(ptile);
         const pterrain = tile_terrain(ptile);
-        sprite_array = sprite_array.concat(fill_terrain_sprite_layer(1, ptile, pterrain, tterrain_near));
+        sprite_array.push(...fill_terrain_sprite_layer(1, ptile, pterrain, tterrain_near));
 
       }
       break;
@@ -347,7 +347,7 @@ export function fill_sprite_array(layer: number, ptile: Tile | null, pedge: unkn
       if (ptile != null) {
         const tterrain_near = tile_terrain_near(ptile);
         const pterrain = tile_terrain(ptile);
-        sprite_array = sprite_array.concat(fill_terrain_sprite_layer(2, ptile, pterrain, tterrain_near));
+        sprite_array.push(...fill_terrain_sprite_layer(2, ptile, pterrain, tterrain_near));
 
         // fill_irrigation_sprite_array was a legacy extension — removed
       }
@@ -355,7 +355,7 @@ export function fill_sprite_array(layer: number, ptile: Tile | null, pedge: unkn
 
     case LAYER_ROADS:
       if (ptile != null) {
-        sprite_array = sprite_array.concat(fill_path_sprite_array(ptile, pcity));
+        sprite_array.push(...fill_path_sprite_array(ptile, pcity));
       }
       break;
 
@@ -382,7 +382,7 @@ export function fill_sprite_array(layer: number, ptile: Tile | null, pedge: unkn
           });
         }
 
-        sprite_array = sprite_array.concat(fill_layer1_sprite_array(ptile, pcity));
+        sprite_array.push(...fill_layer1_sprite_array(ptile, pcity));
 
         if (tile_has_extra(ptile, store.extraIds['EXTRA_HUT'])) {
           sprite_array.push({
@@ -405,7 +405,7 @@ export function fill_sprite_array(layer: number, ptile: Tile | null, pedge: unkn
           });
         }
 
-        sprite_array = sprite_array.concat(get_border_line_sprites(ptile));
+        sprite_array.push(...get_border_line_sprites(ptile));
 
       }
       break;
@@ -423,7 +423,7 @@ export function fill_sprite_array(layer: number, ptile: Tile | null, pedge: unkn
 
     case LAYER_SPECIAL2:
       if (ptile != null) {
-        sprite_array = sprite_array.concat(fill_layer2_sprite_array(ptile, pcity));
+        sprite_array.push(...fill_layer2_sprite_array(ptile, pcity));
       }
       break;
 
@@ -442,7 +442,7 @@ export function fill_sprite_array(layer: number, ptile: Tile | null, pedge: unkn
 
         /* TODO: Special case for drawing the selection rectangle. The blinking
         * unit is handled separately, inside get_drawable_unit(). */
-        sprite_array = sprite_array.concat(fill_unit_sprite_array(punit, stacked, false));
+        sprite_array.push(...fill_unit_sprite_array(punit, stacked, false));
 
       }
 
@@ -490,13 +490,13 @@ export function fill_sprite_array(layer: number, ptile: Tile | null, pedge: unkn
       break;
 
     case LAYER_FOG:
-      sprite_array = sprite_array.concat(fill_fog_sprite_array(ptile, pedge, pcorner));
+      sprite_array.push(...fill_fog_sprite_array(ptile, pedge, pcorner));
 
       break;
 
     case LAYER_SPECIAL3:
       if (ptile != null) {
-        sprite_array = sprite_array.concat(fill_layer3_sprite_array(ptile, pcity));
+        sprite_array.push(...fill_layer3_sprite_array(ptile, pcity));
       }
       break;
 
@@ -538,7 +538,7 @@ export function fill_sprite_array(layer: number, ptile: Tile | null, pedge: unkn
 
     case LAYER_GOTO:
       if (ptile != null && ptile['goto_dir'] != null) {
-        sprite_array = sprite_array.concat(fill_goto_line_sprite_array(ptile));
+        sprite_array.push(...fill_goto_line_sprite_array(ptile));
       }
 
       if (ptile != null && (ptile['nuke'] as number) > 0) {
