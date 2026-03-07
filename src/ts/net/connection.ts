@@ -38,7 +38,7 @@ let error_shown = false;
 let syncTimerId = -1;
 let clinet_last_send = 0;
 export let debug_client_speed_list: number[] = [];
-const freeciv_version = '+Freeciv.Web.Devel-3.3';
+const freeciv_version = '+Freeciv.Web.Devel-3.4';
 let ws: WebSocket | null = null;
 let civserverport: string | null = null;
 let ping_last = new Date().getTime();
@@ -186,7 +186,7 @@ export async function check_websocket_ready(): Promise<void> {
       capability: freeciv_version,
       version_label: '-dev',
       major_version: 3,
-      minor_version: 1,
+      minor_version: 3,
       patch_version: 90,
       port: civserverport,
       password: sha_password,
