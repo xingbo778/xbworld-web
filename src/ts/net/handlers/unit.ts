@@ -23,6 +23,7 @@ import {
 } from '../../data/unit';
 import { utype_can_do_action } from '../../data/unittype';
 import { mark_tile_dirty } from '../../renderer/mapviewCommon';
+import { mark_overview_dirty } from '../../core/overview';
 import { explosion_anim_map } from '../../renderer/tilespec';
 import { game_find_unit_by_number, game_find_city_by_number } from '../../data/game';
 import { player_find_unit_by_id } from '../../data/player';
@@ -64,6 +65,7 @@ export function handle_unit_remove(packet: UnitRemovePacket): void {
   if (typeof mark_tile_dirty === 'function' && punit['tile'] != null) {
     mark_tile_dirty(punit['tile']);
   }
+  mark_overview_dirty();
 
   if (action_selection_in_progress_for === punit.id) {
     action_selection_close();
@@ -82,6 +84,7 @@ export function handle_unit_info(packet: UnitInfoPacket): void {
       mark_tile_dirty(old_unit['tile']);
     }
   }
+  mark_overview_dirty();
   handle_unit_packet_common(packet);
 }
 
@@ -93,6 +96,7 @@ export function handle_unit_short_info(packet: UnitInfoPacket): void {
       mark_tile_dirty(old_unit['tile']);
     }
   }
+  mark_overview_dirty();
   handle_unit_packet_common(packet);
 }
 

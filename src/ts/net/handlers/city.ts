@@ -7,6 +7,7 @@ import { BitVector } from '../../utils/bitvector';
 import { C_S_RUNNING, clientState, clientIsObserver, clientPlaying } from '../../client/clientState';
 import { cityUnhappy, removeCity } from '../../data/city';
 import { mark_tile_dirty } from '../../renderer/mapviewCommon';
+import { mark_overview_dirty } from '../../core/overview';
 import { show_city_dialog_by_id, city_name_dialog, city_trade_routes } from '../../ui/cityDialog';
 import { game_find_unit_by_number, game_find_city_by_number } from '../../data/game';
 import { popup_sabotage_dialog } from '../../ui/actionDialog';
@@ -23,6 +24,7 @@ export function handle_city_info(packet: CityInfoPacket): void {
   if (typeof mark_tile_dirty === 'function' && packet['tile'] != null) {
     mark_tile_dirty(packet['tile']);
   }
+  mark_overview_dirty();
 
   packet['name'] = decodeURIComponent(packet['name']);
   packet['improvements'] = new BitVector(packet['improvements'] as number[]);
