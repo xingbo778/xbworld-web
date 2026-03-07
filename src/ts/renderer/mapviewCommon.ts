@@ -346,7 +346,7 @@ export function update_map_canvas_full(): void {
     }
 
     clear_dirty();
-    last_redraw_time = new Date().getTime();
+    last_redraw_time = performance.now();
   }
 }
 
@@ -365,7 +365,7 @@ export function update_map_canvas_dirty(): void {
   }
 
   if (dirty_count === 0) {
-    last_redraw_time = new Date().getTime();
+    last_redraw_time = performance.now();
     return;
   }
 
@@ -401,7 +401,7 @@ export function update_map_canvas_dirty(): void {
   }
 
   clear_dirty();
-  last_redraw_time = new Date().getTime();
+  last_redraw_time = performance.now();
 }
 
 /**************************************************************************
@@ -409,14 +409,14 @@ export function update_map_canvas_dirty(): void {
   Uses dirty-rect rendering when only a few tiles changed.
 **************************************************************************/
 export function update_map_canvas_check(): void {
-  const time = new Date().getTime() - last_redraw_time;
+  const time = performance.now() - last_redraw_time;
   if (time > MAPVIEW_REFRESH_INTERVAL && store.renderer == RENDERER_2DCANVAS) {
     if (dirty_all || dirty_count > DIRTY_FULL_THRESHOLD) {
       update_map_canvas_full();
     } else if (dirty_count > 0) {
       update_map_canvas_dirty();
     } else {
-      last_redraw_time = new Date().getTime();
+      last_redraw_time = performance.now();
     }
   }
   try {
@@ -435,7 +435,7 @@ export function update_map_canvas_check(): void {
   region from the buffer_canvas onto the mapview canvas.
 **************************************************************************/
 export function update_map_slide(): void {
-  const elapsed = 1 + new Date().getTime() - mapview_slide['start']!;
+  const elapsed = 1 + performance.now() - mapview_slide['start']!;
   mapview_slide['i'] = Math.floor(mapview_slide['max']
     * (mapview_slide['slide_time']
       - elapsed) / mapview_slide['slide_time']);

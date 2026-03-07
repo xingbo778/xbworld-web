@@ -484,7 +484,7 @@ export function enable_mapview_slide(ptile: Tile): void {
   mapview_slide['dx'] = dx;
   mapview_slide['dy'] = dy;
   mapview_slide['i'] = mapview_slide['max'];
-  mapview_slide['start'] = new Date().getTime();
+  mapview_slide['start'] = performance.now();
 
   if ((dx == 0 && dy == 0) || mapview_slide['active']
     || Math.abs(dx) > mapview['width'] || Math.abs(dy) > mapview['height']) {

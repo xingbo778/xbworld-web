@@ -95,7 +95,7 @@ export function fill_fog_sprite_array(ptile: Tile | null, pedge: unknown, pcorne
 ****************************************************************************/
 export function get_select_sprite(): SpriteEntry {
   // update selected unit sprite 6 times a second.
-  const current_select_sprite = (Math.floor(new Date().getTime() * 6 / 1000) % 4);
+  const current_select_sprite = (Math.floor(performance.now() * 6 / 1000) % 4);
   return { "key": "unit.select" + current_select_sprite };
 }
 
