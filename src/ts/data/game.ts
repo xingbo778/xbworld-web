@@ -57,7 +57,7 @@ export function update_game_status_panel(): void {
     if (!is_small_screen())
       status_html +=
         '<b>' +
-        store.nations[pplayer['nation']]['adjective'] +
+        (store.nations[pplayer['nation']]?.['adjective'] || '') +
         "</b> &nbsp;&nbsp; <span title='Population'>👤</span>: ";
     if (!is_small_screen())
       status_html += '<b>' + civ_population(clientPlaying()!.playerno) + '</b>  &nbsp;&nbsp;';

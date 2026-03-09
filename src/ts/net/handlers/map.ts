@@ -24,7 +24,9 @@ export function handle_tile_info(packet: TileInfoPacket): void {
 }
 
 export function handle_map_info(packet: MapInfoPacket): void {
+  (window as any).__xbwHandleMapInfoCalled = ((window as any).__xbwHandleMapInfoCalled || 0) + 1;
   store.mapInfo = packet;
+  (window as any).__xbwMapInfoXsize = packet.xsize;
   mapInitTopology(false);
   mapAllocate();
   mapdeco_init();

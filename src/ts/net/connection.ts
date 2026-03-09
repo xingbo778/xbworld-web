@@ -34,22 +34,15 @@ async function sha512hex(text: string): Promise<string> {
 const win = window as unknown as Record<string, unknown>;
 
 // Packet worker — JSON.parse off the main thread
+// Worker is disabled: the hash-named worker asset URL may mismatch after builds,
+// causing silent packet loss. Main-thread JSON.parse is fast enough for observer mode.
 let _packetWorker: Worker | null = null;
 function getPacketWorker(): Worker | null {
-  if (_packetWorker) return _packetWorker;
-  try {
-    _packetWorker = new Worker(
-      new URL('./packetWorker.ts', import.meta.url),
-      { type: 'module' }
-    );
-  } catch {
-    // Workers not supported in this environment (e.g. tests)
-    _packetWorker = null;
-  }
-  return _packetWorker;
+  return null;
 }
 
 // Module-local state (was var in clinet.js)
+console.log('[xbw] connection.ts module loaded');
 let error_shown = false;
 let syncTimerId = -1;
 let clinet_last_send = 0;
@@ -126,16 +119,20 @@ export function websocket_init(): void {
   const proxyport = 1000 + parseFloat(civserverport!);
   const ws_protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
   const port = window.location.port ? ':' + window.location.port : '';
-  ws = new WebSocket(ws_protocol + window.location.hostname + port + '/civsocket/' + proxyport);
-
-  ws.onopen = check_websocket_ready;
+  const wsUrl = ws_protocol + window.location.hostname + port + '/civsocket/' + proxyport;
+  console.log('[xbw] websocket_init: connecting to', wsUrl);
+  ws = new WebSocket(wsUrl);
 
   // Try to use Web Worker for JSON.parse; fall back to main-thread parsing.
   const worker = getPacketWorker();
 
   type AnyPacket = NonNullable<Parameters<typeof client_handle_packet>[0]>;
   const processPackets = (parsed: AnyPacket) => {
-    if (typeof client_handle_packet === 'undefined' || !parsed) return;
+    if (typeof client_handle_packet === 'undefined' || !parsed) {
+      return;
+    }
+    if ((window as any).__xbwPacketCount === undefined) (window as any).__xbwPacketCount = 0;
+    (window as any).__xbwPacketCount += parsed.length;
     const CHUNK = 50;
     if (parsed.length <= CHUNK) {
       client_handle_packet!(parsed);
@@ -197,6 +194,11 @@ export function websocket_init(): void {
   } else {
     ws.onmessage = mainThreadParse;
   }
+
+  ws.onopen = (e) => {
+    console.log('[xbw] WebSocket onopen fired, readyState:', ws?.readyState, 'event:', e.type);
+    check_websocket_ready();
+  };
 
   ws.onclose = function (event: CloseEvent) {
     swal(

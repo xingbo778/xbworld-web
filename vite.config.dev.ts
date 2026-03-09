@@ -3,7 +3,7 @@
  *
  * Usage:
  *   # Connect to the production Railway backend
- *   BACKEND_URL=https://xbworld-production.up.railway.app npx vite --config vite.config.dev.ts
+ *   BACKEND_URL=https://xbworld-web-production.up.railway.app npx vite --config vite.config.dev.ts
  *
  *   # Or connect to a local backend
  *   BACKEND_URL=http://localhost:8080 npx vite --config vite.config.dev.ts
@@ -20,7 +20,7 @@ import https from 'https';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 // Preact JSX handled via esbuild config (no preset needed for dev)
 
-const BACKEND = process.env.BACKEND_URL || 'https://xbworld-production.up.railway.app';
+const BACKEND = process.env.BACKEND_URL || 'https://xbworld-web-production.up.railway.app';
 const backendWs = BACKEND.replace(/^http/, 'ws');
 
 // Use egress proxy if available (e.g. in Claude Code web environment),

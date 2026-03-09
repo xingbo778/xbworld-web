@@ -364,7 +364,11 @@ export function client_handle_packet(packets: (BasePacket & { pid: number })[] |
   try {
     for (let i = 0; i < packets.length; i++) {
       if (packets[i] != null) {
-        const handler = packet_hand_table[packets[i].pid];
+        const pid = packets[i].pid;
+        // Track received pids for debugging
+        const pids = (window as any).__xbwReceivedPids || ((window as any).__xbwReceivedPids = {});
+        pids[pid] = (pids[pid] || 0) + 1;
+        const handler = packet_hand_table[pid];
         if (handler) {
           handler(packets[i]);
         } else {

@@ -45,6 +45,8 @@ export function setClientState(newstate: number): void {
       }
       set_client_page(PAGE_GAME);
       setupWindowSize();
+      // Initialize overview panel (sets default size if no map data yet)
+      init_overview();
       // remove context menu from pregame
       document.querySelectorAll('.context-menu-root').forEach(el => el.remove());
       // Always observer mode — center on a city at game start

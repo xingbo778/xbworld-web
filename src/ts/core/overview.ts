@@ -76,7 +76,20 @@ export function mark_overview_dirty(): void { overview_dirty = true; }
   Initialize the overview map.
 ****************************************************************************/
 export function init_overview(): void {
-  while (min_overview_width > OVERVIEW_TILE_SIZE * store.mapInfo!.xsize) {
+  (window as any).__xbwInitOverviewCalled = ((window as any).__xbwInitOverviewCalled || 0) + 1;
+  (window as any).__xbwOverviewActive = true;
+  if (!store.mapInfo?.xsize || !store.mapInfo?.ysize) {
+    (window as any).__xbwInitOverviewNoMapInfo = true;
+    // No valid map dimensions yet — give the container a placeholder size
+    // so the overview panel is visible (shows as empty until map data arrives).
+    const overviewMap = document.getElementById('overview_map');
+    if (overviewMap && !overviewMap.style.width) {
+      overviewMap.style.width = '200px';
+      overviewMap.style.height = '100px';
+    }
+    return;
+  }
+  while (min_overview_width > OVERVIEW_TILE_SIZE * store.mapInfo.xsize) {
     OVERVIEW_TILE_SIZE++;
   }
 
@@ -111,7 +124,7 @@ export function init_overview(): void {
 ****************************************************************************/
 export function redraw_overview(): void {
   if (!overview_active || mapview_slide['active'] || C_S_RUNNING > client_state()
-      || store.mapInfo!.xsize == null || store.mapInfo!.ysize == null
+      || !store.mapInfo?.xsize || !store.mapInfo?.ysize
       || !document.getElementById('overview_map')) return;
 
   // Skip the O(n) hash scan if nothing has changed.
@@ -211,6 +224,7 @@ export function generate_overview_hash(cols: number, rows: number): number {
 ****************************************************************************/
 export function render_viewrect(): void {
   if (C_S_RUNNING != client_state() && C_S_OVER != client_state()) return;
+  if (!store.mapInfo?.xsize || !store.mapInfo?.ysize) return;
 
   const path: number[][] = [];
 

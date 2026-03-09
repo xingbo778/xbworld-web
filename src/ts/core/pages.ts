@@ -32,11 +32,8 @@ let old_page: number = -1;
 export function set_client_page(page: number): void {
   if (old_page === page) return;
 
-  if (old_page === -1) {
-    document.getElementById('pregame_page')?.remove();
-  }
-
   if (page === PAGE_GAME) {
+    document.getElementById('pregame_page')?.remove();
     const gamePage = document.getElementById('game_page');
     if (gamePage) gamePage.style.display = '';
     set_chat_direction(null);

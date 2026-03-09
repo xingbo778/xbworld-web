@@ -88,8 +88,8 @@ export function update_player_info_pregame_real(): void {
     const player = store.players[Number(id)];
     let nation_text = "";
     const plrEl = document.getElementById('pregame_plr_' + id);
-    if (player['nation'] in store.nations) {
-      nation_text = " - " + store.nations[player['nation']]['adjective'];
+    if (player['nation'] in store.nations && store.nations[player['nation']] != null) {
+      nation_text = " - " + (store.nations[player['nation']]['adjective'] || '');
       const flag_canvas = document.createElement('canvas');
       flag_canvas.id = 'pregame_nation_flags_' + id;
       flag_canvas.width = 29;

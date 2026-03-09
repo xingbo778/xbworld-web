@@ -29,9 +29,9 @@ export function handle_game_info(packet: GameInfoPacket): void {
   store.gameInfo = packet;
 
   if (
-    packet.turn > 0 &&
     typeof clientState === 'function' &&
-    clientState() !== C_S_RUNNING
+    clientState() !== C_S_RUNNING &&
+    (packet.turn > 0 || store.observing)
   ) {
     setTimeout(() => {
       if (clientState() !== C_S_RUNNING) {

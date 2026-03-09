@@ -29,7 +29,6 @@ import { send_request } from '../net/connection';
 import { packet_authentication_reply } from '../net/packetConstants';
 import { showMessageDialog, closeMessageDialog } from '../components/Dialogs/MessageDialog';
 import { showAuthDialog as showAuthDialogPreact } from '../components/Dialogs/AuthDialog';
-import { showIntroDialog } from '../components/Dialogs/IntroDialog';
 import { store } from '../data/store';
 import { setupWindowSize } from './clientMain';
 import { music_list, audio, setAudio, supports_mp3 } from '../audio/audioState';
@@ -141,17 +140,22 @@ export function civClientInit(): void {
 // ---------------------------------------------------------------------------
 
 /**
- * Shows the observer intro dialog and starts connection.
+ * Resolves the observer username: URL param → localStorage → random.
+ */
+function resolveUsername(): string {
+  const urlParam = new URLSearchParams(window.location.search).get('username');
+  if (urlParam && urlParam.trim().length >= 3) return urlParam.trim();
+  const saved = localStorage.getItem('username');
+  if (saved && saved.trim().length >= 3) return saved.trim();
+  return 'Observer_' + Math.random().toString(36).slice(2, 6).toUpperCase();
+}
+
+/**
+ * Auto-connects as observer. Username from ?username= URL param, localStorage, or random.
+ * No dialog shown — connection starts immediately on page load.
  */
 export function initCommonIntroDialog(): void {
-  // Set default username and auto-connect
-  const saved = localStorage.getItem('username');
-  store.username = saved || 'Observer';
-  // Show intro dialog (non-blocking)
-  showIntroDialog('Welcome to XBWorld', 'You are joining the game as an observer. Please enter your name:');
-  // Auto-connect immediately (dialog can still update username).
-  // Use dynamic import to avoid circular dependency (connection.ts imports from civClient.ts).
-  // Use dynamic import to avoid circular dependency (connection.ts ↔ civClient.ts)
+  store.username = resolveUsername();
   import('../net/connection').then(m => m.network_init());
 }
 

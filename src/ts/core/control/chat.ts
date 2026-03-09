@@ -205,7 +205,7 @@ export function set_chat_direction(player_id: number | null): void {
     const pplayer = store.players[player_id];
     if (pplayer == null) return;
     player_name = pplayer['name']
-      + " of the " + store.nations[pplayer['nation']]['adjective'];
+      + " of the " + (store.nations[pplayer['nation']]?.['adjective'] || pplayer['name']);
     ctx.clearRect(0, 0, 29, 20);
     const flag = store.sprites["f." + store.nations[pplayer['nation']]['graphic_str']];
     if (flag != null) {

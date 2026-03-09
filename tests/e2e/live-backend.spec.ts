@@ -11,8 +11,8 @@
  * tileset JSON ({}) and a 1×1 transparent pixel for every tileset image,
  * so init_cache_sprites() runs with 0 entries and completes instantly.
  *
- * Requires dev server on port 3000:
- *   BACKEND_URL=http://localhost:8080 npx vite --config vite.config.dev.ts --port 3000 --host 127.0.0.1
+ * Requires dev server on port 8081:
+ *   BACKEND_URL=https://xbworld-production.up.railway.app npx vite --config vite.config.dev.ts --port 8081
  */
 import { test, expect } from '@playwright/test';
 
@@ -107,21 +107,241 @@ test.describe('Observer UI (backend blocked)', () => {
     expect(await page.locator('#game_unit_orders_default').count()).toBe(0);
   });
 
-  test('should mount Preact IntroDialog with username input', async ({ page }) => {
+  test('should auto-connect without username dialog', async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', (err) => errors.push(err.message));
 
     await blockBackend(page);
-    await page.goto('/webclient/index.html', { waitUntil: 'domcontentloaded' });
+    // ?username= in URL — should be used directly, no dialog shown
+    await page.goto('/webclient/index.html?username=TestObserver', { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(1000);
 
-    // IntroDialog (Preact) should mount and show username input
-    await expect(page.locator('#username_req')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Observe Game' })).toBeVisible();
+    // IntroDialog must NOT appear — no dialog, no username input
+    expect(await page.locator('#username_req').count()).toBe(0);
+    expect(await page.getByRole('button', { name: 'Observe Game' }).count()).toBe(0);
+
+    // pregame page visible while waiting for server
+    await expect(page.locator('#pregame_page')).toBeVisible();
 
     // No critical JS errors
     const criticalErrors = errors.filter(
       (e) => !e.includes('ResizeObserver') && !e.includes('favicon') && !e.includes('404')
     );
     expect(criticalErrors).toHaveLength(0);
+  });
+});
+
+test.describe('Live Railway connection', () => {
+  test.describe.configure({ timeout: 120_000 });
+
+  test.afterEach(async ({ page }) => {
+    await page.close({ runBeforeUnload: false });
+  });
+
+  test('should connect and show game map with minimap', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', (err) => {
+      if (!err.message.includes('ResizeObserver') && !err.message.includes('favicon')) {
+        errors.push(err.message);
+      }
+    });
+
+    // Navigate — username from URL, no dialog
+    await page.goto('/webclient/index.html?username=E2EObserver', { waitUntil: 'domcontentloaded' });
+
+    // No username dialog should appear
+    expect(await page.locator('#username_req').count()).toBe(0);
+
+    // Wait for game page to become visible (server sends initial game data)
+    await page.waitForSelector('#game_page', { state: 'visible', timeout: 90_000 });
+    await page.screenshot({ path: 'test-results/live-01-game-page-visible.png' }).catch(() => {});
+
+    // Map tab should be present
+    await expect(page.locator('#map_tab')).toBeVisible();
+
+    // Canvas should exist inside canvas_div
+    await expect(page.locator('#canvas_div canvas').first()).toBeVisible({ timeout: 15_000 });
+
+    // Debug: check overview DOM state
+    await page.waitForTimeout(3000);
+    const overviewDebug = await page.evaluate(() => {
+      const panel = document.getElementById('game_overview_panel');
+      const map = document.getElementById('overview_map');
+      const img = document.getElementById('overview_img') as HTMLCanvasElement | null;
+      const w = window as any;
+      return {
+        panel_display: panel ? getComputedStyle(panel).display : 'missing',
+        panel_visibility: panel ? getComputedStyle(panel).visibility : 'missing',
+        panel_w: panel?.offsetWidth, panel_h: panel?.offsetHeight,
+        map_display: map ? getComputedStyle(map).display : 'missing',
+        map_style_w: map?.style.width, map_style_h: map?.style.height,
+        map_w: map?.offsetWidth, map_h: map?.offsetHeight,
+        img_display: img ? getComputedStyle(img).display : 'missing',
+        img_w: img?.offsetWidth, img_h: img?.offsetHeight,
+        overview_active: w.__xbwOverviewActive,
+        store_map_info: w.store ? !!w.store.mapInfo : 'no-store',
+        map_info_xsize: w.store?.mapInfo?.xsize,
+        init_overview_called: w.__xbwInitOverviewCalled,
+        init_overview_no_map_info: w.__xbwInitOverviewNoMapInfo,
+        handle_map_info_called: w.__xbwHandleMapInfoCalled,
+        map_info_xsize: w.__xbwMapInfoXsize,
+        received_pids_sample: JSON.stringify(w.__xbwReceivedPids).slice(0, 200),
+      };
+    });
+    console.log('Overview debug:', JSON.stringify(overviewDebug));
+
+    // Minimap overview canvas should be visible (allow time for init_overview to run)
+    await expect(page.locator('#overview_img')).toBeVisible({ timeout: 20_000 });
+    await expect(page.locator('#overview_viewrect')).toBeVisible({ timeout: 10_000 });
+
+    await page.screenshot({ path: 'test-results/live-02-map-visible.png' }).catch(() => {});
+
+    // Verify canvas has rendered content (non-black pixels)
+    const canvasInfo = await page.evaluate(() => {
+      const c = document.querySelector('#canvas_div canvas') as HTMLCanvasElement | null;
+      if (!c) return 'no-canvas';
+      const ctx = c.getContext('2d');
+      if (!ctx) return 'no-context';
+      const { width: w, height: h } = c;
+      if (!w || !h) return `zero-size:${w}x${h}`;
+      const data = ctx.getImageData(Math.floor(w / 4), Math.floor(h / 4),
+        Math.min(200, Math.floor(w / 2)), Math.min(200, Math.floor(h / 2))).data;
+      let nonBlack = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        if (data[i] > 10 || data[i + 1] > 10 || data[i + 2] > 10) nonBlack++;
+      }
+      return `${w}x${h} nonBlack=${nonBlack}/${data.length / 4}`;
+    });
+    console.log('Canvas info:', canvasInfo);
+    expect(canvasInfo).not.toBe('no-canvas');
+    expect(canvasInfo).not.toBe('no-context');
+
+    // Test map drag: mousedown + mousemove + mouseup on canvas
+    const canvas = page.locator('#canvas_div canvas').first();
+    const box = await canvas.boundingBox();
+    if (box) {
+      const cx = box.x + box.width / 2;
+      const cy = box.y + box.height / 2;
+      await page.mouse.move(cx, cy);
+      await page.mouse.down();
+      await page.mouse.move(cx + 100, cy + 50, { steps: 5 });
+      await page.mouse.up();
+      await page.waitForTimeout(500);
+    }
+    await page.screenshot({ path: 'test-results/live-03-after-drag.png' }).catch(() => {});
+
+    expect(errors).toHaveLength(0);
+  });
+});
+
+test.describe('Debug connection', () => {
+  test.describe.configure({ timeout: 60_000 });
+  test('diagnose - capture state at 5s, 15s, 30s', async ({ page }) => {
+    const logs: string[] = [];
+    const requests: string[] = [];
+    let wsFrameCount = 0;
+    let wsConnected = false;
+    page.on('console', msg => { logs.push(`[${msg.type()}] ${msg.text()}`); });
+    page.on('pageerror', err => logs.push(`[ERROR] ${err.message}`));
+    page.on('request', req => {
+      const u = req.url();
+      if (u.includes('civclientlauncher') || u.includes('civsocket')) requests.push(u);
+    });
+    page.on('websocket', ws => {
+      console.log('WebSocket created:', ws.url());
+      wsConnected = true;
+      ws.on('framereceived', frame => {
+        wsFrameCount++;
+        if (wsFrameCount <= 3) {
+          const text = frame.payload.toString().slice(0, 100);
+          console.log(`WS frame #${wsFrameCount}:`, text);
+        }
+      });
+      ws.on('socketerror', err => console.log('WS error:', err));
+      ws.on('close', () => console.log('WS closed'));
+    });
+
+    await page.goto('/webclient/index.html?username=DiagUser', { waitUntil: 'domcontentloaded' });
+
+    // Snapshot at 5s
+    await page.waitForTimeout(5000);
+    const snap5 = await page.evaluate(() => {
+      const pregame = document.getElementById('pregame_page');
+      const gamePage = document.getElementById('game_page');
+      const chatbox = document.getElementById('pregame_message_area');
+      const w = window as any;
+      const wsState = w.ws ? w.ws.readyState : 'no-ws';
+      const wsUrl = w.ws ? w.ws.url : 'no-url';
+      return {
+        pregame_exists: !!pregame,
+        game_page_display: gamePage ? gamePage.style.display : 'missing',
+        chatbox_text: chatbox ? chatbox.textContent?.slice(0, 200) : '(no chatbox)',
+        civserverport: w.civserverport,
+        ws_readyState: wsState,
+        ws_url: wsUrl,
+        blockUI_visible: !!document.querySelector('.xb-block-overlay, .blockUI'),
+      };
+    });
+    console.log('5s snapshot:', JSON.stringify(snap5));
+    await page.screenshot({ path: 'test-results/diag-5s.png' }).catch(() => {});
+
+    // Snapshot at 15s
+    await page.waitForTimeout(10000);
+    const snap15 = await page.evaluate(() => {
+      const pregame = document.getElementById('pregame_page');
+      const gamePage = document.getElementById('game_page');
+      const chatbox = document.getElementById('pregame_message_area');
+      const w = window as any;
+      return {
+        pregame_exists: !!pregame,
+        game_page_display: gamePage ? gamePage.style.display : 'missing',
+        chatbox_text: chatbox ? chatbox.textContent?.slice(0, 200) : '(no chatbox)',
+        chatbox_innerHTML: chatbox ? chatbox.innerHTML?.slice(0, 200) : '(no chatbox)',
+        chatbox_childCount: chatbox ? chatbox.children.length : -1,
+        ws_readyState: w.ws ? w.ws.readyState : 'no-ws',
+        ws_url: w.ws ? w.ws.url : 'no-ws',
+        packets_processed: w.__xbwPacketCount || 0,
+        onMessage_called: w.__xbwOnMessageCalled || 0,
+        processPackets_called: w.__xbwProcessPacketsCalled || 0,
+        early_return: w.__xbwEarlyReturn || null,
+        main_thread_parsing: w.__xbwMainThreadParsing || false,
+        parse_error: w.__xbwParseError || null,
+        ws_onmessage_type: w.ws ? typeof w.ws.onmessage : 'no-ws',
+        blockUI_visible: !!document.querySelector('.xb-block-overlay'),
+        swal_visible: !!document.querySelector('.swal2-popup'),
+        dialog_text: document.querySelector('[class*="MessageDialog"], [class*="xb-msg"]')?.textContent?.slice(0,100) || 'none',
+        game_info_year: (document.getElementById('game_status_panel_top') || document.getElementById('game_status_panel_bottom'))?.textContent?.slice(0, 50) || '(none)',
+        civclient_state: w.store?.civclientState,
+        game_info_turn: w.__xbwGameInfoTurn,
+        game_info_called: w.__xbwGameInfoCalled,
+        set_running_scheduled: w.__xbwSetRunningScheduled,
+        set_running_fired: w.__xbwSetRunningFired,
+        already_running: w.__xbwAlreadyRunning,
+        set_client_state_history: w.__xbwSetClientStateCalled,
+      };
+    });
+    console.log('15s snapshot:', JSON.stringify(snap15));
+    await page.screenshot({ path: 'test-results/diag-15s.png' }).catch(() => {});
+
+    // Snapshot at 30s
+    await page.waitForTimeout(15000);
+    const snap30 = await page.evaluate(() => {
+      const pregame = document.getElementById('pregame_page');
+      const gamePage = document.getElementById('game_page');
+      const chatbox = document.getElementById('pregame_message_area') || document.getElementById('game_message_area');
+      const computedDisplay = gamePage ? window.getComputedStyle(gamePage).display : 'missing';
+      return {
+        pregame_exists: !!pregame,
+        game_page_inline_display: gamePage ? gamePage.style.display : 'missing',
+        game_page_computed_display: computedDisplay,
+        chatbox_text: chatbox ? chatbox.textContent?.slice(0, 200) : '(no chatbox)',
+        pregame_chatbox_text: document.getElementById('pregame_message_area')?.textContent?.slice(0, 200) || '(no pregame chatbox)',
+      };
+    });
+    console.log('30s snapshot:', JSON.stringify(snap30));
+    console.log('Network requests:', requests.join(', '));
+    console.log('WS connected:', wsConnected, 'frames received:', wsFrameCount);
+    logs.slice(0, 50).forEach(l => console.log(l));
+    await page.screenshot({ path: 'test-results/diag-30s.png' }).catch(() => {});
   });
 });

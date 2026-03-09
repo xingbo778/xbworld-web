@@ -1,7 +1,6 @@
 import { render } from 'preact';
 import { MessageDialog } from './Dialogs/MessageDialog';
 import { AuthDialog } from './Dialogs/AuthDialog';
-import { IntroDialog } from './Dialogs/IntroDialog';
 import { IntelDialog } from './Dialogs/IntelDialog';
 import { SwalDialog } from './Dialogs/SwalDialog';
 import { CityDialog } from './Dialogs/CityDialog';
@@ -13,7 +12,6 @@ function App() {
       {/* Floating dialogs */}
       <MessageDialog />
       <AuthDialog />
-      <IntroDialog />
       <IntelDialog />
       <SwalDialog />
       <CityDialog />

@@ -7,6 +7,8 @@
 
 import { logNormal } from './core/log';
 
+console.log('[xbw] main.ts bundle starting');
+
 // CSS design tokens
 import './styles/tokens.css';
 
