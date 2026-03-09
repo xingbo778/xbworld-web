@@ -81,13 +81,15 @@ export default defineConfig({
 
     proxy: {
       // WebSocket proxy — browser connects to local ws://localhost:3000/civsocket/...
-      // and we forward to the remote backend
+      // and we forward to the remote backend.
+      // NOTE: target must use http(s):// not ws:// — http-proxy handles the
+      // WebSocket upgrade internally when ws:true is set.
       '/civsocket': {
-        target: backendWs,
+        target: BACKEND,
         ws: true,
         changeOrigin: true,
         secure: false,
-        ...(proxyEnv ? { agent: httpsAgent } : {}),
+        ...(BACKEND.startsWith('https') ? { agent: httpsAgent } : {}),
       },
 
       // API endpoints — must cover all backend routes

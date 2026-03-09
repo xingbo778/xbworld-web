@@ -127,6 +127,10 @@ import './utils/eventDelegation';
 // Step 4: Sync GameStore with window globals.
 // ---------------------------------------------------------------------------
 import { store } from './data/store';
+import { set_client_state } from './client/clientState';
+import { update_map_canvas_full, mark_all_dirty, mapview } from './renderer/mapviewCommon';
+import { map_to_gui_pos } from './renderer/mapCoords';
+import { redraw_overview } from './core/overview';
 
 function syncStoreWithWindow(): void {
   const storeRec = store as unknown as Record<string, unknown>;
@@ -150,6 +154,7 @@ function syncStoreWithWindow(): void {
     ['ruleset_control', 'rulesControl'],
     ['ruleset_summary', 'rulesSummary'],
     ['ruleset_description', 'rulesDescription'],
+    ['civclient_state', 'civclientState'],
   ];
 
   for (const [globalName, storeProp] of syncProps) {
@@ -199,6 +204,19 @@ function init(): void {
 
   syncStoreWithWindow();
   logNormal('[TS] Store ↔ window globals synced');
+
+  // Expose rendering helpers for E2E testing
+  win['set_client_state'] = set_client_state;
+  win['update_map_canvas_full'] = update_map_canvas_full;
+  win['mark_all_dirty'] = mark_all_dirty;
+  win['redraw_overview'] = redraw_overview;
+  win['__store'] = store;
+  // Expose renderer globals needed by unit.ts (declared as globals to avoid circular deps)
+  win['map_to_gui_pos'] = map_to_gui_pos;
+  Object.defineProperty(win, 'mapview', {
+    get: () => mapview,
+    configurable: true,
+  });
 
   initControls();
   logNormal('[TS] Controls initialized');

@@ -150,27 +150,52 @@ export function websocket_init(): void {
     }
   };
 
+  const mainThreadParse = (event: MessageEvent) => {
+    try {
+      let parsed = JSON.parse(event.data);
+      if (!Array.isArray(parsed)) parsed = [parsed];
+      processPackets(parsed);
+    } catch (e) {
+      console.error('Failed to parse packet:', e);
+    }
+  };
+
   if (worker) {
+    let workerReady = false;
+    const pendingMessages: string[] = [];
+
     worker.onmessage = function (e: MessageEvent) {
+      workerReady = true;
       if (e.data.error) {
         console.error('Packet worker parse error:', e.data.error);
       } else {
         processPackets(e.data.packets);
       }
     };
-    ws.onmessage = function (event: MessageEvent) {
-      worker.postMessage(event.data);
+    // If the Worker script fails to load (e.g. 404), fall back to main-thread parsing.
+    worker.onerror = function (ev: ErrorEvent) {
+      ev.preventDefault();
+      console.warn('Packet worker failed to load, falling back to main-thread parsing');
+      _packetWorker = null;
+      // Process any pending messages that were sent before the error
+      if (ws) ws.onmessage = mainThreadParse;
+      for (const msg of pendingMessages) {
+        mainThreadParse({ data: msg } as MessageEvent);
+      }
+      pendingMessages.length = 0;
     };
-  } else {
     ws.onmessage = function (event: MessageEvent) {
-      try {
-        let parsed = JSON.parse(event.data);
-        if (!Array.isArray(parsed)) parsed = [parsed];
-        processPackets(parsed);
-      } catch (e) {
-        console.error('Failed to parse packet:', e);
+      if (!workerReady && _packetWorker) {
+        pendingMessages.push(event.data);
+      }
+      if (_packetWorker) {
+        worker.postMessage(event.data);
+      } else {
+        mainThreadParse(event);
       }
     };
+  } else {
+    ws.onmessage = mainThreadParse;
   }
 
   ws.onclose = function (event: CloseEvent) {

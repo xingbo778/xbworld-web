@@ -339,6 +339,7 @@ export function put_drawn_sprites(pcanvas: CanvasRenderingContext2D, canvas_x: n
 export function update_map_canvas_full(): void {
   if (store.tiles != null && client_state() >= C_S_RUNNING) {
     if (!sprites_init) init_cache_sprites();
+    if (!sprites_init) return;  // sprites not ready yet
     if (active_city != null) return;
 
     if (mapview_slide['active']) {
@@ -360,6 +361,7 @@ export function update_map_canvas_full(): void {
 export function update_map_canvas_dirty(): void {
   if (store.tiles == null || client_state() < C_S_RUNNING) return;
   if (!sprites_init) init_cache_sprites();
+  if (!sprites_init) return;  // sprites not ready yet
   if (active_city != null) return;
 
   if (mapview_slide['active'] || dirty_all) {

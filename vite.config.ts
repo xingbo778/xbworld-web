@@ -6,7 +6,7 @@ export default defineConfig({
   esbuild: {
     jsx: 'automatic',
     jsxImportSource: 'preact',
-    pure: ['console.log', 'console.info'],
+    // pure: ['console.log', 'console.info'],  // disabled for debugging
   },
   resolve: {
     alias: {
@@ -14,6 +14,7 @@ export default defineConfig({
       '@legacy': resolve(__dirname, 'src/main/webapp/javascript'),
     },
   },
+  base: '/javascript/ts-bundle/',
   build: {
     outDir: resolve(__dirname, 'src/main/webapp/javascript/ts-bundle'),
     emptyOutDir: true,
