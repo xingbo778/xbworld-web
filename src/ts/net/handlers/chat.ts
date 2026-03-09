@@ -46,7 +46,7 @@ export function handle_chat_msg(packet: ChatMsgPacket): void {
 
     if (ptile != null && ptile > 0) {
       message = "<span class='chatbox_text_tileinfo' "
-          + "onclick='center_tile_id(" + ptile + ");'>" + message + '</span>';
+          + "data-action='center-tile' data-tileid='" + ptile + "'>" + message + '</span>';
     }
   }
 

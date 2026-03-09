@@ -235,8 +235,8 @@ describe('isSmallScreen', () => {
 });
 
 describe('getTilesetFileExtension', () => {
-  it('should return .png', () => {
-    expect(getTilesetFileExtension()).toBe('.png');
+  it('should return .webp', () => {
+    expect(getTilesetFileExtension()).toBe('.webp');
   });
 });
 

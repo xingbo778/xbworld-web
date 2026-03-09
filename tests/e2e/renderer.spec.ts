@@ -73,7 +73,7 @@ test.describe('PixiJS Renderer — activation', () => {
       const store = w['XBWorld'] as Record<string, unknown> | undefined;
       // Fallback: check via any global store reference
       return (w['_store'] as Record<string, unknown> | undefined)?.['renderer']
-        ?? store?.['store']?.['renderer']
+        ?? (store?.['store'] as Record<string, unknown> | undefined)?.['renderer']
         ?? null;
     });
 

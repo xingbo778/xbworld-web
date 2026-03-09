@@ -33,6 +33,22 @@ async function sha512hex(text: string): Promise<string> {
 
 const win = window as unknown as Record<string, unknown>;
 
+// Packet worker — JSON.parse off the main thread
+let _packetWorker: Worker | null = null;
+function getPacketWorker(): Worker | null {
+  if (_packetWorker) return _packetWorker;
+  try {
+    _packetWorker = new Worker(
+      new URL('./packetWorker.ts', import.meta.url),
+      { type: 'module' }
+    );
+  } catch {
+    // Workers not supported in this environment (e.g. tests)
+    _packetWorker = null;
+  }
+  return _packetWorker;
+}
+
 // Module-local state (was var in clinet.js)
 let error_shown = false;
 let syncTimerId = -1;
@@ -114,21 +130,48 @@ export function websocket_init(): void {
 
   ws.onopen = check_websocket_ready;
 
-  ws.onmessage = function (event: MessageEvent) {
-    if (typeof client_handle_packet !== 'undefined') {
+  // Try to use Web Worker for JSON.parse; fall back to main-thread parsing.
+  const worker = getPacketWorker();
+
+  type AnyPacket = NonNullable<Parameters<typeof client_handle_packet>[0]>;
+  const processPackets = (parsed: AnyPacket) => {
+    if (typeof client_handle_packet === 'undefined' || !parsed) return;
+    const CHUNK = 50;
+    if (parsed.length <= CHUNK) {
+      client_handle_packet!(parsed);
+    } else {
+      const processChunk = (start: number) => {
+        client_handle_packet!(parsed.slice(start, start + CHUNK) as AnyPacket);
+        if (start + CHUNK < parsed.length) {
+          setTimeout(() => processChunk(start + CHUNK), 0);
+        }
+      };
+      processChunk(0);
+    }
+  };
+
+  if (worker) {
+    worker.onmessage = function (e: MessageEvent) {
+      if (e.data.error) {
+        console.error('Packet worker parse error:', e.data.error);
+      } else {
+        processPackets(e.data.packets);
+      }
+    };
+    ws.onmessage = function (event: MessageEvent) {
+      worker.postMessage(event.data);
+    };
+  } else {
+    ws.onmessage = function (event: MessageEvent) {
       try {
         let parsed = JSON.parse(event.data);
-        // The proxy may send a single packet object or an array of packets.
-        // client_handle_packet expects an array.
-        if (!Array.isArray(parsed)) {
-          parsed = [parsed];
-        }
-        client_handle_packet!(parsed);
+        if (!Array.isArray(parsed)) parsed = [parsed];
+        processPackets(parsed);
       } catch (e) {
         console.error('Failed to parse packet:', e);
       }
-    }
-  };
+    };
+  }
 
   ws.onclose = function (event: CloseEvent) {
     swal(

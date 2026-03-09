@@ -8,7 +8,7 @@ import { setPhaseStart } from '../../client/clientCore';
 import { research_data } from '../../data/player';
 import { TECH_KNOWN } from '../../data/tech';
 import { city_trade_routes } from '../../ui/cityDialog';
-import { update_tech_screen, queue_tech_gained_dialog, is_tech_tree_init, tech_dialog_active, bulbs_output_updater } from '../../ui/techDialog';
+import { update_tech_screen, queue_tech_gained_dialog, tech_dialog_active, bulbs_output_updater } from '../../ui/techDialog';
 import { update_game_status_panel } from '../../data/game';
 import { chatbox_clip_messages } from '../../core/messages';
 import { mark_all_dirty } from '../../renderer/mapviewCommon';
@@ -136,7 +136,7 @@ export function handle_research_info(packet: ResearchInfoPacket): void {
     }
   }
 
-  if (is_tech_tree_init && tech_dialog_active) update_tech_screen();
+  if (tech_dialog_active) update_tech_screen();
   bulbs_output_updater.update();
 }
 
@@ -160,7 +160,7 @@ export function handle_begin_turn(_packet: BasePacket): void {
     auto_center_on_focus_unit();
   }
 
-  if (is_tech_tree_init && tech_dialog_active) update_tech_screen();
+  if (tech_dialog_active) update_tech_screen();
 }
 
 export function handle_end_turn(_packet: BasePacket): void {

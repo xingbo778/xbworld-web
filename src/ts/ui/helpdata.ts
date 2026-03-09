@@ -277,9 +277,9 @@ export function wiki_on_item_button(item_name: string): string {
   }
 
   return (
-    "<button class='help_button' onclick=\"show_wikipedia_dialog('" +
-    item_name.replace(/\\/g, "\\\\").replace(/'/g, "\\'") +
-    "');\">Wikipedia on " +
+    "<button class='help_button' data-action='wiki-dialog' data-techname='" +
+    item_name.replace(/\\/g, "\\\\").replace(/'/g, "&#39;") +
+    "'>Wikipedia on " +
     item_name +
     "</button>"
   );

@@ -2,6 +2,10 @@ import { defineConfig } from 'vitest/config';
 import { resolve } from 'path';
 
 export default defineConfig({
+  esbuild: {
+    jsx: 'automatic',
+    jsxImportSource: 'preact',
+  },
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src/ts'),
@@ -11,7 +15,7 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['tests/unit/setup.ts'],
-    include: ['tests/unit/**/*.test.ts'],
+    include: ['tests/unit/**/*.test.{ts,tsx}'],
     coverage: {
       provider: 'v8',
       include: ['src/ts/**/*.ts'],

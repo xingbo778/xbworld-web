@@ -7,18 +7,16 @@
 
 import { isLongturn as is_longturn } from '../../client/clientCore';
 import { clientState as client_state, C_S_RUNNING, clientPlaying } from '../../client/clientState';
-import { DiplState, PlayerFlag } from '../../data/player';
+import { PlayerFlag } from '../../data/player';
 import { send_message } from '../../net/connection';
 import { isTouchDevice as is_touch_device } from '../../utils/helpers';
 import { message_log, max_chat_message_length } from '../../core/messages';
 import { E_LOG_ERROR } from '../../data/eventConstants';
 import * as S from './controlState';
 
-const FC_DS_ALLIANCE = DiplState.DS_ALLIANCE;
 const FC_PLRF_AI = PlayerFlag.PLRF_AI;
 
 import { store } from '../../data/store';
-import { getDiplstates } from '../../data/nation';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -45,7 +43,6 @@ export function chat_context_change(): void {
 }
 
 export function chat_context_get_recipients(): ChatRecipient[] {
-  let allies = false;
   const pm: ChatRecipient[] = [];
 
   pm.push({ id: null, flag: null, description: 'Everybody' });
@@ -72,14 +69,6 @@ export function chat_context_get_recipients(): ChatRecipient[] {
       description: pplayer['name'] + " of the " + nation['adjective'],
       flag: store.sprites["f." + nation['graphic_str']]
     });
-
-    if (getDiplstates()[player_id] == FC_DS_ALLIANCE) {
-      allies = true;
-    }
-  }
-
-  if (allies && self >= 0) {
-    pm.push({ id: self, flag: null, description: 'Allies' });
   }
 
   pm.sort(function(a: ChatRecipient, b: ChatRecipient) {
@@ -171,12 +160,11 @@ export function chat_context_dialog_show(recipients: ChatRecipient[]): void {
       handle_chat_direction_chosen.call(row, ev);
     }
   });
-  document.getElementById('chat_context_dialog')!.appendChild(table);
+  dlgDiv.appendChild(table);
 
   // Show as a simple positioned popup
-  const chatDlg = document.getElementById('chat_context_dialog')!;
-  chatDlg.style.cssText = 'position:absolute;z-index:5000;background:#222;border:1px solid #555;padding:8px;max-height:' + Math.floor(0.9 * window.innerHeight) + 'px;overflow-y:auto;';
-  chatDlg.style.display = 'block';
+  dlgDiv.style.cssText = 'position:absolute;z-index:5000;background:#222;border:1px solid #555;padding:8px;max-height:' + Math.floor(0.9 * window.innerHeight) + 'px;overflow-y:auto;';
+  dlgDiv.style.display = 'block';
 }
 
 export function handle_chat_direction_chosen(this: HTMLElement, ev: Event): void {

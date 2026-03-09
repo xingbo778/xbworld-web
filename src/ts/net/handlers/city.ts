@@ -9,8 +9,6 @@ import { cityUnhappy, removeCity } from '../../data/city';
 import { mark_tile_dirty } from '../../renderer/mapviewCommon';
 import { mark_overview_dirty } from '../../core/overview';
 import { show_city_dialog_by_id, city_name_dialog, city_trade_routes } from '../../ui/cityDialog';
-import { game_find_unit_by_number, game_find_city_by_number } from '../../data/game';
-import { popup_sabotage_dialog } from '../../ui/actionDialog';
 import type {
   BasePacket,
   CityInfoPacket, CityShortInfoPacket, CityNationalitiesPacket,
@@ -98,14 +96,6 @@ export function handle_city_name_suggestion_info(packet: CityNameSuggestionInfoP
   city_name_dialog(packet['name'], packet['unit_id']);
 }
 
-export function handle_city_sabotage_list(packet: CitySabotageListPacket): void {
-  if (packet['request_kind'] !== REQEST_PLAYER_INITIATED) {
-    console.log('handle_city_sabotage_list(): was asked to not disturb the player. Unimplemented.');
-  }
-  popup_sabotage_dialog(
-    game_find_unit_by_number(packet['actor_id'])!,
-    game_find_city_by_number(packet['city_id'])!,
-    new BitVector(packet['improvements']),
-    packet['act_id']
-  );
+export function handle_city_sabotage_list(_packet: CitySabotageListPacket): void {
+  // player-only: sabotage dialog — no-op in observer mode
 }

@@ -15,6 +15,22 @@ import { game_find_unit_by_number } from '../../data/game';
 import { canClientIssueOrders as can_client_issue_orders } from '../../client/clientState';
 import { popup_actor_arrival } from '../../ui/options';
 import * as S from './controlState';
+
+// ---------------------------------------------------------------------------
+// Observer-mode stubs — player-only action dialogs (all no-ops)
+// ---------------------------------------------------------------------------
+export function act_sel_queue_done(_actor_unit_id?: number): void {}
+export function popup_action_selection(..._args: unknown[]): void {}
+export function popup_bribe_dialog(..._args: unknown[]): void {}
+export function popup_incite_dialog(..._args: unknown[]): void {}
+export function popup_unit_upgrade_dlg(..._args: unknown[]): void {}
+export function action_selection_refresh(..._args: unknown[]): void {}
+export function action_selection_close(): void {}
+export function action_selection_actor_unit(): number { return IDENTITY_NUMBER_ZERO; }
+export function action_selection_target_city(): number { return IDENTITY_NUMBER_ZERO; }
+export function action_selection_target_unit(): number { return IDENTITY_NUMBER_ZERO; }
+export function action_selection_target_tile(): number { return 0; }
+export function action_selection_target_extra(): number { return -1; }
 import type { Unit } from '../../data/types';
 // Circular import — OK because only used inside functions (not at init time)
 import { unit_is_in_focus, unit_focus_urgent } from './unitFocus';

@@ -7,7 +7,7 @@ import { tileset_ruleset_entity_tag_str_or_alt, get_city_flag_sprite, get_city_o
 import { orientation_changed } from '../utils/mobile';
 import { mapview, mapview_slide, mark_all_dirty, update_map_canvas_full, update_map_canvas, map_to_gui_pos, update_map_canvas_check } from './mapviewCommon';
 import { tileset_tile_width, tileset_tile_height, normal_tile_width, tileset_image_count, tileset_name } from './tilesetConfig';
-import { RENDERER_2DCANVAS } from '../core/constants';
+import { RENDERER_2DCANVAS, RENDERER_PIXI } from '../core/constants';
 import { active_city, citydlg_map_width, citydlg_map_height } from '../ui/cityDialogState';
 import { resize_enabled } from '../core/control/controlState';
 import { overview_active } from '../core/overview';
@@ -191,16 +191,28 @@ export function init_cache_sprites(): void {
   }
 
   if (typeof createImageBitmap === 'function') {
-    // Async path: createImageBitmap is off-main-thread in supporting browsers,
-    // avoids creating 2770 individual HTMLCanvasElements.
+    // Async batched path: process 100 sprites per tick to avoid saturating
+    // the GPU decode queue with 2770+ simultaneous createImageBitmap calls.
+    const BATCH = 100;
     const entries = Object.keys(tileset);
-    const bitmapPromises = entries.map(tile_tag => {
-      const [x, y, w, h, i] = tileset[tile_tag] as [number, number, number, number, number];
-      return createImageBitmap(tileset_images[i], x, y, w, h)
-        .then((bmp: ImageBitmap) => { sprites[tile_tag] = bmp; })
-        .catch(() => { /* skip missing sprite */ });
-    });
-    Promise.all(bitmapPromises).then(() => {
+    const total = entries.length;
+
+    const processBatch = (offset: number): Promise<void> => {
+      const chunk = entries.slice(offset, offset + BATCH);
+      const batchPromises = chunk.map(tile_tag => {
+        const [x, y, w, h, i] = tileset[tile_tag] as [number, number, number, number, number];
+        return createImageBitmap(tileset_images[i], x, y, w, h)
+          .then((bmp: ImageBitmap) => { sprites[tile_tag] = bmp; })
+          .catch(() => { /* skip missing sprite */ });
+      });
+      return Promise.all(batchPromises).then(() => {
+        if (offset + BATCH < total) {
+          return new Promise<void>(res => setTimeout(() => processBatch(offset + BATCH).then(res), 0));
+        }
+      });
+    };
+
+    processBatch(0).then(() => {
       sprites_init = true;
       sprites_loading = false;
       store.sprites = sprites as Record<string, HTMLCanvasElement>;
@@ -248,6 +260,10 @@ export function mapview_window_resized(): void {
   if (store.renderer == RENDERER_2DCANVAS) {
     if (typeof mark_all_dirty === 'function') mark_all_dirty();
     update_map_canvas_full();
+  } else if (store.renderer == RENDERER_PIXI) {
+    const pr = (store as unknown as Record<string, unknown>)['pixiRenderer'] as { resize(): void; markAllDirty(): void } | undefined;
+    pr?.resize();
+    pr?.markAllDirty();
   }
 }
 

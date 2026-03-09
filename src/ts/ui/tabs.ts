@@ -116,24 +116,3 @@ export function setActiveTab(selector: string, index: number): void {
 export function getActiveTab(selector: string): number {
   return instances.get(selector)?.active ?? 0;
 }
-
-/**
- * jQuery-compatible API bridge. Called from legacy code via window.
- */
-export function jqTabsBridge(el: HTMLElement, ...args: unknown[]): unknown {
-  const id = '#' + el.id;
-  if (args.length === 0 || (args.length === 1 && typeof args[0] === 'object')) {
-    // Init: $(el).tabs(options?)
-    initTabs(id, args[0] as { active?: number; heightStyle?: string } | undefined);
-    return;
-  }
-  if (args[0] === 'option' && args[1] === 'active') {
-    if (args.length === 3) {
-      // Set: $(el).tabs('option', 'active', index)
-      setActiveTab(id, args[2] as number);
-    } else {
-      // Get: $(el).tabs('option', 'active')
-      return getActiveTab(id);
-    }
-  }
-}

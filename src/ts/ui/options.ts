@@ -44,3 +44,37 @@ export function init_options_dialog(): void {
     });
   }
 }
+
+import { setTheme, getTheme, loadSavedTheme, type ThemeName } from '../utils/theme';
+
+// Load saved theme on startup
+loadSavedTheme();
+
+/** Inject theme selector into the options panel if it doesn't already exist. */
+export function init_theme_selector(): void {
+  const container = document.getElementById('opt_tab') ?? document.getElementById('tabs-opt');
+  if (!container || document.getElementById('xb-theme-selector')) return;
+
+  const wrapper = document.createElement('div');
+  wrapper.id = 'xb-theme-selector';
+  wrapper.style.cssText = 'margin:12px 0;display:flex;align-items:center;gap:8px;';
+
+  const label = document.createElement('label');
+  label.textContent = 'UI Theme:';
+  label.style.cssText = 'color:var(--xb-text-secondary,#8b949e);font-size:13px;min-width:70px;';
+
+  const select = document.createElement('select');
+  select.style.cssText = 'background:var(--xb-bg-elevated,#21262d);color:var(--xb-text-primary,#e6edf3);border:1px solid var(--xb-border-default,#30363d);border-radius:4px;padding:4px 8px;font-size:13px;';
+  [['dark', 'Dark (default)'], ['light', 'Light'], ['fantasy', 'Fantasy']].forEach(([val, text]) => {
+    const opt = document.createElement('option');
+    opt.value = val;
+    opt.textContent = text;
+    if (val === getTheme()) opt.selected = true;
+    select.appendChild(opt);
+  });
+  select.addEventListener('change', () => setTheme(select.value as ThemeName));
+
+  wrapper.appendChild(label);
+  wrapper.appendChild(select);
+  container.insertBefore(wrapper, container.firstChild);
+}

@@ -12,15 +12,16 @@ import { tileOwner } from '../../data/tile';
 import { indexToTile } from '../../data/map';
 import { update_game_status_panel } from '../../data/game';
 import { game_find_unit_by_number, game_find_city_by_number } from '../../data/game';
-import { update_net_income } from '../../components/Dialogs/RatesDialog';
-import { update_tech_screen, is_tech_tree_init, tech_dialog_active } from '../../ui/techDialog';
+
+import { update_tech_screen, tech_dialog_active } from '../../ui/techDialog';
 import { assign_nation_color } from '../../renderer/nationColor';
 import { update_player_info_pregame } from '../../core/pregame';
+import { globalEvents } from '../../core/events';
 import {
   action_selection_actor_unit, action_selection_target_city,
   action_selection_target_unit, action_selection_target_tile,
   action_selection_target_extra,
-} from '../../ui/actionDialog';
+} from '../../core/control/actionSelection';
 import type {
   BasePacket,
   PlayerInfoPacket, WebPlayerInfoAdditionPacket,
@@ -60,14 +61,15 @@ export function handle_web_player_info_addition(packet: WebPlayerInfoAdditionPac
     if (packet['playerno'] === clientPlaying()!['playerno']) {
       store.client.conn.playing = store.players[packet['playerno']];
       update_game_status_panel();
-      update_net_income();
+
     }
   }
   update_player_info_pregame();
 
-  if (is_tech_tree_init && tech_dialog_active) update_tech_screen();
+  if (tech_dialog_active) update_tech_screen();
 
   assign_nation_color(store.players[packet['playerno']]['nation']);
+  globalEvents.emit('player:updated', packet);
 }
 
 export function handle_player_remove(packet: PlayerRemovePacket): void {

@@ -30,7 +30,7 @@ export function get_advances_text(
   const num = (value: number | null) => value === null ? 'null' : value;
   const tech_span = (name: string, unit_id: number | null, impr_id: number | null, title?: string) =>
     `<span ${title ? `title='${title}'` : ''}`
-    + ` onclick='show_tech_info_dialog("${name}", ${num(unit_id)}, ${num(impr_id)})'>${name}</span>`;
+    + ` data-action='tech-info' data-name='${name}' data-unit='${num(unit_id)}' data-impr='${num(impr_id)}'>${name}</span>`;
 
   const is_valid_and_required = (next_tech_id: string) =>
     reqtree.hasOwnProperty(next_tech_id) && is_tech_req_for_tech(tech_id, parseInt(next_tech_id));
@@ -79,12 +79,12 @@ export function get_tech_infobox_html(
   const advancesText = get_advances_text(tech_id, techs);
 
   if (smallScreen) {
-    infobox_html += "<div class='specific_tech' onclick='send_player_research(" + tech_id + ");' title='"
+    infobox_html += "<div class='specific_tech' data-action='player-research' data-techid='" + tech_id + "' title='"
       + advancesText.replace(/(<([^>]+)>)/ig, "") + "'>"
       + ptech['name']
       + "</div>";
   } else {
-    infobox_html += "<div class='specific_tech' onclick='send_player_research(" + tech_id + ");' title='"
+    infobox_html += "<div class='specific_tech' data-action='player-research' data-techid='" + tech_id + "' title='"
       + advancesText.replace(/(<([^>]+)>)/ig, "") + "'>"
       + "<div class='tech_infobox_image' style='background: transparent url("
       + image_src

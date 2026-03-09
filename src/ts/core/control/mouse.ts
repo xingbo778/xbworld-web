@@ -14,7 +14,7 @@ import { canvas_pos_to_tile, mapview, mapview_slide, mark_all_dirty } from '../.
 import { touch_start_x, touch_start_y, map_select_check, map_select_x, map_select_y, map_select_check_started, setMapSelectActive, setTouchStart } from '../../renderer/mapctrl';
 import { isTouchDevice as is_touch_device } from '../../utils/helpers';
 import { clientState as client_state, C_S_RUNNING, clientPlaying } from '../../client/clientState';
-import { update_tech_dialog_cursor, tech_dialog_active } from '../../ui/techDialog';
+import { tech_dialog_active } from '../../ui/techDialog';
 import { RENDERER_2DCANVAS } from '../constants';
 import * as S from './controlState';
 // Circular imports — OK, only used inside functions
@@ -88,10 +88,7 @@ export function mouse_moved_cb(e: MouseEvent): void {
 }
 
 export function update_mouse_cursor(): void {
-  if (tech_dialog_active && !is_touch_device()) {
-    update_tech_dialog_cursor();
-    return;
-  }
+  if (tech_dialog_active && !is_touch_device()) return;
 
   const ptile = canvas_pos_to_tile(S.mouse_x, S.mouse_y);
 

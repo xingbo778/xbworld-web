@@ -1,12 +1,8 @@
 /**
- * XBWorld Web Client — TS module entry point.
+ * XBWorld Web Client — observer-mode entry point.
  *
- * All game logic is now in TypeScript modules. This entry point:
- *   1. Initializes global data stores on window.
- *   2. Patches missing WebGL stubs for 2D canvas mode.
- *   3. Imports all TS modules.
- *   4. Registers all exports to window via globalRegistry (transitional).
- *   5. Syncs the GameStore with window globals.
+ * Player-only features (diplomacy, CMA, rates, government, action dialogs,
+ * worklist) have been removed. All remaining imports serve the observer workflow.
  */
 
 import { logNormal } from './core/log';
@@ -53,7 +49,6 @@ if (!win['improvements']) win['improvements'] = {};
 if (!win['map']) win['map'] = {};
 if (!win['helpdata_order']) win['helpdata_order'] = [];
 if (!win['helpdata']) win['helpdata'] = {};
-// wiki docs lazy-loaded from /javascript/wiki-docs.json by techDialog
 
 // ---------------------------------------------------------------------------
 // Step 2: Import all TS modules (order matters for initialization).
@@ -65,7 +60,6 @@ import './data/signals';
 // Data layer
 import './data/game';
 import './data/unit';
-// unittype: no side effects, pulled in by import chain
 import './data/player';
 import './data/map';
 import './data/tile';
@@ -73,23 +67,20 @@ import './data/terrain';
 import './data/fcTypes';
 import './data/actions';
 import './data/extra';
-// improvement: no side effects, pulled in by import chain
 import './data/requirements';
 import './data/government';
 import './data/eventConstants';
 import './data/city';
 import './data/tech';
 import './data/nation';
-// reqtree: no side effects, pulled in by import chain
-// wikiDoc: lazy-loaded by techDialog when needed (363KB)
 
 // Utilities
 import './utils/seedrandom';
 import './utils/EventAggregator';
 import './utils/bitvector';
 import './utils/helpers';
-// banlist: no side effects, pulled in by import chain
 import './utils/mobile';
+
 // Network layer
 import './net/packetConstants';
 import './net/packhandlers';
@@ -114,33 +105,23 @@ import './core/pregame';
 import './renderer/mapctrl';
 import './renderer/mapview';
 import './renderer/mapviewCommon';
-// tilesetConfig: no side effects, pulled in by import chain
 import './renderer/tilespec';
 
 // Audio layer
 import './audio/sounds';
 
-// UI layer
+// UI layer (observer-only subset)
 import './ui/tabs';
-import './ui/GameDialog';
-import './ui/game-dialog.css';
 import './ui/controls';
-import './ui/actionDialog';
 import './ui/cityDialog';
 import './ui/techDialog';
-import './components/Dialogs/GovernmentDialog';
-import './ui/cma';
-import './ui/diplomacy';
-import './ui/helpdata';
 import './ui/intelDialog';
 import './ui/options';
-import './components/Dialogs/PillageDialog';
-// rates: replaced by Preact RatesDialog component
 
 // ---------------------------------------------------------------------------
-// Step 3: Register all exports to window (transitional).
+// Step 3: Register event delegation actions (replaces window globals).
 // ---------------------------------------------------------------------------
-import './windowBridge';
+import './utils/eventDelegation';
 
 // ---------------------------------------------------------------------------
 // Step 4: Sync GameStore with window globals.
@@ -192,18 +173,32 @@ function syncStoreWithWindow(): void {
 // ---------------------------------------------------------------------------
 // Step 5: Initialize.
 // ---------------------------------------------------------------------------
-import { exposeGameDialog } from './ui/GameDialog';
 import { initControls } from './ui/controls';
 import { mountPreactApp } from './components/App';
+import { registerAction } from './utils/eventDelegation';
+import { show_city_dialog_by_id } from './ui/cityDialog';
+import { show_tech_info_dialog, send_player_research, show_wikipedia_dialog } from './ui/techDialog';
+import { nationTableSelectPlayer } from './data/nation';
+import { center_tile_id } from './renderer/mapviewCommon';
 
 function init(): void {
-  logNormal('[TS] XBWorld TypeScript modules loading...');
+  logNormal('[TS] XBWorld observer client loading...');
+
+  // Event delegation actions (replace window globals)
+  registerAction('show-city', (el) => show_city_dialog_by_id(Number(el.dataset['cityid'])));
+  registerAction('tech-info', (el) => {
+    const name = el.dataset['name'] ?? '';
+    const unit = el.dataset['unit'] === 'null' ? null : Number(el.dataset['unit']);
+    const impr = el.dataset['impr'] === 'null' ? null : Number(el.dataset['impr']);
+    show_tech_info_dialog(name, unit, impr);
+  });
+  registerAction('player-research', (el) => send_player_research(Number(el.dataset['techid'])));
+  registerAction('select-player', (el) => nationTableSelectPlayer(Number(el.dataset['playerno'])));
+  registerAction('center-tile', (el) => center_tile_id(Number(el.dataset['tileid'])));
+  registerAction('wiki-dialog', (el) => show_wikipedia_dialog(el.dataset['techname'] ?? ''));
 
   syncStoreWithWindow();
   logNormal('[TS] Store ↔ window globals synced');
-
-  exposeGameDialog();
-  logNormal('[TS] GameDialog component exposed');
 
   initControls();
   logNormal('[TS] Controls initialized');
@@ -211,7 +206,7 @@ function init(): void {
   mountPreactApp();
   logNormal('[TS] Preact UI mounted');
 
-  logNormal('[TS] XBWorld TypeScript modules ready');
+  logNormal('[TS] XBWorld observer client ready');
 }
 
 init();

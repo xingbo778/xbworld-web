@@ -111,7 +111,16 @@ export function do_map_click(ptile: Tile, qtype: number, first_time_called: bool
     orders: Record<string, number>[];
   };
   let pcity: City | null;
-  if (ptile == null || client_is_observer()) return;
+  if (ptile == null) return;
+  if (client_is_observer()) {
+    const ocity = tile_city(ptile);
+    if (ocity) {
+      show_city_dialog(ocity);
+    } else {
+      popit_req(ptile);
+    }
+    return;
+  }
 
   if (S.current_focus.length > 0 && S.current_focus[0]['tile'] == ptile['index']) {
     if (S.goto_active && !is_touch_device()) {

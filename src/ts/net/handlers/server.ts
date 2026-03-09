@@ -11,7 +11,6 @@ import { set_client_page, get_client_page, PAGE_MAIN, PAGE_NETWORK, PAGE_START }
 import { valid_player_by_number } from '../../data/player';
 import { freelog } from '../../core/log';
 import { showAuthDialog } from '../../client/civClient';
-import { discard_diplomacy_dialogs } from '../../ui/diplomacy';
 import { wait_for_text, add_chatbox_text } from '../../core/messages';
 import { update_player_info_pregame, update_game_info_pregame } from '../../core/pregame';
 import type {
@@ -84,7 +83,7 @@ export function handle_conn_info(packet: ConnInfoPacket): void {
     if (packet['id'] === store.client.conn.id) {
       if (store.client.conn.player_num == null
           || store.client.conn.player_num !== packet['player_num']) {
-        discard_diplomacy_dialogs();
+        // discard_diplomacy_dialogs — player-only, no-op in observer mode
       }
       store.client.conn = packet as unknown as Connection;
     }

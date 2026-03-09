@@ -538,7 +538,7 @@ export function fill_sprite_array(layer: number, ptile: Tile | null, pedge: unkn
 
     case LAYER_GOTO:
       if (ptile != null && ptile['goto_dir'] != null) {
-        sprite_array.push(...fill_goto_line_sprite_array(ptile));
+        sprite_array.push(fill_goto_line_sprite_array(ptile));
       }
 
       if (ptile != null && (ptile['nuke'] as number) > 0) {

@@ -1,24 +1,24 @@
 import { render } from 'preact';
-import { PillageDialog } from './Dialogs/PillageDialog';
 import { MessageDialog } from './Dialogs/MessageDialog';
 import { AuthDialog } from './Dialogs/AuthDialog';
 import { IntroDialog } from './Dialogs/IntroDialog';
 import { IntelDialog } from './Dialogs/IntelDialog';
 import { SwalDialog } from './Dialogs/SwalDialog';
-import { GovernmentDialog } from './Dialogs/GovernmentDialog';
-import { RatesDialog } from './Dialogs/RatesDialog';
+import { CityDialog } from './Dialogs/CityDialog';
+import { StatusBar } from './StatusBar';
 
 function App() {
   return (
     <div id="xb-preact-root">
-      <PillageDialog />
+      {/* Floating dialogs */}
       <MessageDialog />
       <AuthDialog />
       <IntroDialog />
       <IntelDialog />
       <SwalDialog />
-      <GovernmentDialog />
-      <RatesDialog />
+      <CityDialog />
+
+      {/* HUD — mounted into dedicated containers below */}
     </div>
   );
 }
@@ -34,5 +34,20 @@ export function mountPreactApp(): void {
     document.body.appendChild(container);
   }
   render(<App />, container);
+
+  // Mount StatusBar into the bottom status element if it exists
+  const statusContainer = document.getElementById('xb-status-bar-mount') ?? (() => {
+    const el = document.createElement('div');
+    el.id = 'xb-status-bar-mount';
+    el.style.position = 'fixed';
+    el.style.bottom = '0';
+    el.style.left = '0';
+    el.style.right = '0';
+    el.style.zIndex = '800';
+    document.body.appendChild(el);
+    return el;
+  })();
+  render(<StatusBar />, statusContainer);
+
   mounted = true;
 }

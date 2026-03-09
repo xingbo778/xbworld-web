@@ -33,6 +33,9 @@ import {
   action_decision_clear_want,
   action_selection_next_in_focus,
   action_decision_request,
+  act_sel_queue_done, popup_action_selection, popup_bribe_dialog,
+  popup_incite_dialog, popup_unit_upgrade_dlg,
+  action_selection_refresh, action_selection_close,
 } from '../../core/control/actionSelection';
 import {
   update_unit_focus, update_unit_order_commands,
@@ -40,11 +43,6 @@ import {
 } from '../../core/control/unitFocus';
 import { request_unit_do_action } from '../../core/control/unitCommands';
 import { current_focus, action_selection_in_progress_for } from '../../core/control/controlState';
-import {
-  act_sel_queue_done, popup_action_selection, popup_bribe_dialog,
-  popup_incite_dialog, popup_unit_upgrade_dlg,
-  action_selection_refresh, action_selection_close,
-} from '../../ui/actionDialog';
 import type {
   UnitRemovePacket, UnitInfoPacket, UnitCombatInfoPacket,
   UnitActionAnswerPacket, UnitActionsPacket,

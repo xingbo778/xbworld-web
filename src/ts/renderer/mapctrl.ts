@@ -70,6 +70,36 @@ export function mapctrl_init_2d(): void {
   }
 }
 
+/**
+ * Init mapctrl for the PixiJS renderer.
+ * Attaches the same event handlers as mapctrl_init_2d but to the Pixi canvas
+ * (which is appended to canvas_div by PixiRenderer.init()).
+ * Called after PixiRenderer.init() resolves so the canvas element exists.
+ */
+export function mapctrl_init_pixi(): void {
+  const container = document.getElementById('canvas_div');
+  if (!container) {
+    console.warn('mapctrl_init_pixi: #canvas_div not found');
+    return;
+  }
+  // Pixi appends its <canvas> as the last child of canvas_div
+  const canvas = container.querySelector('canvas') as HTMLCanvasElement | null;
+  if (!canvas) {
+    console.warn('mapctrl_init_pixi: no <canvas> found inside #canvas_div');
+    return;
+  }
+
+  canvas.addEventListener('mouseup', mapview_mouse_click);
+  canvas.addEventListener('mousedown', mapview_mouse_down);
+  window.addEventListener('mousemove', mouse_moved_cb);
+
+  if (is_touch_device()) {
+    canvas.addEventListener('touchstart', mapview_touch_start);
+    canvas.addEventListener('touchend', mapview_touch_end);
+    canvas.addEventListener('touchmove', mapview_touch_move);
+  }
+}
+
 /****************************************************************************
   Triggered when the mouse button is clicked UP on the mapview canvas.
 ****************************************************************************/
@@ -373,9 +403,9 @@ export function handle_web_info_text_message(packet: { message: string; [key: st
       if (pplayer != null && split_txt != null &&
           (clientPlaying() == null || pplayer != clientPlaying())) {
         lines[i] = split_txt[1]
-                 + "<a href='#' onclick='javascript:nation_table_select_player("
+                 + "<a href='#' data-action='select-player' data-playerno='"
                  + pplayer['playerno']
-                 + ");' style='color: black;'>"
+                 + "' style='color: black;'>"
                  + split_txt[2]
                  + "</a>"
                  + split_txt[3]
@@ -390,5 +420,3 @@ export function handle_web_info_text_message(packet: { message: string; [key: st
   show_dialog_message("Tile Information", message);
 }
 
-// nation_table_select_player is called via onclick in HTML strings, so it's on window
-declare function nation_table_select_player(playerno: number): void;

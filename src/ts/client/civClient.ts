@@ -24,6 +24,7 @@ import { control_init } from '../core/control';
 import { game_init, update_game_status_panel } from '../data/game';
 import { init_mapview, is_small_screen } from '../renderer/mapview';
 import { PixiRenderer } from '../renderer/PixiRenderer';
+import { mapctrl_init_pixi } from '../renderer/mapctrl';
 import { send_request } from '../net/connection';
 import { packet_authentication_reply } from '../net/packetConstants';
 import { showMessageDialog, closeMessageDialog } from '../components/Dialogs/MessageDialog';
@@ -36,7 +37,9 @@ import { music_list, audio, setAudio, supports_mp3 } from '../audio/audioState';
 // ---------------------------------------------------------------------------
 // Global state guards (active once civclient.js is deleted)
 // ---------------------------------------------------------------------------
-// Select renderer: ?renderer=pixi activates PixiJS/WebGL; default is 2D canvas.
+// Select renderer: 2D Canvas is default; ?renderer=pixi enables experimental WebGL/Pixi.
+// Note: Pixi mode requires store.sprites to be populated (not yet wired up) and
+// canvas.getContext('webgl2') can block the main thread on some hardware.
 const _rendererParam = new URLSearchParams(window.location.search).get('renderer');
 store.renderer = _rendererParam === 'pixi' ? RENDERER_PIXI : RENDERER_2DCANVAS;
 
@@ -54,7 +57,8 @@ export function civClientInit(): void {
   store.observing = true;
   store.gameType = 'observe';
   // Remove observer-irrelevant UI elements (both tab buttons and their panels)
-  for (const id of ['civ_tab', 'cities_tab', 'opt_tab', 'hel_tab', 'pregame_buttons', 'game_unit_orders_default', 'civ_dialog', 'game_unit_panel', 'tabs-cities', 'tabs-opt', 'tabs-hel', 'tabs-civ']) {
+  // hel_tab and tabs-hel are kept — help tab is useful for observers
+  for (const id of ['civ_tab', 'cities_tab', 'opt_tab', 'pregame_buttons', 'game_unit_orders_default', 'civ_dialog', 'game_unit_panel', 'tabs-cities', 'tabs-opt', 'tabs-civ']) {
     document.getElementById(id)?.remove();
   }
 
@@ -70,7 +74,9 @@ export function civClientInit(): void {
     const container = document.getElementById('canvas_div') ?? document.body;
     const pixi = new PixiRenderer({ container });
     pixi.init().then(() => {
-      (store as Record<string, unknown>)['pixiRenderer'] = pixi;
+      (store as unknown as Record<string, unknown>)['pixiRenderer'] = pixi;
+      // Wire mouse/touch events to the Pixi canvas after it's created
+      mapctrl_init_pixi();
     }).catch(e => console.error('PixiRenderer init failed:', e));
   } else {
     init_mapview();
