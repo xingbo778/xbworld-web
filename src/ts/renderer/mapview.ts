@@ -191,64 +191,81 @@ export function init_cache_sprites(): void {
   }
 
   if (typeof createImageBitmap === 'function') {
-    // Async batched path: process 100 sprites per tick to avoid saturating
-    // the GPU decode queue with 2770+ simultaneous createImageBitmap calls.
-    const BATCH = 100;
-    const entries = Object.keys(tileset);
-    const total = entries.length;
+    // Two-phase async approach:
+    // Phase 1: Decode each full tileset image into an ImageBitmap ONCE.
+    //   This moves the heavy WebP decode entirely off the main thread.
+    // Phase 2: Crop sprites from the already-decoded ImageBitmaps.
+    //   Cropping an ImageBitmap is a fast GPU-side blit, no main-thread decode.
+    const images = Array.from({ length: tileset_image_count }, (_, idx) => tileset_images[idx]);
+    Promise.all(images.map(img => createImageBitmap(img)))
+      .then((fullBitmaps: ImageBitmap[]) => {
+        const BATCH = 200;
+        const entries = Object.keys(tileset);
+        const total = entries.length;
 
-    const processBatch = (offset: number): Promise<void> => {
-      const chunk = entries.slice(offset, offset + BATCH);
-      const batchPromises = chunk.map(tile_tag => {
-        const [x, y, w, h, i] = tileset[tile_tag] as [number, number, number, number, number];
-        return createImageBitmap(tileset_images[i], x, y, w, h)
-          .then((bmp: ImageBitmap) => { sprites[tile_tag] = bmp; })
-          .catch(() => { /* skip missing sprite */ });
-      });
-      return Promise.all(batchPromises).then(() => {
-        if (offset + BATCH < total) {
-          return new Promise<void>(res => setTimeout(() => processBatch(offset + BATCH).then(res), 0));
-        }
-      });
-    };
+        const processBatch = (offset: number): Promise<void> => {
+          const chunk = entries.slice(offset, offset + BATCH);
+          const batchPromises = chunk.map(tile_tag => {
+            const [x, y, w, h, i] = tileset[tile_tag] as [number, number, number, number, number];
+            return createImageBitmap(fullBitmaps[i], x, y, w, h)
+              .then((bmp: ImageBitmap) => { sprites[tile_tag] = bmp; })
+              .catch(() => { /* skip missing sprite */ });
+          });
+          return Promise.all(batchPromises).then(() => {
+            if (offset + BATCH < total) {
+              return new Promise<void>(res => setTimeout(() => processBatch(offset + BATCH).then(res), 0));
+            }
+          });
+        };
 
-    processBatch(0).then(() => {
-      sprites_init = true;
-      sprites_loading = false;
-      store.sprites = sprites as Record<string, HTMLCanvasElement>;
-      if (tileset) store.tileset = tileset;
-      tileset_images = null!;
-      unblockUI();
-    });
+        return processBatch(0);
+      })
+      .then(() => {
+        sprites_init = true;
+        sprites_loading = false;
+        store.sprites = sprites as Record<string, HTMLCanvasElement>;
+        if (tileset) store.tileset = tileset;
+        tileset_images = null!;
+        unblockUI();
+      })
+      .catch(err => {
+        console.error('createImageBitmap failed, falling back to canvas:', err);
+        sprites_loading = false;
+        init_cache_sprites_canvas();
+      });
   } else {
-    // Fallback: synchronous canvas-based sprite caching
-    try {
-      for (const tile_tag in tileset) {
-        const x = tileset[tile_tag][0];
-        const y = tileset[tile_tag][1];
-        const w = tileset[tile_tag][2];
-        const h = tileset[tile_tag][3];
-        const i = tileset[tile_tag][4];
-        const newCanvas = document.createElement('canvas');
-        newCanvas.height = h;
-        newCanvas.width = w;
-        const newCtx = newCanvas.getContext('2d');
-        if (newCtx) {
-          newCtx.drawImage(tileset_images[i], x, y, w, h, 0, 0, w, h);
-          sprites[tile_tag] = newCanvas;
-        }
-      }
-      sprites_init = true;
-      sprites_loading = false;
-      store.sprites = sprites as Record<string, HTMLCanvasElement>;
-      if (tileset) store.tileset = tileset;
-      tileset_images = null!;
-    } catch (e: unknown) {
-      console.log("Problem caching sprite: " + (e instanceof Error ? e.message : e));
-      sprites_loading = false;
-    }
-    unblockUI();
+    init_cache_sprites_canvas();
   }
+}
+
+/** Synchronous canvas-based sprite caching (fallback when createImageBitmap unavailable). */
+function init_cache_sprites_canvas(): void {
+  try {
+    for (const tile_tag in tileset) {
+      const x = tileset[tile_tag][0];
+      const y = tileset[tile_tag][1];
+      const w = tileset[tile_tag][2];
+      const h = tileset[tile_tag][3];
+      const i = tileset[tile_tag][4];
+      const newCanvas = document.createElement('canvas');
+      newCanvas.height = h;
+      newCanvas.width = w;
+      const newCtx = newCanvas.getContext('2d');
+      if (newCtx) {
+        newCtx.drawImage(tileset_images[i], x, y, w, h, 0, 0, w, h);
+        sprites[tile_tag] = newCanvas;
+      }
+    }
+    sprites_init = true;
+    sprites_loading = false;
+    store.sprites = sprites as Record<string, HTMLCanvasElement>;
+    if (tileset) store.tileset = tileset;
+    tileset_images = null!;
+  } catch (e: unknown) {
+    console.log("Problem caching sprite: " + (e instanceof Error ? e.message : e));
+    sprites_loading = false;
+  }
+  unblockUI();
 }
 
 /**************************************************************************
