@@ -398,12 +398,14 @@ export function overview_tile_color(map_x: number, map_y: number): number {
     }
   }
 
-  if (ptile != null && tile_get_known(ptile) != TILE_UNKNOWN) {
-    if (ptile.owner != null && ptile.owner != 255) {
-      return palette_color_offset + ptile.owner;
-    } else {
-      const terrain = tile_terrain(ptile);
-      if (terrain == null) return COLOR_OVERVIEW_UNKNOWN;
+  // Show terrain whenever the tile has data — observers see all tiles regardless
+  // of the `known` bitmask encoding (which varies by server version).
+  if (ptile != null) {
+    const terrain = tile_terrain(ptile);
+    if (terrain != null) {
+      if (ptile.owner != null && ptile.owner !== 255) {
+        return palette_color_offset + ptile.owner;
+      }
       return palette_terrain_offset + (terrain['id'] as number);
     }
   }
@@ -428,5 +430,6 @@ export function overview_clicked (x: number, y: number): void {
     center_tile_mapcanvas(ptile);
   }
 
+  overview_dirty = true;  // force redraw after viewport change
   redraw_overview();
 }

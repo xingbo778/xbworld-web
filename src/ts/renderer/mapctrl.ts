@@ -62,6 +62,8 @@ export function mapctrl_init_2d(): void {
   canvas.addEventListener('mouseup', mapview_mouse_click);
   canvas.addEventListener('mousedown', mapview_mouse_down);
   window.addEventListener('mousemove', mouse_moved_cb);
+  // Reset pan-drag if mouse released outside the canvas (e.g. over a dialog)
+  window.addEventListener('mouseup', mapview_window_mouse_up);
 
   if (is_touch_device()) {
     canvas.addEventListener('touchstart', mapview_touch_start);
@@ -92,6 +94,8 @@ export function mapctrl_init_pixi(): void {
   canvas.addEventListener('mouseup', mapview_mouse_click);
   canvas.addEventListener('mousedown', mapview_mouse_down);
   window.addEventListener('mousemove', mouse_moved_cb);
+  // Reset pan-drag if mouse released outside the canvas (e.g. over a dialog)
+  window.addEventListener('mouseup', mapview_window_mouse_up);
 
   if (is_touch_device()) {
     canvas.addEventListener('touchstart', mapview_touch_start);
@@ -177,6 +181,16 @@ export function mapview_mouse_down(e: MouseEvent): boolean | void {
     setContextMenuActive(false);
     store.contextMenuActive = false;
   }
+}
+
+/****************************************************************************
+  Triggered when mouse button is released anywhere on the window.
+  Resets mapview_mouse_movement so pan-drag doesn't get stuck when the mouse
+  is released outside the canvas (e.g. over a popup dialog).
+****************************************************************************/
+function mapview_window_mouse_up(): void {
+  setMapviewMouseMovement(false);
+  store.mapviewMouseMovement = false;
 }
 
 /****************************************************************************
