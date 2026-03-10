@@ -5,7 +5,6 @@
  * set_mouse_touch_started_on_unit, check_mouse_drag_unit.
  */
 
-import { store } from '../../data/store';
 import { cityOwnerPlayerId as city_owner_player_id } from '../../data/city';
 import { active_city } from '../../ui/cityDialog';
 import { tileCity as tile_city } from '../../data/tile';
@@ -15,7 +14,6 @@ import { touch_start_x, touch_start_y, map_select_check, map_select_x, map_selec
 import { isTouchDevice as is_touch_device } from '../../utils/helpers';
 import { clientState as client_state, C_S_RUNNING, clientPlaying } from '../../client/clientState';
 import { tech_dialog_active } from '../../ui/techDialog';
-import { RENDERER_2DCANVAS } from '../constants';
 import * as S from './controlState';
 // Circular imports — OK, only used inside functions
 import { find_visible_unit, set_unit_focus, update_active_units_dialog } from './unitFocus';
@@ -46,10 +44,9 @@ export function mouse_moved_cb(e: MouseEvent): void {
     }
   }
 
-  const canvasEl = document.getElementById('canvas');
-  if (RENDERER_2DCANVAS && active_city == null && store.mapviewCanvas != null
-    && canvasEl) {
-    const canvasRect = canvasEl.getBoundingClientRect();
+  const canvasDiv = document.getElementById('canvas_div');
+  if (active_city == null && canvasDiv) {
+    const canvasRect = canvasDiv.getBoundingClientRect();
     S.setMouseX(S.mouse_x - canvasRect.left);
     S.setMouseY(S.mouse_y - canvasRect.top);
 

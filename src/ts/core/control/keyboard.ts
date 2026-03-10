@@ -10,9 +10,6 @@ import { civclient_benchmark } from '../../utils/helpers';
 import { showDebugInfo } from '../../client/clientDebug';
 import { show_city_dialog } from '../../ui/cityDialog';
 import { tileCity } from '../../data/tile';
-import {
-  RENDERER_2DCANVAS,
-} from '../constants';
 import * as S from './controlState';
 import { getActiveTab } from '../../ui/tabs';
 
@@ -27,10 +24,7 @@ export function global_keyboard_listener(ev: KeyboardEvent) {
 
   civclient_handle_key(String.fromCharCode(ev.keyCode), ev.keyCode, ev['ctrlKey'], ev['altKey'], ev['shiftKey'], ev);
 
-  if (store.renderer == RENDERER_2DCANVAS) {
-    const canvasEl = document.getElementById('canvas');
-    (canvasEl as unknown as { contextMenu?: (arg: string) => void })?.contextMenu?.('hide');
-  }
+  // context menu hide is handled by the Pixi event system
 }
 
 export function civclient_handle_key(keyboard_key: string, key_code: number, ctrl: boolean, alt: boolean, _shift: boolean, _the_event: KeyboardEvent) {
@@ -49,13 +43,8 @@ export function civclient_handle_key(keyboard_key: string, key_code: number, ctr
   // ESC — cancel any active mode
   if (key_code === 27) {
     S.setContextMenuActive(true);
-    if (store.renderer == RENDERER_2DCANVAS) {
-      const canvasEl = document.getElementById('canvas');
-      (canvasEl as unknown as { contextMenu?: (arg: boolean) => void })?.contextMenu?.(true);
-    } else {
-      const canvasDivEl = document.getElementById('canvas_div');
-      (canvasDivEl as unknown as { contextMenu?: (arg: boolean) => void })?.contextMenu?.(true);
-    }
+    const canvasDivEl = document.getElementById('canvas_div');
+    (canvasDivEl as unknown as { contextMenu?: (arg: boolean) => void })?.contextMenu?.(true);
   }
 }
 

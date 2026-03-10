@@ -18,11 +18,11 @@
 import { seedrandom } from '../utils/seedrandom';
 import { initTabs } from '../ui/tabs';
 import { swal } from '../components/Dialogs/SwalDialog';
-import { RENDERER_2DCANVAS, RENDERER_PIXI } from '../core/constants';
+import { RENDERER_PIXI } from '../core/constants';
 import { redraw_overview } from '../core/overview';
 import { control_init } from '../core/control';
 import { game_init, update_game_status_panel } from '../data/game';
-import { init_mapview, is_small_screen } from '../renderer/mapview';
+import { initTilesetSprites } from '../renderer/mapview';
 import { PixiRenderer } from '../renderer/PixiRenderer';
 import { mapctrl_init_pixi } from '../renderer/mapctrl';
 import { send_request } from '../net/connection';
@@ -34,11 +34,10 @@ import { setupWindowSize } from './clientMain';
 import { music_list, audio, setAudio, supports_mp3 } from '../audio/audioState';
 
 // ---------------------------------------------------------------------------
-// Global state guards (active once civclient.js is deleted)
+// Global state guards
 // ---------------------------------------------------------------------------
-// Select renderer: Pixi (WebGL) is default; ?renderer=2d falls back to 2D Canvas.
-const _rendererParam = new URLSearchParams(window.location.search).get('renderer');
-store.renderer = _rendererParam === '2d' ? RENDERER_2DCANVAS : RENDERER_PIXI;
+// Always use Pixi renderer.
+store.renderer = RENDERER_PIXI;
 
 // music_list is now initialised in audio/audioState.ts
 
@@ -67,17 +66,15 @@ export function civClientInit(): void {
     return;
   }
 
-  if (store.renderer === RENDERER_PIXI) {
-    const container = document.getElementById('canvas_div') ?? document.body;
-    const pixi = new PixiRenderer({ container });
-    pixi.init().then(() => {
-      (store as unknown as Record<string, unknown>)['pixiRenderer'] = pixi;
-      // Wire mouse/touch events to the Pixi canvas after it's created
-      mapctrl_init_pixi();
-    }).catch(e => console.error('PixiRenderer init failed:', e));
-  } else {
-    init_mapview();
-  }
+  initTilesetSprites();
+  const container = document.getElementById('canvas_div') ?? document.body;
+  const pixi = new PixiRenderer({ container });
+  pixi.init().then(() => {
+    (store as unknown as Record<string, unknown>)['pixiRenderer'] = pixi;
+    // Wire mouse/touch events to the Pixi canvas after it's created
+    mapctrl_init_pixi();
+    setupWindowSize();
+  }).catch(e => console.error('PixiRenderer init failed:', e));
   game_init();
   // Tabs initialization (vanilla JS replacement for jQuery UI tabs)
   initTabs('#tabs', { heightStyle: 'fill' });
@@ -130,7 +127,6 @@ export function civClientInit(): void {
   }
 
   initCommonIntroDialog();
-  setupWindowSize();
 }
 
 // ---------------------------------------------------------------------------

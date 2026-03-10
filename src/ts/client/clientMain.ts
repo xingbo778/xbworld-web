@@ -7,14 +7,13 @@
 
 import { store } from '../data/store';
 import { C_S_PREPARING, C_S_RUNNING, C_S_OVER } from './clientState';
-import { RENDERER_2DCANVAS } from '../core/constants';
 import { clear_chatbox } from '../core/messages';
 import { chatbox_active } from '../core/messages';
 import { set_client_page, PAGE_GAME } from '../core/pages';
 import { center_on_any_city } from '../core/control/mapClick';
 import { advance_unit_focus, init_game_unit_panel, update_active_units_dialog } from '../core/control/unitFocus';
 import { unitpanel_active, setAllowRightClick, setKeyboardInput } from '../core/control/controlState';
-import { is_small_screen, canvas_text_font } from '../renderer/mapview';
+import { is_small_screen } from '../renderer/mapview';
 import { init_overview, overview_active, setOverviewActive } from '../core/overview';
 import { mark_all_dirty, mapview } from '../renderer/mapviewCommon';
 import { unblockUI } from '../utils/dom';
@@ -89,20 +88,10 @@ export function setupWindowSize(): void {
   const new_mapview_width  = winWidth  - store.widthOffset;
   const new_mapview_height = winHeight - store.heightOffset;
 
-  if (store.renderer === RENDERER_2DCANVAS && store.mapviewCanvas) {
-    store.mapviewCanvas.width  = new_mapview_width;
-    store.mapviewCanvas.height = new_mapview_height;
-    if (store.bufferCanvas) {
-      store.bufferCanvas.width   = Math.floor(new_mapview_width  * 1.5);
-      store.bufferCanvas.height  = Math.floor(new_mapview_height * 1.5);
-    }
-    mapview['width']        = new_mapview_width;
-    mapview['height']       = new_mapview_height;
-    mapview['store_width']  = new_mapview_width;
-    mapview['store_height'] = new_mapview_height;
-    if (store.mapviewCanvasCtx) store.mapviewCanvasCtx.font = canvas_text_font;
-    if (store.bufferCanvasCtx)   store.bufferCanvasCtx.font  = canvas_text_font;
-  }
+  mapview['width']        = new_mapview_width;
+  mapview['height']       = new_mapview_height;
+  mapview['store_width']  = new_mapview_width;
+  mapview['store_height'] = new_mapview_height;
 
   const _el = (id: string) => document.getElementById(id);
   const _setH = (id: string, h: number | string) => { const el = _el(id); if (el) el.style.height = typeof h === 'number' ? h + 'px' : h; };
@@ -191,11 +180,6 @@ export function showEndgameDialog(): void {
  * Resets the UI to the default map view state.
  */
 export function setDefaultMapviewActive(): void {
-  if (store.renderer === RENDERER_2DCANVAS && store.mapviewCanvas) {
-    store.mapviewCanvasCtx = store.mapviewCanvas.getContext('2d');
-    if (store.mapviewCanvasCtx) store.mapviewCanvasCtx.font = canvas_text_font;
-  }
-
   // Check active tab — don't switch if cities dialog active
   const active_tab = getActiveTab('#tabs');
   if (active_tab === 4) return; // cities dialog active — don't switch

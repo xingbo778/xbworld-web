@@ -28,7 +28,6 @@ import { find_visible_unit } from './control';
 import { cityOwnerPlayerId } from '../data/city';
 import { center_tile_mapcanvas } from './control';
 import { base_canvas_to_map_pos, canvas_pos_to_tile, mapview, mapview_slide } from '../renderer/mapviewCommon';
-import { RENDERER_2DCANVAS } from './constants';
 import { color_rbg_to_list } from '../renderer/tilespec';
 import { clientState as client_state, C_S_RUNNING, C_S_OVER, clientPlaying } from '../client/clientState';
 import { globalEvents } from './events';

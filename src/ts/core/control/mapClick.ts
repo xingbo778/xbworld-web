@@ -14,7 +14,7 @@ import { cityTile as city_tile } from '../../data/city';
 import { actionByNumber as action_by_number, actionHasResult as action_has_result } from '../../data/actions';
 import { utype_can_do_action } from '../../data/unittype';
 import { ACTIVITY_IDLE, ACTIVITY_LAST, ACTRES_PARADROP, ACTRES_PARADROP_CONQUER, ACTION_AIRLIFT } from '../../data/fcTypes';
-import { ACTION_COUNT, RENDERER_2DCANVAS } from '../../core/constants';
+import { ACTION_COUNT } from '../../core/constants';
 import { sendUnitSscsSet, sendUnitOrders, sendInfoTextReq } from '../../net/commands';
 import { isTouchDevice as is_touch_device } from '../../utils/helpers';
 import { clientIsObserver as client_is_observer, clientPlaying } from '../../client/clientState';
@@ -126,11 +126,7 @@ export function do_map_click(ptile: Tile, qtype: number, first_time_called: bool
     if (S.goto_active && !is_touch_device()) {
       deactivate_goto(false);
     }
-    if (store.renderer == RENDERER_2DCANVAS) {
-      document.getElementById("canvas")?.dispatchEvent(new Event("contextmenu"));
-    } else {
-      document.getElementById("canvas_div")?.dispatchEvent(new Event("contextmenu"));
-    }
+    document.getElementById("canvas_div")?.dispatchEvent(new Event("contextmenu"));
     return;
   }
   const sunits = tile_units(ptile);
@@ -269,11 +265,7 @@ export function do_map_click(ptile: Tile, qtype: number, first_time_called: bool
         if (sunits != null && sunits.length > 0
           && sunits[0]['activity'] == ACTIVITY_IDLE) {
           set_unit_focus_and_redraw(sunits[0]);
-          if (store.renderer == RENDERER_2DCANVAS) {
-            document.getElementById("canvas")?.dispatchEvent(new Event("contextmenu"));
-          } else {
-            document.getElementById("canvas_div")?.dispatchEvent(new Event("contextmenu"));
-          }
+          document.getElementById("canvas_div")?.dispatchEvent(new Event("contextmenu"));
         } else if (!S.goto_active) {
           show_city_dialog(pcity);
         }
@@ -295,11 +287,7 @@ export function do_map_click(ptile: Tile, qtype: number, first_time_called: bool
         }
 
         if (is_touch_device()) {
-          if (store.renderer == RENDERER_2DCANVAS) {
-            document.getElementById("canvas")?.dispatchEvent(new Event("contextmenu"));
-          } else {
-            document.getElementById("canvas_div")?.dispatchEvent(new Event("contextmenu"));
-          }
+          document.getElementById("canvas_div")?.dispatchEvent(new Event("contextmenu"));
         }
       } else if (pcity == null) {
         S.setCurrentFocus(sunits);

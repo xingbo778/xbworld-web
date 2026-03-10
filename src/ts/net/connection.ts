@@ -33,12 +33,19 @@ async function sha512hex(text: string): Promise<string> {
 
 const win = window as unknown as Record<string, unknown>;
 
-// Packet worker — JSON.parse off the main thread
-// Worker is disabled: the hash-named worker asset URL may mismatch after builds,
-// causing silent packet loss. Main-thread JSON.parse is fast enough for observer mode.
+// Packet worker — JSON.parse off the main thread.
+// Uses an inline Blob URL so the worker URL never mismatches after a build.
 let _packetWorker: Worker | null = null;
 function getPacketWorker(): Worker | null {
-  return null;
+  if (_packetWorker) return _packetWorker;
+  try {
+    const code = `self.onmessage=function(e){try{let p=JSON.parse(e.data);if(!Array.isArray(p))p=[p];postMessage({packets:p});}catch(err){postMessage({error:err.message,raw:e.data});}}`;
+    const blob = new Blob([code], { type: 'application/javascript' });
+    _packetWorker = new Worker(URL.createObjectURL(blob));
+    return _packetWorker;
+  } catch {
+    return null;
+  }
 }
 
 // Module-local state (was var in clinet.js)

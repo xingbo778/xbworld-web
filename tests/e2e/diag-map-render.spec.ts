@@ -81,9 +81,22 @@ async function getState(page: import('@playwright/test').Page) {
       });
     } catch(e) {}
 
+    // Read mapview origin via exposed store or global
+    const mapviewOrigin = (() => {
+      try {
+        // Try to read via the store's renderer reference
+        const mapview = (w as any).__xbwMapview;
+        if (mapview) return `(${mapview.x0},${mapview.y0})`;
+        return 'unknown';
+      } catch { return 'error'; }
+    })();
+
     return {
-      civclientState: w.store?.civclientState,
-      observing: w.store?.observing,
+      civclientState: w.__store?.civclientState,
+      observing: w.__store?.observing,
+      centerCalled: w.__xbwCenterCalled || 0,
+      midTileNull: w.__xbwMidTileNull,
+      mapviewOrigin: w.__xbwMapview ? `(${w.__xbwMapview.x0},${w.__xbwMapview.y0})` : ('__xbwMapview' in w ? 'falsy' : 'not-set'),
       tilesCount: w.tiles ? Object.keys(w.tiles).length : 0,
       tilesWithTerrain,
       terrainsCount: w.terrains ? Object.keys(w.terrains).length : -1,
@@ -93,6 +106,8 @@ async function getState(page: import('@playwright/test').Page) {
       sampleTerrainId: sampleTerrain0 != null ? (sampleTerrain0 as any).id : 'no-terrain',
       sampleTerrainColor: sampleTerrain0 != null ? `rgb(${(sampleTerrain0 as any).color_red},${(sampleTerrain0 as any).color_green},${(sampleTerrain0 as any).color_blue})` : 'no-terrain',
       mapInfo: w.map?.xsize ? `${w.map.xsize}x${w.map.ysize}` : null,
+      storeMapInfoXsize: w.__store?.mapInfo?.xsize,
+      winTilesCount: w.tiles ? Object.keys(w.tiles).length : 0,
       playersCount: w.store?.players ? Object.keys(w.store.players).length : 0,
       pidsReceived: JSON.stringify(w.__xbwReceivedPids || {}).slice(0, 800),
       overviewDiag,

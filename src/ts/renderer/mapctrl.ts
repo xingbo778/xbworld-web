@@ -33,8 +33,7 @@ import { clientIsObserver as client_is_observer, clientPlaying, canClientChangeV
 import { isTouchDevice as is_touch_device, isRightMouseSelectionSupported as is_right_mouse_selection_supported } from '../utils/helpers';
 import { showDialogMessage as show_dialog_message } from '../client/civClient';
 import { do_city_map_click } from '../ui/cityDialog';
-import { IDENTITY_NUMBER_ZERO, RENDERER_2DCANVAS } from '../core/constants';
-import { enable_mapview_slide } from './mapview';
+import { IDENTITY_NUMBER_ZERO } from '../core/constants';
 import { center_tile_mapcanvas } from '../core/control';
 
 export { mouse_x, mouse_y };
@@ -53,24 +52,6 @@ export let mouse_touch_started_on_unit: boolean = false;
 export function setMapSelectActive(v: boolean): void { map_select_active = v; }
 export function setMapSelectCheck(v: boolean): void { map_select_check = v; }
 export function setTouchStart(x: number, y: number): void { touch_start_x = x; touch_start_y = y; }
-
-/****************************************************************************
-  Init 2D mapctrl
-****************************************************************************/
-export function mapctrl_init_2d(): void {
-  const canvas = document.getElementById('canvas')!;
-  canvas.addEventListener('mouseup', mapview_mouse_click);
-  canvas.addEventListener('mousedown', mapview_mouse_down);
-  window.addEventListener('mousemove', mouse_moved_cb);
-  // Reset pan-drag if mouse released outside the canvas (e.g. over a dialog)
-  window.addEventListener('mouseup', mapview_window_mouse_up);
-
-  if (is_touch_device()) {
-    canvas.addEventListener('touchstart', mapview_touch_start);
-    canvas.addEventListener('touchend', mapview_touch_end);
-    canvas.addEventListener('touchmove', mapview_touch_move);
-  }
-}
 
 /**
  * Init mapctrl for the PixiJS renderer.
@@ -380,9 +361,6 @@ export function recenter_button_pressed(canvas_x: number, canvas_y: number): voi
       (canvasEl as unknown as { contextMenu?: (arg: boolean) => void }).contextMenu?.(false);
       /* FIXME: Some actions here will need to check can_client_issue_orders.
        * But all we can check is the lowest common requirement. */
-      // enable_mapview_slide is a 2D-canvas-only slide animation.
-      // In Pixi mode panning is O(1) via container offset; skip slide setup.
-      if (store.renderer === RENDERER_2DCANVAS) enable_mapview_slide(ptile);
       center_tile_mapcanvas(ptile);
     }
   }

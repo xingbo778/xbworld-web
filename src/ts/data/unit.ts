@@ -21,7 +21,6 @@ import { BitVector } from '../utils/bitvector';
 // map_to_gui_pos and mapview are renderer globals resolved at runtime
 declare function map_to_gui_pos(x: number, y: number): { gui_dx: number; gui_dy: number };
 declare const mapview: { gui_x0: number; gui_y0: number; width: number; height: number };
-import { RENDERER_2DCANVAS } from '../core/constants';
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
@@ -237,7 +236,6 @@ export function update_unit_anim_list(old_unit: Unit | null, new_unit: Unit | nu
 
   if (anim_units_count > anim_units_max) return;
 
-  if (store.renderer === RENDERER_2DCANVAS && !is_unit_visible(new_unit)) return;
 
   if (old_unit['anim_list'] == null) old_unit['anim_list'] = [];
 

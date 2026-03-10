@@ -130,7 +130,7 @@ import './utils/eventDelegation';
 // ---------------------------------------------------------------------------
 import { store } from './data/store';
 import { set_client_state } from './client/clientState';
-import { update_map_canvas_full, mark_all_dirty, mapview } from './renderer/mapviewCommon';
+import { mark_all_dirty, mapview } from './renderer/mapviewCommon';
 import { map_to_gui_pos } from './renderer/mapCoords';
 import { redraw_overview } from './core/overview';
 
@@ -210,7 +210,6 @@ function init(): void {
 
   // Expose rendering helpers for E2E testing
   win['set_client_state'] = set_client_state;
-  win['update_map_canvas_full'] = update_map_canvas_full;
   win['mark_all_dirty'] = mark_all_dirty;
   win['redraw_overview'] = redraw_overview;
   win['__store'] = store;

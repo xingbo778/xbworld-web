@@ -9,8 +9,6 @@
 
 import { store } from '../data/store';
 import { clinet_debug_collect } from './connection';
-import { RENDERER_2DCANVAS } from '../core/constants';
-import { update_map_canvas_check } from '../renderer/mapviewCommon';
 import { handle_web_info_text_message } from '../renderer/mapctrl';
 import { update_goto_path } from '../core/control/gotoPath';
 import { goto_active } from '../core/control/controlState';
@@ -378,7 +376,6 @@ export function client_handle_packet(packets: (BasePacket & { pid: number })[] |
     }
     if (packets.length > 0) {
       if (store.debugActive) clinet_debug_collect();
-      if (store.renderer === RENDERER_2DCANVAS) update_map_canvas_check();
     }
   } catch (e) {
     console.error(e);

@@ -55,6 +55,30 @@ export class PixiRenderer {
   // Dirty tracking
   private dirtyTiles = new Set<number>();
   private dirtyAll = true; // start dirty so first game-state render works
+  // Set by pan-reveal timer; processFrame handles the scan inside rAF (not blocking main thread).
+  private revealAll = false;
+
+  // Tracks which tile indices have been rendered at least once.
+  // Pan-reveal only builds tiles NOT in this set (incremental).
+  // Cleared on markAllDirty so the next dirtyAll rebuild re-populates it.
+  private builtSet = new Set<number>();
+
+  // Tile GUI position cache: avoids re-running map_to_gui_pos() on each scan.
+  // Positions are stable (only change if tileset config changes, handled by markAllDirty).
+  private readonly tilePosCache = new Map<number, readonly [number, number]>();
+
+  // Viewport-culled rebuild queue (only visible tiles are rebuilt per event)
+  private rebuildQueue: Tile[] | null = null;
+  private rebuildQueueIdx = 0;
+  private static readonly REBUILD_PER_FRAME = 400;
+
+  // Viewport tracking for pan-reveal (rebuild after pan stops)
+  private lastViewX0 = 0;
+  private lastViewY0 = 0;
+  private lastViewW = 0;
+  private lastViewH = 0;
+  private panRevealTimer: ReturnType<typeof setTimeout> | null = null;
+  private static readonly PAN_REVEAL_DELAY_MS = 150;
 
   private rafHandle: number | null = null;
   private initialized = false;
@@ -125,6 +149,7 @@ export class PixiRenderer {
       if (tex) tex.destroy();
     }
     this.texCache.clear();
+    // tilePosCache is NOT cleared: tile x/y→GUI positions are stable across sprite reloads.
   }
 
   // ---------------------------------------------------------------------------
@@ -144,7 +169,7 @@ export class PixiRenderer {
 
   private clearTileLayer(tileIndex: number, layer: number): void {
     const c = this.tileLayerContainers.get(`${tileIndex}_${layer}`);
-    if (c) c.removeChildren().forEach(ch => (ch as Container).destroy({ children: true }));
+    if (c) c.removeChildren().forEach(ch => ch.destroy({ children: true }));
   }
 
   // ---------------------------------------------------------------------------
@@ -193,18 +218,24 @@ export class PixiRenderer {
     }
   }
 
+  private static readonly CITY_TEXT_STYLE = new TextStyle({
+    fontSize: 11,
+    fill: '#ffffff',
+    fontFamily: 'Arial, sans-serif',
+    stroke: { color: '#000000', width: 2 },
+  });
+  private static readonly LABEL_TEXT_STYLE = new TextStyle({
+    fontSize: 10,
+    fill: '#ffff00',
+    fontFamily: 'Arial, sans-serif',
+  });
+
   private renderCityBar(city: City, x: number, y: number, container: Container): void {
     if (!city) return;
     const c = city as Record<string, unknown>;
     const name = (c['name'] as string) ?? '';
     const size = (c['size'] as number) ?? 0;
-    const style = new TextStyle({
-      fontSize: 11,
-      fill: '#ffffff',
-      fontFamily: 'Arial, sans-serif',
-      stroke: { color: '#000000', width: 2 },
-    });
-    const t = new Text({ text: `${name} (${size})`, style });
+    const t = new Text({ text: `${name} (${size})`, style: PixiRenderer.CITY_TEXT_STYLE });
     t.x = x;
     t.y = y;
     container.addChild(t);
@@ -213,8 +244,7 @@ export class PixiRenderer {
   private renderTileLabel(tile: Tile, x: number, y: number, container: Container): void {
     const label = (tile as Record<string, unknown>)['label'] as string;
     if (!label) return;
-    const style = new TextStyle({ fontSize: 10, fill: '#ffff00', fontFamily: 'Arial, sans-serif' });
-    const t = new Text({ text: label, style });
+    const t = new Text({ text: label, style: PixiRenderer.LABEL_TEXT_STYLE });
     t.x = x;
     t.y = y;
     container.addChild(t);
@@ -352,20 +382,98 @@ export class PixiRenderer {
     // Update minimap at rAF frequency (not per-mousemove).
     globalEvents.emit('overview:frame', null);
 
-    const tiles = store.tiles as Tile[];
+    const gx0 = mapview['gui_x0'] as number;
+    const gy0 = mapview['gui_y0'] as number;
+    const gw = this.app.screen.width;
+    const gh = this.app.screen.height;
 
-    if (this.dirtyAll) {
-      for (const tile of tiles) {
-        if (tile) this.rebuildTile(tile);
+    // On dirtyAll or revealAll: scan visible tiles and queue a rebuild.
+    // Uses tilePosCache so subsequent scans are O(n) Map lookups (<5ms) after first call.
+    // dirtyAll = full rebuild (clears builtSet); revealAll = incremental (skips already-built).
+    if ((this.dirtyAll || this.revealAll) && !this.rebuildQueue) {
+      const margin = tileset_tile_width * 2;
+      const tilesMap = store.tiles as Record<number, Tile>;
+      const visible: Tile[] = [];
+      const isRevealOnly = this.revealAll && !this.dirtyAll;
+      for (const tile of Object.values(tilesMap)) {
+        if (!tile) continue;
+        if (isRevealOnly && this.builtSet.has(tile.index)) continue;
+        // Use cached position; compute and cache on first encounter.
+        let tx: number, ty: number;
+        const cached = this.tilePosCache.get(tile.index);
+        if (cached) {
+          tx = cached[0]; ty = cached[1];
+        } else {
+          const pos = map_to_gui_pos(tile.x, tile.y);
+          tx = pos['gui_dx'] as number;
+          ty = pos['gui_dy'] as number;
+          this.tilePosCache.set(tile.index, [tx, ty]);
+        }
+        if (tx >= gx0 - margin && tx < gx0 + gw + margin &&
+            ty >= gy0 - margin && ty < gy0 + gh + margin) {
+          visible.push(tile);
+        }
       }
-      this.dirtyAll = false;
-      this.dirtyTiles.clear();
-    } else if (this.dirtyTiles.size > 0) {
+      this.rebuildQueue = visible;
+      this.rebuildQueueIdx = 0;
+      if (this.dirtyAll) {
+        this.dirtyTiles.clear();
+        this.builtSet.clear();
+        this.dirtyAll = false;
+      }
+      this.revealAll = false;
+      this.lastViewX0 = gx0;
+      this.lastViewY0 = gy0;
+      this.lastViewW = gw;
+      this.lastViewH = gh;
+    }
+
+    // Detect viewport pan → debounce incremental build of newly-revealed tiles.
+    // Timer callback is O(1); the actual scan runs in the next rAF frame (revealAll flag).
+    if (!this.rebuildQueue && !this.dirtyAll && !this.revealAll) {
+      const viewChanged = gx0 !== this.lastViewX0 || gy0 !== this.lastViewY0 ||
+                          gw !== this.lastViewW || gh !== this.lastViewH;
+      if (viewChanged) {
+        this.lastViewX0 = gx0;
+        this.lastViewY0 = gy0;
+        this.lastViewW = gw;
+        this.lastViewH = gh;
+        if (this.panRevealTimer !== null) clearTimeout(this.panRevealTimer);
+        this.panRevealTimer = setTimeout(() => {
+          this.panRevealTimer = null;
+          this.revealAll = true; // processFrame handles the scan in the next rAF
+        }, PixiRenderer.PAN_REVEAL_DELAY_MS);
+      }
+    }
+
+    // Drain dirty tiles in chunks (prevents long tasks if many tiles dirtied by pan-reveal).
+    if (!this.rebuildQueue && this.dirtyTiles.size > 0) {
+      const tilesMap = store.tiles as Record<number, Tile>;
+      let count = 0;
       for (const idx of this.dirtyTiles) {
-        const tile = tiles[idx];
-        if (tile) this.rebuildTile(tile);
+        this.dirtyTiles.delete(idx);
+        const tile = tilesMap[idx];
+        if (tile) {
+          this.rebuildTile(tile);
+          this.builtSet.add(idx);
+        }
+        if (++count >= PixiRenderer.REBUILD_PER_FRAME) break;
       }
-      this.dirtyTiles.clear();
+    }
+
+    // Process a chunk of the viewport-culled rebuild queue
+    if (this.rebuildQueue) {
+      const end = Math.min(this.rebuildQueueIdx + PixiRenderer.REBUILD_PER_FRAME, this.rebuildQueue.length);
+      for (let i = this.rebuildQueueIdx; i < end; i++) {
+        const tile = this.rebuildQueue[i];
+        this.rebuildTile(tile);
+        this.builtSet.add(tile.index);
+      }
+      this.rebuildQueueIdx = end;
+      if (this.rebuildQueueIdx >= this.rebuildQueue.length) {
+        this.rebuildQueue = null;
+        this.rebuildQueueIdx = 0;
+      }
     }
   }
 
@@ -386,8 +494,11 @@ export class PixiRenderer {
   }
 
   markAllDirty(): void {
-    this.dirtyAll = true;
+    this.dirtyAll = true;  // processFrame will start a viewport-culled rebuild when current finishes
+    this.revealAll = false; // dirtyAll supersedes revealAll
     this.dirtyTiles.clear();
+    this.builtSet.clear();  // force all tiles to be rebuilt from scratch
+    // Don't restart an in-progress rebuild — let it finish, then re-check dirtyAll
   }
 
   // ---------------------------------------------------------------------------
@@ -400,15 +511,30 @@ export class PixiRenderer {
       const idx = d?.['tileIndex'] ?? (d?.['tile'] as Record<string, unknown> | undefined)?.['index'];
       typeof idx === 'number' ? this.markDirty(idx) : this.markAllDirty();
     });
-    globalEvents.on('unit:updated', () => this.markAllDirty());
-    globalEvents.on('unit:removed', () => this.markAllDirty());
-    globalEvents.on('city:updated', () => this.markAllDirty());
-    globalEvents.on('city:removed', () => this.markAllDirty());
+    globalEvents.on('unit:updated', (data: unknown) => {
+      const tileIdx = (data as Record<string, unknown> | null)?.['tile'];
+      typeof tileIdx === 'number' ? this.markDirty(tileIdx) : this.markAllDirty();
+    });
+    globalEvents.on('unit:removed', (data: unknown) => {
+      const tileIdx = (data as Record<string, unknown> | null)?.['tile'];
+      typeof tileIdx === 'number' ? this.markDirty(tileIdx) : this.markAllDirty();
+    });
+    globalEvents.on('city:updated', (data: unknown) => {
+      const tileIdx = (data as Record<string, unknown> | null)?.['tile'];
+      typeof tileIdx === 'number' ? this.markDirty(tileIdx) : this.markAllDirty();
+    });
+    globalEvents.on('city:removed', (data: unknown) => {
+      const tileIdx = (data as Record<string, unknown> | null)?.['tile'];
+      typeof tileIdx === 'number' ? this.markDirty(tileIdx) : this.markAllDirty();
+    });
     globalEvents.on('map:allocated', () => {
       this.clearTextureCache();
       this.markAllDirty();
     });
-    globalEvents.on('game:beginturn', () => this.markAllDirty());
+    // game:beginturn: individual tile/unit/city events already handle dirty marking per-packet,
+    // so a full markAllDirty here would cause unnecessary expensive rebuilds every turn.
+    // Instead, only refresh tiles that were NOT yet built (incrementally reveal newly-known tiles).
+    globalEvents.on('game:beginturn', () => { this.revealAll = true; });
 
     window.addEventListener('resize', () => {
       this.app.resize();

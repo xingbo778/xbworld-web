@@ -34,13 +34,10 @@ import {
 import { overview_clicked } from '../core/overview';
 import { mapview_window_resized } from '../renderer/mapview';
 import { orientation_changed } from '../utils/mobile';
-import { mapctrl_init_2d } from '../renderer/mapctrl';
-
 import { setKeyboardInput, setResizeEnabled, setUrgentFocusQueue } from './control/controlState';
 import { global_keyboard_listener } from './control/keyboard';
 import { chat_context_change, check_text_input } from './control/chat';
 import * as S from './control/controlState';
-import { RENDERER_2DCANVAS, RENDERER_PIXI } from './constants';
 
 function set_default_mapview_active(): void { setKeyboardInput(true); }
 function set_default_mapview_inactive(): void { setKeyboardInput(true); }
@@ -82,9 +79,6 @@ function mount_nation_overview(): void {
 // ---------------------------------------------------------------------------
 export function control_init(): void {
   setUrgentFocusQueue([]);
-  if (store.renderer !== RENDERER_PIXI) {
-    mapctrl_init_2d();
-  }
 
   document.addEventListener('keydown', global_keyboard_listener);
   window.addEventListener('resize', mapview_window_resized);
