@@ -227,6 +227,9 @@ export function init_cache_sprites(): void {
         if (tileset) store.tileset = tileset;
         tileset_images = null!;
         unblockUI();
+        console.log('[xbw] sprites loaded: ' + Object.keys(sprites).length);
+        mark_all_dirty();
+        update_map_canvas_full();
       })
       .catch(err => {
         console.error('createImageBitmap failed, falling back to canvas:', err);
@@ -261,6 +264,9 @@ function init_cache_sprites_canvas(): void {
     store.sprites = sprites as Record<string, HTMLCanvasElement>;
     if (tileset) store.tileset = tileset;
     tileset_images = null!;
+    console.log('[xbw] sprites loaded (canvas fallback): ' + Object.keys(sprites).length);
+    mark_all_dirty();
+    update_map_canvas_full();
   } catch (e: unknown) {
     console.log("Problem caching sprite: " + (e instanceof Error ? e.message : e));
     sprites_loading = false;
