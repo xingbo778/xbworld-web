@@ -67,13 +67,16 @@ export const COLOR_OVERVIEW_VIEWRECT: number = 7; /* white */
 
 export let overview_hash: number = -1;
 export let overview_current_state: Record<string, unknown> | null = null;
-let overview_dirty: boolean = true;
+let overview_dirty: boolean = true;        // tile data changed → rebuild color grid
+let overview_viewport_dirty: boolean = true; // viewport moved → redraw viewrect only
 
-/** Call when any tile data changes to trigger the next overview redraw. */
-export function mark_overview_dirty(): void { overview_dirty = true; }
+/** Call when tile data changes (terrain/city/unit). Triggers full color-grid rebuild. */
+export function mark_overview_dirty(): void { overview_dirty = true; overview_viewport_dirty = true; }
+
+/** Call when only the viewport moved (drag pan). Only redraws the cheap viewrect overlay. */
+export function mark_overview_viewport_dirty(): void { overview_viewport_dirty = true; }
 
 // Update minimap from the rAF loop (both 2D and Pixi renderers emit this event).
-// This avoids calling redraw_overview() per-mousemove (which was O(n_tiles) per event).
 globalEvents.on('overview:frame', () => redraw_overview());
 
 
@@ -129,23 +132,30 @@ export function redraw_overview(): void {
       || !store.mapInfo?.xsize || !store.mapInfo?.ysize
       || !document.getElementById('overview_map')) return;
 
-  // Skip the O(n) hash scan if nothing has changed.
-  if (!overview_dirty) return;
-  overview_dirty = false;
+  if (overview_dirty) {
+    overview_dirty = false;
 
-  // Regenerate palette if terrains have loaded since init_overview() was called.
-  const terrainCount = Object.keys(store.terrains).length;
-  if (terrainCount > 0 && palette.length <= palette_terrain_offset) {
-    palette = generate_palette();
-    overview_hash = -1; // force redraw with new palette
+    // Regenerate palette if terrains have loaded since init_overview() was called.
+    const terrainCount = Object.keys(store.terrains).length;
+    if (terrainCount > 0 && palette.length <= palette_terrain_offset) {
+      palette = generate_palette();
+      overview_hash = -1; // force redraw with new palette
+    }
+
+    // Single-pass: build tile-color grid and hash (viewport position excluded from
+    // hash so panning alone does not trigger putImageData on every frame).
+    const { grid, hash } = generate_overview_grid_and_hash(store.mapInfo!.xsize, store.mapInfo!.ysize);
+
+    if (hash !== overview_hash) {
+      renderOverviewToCanvas(grid, palette);
+      overview_hash = hash;
+    }
+    overview_viewport_dirty = true; // always refresh viewrect after tile rebuild
   }
 
-  // Single-pass: build grid and hash together (avoids iterating all tiles twice).
-  const { grid, hash } = generate_overview_grid_and_hash(store.mapInfo!.xsize, store.mapInfo!.ysize);
-
-  if (hash != overview_hash) {
-    renderOverviewToCanvas(grid, palette);
-    overview_hash = hash;
+  // Update the viewport rectangle overlay — cheap, safe to run every rAF.
+  if (overview_viewport_dirty) {
+    overview_viewport_dirty = false;
     render_viewrect();
   }
 }
@@ -205,11 +215,8 @@ export function generate_overview_grid_and_hash(cols: number, rows: number): { g
     }
   }
 
-  const r = base_canvas_to_map_pos(0, 0);
-  if (r != null) {
-    hash += r['map_x'];
-    hash += r['map_y'];
-  }
+  // Note: viewport position intentionally excluded from hash — panning should
+  // only update the viewrect overlay, not rebuild the tile color grid.
 
   return { grid, hash };
 }

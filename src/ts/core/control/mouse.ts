@@ -20,7 +20,7 @@ import * as S from './controlState';
 // Circular imports — OK, only used inside functions
 import { find_visible_unit, set_unit_focus, update_active_units_dialog } from './unitFocus';
 import { activate_goto } from './gotoPath';
-import { redraw_overview, mark_overview_dirty } from '../overview';
+import { mark_overview_dirty, mark_overview_viewport_dirty } from '../overview';
 import type { Tile } from '../../data/types';
 
 
@@ -60,10 +60,9 @@ export function mouse_moved_cb(e: MouseEvent): void {
       mapview['gui_x0'] += diff_x;
       mapview['gui_y0'] += diff_y;
       mark_all_dirty();
-      mark_overview_dirty();
-      // Do NOT call redraw_overview() here — it is O(n_tiles) synchronous work
-      // per mousemove event. The rAF loop (update_map_canvas_check / PixiRenderer)
-      // picks up overview_dirty and redraws at most once per frame.
+      // During drag only the viewport rect needs updating — tile colors haven't changed.
+      // mark_overview_viewport_dirty() skips the O(n_tiles) grid rebuild entirely.
+      mark_overview_viewport_dirty();
       setTouchStart(S.mouse_x, S.mouse_y);
       update_mouse_cursor();
     }

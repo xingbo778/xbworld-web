@@ -58,6 +58,7 @@ export class PixiRenderer {
 
   private rafHandle: number | null = null;
   private initialized = false;
+  private spritesReady = false; // cached: avoids Object.keys(store.sprites) every frame
 
   constructor(private config: RendererConfig) {}
 
@@ -339,7 +340,10 @@ export class PixiRenderer {
 
   private processFrame(): void {
     if (!store.tiles || clientState() < C_S_RUNNING) return;
-    if (!store.sprites || Object.keys(store.sprites).length === 0) return;
+    if (!this.spritesReady) {
+      if (!store.sprites || Object.keys(store.sprites).length === 0) return;
+      this.spritesReady = true; // cache once — sprites don't change after load
+    }
 
     // O(1) panning: shift the entire map container
     this.mapContainer.x = -mapview['gui_x0'];
