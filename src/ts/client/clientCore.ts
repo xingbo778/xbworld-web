@@ -62,12 +62,19 @@ export function setPhaseStart(): void {
 // Game actions
 // ---------------------------------------------------------------------------
 
+// Track whether we've already sent an observe/take command this session.
+let _observeSent = false;
+
 /**
  * Sends a request to observe the current game.
- * Prefers /take <AI_player> over /observe so the server sends full tile data.
- * Pure /observe does not receive TILE_INFO packets from Freeciv server.
+ * Prefers /take <AI_player> for full map data.
+ * Falls back to /observe <firstPlayer> to get tile data via player observation.
+ * Pure /observe (no args) does not receive TILE_INFO from the Freeciv server.
  */
 export function requestObserveGame(): void {
+  if (_observeSent) return;
+  _observeSent = true;
+
   const tryTake = () => {
     const players = Object.values(store.players);
     const aiPlayer = players.find(p => {
@@ -78,8 +85,16 @@ export function requestObserveGame(): void {
       console.log('[xbw] requestObserveGame: /take', aiPlayer['name']);
       send_message('/take ' + (aiPlayer['name'] as string));
     } else {
-      console.log('[xbw] requestObserveGame: no AI player found, using /observe. players=', players.length);
-      send_message('/observe ');
+      // Observe first available player to get their tile data.
+      // Pure /observe (no args) sends no TILE_INFO; /observe <name> does.
+      const firstPlayer = players[0];
+      if (firstPlayer && firstPlayer['name']) {
+        console.log('[xbw] requestObserveGame: /observe', firstPlayer['name']);
+        send_message('/observe ' + (firstPlayer['name'] as string));
+      } else {
+        console.log('[xbw] requestObserveGame: no players, using bare /observe');
+        send_message('/observe ');
+      }
     }
   };
 
