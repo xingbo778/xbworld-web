@@ -133,7 +133,9 @@ export function websocket_init(): void {
     }
     if ((window as any).__xbwPacketCount === undefined) (window as any).__xbwPacketCount = 0;
     (window as any).__xbwPacketCount += parsed.length;
-    const CHUNK = 50;
+    // Use larger chunks for big batches (tile replays) to reduce setTimeout overhead.
+    // Each tile packet is a fast O(1) assign, so 200 per chunk still stays under ~2ms.
+    const CHUNK = parsed.length > 200 ? 200 : 50;
     if (parsed.length <= CHUNK) {
       client_handle_packet!(parsed);
     } else {

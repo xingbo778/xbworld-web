@@ -414,8 +414,13 @@ export function update_map_canvas_dirty(): void {
   Uses dirty-rect rendering when only a few tiles changed.
 **************************************************************************/
 export function update_map_canvas_check(): void {
+  // Skip expensive rendering when the map tab is hidden (user is on another tab).
+  // The rAF loop still runs so rendering resumes immediately when switching back.
+  const mapPanel = document.getElementById('tabs-map');
+  const mapVisible = !mapPanel || mapPanel.style.display !== 'none';
+
   const time = performance.now() - last_redraw_time;
-  if (time > MAPVIEW_REFRESH_INTERVAL && store.renderer == RENDERER_2DCANVAS) {
+  if (mapVisible && time > MAPVIEW_REFRESH_INTERVAL && store.renderer == RENDERER_2DCANVAS) {
     if (dirty_all || dirty_count > DIRTY_FULL_THRESHOLD) {
       update_map_canvas_full();
     } else if (dirty_count > 0) {
