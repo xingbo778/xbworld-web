@@ -61,7 +61,9 @@ export function mouse_moved_cb(e: MouseEvent): void {
       mapview['gui_y0'] += diff_y;
       mark_all_dirty();
       mark_overview_dirty();
-      redraw_overview();
+      // Do NOT call redraw_overview() here — it is O(n_tiles) synchronous work
+      // per mousemove event. The rAF loop (update_map_canvas_check / PixiRenderer)
+      // picks up overview_dirty and redraws at most once per frame.
       setTouchStart(S.mouse_x, S.mouse_y);
       update_mouse_cursor();
     }

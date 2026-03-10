@@ -31,6 +31,7 @@ import { base_canvas_to_map_pos, canvas_pos_to_tile, mapview, mapview_slide } fr
 import { RENDERER_2DCANVAS } from './constants';
 import { color_rbg_to_list } from '../renderer/tilespec';
 import { clientState as client_state, C_S_RUNNING, C_S_OVER, clientPlaying } from '../client/clientState';
+import { globalEvents } from './events';
 
 // Alias snake_case names to camelCase imports
 const map_pos_to_tile = mapPosToTile;
@@ -70,6 +71,10 @@ let overview_dirty: boolean = true;
 
 /** Call when any tile data changes to trigger the next overview redraw. */
 export function mark_overview_dirty(): void { overview_dirty = true; }
+
+// Update minimap from the rAF loop (both 2D and Pixi renderers emit this event).
+// This avoids calling redraw_overview() per-mousemove (which was O(n_tiles) per event).
+globalEvents.on('overview:frame', () => redraw_overview());
 
 
 /****************************************************************************

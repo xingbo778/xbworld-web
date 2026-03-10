@@ -430,6 +430,8 @@ export function update_map_canvas_check(): void {
     } else {
       last_redraw_time = performance.now();
     }
+    // Update minimap at rAF frequency (not per-mousemove).
+    globalEvents.emit('overview:frame', null);
   }
   try {
     if (store.renderer == RENDERER_2DCANVAS && window.requestAnimationFrame != null) requestAnimationFrame(update_map_canvas_check);

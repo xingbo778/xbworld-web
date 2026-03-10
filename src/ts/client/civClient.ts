@@ -36,11 +36,9 @@ import { music_list, audio, setAudio, supports_mp3 } from '../audio/audioState';
 // ---------------------------------------------------------------------------
 // Global state guards (active once civclient.js is deleted)
 // ---------------------------------------------------------------------------
-// Select renderer: 2D Canvas is default; ?renderer=pixi enables experimental WebGL/Pixi.
-// Note: Pixi mode requires store.sprites to be populated (not yet wired up) and
-// canvas.getContext('webgl2') can block the main thread on some hardware.
+// Select renderer: Pixi (WebGL) is default; ?renderer=2d falls back to 2D Canvas.
 const _rendererParam = new URLSearchParams(window.location.search).get('renderer');
-store.renderer = _rendererParam === 'pixi' ? RENDERER_PIXI : RENDERER_2DCANVAS;
+store.renderer = _rendererParam === '2d' ? RENDERER_2DCANVAS : RENDERER_PIXI;
 
 // music_list is now initialised in audio/audioState.ts
 

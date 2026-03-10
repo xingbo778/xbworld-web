@@ -85,12 +85,13 @@ export function requestObserveGame(): void {
       console.log('[xbw] requestObserveGame: /take', aiPlayer['name']);
       send_message('/take ' + (aiPlayer['name'] as string));
     } else {
-      // Observe first available player to get their tile data.
-      // Pure /observe (no args) sends no TILE_INFO; /observe <name> does.
+      // No AI player found — try /take on first player (may be an unattended human slot).
+      // If /take fails, server will send an error chat message but we stay connected.
+      // Fall back to /observe if /take doesn't work (tile data via player observation).
       const firstPlayer = players[0];
       if (firstPlayer && firstPlayer['name']) {
-        console.log('[xbw] requestObserveGame: /observe', firstPlayer['name']);
-        send_message('/observe ' + (firstPlayer['name'] as string));
+        console.log('[xbw] requestObserveGame: /take (non-AI)', firstPlayer['name']);
+        send_message('/take ' + (firstPlayer['name'] as string));
       } else {
         console.log('[xbw] requestObserveGame: no players, using bare /observe');
         send_message('/observe ');

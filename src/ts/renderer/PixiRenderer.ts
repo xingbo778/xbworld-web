@@ -345,6 +345,9 @@ export class PixiRenderer {
     this.mapContainer.x = -mapview['gui_x0'];
     this.mapContainer.y = -mapview['gui_y0'];
 
+    // Update minimap at rAF frequency (not per-mousemove).
+    globalEvents.emit('overview:frame', null);
+
     const tiles = store.tiles as Tile[];
 
     if (this.dirtyAll) {

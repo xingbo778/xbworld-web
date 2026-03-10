@@ -187,6 +187,7 @@ import { show_city_dialog_by_id } from './ui/cityDialog';
 import { show_tech_info_dialog, send_player_research, show_wikipedia_dialog } from './ui/techDialog';
 import { nationTableSelectPlayer } from './data/nation';
 import { center_tile_id } from './renderer/mapviewCommon';
+import { send_message } from './net/connection';
 
 function init(): void {
   logNormal('[TS] XBWorld observer client loading...');
@@ -213,6 +214,7 @@ function init(): void {
   win['mark_all_dirty'] = mark_all_dirty;
   win['redraw_overview'] = redraw_overview;
   win['__store'] = store;
+  win['send_message'] = send_message;
   // Expose renderer globals needed by unit.ts (declared as globals to avoid circular deps)
   win['map_to_gui_pos'] = map_to_gui_pos;
   Object.defineProperty(win, 'mapview', {

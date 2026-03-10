@@ -25,6 +25,7 @@ import type {
   ServerSettingConstPacket,
   ServerSettingUpdatePacket,
 } from './packetTypes';
+import { send_request as _send_request } from '../connection';
 import type { Connection, ServerSetting } from '../../data/types';
 
 // Connection management
@@ -142,7 +143,20 @@ export function handle_single_want_hack_reply(_packet: BasePacket): void {
   // Legacy hack reply handler removed — observer mode only
 }
 
-export function handle_vote_new(_packet: BasePacket): void { /* TODO */ }
+export function handle_vote_new(packet: BasePacket): void {
+  // Auto-vote YES on any vote via chat command (safer than PACKET_VOTE_SUBMIT)
+  const p = packet as Record<string, unknown>;
+  const voteId = (p['vote_no'] ?? p['id']) as number | undefined;
+  if (voteId != null) {
+    console.log('[xbw] vote_new: auto-voting YES on vote', voteId);
+    // Use chat command approach: /vote yes <n>
+    // Note: import send_message from connection is already available via send_request
+    const ws = (window as any).ws as WebSocket | null;
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ pid: 26, message: '/vote yes ' + voteId }));
+    }
+  }
+}
 export function handle_vote_update(_packet: BasePacket): void { /* TODO */ }
 export function handle_vote_remove(_packet: BasePacket): void { /* TODO */ }
 export function handle_vote_resolve(_packet: BasePacket): void { /* TODO */ }
