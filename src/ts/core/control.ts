@@ -137,7 +137,23 @@ export function control_init(): void {
     const tabsChat = document.getElementById('tabs-chat');
     if (tabsChat) tabsChat.style.display = '';
   });
-  document.getElementById('hel_tab')?.addEventListener('click', () => { set_default_mapview_inactive(); import('../ui/helpdata').then(({ show_help }) => show_help()); });
+  // Log tab — show game event log
+  document.getElementById('hel_tab')?.addEventListener('click', () => {
+    set_default_mapview_inactive();
+    const panel = document.getElementById('tabs-hel');
+    if (panel && !panel.dataset['logMounted']) {
+      panel.dataset['logMounted'] = '1';
+      import('../components/GameLog').then(({ mountGameLog }) => mountGameLog(panel));
+    }
+  });
+
+  // Game Scores button — show sorted player rankings
+  document.getElementById('game_scores_button')?.addEventListener('click', () => {
+    import('../data/nation').then(({ getPlayerScoresSummary }) => {
+      const text = getPlayerScoresSummary();
+      import('../client/civClient').then(({ showDialogMessage }) => showDialogMessage('Game Scores', text));
+    });
+  });
 
   // Overview map click
   const overviewMap = document.getElementById('overview_map');

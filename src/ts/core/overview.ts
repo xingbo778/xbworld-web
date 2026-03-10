@@ -131,6 +131,13 @@ export function redraw_overview(): void {
   if (!overview_dirty) return;
   overview_dirty = false;
 
+  // Regenerate palette if terrains have loaded since init_overview() was called.
+  const terrainCount = Object.keys(store.terrains).length;
+  if (terrainCount > 0 && palette.length <= palette_terrain_offset) {
+    palette = generate_palette();
+    overview_hash = -1; // force redraw with new palette
+  }
+
   // Single-pass: build grid and hash together (avoids iterating all tiles twice).
   const { grid, hash } = generate_overview_grid_and_hash(store.mapInfo!.xsize, store.mapInfo!.ysize);
 

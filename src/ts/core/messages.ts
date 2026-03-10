@@ -173,6 +173,8 @@ export function update_chatbox(messages: Record<string, unknown>[]): void
         item.className = fc_e_events[messages[i]['event'] as number] || '';
         setHtml(item, messages[i]['message'] as string);
         scrollDiv.appendChild(item);
+        // Push to GameLog panel (lazy import to avoid circular dep)
+        import('../components/GameLog').then(({ pushGameLogEntry }) => pushGameLogEntry(messages[i]['message'] as string)).catch(() => {});
     }
 
   } else {

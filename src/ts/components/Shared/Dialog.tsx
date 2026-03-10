@@ -113,14 +113,21 @@ export function Dialog({
           {onClose && (
             <button
               onClick={onClose}
+              onPointerDown={(e) => e.stopPropagation()}
               style={{
                 background: 'none',
                 border: 'none',
                 color: 'var(--xb-dialog-titlebar-close-color)',
-                fontSize: '18px',
+                fontSize: '22px',
                 cursor: 'pointer',
-                padding: '0 4px',
+                padding: '2px 8px',
                 lineHeight: 1,
+                touchAction: 'manipulation',
+                minWidth: '32px',
+                minHeight: '32px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
               aria-label="Close"
             >
