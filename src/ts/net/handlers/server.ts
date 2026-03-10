@@ -57,6 +57,7 @@ export function handle_server_join_reply(packet: ServerJoinReplyPacket): void {
     const urlAction = urlParams.get('action');
     const urlRuleset = urlParams.get('ruleset');
     if (store.observing) {
+      console.log('[xbw] join_reply: observer mode, scheduling requestObserveGame');
       // Primary: wait for "You are logged in as" in chat to confirm server is ready.
       wait_for_text('You are logged in as', requestObserveGame);
       // Fallback: in mid-game joins, clear_chatbox() may wipe the chat before

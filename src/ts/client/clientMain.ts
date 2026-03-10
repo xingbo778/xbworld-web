@@ -31,6 +31,7 @@ import { setTechDialogActive } from '../ui/techDialog';
  * Mirrors the logic in client_main.js set_client_state().
  */
 export function setClientState(newstate: number): void {
+  console.log('[xbw] setClientState ' + store.civclientState + ' → ' + newstate);
   if (store.civclientState === newstate) return;
   store.civclientState = newstate;
 

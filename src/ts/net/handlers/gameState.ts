@@ -28,15 +28,24 @@ import type {
 export function handle_game_info(packet: GameInfoPacket): void {
   store.gameInfo = packet;
 
+  const turn = packet.turn ?? 0;
+  const obs = store.observing;
+  const curState = typeof clientState === 'function' ? clientState() : -1;
+  console.log('[xbw] handle_game_info turn=' + turn + ' observing=' + obs + ' clientState=' + curState);
+
   if (
     typeof clientState === 'function' &&
     clientState() !== C_S_RUNNING &&
     (packet.turn > 0 || store.observing)
   ) {
+    console.log('[xbw] handle_game_info: scheduling C_S_RUNNING transition in 2s');
     setTimeout(() => {
       if (clientState() !== C_S_RUNNING) {
+        console.log('[xbw] handle_game_info: firing C_S_RUNNING transition');
         store.observing = true;
         set_client_state(C_S_RUNNING);
+      } else {
+        console.log('[xbw] handle_game_info: already C_S_RUNNING, skip');
       }
     }, 2000);
   }
