@@ -367,10 +367,34 @@ export function popit_req(ptile: Tile | null) {
 }
 
 export function center_on_any_city() {
+  // If map info is known, start by centering on the map center — avoids
+  // showing the world-boundary black edge as the first thing the user sees.
+  console.log('[xbw] center_on_any_city: mapInfo=', store.mapInfo ? 'set' : 'null', 'cities=', Object.keys(store.cities).length, 'units=', Object.keys(store.units).length);
+  if (store.mapInfo) {
+    const xsize = (store.mapInfo as Record<string, unknown>)['xsize'] as number | undefined;
+    const ysize = (store.mapInfo as Record<string, unknown>)['ysize'] as number | undefined;
+    if (xsize && ysize) {
+      const midTile = map_pos_to_tile(Math.floor(xsize / 2), Math.floor(ysize / 2));
+      if (midTile) {
+        center_tile_mapcanvas(midTile);
+        return;
+      }
+    }
+  }
+  // Fallback: center on first city
   for (const city_id in store.cities) {
     const pcity = store.cities[city_id];
     center_tile_mapcanvas(city_tile(pcity));
     return;
+  }
+  // Fallback: center on first visible unit
+  for (const unit_id in store.units) {
+    const punit = store.units[unit_id];
+    const ptile = index_to_tile(punit['tile'] as number);
+    if (ptile) {
+      center_tile_mapcanvas(ptile);
+      return;
+    }
   }
 }
 

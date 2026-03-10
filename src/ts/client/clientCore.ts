@@ -20,6 +20,9 @@
  */
 
 import { send_message } from '../net/connection';
+import { store } from '../data/store';
+import { PlayerFlag } from '../data/player';
+import { BitVector } from '../utils/bitvector';
 
 // ---------------------------------------------------------------------------
 // Helpers — read legacy globals
@@ -61,9 +64,31 @@ export function setPhaseStart(): void {
 
 /**
  * Sends a request to observe the current game.
+ * Prefers /take <AI_player> over /observe so the server sends full tile data.
+ * Pure /observe does not receive TILE_INFO packets from Freeciv server.
  */
 export function requestObserveGame(): void {
-  send_message('/observe ');
+  const tryTake = () => {
+    const players = Object.values(store.players);
+    const aiPlayer = players.find(p => {
+      const flags = p['flags'];
+      return flags instanceof BitVector && flags.isSet(PlayerFlag.PLRF_AI);
+    });
+    if (aiPlayer && aiPlayer['name']) {
+      console.log('[xbw] requestObserveGame: /take', aiPlayer['name']);
+      send_message('/take ' + (aiPlayer['name'] as string));
+    } else {
+      console.log('[xbw] requestObserveGame: no AI player found, using /observe. players=', players.length);
+      send_message('/observe ');
+    }
+  };
+
+  if (Object.keys(store.players).length > 0) {
+    tryTake();
+  } else {
+    // Players not yet received — wait briefly then try
+    setTimeout(tryTake, 500);
+  }
 }
 
 /**

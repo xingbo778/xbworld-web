@@ -26,7 +26,17 @@ export function handle_tile_info(packet: TileInfoPacket): void {
 export function handle_map_info(packet: MapInfoPacket): void {
   (window as any).__xbwHandleMapInfoCalled = ((window as any).__xbwHandleMapInfoCalled || 0) + 1;
   store.mapInfo = packet;
-  (window as any).__xbwMapInfoXsize = packet.xsize;
+
+  // Set window.map dimensions so getMapInfo() and mapAllocate() can read them.
+  // Legacy map.js used to do this; the TS handler must replicate it.
+  const winMap = (window as any).map as Record<string, unknown> | undefined;
+  if (winMap) {
+    winMap.xsize = packet.xsize;
+    winMap.ysize = packet.ysize;
+    winMap.topology_id = packet.topology_id;
+    winMap.wrap_id = packet.wrap_id;
+  }
+
   mapInitTopology(false);
   mapAllocate();
   mapdeco_init();

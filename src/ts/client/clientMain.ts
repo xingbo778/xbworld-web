@@ -50,8 +50,11 @@ export function setClientState(newstate: number): void {
       // remove context menu from pregame
       document.querySelectorAll('.context-menu-root').forEach(el => el.remove());
       // Always observer mode — center on a city at game start
+      console.log('[xbw] C_S_RUNNING: calling center_on_any_city');
       center_on_any_city();
       advance_unit_focus();
+      // Retry after 2s in case units/tiles arrive after the game page opens
+      setTimeout(() => { console.log('[xbw] C_S_RUNNING: retry center_on_any_city'); center_on_any_city(); }, 2000);
       break;
 
     case C_S_OVER:
