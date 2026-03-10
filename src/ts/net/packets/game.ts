@@ -4,6 +4,8 @@ import { store } from '../../data/store';
 import { globalEvents } from '../../core/events';
 import { mapAllocate } from '../../data/map';
 import { send_message as sendMessage } from '../connection';
+import { PlayerFlag } from '../../data/player';
+import { BitVector } from '../../utils/bitvector';
 import type { GameInfo, CalendarInfo, MapInfo } from '../../data/types';
 import type { ServerJoinReplyPacket } from '../handlers/packetTypes';
 
@@ -23,7 +25,27 @@ export function registerGameHandlers(): void {
       store.client.conn.id = p.conn_id ?? 0;
       globalEvents.emit('net:joined');
       if (store.observing) {
-        sendMessage('/observe ');
+        // Wait for the initial packet batch to finish (PROCESSING_FINISHED),
+        // then take an AI player slot to receive full map data.
+        // Pure /observe gets no TILE_INFO from the Freeciv server.
+        let taken = false;
+        const doTake = () => {
+          if (taken) return;
+          taken = true;
+          const aiPlayer = Object.values(store.players).find(p =>
+            p['flags'] instanceof BitVector
+              ? p['flags'].isSet(PlayerFlag.PLRF_AI)
+              : false
+          );
+          if (aiPlayer && aiPlayer['name']) {
+            sendMessage('/take ' + (aiPlayer['name'] as string));
+          } else {
+            sendMessage('/observe ');
+          }
+        };
+        globalEvents.once('game:unfrozen', doTake);
+        // Fallback: if PROCESSING_FINISHED never arrives, try after 3s
+        setTimeout(doTake, 3000);
       }
     } else {
       globalEvents.emit('ui:alert', {
