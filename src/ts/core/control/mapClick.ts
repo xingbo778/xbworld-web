@@ -8,7 +8,7 @@
 import { store } from '../../data/store';
 import type { Tile, Unit, City, UnitType } from '../../data/types';
 import { unit_type, tile_units, Order, UnitSSDataType } from '../../data/unit';
-import { indexToTile as index_to_tile, mapPosToTile as map_pos_to_tile, mapstep, clearGotoTiles as clear_goto_tiles } from '../../data/map';
+import { indexToTile as index_to_tile, mapPosToTile as map_pos_to_tile, mapstep, clearGotoTiles as clear_goto_tiles, getMapInfo } from '../../data/map';
 import { tileCity as tile_city, tileGetKnown as tile_get_known, TILE_UNKNOWN } from '../../data/tile';
 import { cityTile as city_tile } from '../../data/city';
 import { actionByNumber as action_by_number, actionHasResult as action_has_result } from '../../data/actions';
@@ -367,18 +367,23 @@ export function popit_req(ptile: Tile | null) {
 }
 
 export function center_on_any_city() {
-  // If map info is known, start by centering on the map center — avoids
-  // showing the world-boundary black edge as the first thing the user sees.
-  console.log('[xbw] center_on_any_city: mapInfo=', store.mapInfo ? 'set' : 'null', 'cities=', Object.keys(store.cities).length, 'units=', Object.keys(store.units).length);
-  if (store.mapInfo) {
-    const xsize = (store.mapInfo as Record<string, unknown>)['xsize'] as number | undefined;
-    const ysize = (store.mapInfo as Record<string, unknown>)['ysize'] as number | undefined;
-    if (xsize && ysize) {
-      const midTile = map_pos_to_tile(Math.floor(xsize / 2), Math.floor(ysize / 2));
-      if (midTile) {
-        center_tile_mapcanvas(midTile);
-        return;
-      }
+  // If map info is known, center on the map center — avoids showing the
+  // world-boundary black edge as the first thing the observer sees.
+  // Use getMapInfo() (reads window.map) as it is reliably set by handle_map_info
+  // before tiles arrive. store.mapInfo may be an empty {} from game_init().
+  const mi = getMapInfo();
+  if (mi && mi.xsize && mi.ysize) {
+    const midTile = map_pos_to_tile(Math.floor(mi.xsize / 2), Math.floor(mi.ysize / 2));
+    if (midTile) {
+      center_tile_mapcanvas(midTile);
+      return;
+    }
+    // Fallback: pick any valid tile from the map center area
+    const tiles = (window as any).tiles as Record<number, any> | undefined;
+    if (tiles) {
+      const midIdx = Math.floor(mi.xsize / 2) + Math.floor(mi.ysize / 2) * mi.xsize;
+      const t = tiles[midIdx];
+      if (t) { center_tile_mapcanvas(t); return; }
     }
   }
   // Fallback: center on first city

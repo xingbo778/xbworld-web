@@ -50,11 +50,15 @@ export function setClientState(newstate: number): void {
       // remove context menu from pregame
       document.querySelectorAll('.context-menu-root').forEach(el => el.remove());
       // Always observer mode — center on a city at game start
-      console.log('[xbw] C_S_RUNNING: calling center_on_any_city');
       center_on_any_city();
       advance_unit_focus();
-      // Retry after 2s in case units/tiles arrive after the game page opens
-      setTimeout(() => { console.log('[xbw] C_S_RUNNING: retry center_on_any_city'); center_on_any_city(); }, 2000);
+      // Retry until the map is actually centered (mapview.gui_x0 ≠ 0 means centering worked)
+      const _tryCenter = (attempts: number) => {
+        if (mapview.gui_x0 !== 0 || mapview.gui_y0 !== 0) return; // already centered
+        center_on_any_city();
+        if (attempts > 0) setTimeout(() => _tryCenter(attempts - 1), 2000);
+      };
+      setTimeout(() => _tryCenter(3), 1000);
       break;
 
     case C_S_OVER:

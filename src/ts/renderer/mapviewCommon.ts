@@ -92,6 +92,8 @@ export const DIRTY_FULL_THRESHOLD: number = 64;
 // Inject mapview reference and dirty_all setter into mapCoords to avoid circular deps
 _setMapviewRef(mapview);
 _setDirtyAllSetter((val: boolean) => { dirty_all = val; });
+// Expose mapview origin for diagnostic tests
+(window as any).__xbwMapview = { get x0() { return mapview.gui_x0; }, get y0() { return mapview.gui_y0; } };
 
 export function mark_tile_dirty(tile_id: number): void {
   invalidateTerrainNearCache(tile_id);

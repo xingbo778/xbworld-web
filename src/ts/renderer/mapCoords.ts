@@ -207,7 +207,13 @@ export function center_tile_mapcanvas_2d(ptile: { x: number; y: number }): void 
   gui_x -= (_mapview['width']! - tileset_tile_width) >> 1;
   gui_y -= (_mapview['height']! - tileset_tile_height) >> 1;
 
+  const before = { x0: _mapview['gui_x0'], y0: _mapview['gui_y0'] };
   set_mapview_origin(gui_x, gui_y);
+  const after = { x0: _mapview['gui_x0'], y0: _mapview['gui_y0'] };
+  console.log('[xbw center] tile=(%d,%d) gui_raw=(%d,%d) mv_wh=(%d,%d) input=(%d,%d) before=(%d,%d) after=(%d,%d)',
+    ptile['x'], ptile['y'], r['gui_dx'], r['gui_dy'],
+    _mapview['width'], _mapview['height'], gui_x, gui_y,
+    before.x0, before.y0, after.x0, after.y0);
 }
 
 /**************************************************************************
