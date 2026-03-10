@@ -76,10 +76,7 @@ export function mark_overview_dirty(): void { overview_dirty = true; }
   Initialize the overview map.
 ****************************************************************************/
 export function init_overview(): void {
-  (window as any).__xbwInitOverviewCalled = ((window as any).__xbwInitOverviewCalled || 0) + 1;
-  (window as any).__xbwOverviewActive = true;
   if (!store.mapInfo?.xsize || !store.mapInfo?.ysize) {
-    (window as any).__xbwInitOverviewNoMapInfo = true;
     // No valid map dimensions yet — give the container a placeholder size
     // so the overview panel is visible (shows as empty until map data arrives).
     const overviewMap = document.getElementById('overview_map');
@@ -391,7 +388,7 @@ export function overview_tile_color(map_x: number, map_y: number): number {
       return COLOR_OVERVIEW_ENEMY_UNIT;
     } else if (punit.owner == clientPlaying()!['id']) {
       return COLOR_OVERVIEW_MY_UNIT;
-    } else if (punit.owner != null && punit.owner != 255) {
+    } else if (punit.owner != null && punit.owner >= 0 && punit.owner < 255) {
       return palette_color_offset + punit.owner;
     } else {
       return COLOR_OVERVIEW_ENEMY_UNIT;
@@ -403,7 +400,8 @@ export function overview_tile_color(map_x: number, map_y: number): number {
   if (ptile != null) {
     const terrain = tile_terrain(ptile);
     if (terrain != null) {
-      if (ptile.owner != null && ptile.owner !== 255) {
+      // Guard against Freeciv 3.4 sentinel values (e.g. 65535 = 0xFFFF = no owner)
+      if (ptile.owner != null && ptile.owner >= 0 && ptile.owner < 255) {
         return palette_color_offset + ptile.owner;
       }
       return palette_terrain_offset + (terrain['id'] as number);

@@ -13,6 +13,15 @@ export function handle_tile_info(packet: TileInfoPacket): void {
   if (store.tiles != null) {
     packet['extras'] = new BitVector(packet['extras'] as number[]);
 
+    // Ensure received tiles are always visible. In Freeciv 3.4 the `known`
+    // field is sent as a per-player bitmask array rather than a scalar, so
+    // it may not be a clean 0/1/2 value. Since this client runs exclusively
+    // in observer mode (revealmap GLOBAL), force every received tile to
+    // TILE_KNOWN_SEEN (2) so the renderer draws it.
+    if (!(packet['known'] as number) || (packet['known'] as number) < 2) {
+      (packet as Record<string, unknown>)['known'] = 2;
+    }
+
     Object.assign(store.tiles[packet['tile']], packet);
 
     mark_overview_dirty();

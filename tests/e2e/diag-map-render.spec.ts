@@ -61,13 +61,41 @@ async function getState(page: import('@playwright/test').Page) {
     const pregameChat = document.getElementById('pregame_message_area');
 
     // JS errors from window
+    const sampleTile0 = w.tiles?.[0];
+    const sampleTerrain0 = w.terrains ? Object.values(w.terrains)[0] : null;
+    const sampleTile100 = w.tiles?.[100];
+
+    // Count tiles with non-zero terrain
+    let tilesWithTerrain = 0;
+    if (w.tiles) {
+      for (const t of Object.values(w.tiles as Record<string, any>)) {
+        if (t && t.terrain && t.terrain !== 0) tilesWithTerrain++;
+      }
+    }
+
+    // Sample overview diagnostics
+    let overviewDiag = 'n/a';
+    try {
+      overviewDiag = JSON.stringify({
+        handleMapInfoCalled: w.__xbwHandleMapInfoCalled,
+      });
+    } catch(e) {}
+
     return {
       civclientState: w.store?.civclientState,
       observing: w.store?.observing,
       tilesCount: w.tiles ? Object.keys(w.tiles).length : 0,
+      tilesWithTerrain,
+      terrainsCount: w.terrains ? Object.keys(w.terrains).length : -1,
+      sampleTile0known: sampleTile0 != null ? sampleTile0.known : 'no-tile0',
+      sampleTile0terrain: sampleTile0 != null ? sampleTile0.terrain : 'no-tile0',
+      sampleTile100terrain: sampleTile100 != null ? sampleTile100.terrain : 'no-tile100',
+      sampleTerrainId: sampleTerrain0 != null ? (sampleTerrain0 as any).id : 'no-terrain',
+      sampleTerrainColor: sampleTerrain0 != null ? `rgb(${(sampleTerrain0 as any).color_red},${(sampleTerrain0 as any).color_green},${(sampleTerrain0 as any).color_blue})` : 'no-terrain',
       mapInfo: w.map?.xsize ? `${w.map.xsize}x${w.map.ysize}` : null,
       playersCount: w.store?.players ? Object.keys(w.store.players).length : 0,
-      pidsReceived: JSON.stringify(w.__xbwReceivedPids || {}).slice(0, 200),
+      pidsReceived: JSON.stringify(w.__xbwReceivedPids || {}).slice(0, 800),
+      overviewDiag,
       game_page_display: gamePage ? getComputedStyle(gamePage).display : 'missing',
       pregame_page_display: pregamePage ? getComputedStyle(pregamePage).display : 'missing',
       canvasCount: canvases.length,
