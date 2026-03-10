@@ -28,10 +28,14 @@ import type {
 export function handle_game_info(packet: GameInfoPacket): void {
   store.gameInfo = packet;
 
+  // Only transition to C_S_RUNNING if game is actually in progress (turn > 0).
+  // When turn == 0 the server is in lobby/pre-game and handle_start_phase (pid 126)
+  // will fire the transition when the game actually starts.
+  // The old `|| store.observing` would incorrectly enter RUNNING in lobby state.
   if (
     typeof clientState === 'function' &&
     clientState() !== C_S_RUNNING &&
-    (packet.turn > 0 || store.observing)
+    packet.turn > 0
   ) {
     setTimeout(() => {
       if (clientState() !== C_S_RUNNING) {
