@@ -46,8 +46,8 @@ export function handle_chat_msg(packet: ChatMsgPacket): void {
     if ((message as string).indexOf('Metaserver message string') !== -1) return;
 
     if (ptile != null && ptile > 0) {
-      message = "<span class='chatbox_text_tileinfo' "
-          + "data-action='center-tile' data-tileid='" + ptile + "'>" + message + '</span>';
+      // ptile is a server-provided integer — safe to embed directly as a numeric attribute
+      message = `<span class="chatbox_text_tileinfo" data-action="center-tile" data-tileid="${Number(ptile)}">${message}</span>`;
     }
   }
 

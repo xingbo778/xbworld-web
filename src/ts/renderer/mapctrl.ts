@@ -397,16 +397,16 @@ export function handle_web_info_text_message(packet: { message: string; [key: st
       }
       if (pplayer != null && split_txt != null &&
           (clientPlaying() == null || pplayer != clientPlaying())) {
-        lines[i] = split_txt[1]
+        lines[i] = escapeHtml(split_txt[1])
                  + "<a href='#' data-action='select-player' data-playerno='"
                  + pplayer['playerno']
                  + "' style='color: black;'>"
                  + escapeHtml(split_txt[2])
                  + "</a>"
-                 + split_txt[3]
+                 + escapeHtml(split_txt[3])
                  + ", "
-                 + get_player_connection_status(pplayer)
-                 + split_txt[4];
+                 + escapeHtml(get_player_connection_status(pplayer))
+                 + escapeHtml(split_txt[4]);
       }
     }
   }
