@@ -67,7 +67,7 @@ vi.mock('@/renderer/tilespec', () => ({
   get_improvement_image_sprite: () => null,
 }));
 vi.mock('@/client/clientState', () => ({ clientPlaying: () => null }));
-vi.mock('@/core/events', () => ({ globalEvents: { emit: vi.fn(), once: vi.fn() } }));
+vi.mock('@/core/events', () => ({ globalEvents: { emit: vi.fn(), on: vi.fn(), once: vi.fn() } }));
 
 // ---------------------------------------------------------------------------
 // Import after mocks

@@ -66,8 +66,16 @@ vi.mock('@/renderer/tilespec', () => ({
   tileset_tech_graphic_tag: vi.fn(() => null),
 }));
 
+// Real mini event emitter so city.ts cache callbacks actually fire
+const _eventListeners = vi.hoisted(() => ({} as Record<string, Array<() => void>>));
 vi.mock('@/core/events', () => ({
-  globalEvents: { emit: vi.fn(), on: vi.fn() },
+  globalEvents: {
+    emit: vi.fn((event: string) => { (_eventListeners[event] ?? []).forEach(fn => fn()); }),
+    on: vi.fn((event: string, fn: () => void) => {
+      if (!_eventListeners[event]) _eventListeners[event] = [];
+      _eventListeners[event].push(fn);
+    }),
+  },
 }));
 
 vi.mock('@/client/clientState', () => ({
@@ -148,6 +156,8 @@ function resetStore() {
   mockStore.gameInfo = null;
   mockStore.mapInfo = null;
   mockStore.nations = {};
+  // Fire store:reset so city.ts clears _cachedProductionList
+  (_eventListeners['store:reset'] ?? []).forEach(fn => fn());
 }
 
 // ---------------------------------------------------------------------------
