@@ -8,7 +8,8 @@
 export { store } from '../data/store';
 export type { ClientState } from '../data/store';
 
-// Reactive signals
+// Reactive signals — read .value in render bodies for auto re-render.
+// Do NOT call globalEvents.on directly in components; use these signals instead.
 export {
   gameInfo,
   calendarInfo,
@@ -20,10 +21,14 @@ export {
   unitCount,
   isObserver,
   connectedPlayer,
+  rulesetReady,
+  playerUpdated,
+  researchUpdated,
+  settingsUpdated,
+  statusRefresh,
+  pregameRefresh,
+  connectionBanner,
 } from '../data/signals';
-
-// Events
-export { globalEvents } from '../core/events';
 
 // Client state
 export {
