@@ -276,6 +276,13 @@ function ActionBar() {
     centerOnPlayer();
   }
 
+  function handleViewIntel() {
+    if (!hasSelection) return;
+    import('../ui/intelDialog').then(({ show_intelligence_report_dialog }) => {
+      show_intelligence_report_dialog();
+    });
+  }
+
   function handleGameScores() {
     import('../data/nation').then(({ getPlayerScoresSummary }) => {
       const text = getPlayerScoresSummary();
@@ -293,6 +300,7 @@ function ActionBar() {
       borderBottom: '1px solid var(--xb-border-default, #30363d)',
       background: 'var(--xb-bg-secondary, #161b22)',
       flexShrink: 0,
+      flexWrap: 'wrap',
     }}>
       <Button
         onClick={handleViewOnMap}
@@ -300,6 +308,13 @@ function ActionBar() {
         variant="secondary"
       >
         View on Map
+      </Button>
+      <Button
+        onClick={handleViewIntel}
+        disabled={!hasSelection}
+        variant="secondary"
+      >
+        View Intel
       </Button>
       <Button onClick={handleGameScores} variant="secondary">
         Game Scores
