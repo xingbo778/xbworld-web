@@ -28,7 +28,12 @@ export {
   statusRefresh,
   pregameRefresh,
   connectionBanner,
+  disconnectOverlay,
+  turnDoneState,
+  unitTextDetails,
+  activeUnitInfo,
 } from '../data/signals';
+export type { DisconnectOverlayState } from '../data/signals';
 
 // Client state
 export {
