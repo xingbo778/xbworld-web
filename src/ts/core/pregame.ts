@@ -78,7 +78,7 @@ export function update_player_info_pregame_real(): void {
       const iconId = isAI ? 'pregame_ai_icon' : 'pregame_player_icon';
       player_html += "<div id='pregame_plr_" + id
         + "' class='pregame_player_name'><div id='" + iconId + "'></div><b>"
-        + player['name'] + "</b></div>";
+        + sanitize_username(String(player['name'])) + "</b></div>";
     }
   }
   const pregamePlayerList = document.getElementById('pregame_player_list');

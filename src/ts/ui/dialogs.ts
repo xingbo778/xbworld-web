@@ -124,9 +124,12 @@ export function showAlert(
   text: string,
   type: 'info' | 'error' | 'warning' = 'info',
 ): void {
+  const p = document.createElement('p');
+  p.className = `xb-alert-${type}`;
+  p.textContent = text;
   showDialog('xb-alert', {
     title,
-    content: `<p class="xb-alert-${type}">${text}</p>`,
+    content: p.outerHTML,
     modal: true,
     width: '400px',
     buttons: { Ok: () => closeDialog('xb-alert') },
