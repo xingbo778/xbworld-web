@@ -1,7 +1,6 @@
 import { clientState as client_state, C_S_PREPARING } from '../client/clientState';
 import { setupWindowSize as setup_window_size } from '../client/clientMain';
 import { store } from '../data/store';
-import { escapeHtml } from '../utils/safeHtml';
 
 const client = store.client;
 export let update_player_info_pregame_queued: boolean = false;
