@@ -1,7 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
-  $,
-  $$,
   $id,
   show,
   hide,
@@ -30,15 +28,6 @@ describe('DOM utilities', () => {
         <button id="btn">Click</button>
       </div>
     `;
-  });
-
-  it('$ should select single element', () => {
-    expect($('#child1')?.textContent).toBe('Hello');
-    expect($('#nonexistent')).toBeNull();
-  });
-
-  it('$$ should select multiple elements', () => {
-    expect($$('.item')).toHaveLength(2);
   });
 
   it('$id should find by id', () => {

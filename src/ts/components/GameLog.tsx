@@ -96,7 +96,7 @@ export function mountGameLog(container: HTMLElement): void {
   // Pull existing messages from #game_message_area
   const existing = document.querySelectorAll('#game_message_area li');
   existing.forEach(li => {
-    _entries.push({ id: _counter++, html: li.innerHTML, ts: Date.now() });
+    _entries.push({ id: _counter++, html: li.textContent ?? '', ts: Date.now() });
   });
   render(<GameLog />, container);
 }

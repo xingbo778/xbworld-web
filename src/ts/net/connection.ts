@@ -100,7 +100,7 @@ function stopReconnectTimers(): void {
   if (_reconnectCountdownTimer != null) { clearInterval(_reconnectCountdownTimer); _reconnectCountdownTimer = null; }
 }
 
-function showConnectionBanner(html: string): void {
+function getOrCreateBanner(): HTMLElement | null {
   let banner = document.getElementById('xbw_connection_banner');
   if (!banner) {
     const panel =
@@ -114,7 +114,12 @@ function showConnectionBanner(html: string): void {
       panel.prepend(banner);
     }
   }
-  if (banner) banner.innerHTML = html;
+  return banner;
+}
+
+function showConnectionBanner(text: string): void {
+  const banner = getOrCreateBanner();
+  if (banner) banner.textContent = text;
 }
 
 function clearConnectionBanner(): void {
@@ -124,9 +129,15 @@ function clearConnectionBanner(): void {
 function startReconnect(): void {
   if (_reconnectAttempt >= MAX_RECONNECT_ATTEMPTS) {
     store.connectionState = 'disconnected';
-    showConnectionBanner(
-      '⚠ Disconnected — <a href="javascript:location.reload()" style="color:inherit">Reload page</a>'
-    );
+    const banner = getOrCreateBanner();
+    if (banner) {
+      banner.textContent = '⚠ Disconnected — ';
+      const link = document.createElement('a');
+      link.href = 'javascript:location.reload()';
+      link.style.color = 'inherit';
+      link.textContent = 'Reload page';
+      banner.appendChild(link);
+    }
     return;
   }
 

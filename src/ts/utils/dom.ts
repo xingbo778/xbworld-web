@@ -3,14 +3,6 @@
  * Every function operates on native DOM elements.
  */
 
-export function $(selector: string): HTMLElement | null {
-  return document.querySelector(selector);
-}
-
-export function $$(selector: string): HTMLElement[] {
-  return Array.from(document.querySelectorAll(selector));
-}
-
 export function $id(id: string): HTMLElement | null {
   return document.getElementById(id);
 }
