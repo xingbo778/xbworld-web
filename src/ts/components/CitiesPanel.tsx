@@ -7,7 +7,7 @@
  * Mounted lazily when the cities tab is first opened.
  */
 import { render } from 'preact';
-import { cityCount, currentTurn, rulesetReady } from '../data/signals';
+import { cityCount, currentTurn, rulesetReady, playerUpdated } from '../data/signals';
 import { store } from '../data/store';
 import type { City } from '../data/types';
 import { show_city_dialog } from '../ui/cityDialog';
@@ -36,10 +36,11 @@ const TD_STYLE = {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 function CitiesPanel() {
-  // Re-render on city count, turn, and ruleset changes
+  // Re-render on city count, turn, ruleset, and player info changes
   cityCount.value;
   currentTurn.value;
   rulesetReady.value;
+  playerUpdated.value;
 
   const cities = Object.values(store.cities) as City[];
 
