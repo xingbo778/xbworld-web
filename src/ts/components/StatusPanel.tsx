@@ -7,9 +7,10 @@
  * (does not import from data/game.ts — stats are computed locally from store).
  */
 import { render } from 'preact';
+import { effect } from '@preact/signals';
 import {
   isObserver, connectedPlayer, gameInfo, playerUpdated, rulesetReady,
-  statusRefresh, settingsUpdated, connectionBanner,
+  statusRefresh, settingsUpdated, connectionBanner, statusPanelLayout,
 } from '../data/signals';
 import { store } from '../data/store';
 import { clientPlaying } from '../client/clientState';
@@ -18,6 +19,23 @@ import { cityPopulation } from '../data/city';
 
 // Re-export so callers that used the old location still work.
 export { statusRefresh } from '../data/signals';
+
+// ---------------------------------------------------------------------------
+// Reactive layout effect — applies top/bottom container visibility whenever
+// statusPanelLayout changes (set by update_game_status_panel in data/game.ts).
+// Runs once at module load; Preact signals track future changes automatically.
+// ---------------------------------------------------------------------------
+effect(() => {
+  const layout = statusPanelLayout.value;
+  const panelTop = document.getElementById('game_status_panel_top');
+  const panelBottom = document.getElementById('game_status_panel_bottom');
+  if (!panelTop && !panelBottom) return; // not yet in DOM (pre-game)
+  if (panelTop) panelTop.style.display = layout === 'top' ? '' : 'none';
+  if (panelBottom) {
+    panelBottom.style.display = layout === 'bottom' ? '' : 'none';
+    if (layout === 'bottom') panelBottom.style.width = window.innerWidth + 'px';
+  }
+});
 
 // ---------------------------------------------------------------------------
 // Pure helpers (previously in data/game.ts — inlined here to avoid circular dep)

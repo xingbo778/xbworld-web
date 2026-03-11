@@ -48,17 +48,9 @@ export function update_game_status_panel(): void {
   // Signal the component to re-render with fresh data.
   statusRefresh.value++;
 
-  // Responsive visibility: show top panel when there is enough room.
-  // Signal drives CSS class on containers (applied by StatusPanel effect).
+  // Responsive layout: signal drives container show/hide via StatusPanel effect.
   const useTop = window.innerWidth - sum_width() > 800;
   statusPanelLayout.value = useTop ? 'top' : 'bottom';
-  const panelTop = document.getElementById('game_status_panel_top');
-  const panelBottom = document.getElementById('game_status_panel_bottom');
-  if (panelTop) panelTop.style.display = useTop ? '' : 'none';
-  if (panelBottom) {
-    panelBottom.style.display = useTop ? 'none' : '';
-    if (!useTop) panelBottom.style.width = window.innerWidth + 'px';
-  }
 
   let page_title =
     'XBWorld - ' + store.username + '  (turn:' + store.gameInfo!['turn'] + ', port:' + store.civserverport + ') ';

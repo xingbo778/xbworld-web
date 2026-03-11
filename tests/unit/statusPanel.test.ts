@@ -38,3 +38,31 @@ describe('mountStatusPanel', () => {
     expect(() => mountStatusPanel()).not.toThrow();
   });
 });
+
+describe('statusPanelLayout effect — reactive container visibility', () => {
+  it('toggles panel visibility as layout signal switches top↔bottom', async () => {
+    const { statusPanelLayout } = await import('@/data/signals');
+
+    const top = document.createElement('div');
+    top.id = 'game_status_panel_top';
+    const bottom = document.createElement('div');
+    bottom.id = 'game_status_panel_bottom';
+    document.body.appendChild(top);
+    document.body.appendChild(bottom);
+
+    // Force 'bottom' first (effect runs synchronously on signal write)
+    statusPanelLayout.value = 'bottom';
+    expect(top.style.display).toBe('none');
+    expect(bottom.style.display).toBe('');
+
+    // Then flip to 'top'
+    statusPanelLayout.value = 'top';
+    expect(top.style.display).toBe('');
+    expect(bottom.style.display).toBe('none');
+
+    // Reset to avoid side-effects on other tests
+    statusPanelLayout.value = 'top';
+    document.body.removeChild(top);
+    document.body.removeChild(bottom);
+  });
+});
