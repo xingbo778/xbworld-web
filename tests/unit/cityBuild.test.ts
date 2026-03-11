@@ -43,8 +43,8 @@ vi.mock('@/data/map', async (importOriginal) => ({
 // ---------------------------------------------------------------------------
 // Import after mocks
 // ---------------------------------------------------------------------------
-import { canCityBuildUnitDirect } from '@/data/city';
-import type { City, Player, UnitType } from '@/data/types';
+import { canCityBuildUnitDirect, canCityBuildImprovementDirect } from '@/data/city';
+import type { City, Player, UnitType, Improvement } from '@/data/types';
 
 // ---------------------------------------------------------------------------
 // Test helpers
@@ -80,6 +80,20 @@ function makeUnitType(id: number, opts: {
 
 function makeCity(ownerId: number): City {
   return { id: 1, owner: ownerId, name: 'TestCity', tile: 0, size: 2 } as unknown as City;
+}
+
+function makeImprovement(id: number, opts: {
+  techReq?: number;
+  buildReqs?: unknown[];
+} = {}): Improvement {
+  return {
+    id,
+    name: `Impr${id}`,
+    rule_name: `impr${id}`,
+    build_cost: 100,
+    tech_req: opts.techReq ?? -1,
+    build_reqs: opts.buildReqs ?? [],
+  } as unknown as Improvement;
 }
 
 // ---------------------------------------------------------------------------
@@ -281,5 +295,93 @@ describe('buildProductionListData — fallback (no server BitVector)', () => {
     expect(canCityBuildUnitDirect(city, ut1)).toBe(true);
     // ut2: player doesn't know tech 99 → not buildable
     expect(canCityBuildUnitDirect(city, ut2)).toBe(false);
+  });
+});
+
+// ===========================================================================
+// 5. canCityBuildImprovementDirect — VUT_GOVERNMENT / VUT_ADVANCE build_reqs
+//    These are the "precise" requirement types checked via RPT_CERTAIN.
+// ===========================================================================
+
+describe('canCityBuildImprovementDirect — VUT_ADVANCE build_req', () => {
+  it('allows building when VUT_ADVANCE build_req is met (tech known)', () => {
+    const player = makePlayer(1, [7]);
+    (mockStore.players as Record<number, unknown>)[1] = player;
+
+    const impr = makeImprovement(1, {
+      buildReqs: [{ kind: VUT_ADVANCE, range: REQ_RANGE_PLAYER, value: 7, present: true }],
+    });
+    (mockStore.improvements as Record<number, unknown>)[1] = impr;
+    const city = makeCity(1);
+
+    expect(canCityBuildImprovementDirect(city, impr)).toBe(true);
+  });
+
+  it('blocks building when VUT_ADVANCE build_req is not met (tech missing)', () => {
+    const player = makePlayer(1, []); // no techs
+    (mockStore.players as Record<number, unknown>)[1] = player;
+
+    const impr = makeImprovement(1, {
+      buildReqs: [{ kind: VUT_ADVANCE, range: REQ_RANGE_PLAYER, value: 7, present: true }],
+    });
+    (mockStore.improvements as Record<number, unknown>)[1] = impr;
+    const city = makeCity(1);
+
+    expect(canCityBuildImprovementDirect(city, impr)).toBe(false);
+  });
+});
+
+describe('canCityBuildImprovementDirect — VUT_GOVERNMENT build_req', () => {
+  it('allows building when VUT_GOVERNMENT req matches player government', () => {
+    const player = makePlayer(1, [], 2); // Monarchy
+    (mockStore.players as Record<number, unknown>)[1] = player;
+
+    const impr = makeImprovement(1, {
+      buildReqs: [{ kind: VUT_GOVERNMENT, range: REQ_RANGE_PLAYER, value: 2, present: true }],
+    });
+    (mockStore.improvements as Record<number, unknown>)[1] = impr;
+    const city = makeCity(1);
+
+    expect(canCityBuildImprovementDirect(city, impr)).toBe(true);
+  });
+
+  it('blocks building when VUT_GOVERNMENT req does not match player government', () => {
+    const player = makePlayer(1, [], 1); // Despotism
+    (mockStore.players as Record<number, unknown>)[1] = player;
+
+    const impr = makeImprovement(1, {
+      buildReqs: [{ kind: VUT_GOVERNMENT, range: REQ_RANGE_PLAYER, value: 2, present: true }],
+    });
+    (mockStore.improvements as Record<number, unknown>)[1] = impr;
+    const city = makeCity(1);
+
+    expect(canCityBuildImprovementDirect(city, impr)).toBe(false);
+  });
+
+  it('blocks building when prohibit req (present=false) matches government', () => {
+    const player = makePlayer(1, [], 3); // Communism
+    (mockStore.players as Record<number, unknown>)[1] = player;
+
+    // present=false means "must NOT have this government"
+    const impr = makeImprovement(1, {
+      buildReqs: [{ kind: VUT_GOVERNMENT, range: REQ_RANGE_PLAYER, value: 3, present: false }],
+    });
+    (mockStore.improvements as Record<number, unknown>)[1] = impr;
+    const city = makeCity(1);
+
+    expect(canCityBuildImprovementDirect(city, impr)).toBe(false);
+  });
+
+  it('allows building when prohibit req (present=false) does not match government', () => {
+    const player = makePlayer(1, [], 1); // Despotism — government 3 is absent → prohibition satisfied
+    (mockStore.players as Record<number, unknown>)[1] = player;
+
+    const impr = makeImprovement(1, {
+      buildReqs: [{ kind: VUT_GOVERNMENT, range: REQ_RANGE_PLAYER, value: 3, present: false }],
+    });
+    (mockStore.improvements as Record<number, unknown>)[1] = impr;
+    const city = makeCity(1);
+
+    expect(canCityBuildImprovementDirect(city, impr)).toBe(true);
   });
 });

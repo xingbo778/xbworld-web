@@ -30,6 +30,7 @@ import {
   actionProbPossible,
 } from '@/data/actions';
 import { governmentMaxRate } from '@/data/government';
+import { EFT_MAX_RATES, VUT_GOVERNMENT, REQ_RANGE_PLAYER } from '@/data/fcTypes';
 import {
   UTYF_FLAGLESS,
   UTYF_PROVIDES_RANSOM,
@@ -240,33 +241,70 @@ describe('actions.ts', () => {
 // government.ts
 // ===========================================================================
 
+/** Helper: set an EFT_MAX_RATES effect with optional government requirement. */
+function makeMaxRatesEffect(effectValue: number, govtId?: number): Record<string, unknown> {
+  return {
+    effect_type: EFT_MAX_RATES,
+    effect_value: effectValue,
+    reqs: govtId != null
+      ? [{ kind: VUT_GOVERNMENT, range: REQ_RANGE_PLAYER, value: govtId, present: true }]
+      : [],
+  };
+}
+
 describe('government.ts', () => {
-  describe('governmentMaxRate', () => {
-    it('should return 100 for Anarchy (0)', () => {
-      expect(governmentMaxRate(0)).toBe(100);
+  describe('governmentMaxRate — effects-based', () => {
+    beforeEach(() => { (store.effects as Record<string, unknown>) = {}; });
+    afterEach(() => { (store.effects as Record<string, unknown>) = {}; });
+
+    it('returns 100 when store.effects has no EFT_MAX_RATES data', () => {
+      expect(governmentMaxRate(1)).toBe(100);
     });
 
-    it('should return 60 for Despotism (1)', () => {
+    it('returns 100 when EFT_MAX_RATES array is empty', () => {
+      (store.effects as Record<number, unknown[]>)[EFT_MAX_RATES] = [];
+      expect(governmentMaxRate(1)).toBe(100);
+    });
+
+    it('returns effect_value for government with matching VUT_GOVERNMENT requirement', () => {
+      (store.effects as Record<number, unknown[]>)[EFT_MAX_RATES] = [
+        makeMaxRatesEffect(60, 1), // Despotism
+        makeMaxRatesEffect(70, 2), // Monarchy
+      ];
       expect(governmentMaxRate(1)).toBe(60);
-    });
-
-    it('should return 70 for Monarchy (2)', () => {
       expect(governmentMaxRate(2)).toBe(70);
     });
 
-    it('should return 80 for Communism (3)', () => {
+    it('returns 100 when no effects match the given government', () => {
+      (store.effects as Record<number, unknown[]>)[EFT_MAX_RATES] = [
+        makeMaxRatesEffect(60, 1), // only Despotism has an effect
+      ];
+      expect(governmentMaxRate(5)).toBe(100); // Democracy: no matching effect
+    });
+
+    it('applies unconditional effect (empty reqs) to all governments', () => {
+      (store.effects as Record<number, unknown[]>)[EFT_MAX_RATES] = [
+        makeMaxRatesEffect(80), // no government requirement → applies everywhere
+      ];
+      expect(governmentMaxRate(1)).toBe(80);
       expect(governmentMaxRate(3)).toBe(80);
     });
 
-    it('should return 80 for Republic (4)', () => {
-      expect(governmentMaxRate(4)).toBe(80);
+    it('sums multiple matching effects', () => {
+      (store.effects as Record<number, unknown[]>)[EFT_MAX_RATES] = [
+        makeMaxRatesEffect(60, 1), // government-specific: +60
+        makeMaxRatesEffect(20),    // unconditional: +20
+      ];
+      // Despotism (1): 60 + 20 = 80
+      expect(governmentMaxRate(1)).toBe(80);
+      // Monarchy (2): only the unconditional effect applies → 20
+      expect(governmentMaxRate(2)).toBe(20);
     });
 
-    it('should return 100 for Democracy (5)', () => {
-      expect(governmentMaxRate(5)).toBe(100);
-    });
-
-    it('should return 100 for unknown government', () => {
+    it('returns 100 for unknown government id when no matching effects', () => {
+      (store.effects as Record<number, unknown[]>)[EFT_MAX_RATES] = [
+        makeMaxRatesEffect(60, 1),
+      ];
       expect(governmentMaxRate(99)).toBe(100);
     });
   });

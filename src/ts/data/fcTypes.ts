@@ -422,5 +422,12 @@ export const US_NATIVE_TILE = 5;    // unit is on its native tile type
 export const US_NATIVE_EXTRA = 6;   // tile has a native extra for this unit
 export const US_ONLY_NATIVE_TILE = 7; // only native activity possible
 
+// ---------------------------------------------------------------------------
+// Effect types (EFT_*) — numeric values from gen_headers/enums/effects_enums.def
+// Only the subset used by TypeScript modules; extend as needed.
+// ---------------------------------------------------------------------------
+/** Maximum tax/luxury/science rate effect type. Index 59 in effects_enums.def. */
+export const EFT_MAX_RATES = 59;
+
 // Legacy window exposure of _allConstants removed — all consumers now use TS imports.
 

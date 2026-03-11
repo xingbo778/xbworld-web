@@ -12,9 +12,12 @@ import {
   FC_INFINITY,
   VUT_UTYPE,
   VUT_IMPROVEMENT,
+  VUT_GOVERNMENT,
+  VUT_ADVANCE,
   O_SHIELD,
   CAPITAL_PRIMARY,
   RPT_POSSIBLE,
+  RPT_CERTAIN,
 } from './fcTypes';
 import { store } from './store';
 import { clientPlaying } from '../client/clientState';
@@ -286,10 +289,20 @@ export function canCityBuildUnitDirect(pcity: City, punittype: UnitType): boolea
   // Player-level check: tech requirement + obsoleted_by
   if (!can_player_build_unit_direct(pplayer, punittype)) return false;
 
-  // City-level check: build_reqs (e.g. VUT_IMPROVEMENT, VUT_GOVERNMENT, etc.)
+  // City-level check: build_reqs
   const buildReqs = punittype['build_reqs'] as Requirement[] | null | undefined;
   if (buildReqs != null && buildReqs.length > 0) {
-    if (!areReqsActive(pplayer, pcity, null, null, punittype, null, null, buildReqs, RPT_POSSIBLE)) {
+    // VUT_GOVERNMENT and VUT_ADVANCE can be precisely evaluated client-side.
+    // Use RPT_CERTAIN so TRI_MAYBE (e.g. unusual range, null player) is a hard block.
+    const preciseReqs = buildReqs.filter(r => r.kind === VUT_GOVERNMENT || r.kind === VUT_ADVANCE);
+    if (preciseReqs.length > 0 &&
+        !areReqsActive(pplayer, pcity, null, null, punittype, null, null, preciseReqs, RPT_CERTAIN)) {
+      return false;
+    }
+    // All other requirement types fall back to RPT_POSSIBLE (unknown → assume possible).
+    const fuzzyReqs = buildReqs.filter(r => r.kind !== VUT_GOVERNMENT && r.kind !== VUT_ADVANCE);
+    if (fuzzyReqs.length > 0 &&
+        !areReqsActive(pplayer, pcity, null, null, punittype, null, null, fuzzyReqs, RPT_POSSIBLE)) {
       return false;
     }
   }
@@ -369,7 +382,7 @@ export function canCityBuildImprovementDirect(pcity: City, impr: Improvement): b
 
   const pplayer = cityOwner(pcity);
 
-  // Tech requirement check
+  // Tech requirement check (dedicated field on improvement)
   const techReq = impr['tech_req'] as number | null | undefined;
   if (techReq != null && techReq >= 0) {
     if (playerInventionState(pplayer, techReq) !== TECH_KNOWN) return false;
@@ -378,7 +391,17 @@ export function canCityBuildImprovementDirect(pcity: City, impr: Improvement): b
   // City-level build requirements
   const buildReqs = impr['build_reqs'] as Requirement[] | null | undefined;
   if (buildReqs != null && buildReqs.length > 0) {
-    if (!areReqsActive(pplayer, pcity, null, null, null, impr as unknown as Improvement, null, buildReqs, RPT_POSSIBLE)) {
+    // VUT_GOVERNMENT and VUT_ADVANCE can be precisely evaluated client-side.
+    // Use RPT_CERTAIN so TRI_MAYBE (e.g. unusual range, null player) is a hard block.
+    const preciseReqs = buildReqs.filter(r => r.kind === VUT_GOVERNMENT || r.kind === VUT_ADVANCE);
+    if (preciseReqs.length > 0 &&
+        !areReqsActive(pplayer, pcity, null, null, null, impr as unknown as Improvement, null, preciseReqs, RPT_CERTAIN)) {
+      return false;
+    }
+    // All other requirement types fall back to RPT_POSSIBLE (unknown → assume possible).
+    const fuzzyReqs = buildReqs.filter(r => r.kind !== VUT_GOVERNMENT && r.kind !== VUT_ADVANCE);
+    if (fuzzyReqs.length > 0 &&
+        !areReqsActive(pplayer, pcity, null, null, null, impr as unknown as Improvement, null, fuzzyReqs, RPT_POSSIBLE)) {
       return false;
     }
   }
