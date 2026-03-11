@@ -24,7 +24,6 @@ import { close_city_dialog, active_city } from '../../ui/cityDialog';
 import { message_log } from '../../core/messages';
 import { E_BEGINNER_HELP } from '../../data/eventConstants';
 import { auto_center_on_unit } from '../../ui/options';
-import { setHtml as domSetHtml } from '../../utils/dom';
 import * as S from './controlState';
 // Circular imports — OK, only used inside functions
 import { should_ask_server_for_actions, can_ask_server_for_actions, action_selection_next_in_focus } from './actionSelection';
@@ -195,7 +194,7 @@ export function advance_unit_focus(): void {
       }
     }
     const turnDoneBtn = document.getElementById('turn_done_button');
-    if (turnDoneBtn) domSetHtml(turnDoneBtn, "<span style='color: green;'>✅</span> Turn Done");
+    if (turnDoneBtn) turnDoneBtn.textContent = '✅ Turn Done';
     if (!S.end_turn_info_message_shown) {
       S.setEndTurnInfoMessageShown(true);
       message_log.update({ event: E_BEGINNER_HELP, message: "All units have moved, click the \"Turn Done\" button to end your turn." });

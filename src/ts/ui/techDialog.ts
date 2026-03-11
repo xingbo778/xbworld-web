@@ -16,7 +16,6 @@ import { sendPlayerResearch } from '../net/commands';
 import { clientIsObserver as client_is_observer, clientState as client_state, C_S_RUNNING } from '../client/clientState';
 import { get_advances_text as _get_advances_text } from './techLogic';
 import type { WikiDoc } from './techLogic';
-import { setHtml as domSetHtml } from '../utils/dom';
 import { refreshTechPanel, showWikiDialogPreact, showTechInfoDialogPreact } from '../components/Dialogs/TechDialog';
 import { globalEvents } from '../core/events';
 import type { Tech } from '../data/types';
@@ -60,7 +59,7 @@ globalEvents.on('tech:bulbsUpdate', () => bulbs_output_updater?.update());
 export function update_bulbs_output_info(): void {
   const cbo = get_current_bulbs_output();
   const el = document.getElementById('bulbs_output');
-  if (el) domSetHtml(el, get_current_bulbs_output_text(cbo));
+  if (el) el.textContent = get_current_bulbs_output_text(cbo);
 }
 
 // ---------------------------------------------------------------------------

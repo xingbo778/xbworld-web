@@ -74,7 +74,7 @@ export function update_game_status_panel(): void {
     }
     status_html += pplayer['gold'] + ' (' + net_income + ')</b>  &nbsp;&nbsp;';
     status_html +=
-      "<span style='cursor:pointer;' onclick='javascript:show_tax_rates_dialog();'><span title='Tax rate'>📊</span>: <b>" +
+      "<span style='cursor:pointer;' data-action='show-tax-rates'><span title='Tax rate'>📊</span>: <b>" +
       tax +
       '</b>% ';
     status_html +=

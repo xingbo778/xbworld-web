@@ -15,8 +15,6 @@ import {
   cities, active_city,
   set_active_city, set_city_prod_clicks, set_production_selection, set_worklist_selection,
 } from './cityDialogState';
-import { buildCityListHtml } from './cityLogic';
-import { setHtml as domSetHtml } from '../utils/dom';
 import { showCityDialogPreact, closeCityDialogPreact, cityDialogSignal } from '../components/Dialogs/CityDialog';
 
 // Re-export state for backward compatibility
