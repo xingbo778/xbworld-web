@@ -342,3 +342,24 @@ describe('syncFromStore — game:newyear / player:removed / connection:updated',
     expect(cityCount.value).toBe(0);
   });
 });
+
+// ── game:calendar → calendarInfo signal ────────────────────────────────────
+
+describe('calendarInfo signal — game:calendar bridge', () => {
+  it('updates calendarInfo.value when game:calendar is emitted', async () => {
+    const { calendarInfo } = await import('@/data/signals');
+    store.calendarInfo = { positive_year_label: 'CE', negative_year_label: 'BCE' } as never;
+    globalEvents.emit('game:calendar');
+    expect((calendarInfo.value as Record<string, unknown>)?.['positive_year_label']).toBe('CE');
+  });
+
+  it('currentYear uses updated calendarInfo after game:calendar', async () => {
+    const { calendarInfo, currentYear, gameInfo } = await import('@/data/signals');
+    store.gameInfo = { turn: 1, year: -100 } as never;
+    store.calendarInfo = { positive_year_label: 'AD', negative_year_label: 'BP' } as never;
+    // Trigger both syncs
+    globalEvents.emit('game:info');
+    globalEvents.emit('game:calendar');
+    expect(currentYear.value).toContain('BP');
+  });
+});
