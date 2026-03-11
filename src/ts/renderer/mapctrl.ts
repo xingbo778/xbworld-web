@@ -407,7 +407,13 @@ export function handle_web_info_text_message(packet: { message: string; [key: st
                  + ", "
                  + escapeHtml(get_player_connection_status(pplayer))
                  + escapeHtml(split_txt[4]);
+      } else {
+        // No player match — escape the whole line as plain text
+        lines[i] = escapeHtml(lines[i]);
       }
+    } else {
+      // No special pattern — plain text from server, escape it
+      lines[i] = escapeHtml(lines[i]);
     }
   }
   message = lines.join("<br>\n");
