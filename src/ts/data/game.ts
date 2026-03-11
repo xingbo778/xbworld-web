@@ -3,7 +3,7 @@ import { store } from './store';
 import { cityPopulation as city_population } from './city';
 import { clientState as client_state, C_S_RUNNING, clientPlaying } from '../client/clientState';
 import { numberWithCommas, isSmallScreen as is_small_screen } from '../utils/helpers';
-import { statusRefresh } from './signals';
+import { statusRefresh, statusPanelLayout } from './signals';
 import { mountStatusPanel } from '../components/StatusPanel';
 
 export const IDENTITY_NUMBER_ZERO = 0;
@@ -49,18 +49,15 @@ export function update_game_status_panel(): void {
   statusRefresh.value++;
 
   // Responsive visibility: show top panel when there is enough room.
+  // Signal drives CSS class on containers (applied by StatusPanel effect).
+  const useTop = window.innerWidth - sum_width() > 800;
+  statusPanelLayout.value = useTop ? 'top' : 'bottom';
   const panelTop = document.getElementById('game_status_panel_top');
   const panelBottom = document.getElementById('game_status_panel_bottom');
-
-  if (window.innerWidth - sum_width() > 800) {
-    if (panelTop) panelTop.style.display = '';
-    if (panelBottom) panelBottom.style.display = 'none';
-  } else {
-    if (panelTop) panelTop.style.display = 'none';
-    if (panelBottom) {
-      panelBottom.style.display = '';
-      panelBottom.style.width = window.innerWidth + 'px';
-    }
+  if (panelTop) panelTop.style.display = useTop ? '' : 'none';
+  if (panelBottom) {
+    panelBottom.style.display = useTop ? 'none' : '';
+    if (!useTop) panelBottom.style.width = window.innerWidth + 'px';
   }
 
   let page_title =

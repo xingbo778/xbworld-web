@@ -24,10 +24,6 @@ export * from './control/unitFocus';
 import { network_stop } from '../net/connection';
 import { isTouchDevice as is_touch_device } from '../utils/helpers';
 import { refreshNationOverview } from '../components/NationOverview';
-import {
-  updateNationScreen as update_nation_screen,
-  centerOnPlayer as center_on_player,
-} from '../data/nation';
 import { overview_clicked } from '../core/overview';
 import { mapview_window_resized } from '../renderer/mapview';
 import { orientation_changed } from '../utils/mobile';
@@ -122,15 +118,8 @@ export function control_init(): void {
   // Tab navigation — observer mode shows: Map, Research, Nations
   document.getElementById('map_tab')?.addEventListener('click', () => setTimeout(set_default_mapview_active, 5));
   document.getElementById('tech_tab')?.addEventListener('click', () => { set_default_mapview_inactive(); mount_tech_panel(); });
-  document.getElementById('players_tab')?.addEventListener('click', () => { set_default_mapview_inactive(); mount_nation_overview(); update_nation_screen(); });
-
-  // Game Scores button — show sorted player rankings
-  document.getElementById('game_scores_button')?.addEventListener('click', () => {
-    import('../data/nation').then(({ getPlayerScoresSummary }) => {
-      const text = getPlayerScoresSummary();
-      import('../client/civClient').then(({ showDialogMessage }) => showDialogMessage('Game Scores', text));
-    });
-  });
+  // NationOverview (Preact) handles its own buttons (View on Map, Game Scores).
+  document.getElementById('players_tab')?.addEventListener('click', () => { set_default_mapview_inactive(); mount_nation_overview(); });
 
   // Overview map click
   const overviewMap = document.getElementById('overview_map');
@@ -138,9 +127,6 @@ export function control_init(): void {
     const rect = overviewMap.getBoundingClientRect();
     overview_clicked(e.pageX - (rect.left + window.scrollX), e.pageY - (rect.top + window.scrollY));
   });
-
-  // Nation screen buttons
-  document.getElementById('view_player_button')?.addEventListener('click', center_on_player);
 
   window.addEventListener('unload', () => network_stop());
 }

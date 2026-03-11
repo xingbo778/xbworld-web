@@ -212,6 +212,13 @@ export type DisconnectOverlayState =
 export const disconnectOverlay = signal<DisconnectOverlayState | null>(null);
 
 /**
+ * Status panel layout — 'top' when the nav bar has room, 'bottom' otherwise.
+ * Set by update_game_status_panel() in data/game.ts; used to show/hide the
+ * two status panel containers via a CSS-class effect (no direct DOM style).
+ */
+export const statusPanelLayout = signal<'top' | 'bottom'>('top');
+
+/**
  * Turn-done button state — driven by player turn lifecycle handlers.
  * A small Preact component (or effect) mounts into #turn_done_button.
  */
