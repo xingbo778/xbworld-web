@@ -1,5 +1,6 @@
 import { store } from '../data/store';
 import type { City, Unit, UnitType, Improvement } from '../data/types';
+import { UTYF_PROVIDES_RANSOM } from '../data/unittype';
 import {
   getCityProductionTypeSprite as get_city_production_type_sprite,
   getCityProductionTime as get_city_production_time,
@@ -282,7 +283,9 @@ export function buildProductionListData(pcity: City): ProductionListData {
 
   for (const id in store.unitTypes) {
     const ut: UnitType = store.unitTypes[Number(id)];
-    if (ut['name'] === 'Barbarian Leader' || ut['name'] === 'Leader') continue;
+    // Filter non-player-buildable units using flags (replaces hardcoded name hack).
+    const utFlags = (ut as Record<string, unknown>)['flags'] as { isSet(n: number): boolean } | null | undefined;
+    if (utFlags != null && typeof utFlags.isSet === 'function' && utFlags.isSet(UTYF_PROVIDES_RANSOM)) continue;
     if (hasData) {
       if (!canCityBuildUnitNow(pcity, Number(id))) continue;
     } else {

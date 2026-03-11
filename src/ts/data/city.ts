@@ -22,7 +22,7 @@ import {
   indexToTile,
 } from './map';
 import { universalBuildShieldCost, areReqsActive, type Requirement } from './requirements';
-import { can_player_build_unit_direct } from './unittype';
+import { can_player_build_unit_direct, getUnitClassForType, UTYF_PROVIDES_RANSOM } from './unittype';
 import { playerInventionState, TECH_KNOWN } from './tech';
 import {
   get_unit_type_image_sprite,
@@ -228,12 +228,16 @@ export function generateProductionList(): ProductionItem[] {
 
   for (const unitTypeId in store.unitTypes) {
     const punitType = store.unitTypes[unitTypeId];
-    // FIXME: web client doesn't support unit flags yet, so this is a hack
-    if (
-      punitType['name'] === 'Barbarian Leader' ||
-      punitType['name'] === 'Leader'
-    )
-      continue;
+
+    // Filter non-player-buildable units using flags (replaces hardcoded name hack).
+    // Units with UTYF_PROVIDES_RANSOM are barbarian leader types never built by cities.
+    const utFlags = punitType['flags'] as { isSet(n: number): boolean } | null | undefined;
+    if (utFlags != null && typeof utFlags.isSet === 'function' && utFlags.isSet(UTYF_PROVIDES_RANSOM)) continue;
+
+    // Resolve unit class name for display (e.g. "Land", "Sea", "Air").
+    const uclass = getUnitClassForType(punitType as unknown as import('./types').UnitType);
+    const className = (uclass?.['name'] as string | undefined) ?? '';
+    const classLabel = className ? ` [${className}]` : '';
 
     productionList.push({
       kind: VUT_UTYPE,
@@ -244,10 +248,11 @@ export function generateProductionList(): ProductionItem[] {
       build_cost: punitType['build_cost'],
       unit_details:
         punitType['attack_strength'] +
-        ', ' +
+        '/' +
         punitType['defense_strength'] +
-        ', ' +
-        punitType['firepower'],
+        '/' +
+        punitType['firepower'] +
+        classLabel,
       sprite: get_unit_type_image_sprite(punitType),
     });
   }

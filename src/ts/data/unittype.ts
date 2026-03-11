@@ -70,6 +70,17 @@ export function can_player_build_unit_direct(p: Player | null, punittype: UnitTy
   return true;
 }
 
+/**
+ * Returns the unit class object for the given unit type, or null if unavailable.
+ * Reads store.unitClasses[punittype.unit_class].
+ */
+export function getUnitClassForType(punittype: UnitType | null | undefined): Record<string, unknown> | null {
+  if (punittype == null) return null;
+  const classId = (punittype as Record<string, unknown>)['unit_class'] as number | undefined;
+  if (classId == null) return null;
+  return store.unitClasses[classId] ?? null;
+}
+
 export function get_units_from_tech(tech_id: number): UnitType[] {
   const result: UnitType[] = [];
   for (const unit_type_id in store.unitTypes) {

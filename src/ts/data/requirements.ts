@@ -330,11 +330,29 @@ export function isReqActive(
       result = TRI_MAYBE;
       break;
 
+    // ── Implemented: unit class flag ─────────────────────────────────────────
+    // Checks whether the unit type's unit class has the given class-flag set.
+    // Requires: targetUnittype.unit_class → store.unitClasses[classId].flags.
+    // TRI_MAYBE when unit type, class id, class entry, or flags BitVector
+    // are unavailable (graceful degradation: RPT_POSSIBLE callers still pass).
+    case VUT_UCFLAG: {
+      if (targetUnittype == null) { result = TRI_MAYBE; break; }
+      const classId = (targetUnittype as Record<string, unknown>)['unit_class'];
+      if (classId == null) { result = TRI_MAYBE; break; }
+      const uclass = store.unitClasses[classId as number];
+      if (uclass == null) { result = TRI_MAYBE; break; }
+      const ucFlags = uclass['flags'];
+      if (ucFlags == null || typeof (ucFlags as Record<string, unknown>)['isSet'] !== 'function') {
+        result = TRI_MAYBE; break;
+      }
+      result = (ucFlags as { isSet(n: number): boolean }).isSet(req['value']) ? TRI_YES : TRI_NO;
+      break;
+    }
+
     // ── TRI_MAYBE: all remaining unimplemented types ──────────────────────────
     // Returning TRI_MAYBE rather than TRI_NO: we cannot evaluate these
     // client-side, but we should not assume the requirement is unmet.
     // With RPT_POSSIBLE callers get true (assume possible); RPT_CERTAIN → false.
-    case VUT_UCFLAG:
     case VUT_OTYPE:
     case VUT_SPECIALIST:
     case VUT_AI_LEVEL:
