@@ -3,8 +3,7 @@
  * Uses native HTML dialog element with custom styling.
  */
 
-import { create, on, setHtml } from '../utils/dom';
-import { sanitizeGameHtml } from '../utils/safeHtml';
+import { create, on, appendSafeHtml } from '../utils/dom';
 
 interface DialogOptions {
   title: string;
@@ -53,7 +52,7 @@ export function showDialog(id: string, options: DialogOptions): HTMLDialogElemen
   header.appendChild(controls);
 
   const body = create('div', { class: 'xb-dialog-body' });
-  setHtml(body, sanitizeGameHtml(options.content));
+  appendSafeHtml(body, options.content);
 
   dialog.appendChild(header);
   dialog.appendChild(body);

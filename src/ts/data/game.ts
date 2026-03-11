@@ -3,8 +3,7 @@ import { store } from './store';
 import { cityPopulation as city_population } from './city';
 import { clientState as client_state, C_S_RUNNING, clientPlaying } from '../client/clientState';
 import { numberWithCommas, isSmallScreen as is_small_screen } from '../utils/helpers';
-import { setHtml } from '../utils/dom';
-import { escapeHtml } from '../utils/safeHtml';
+import { mountStatusPanel, statusRefresh } from '../components/StatusPanel';
 
 export const IDENTITY_NUMBER_ZERO = 0;
 
@@ -42,81 +41,24 @@ export function civ_population(playerno: number): string {
 export function update_game_status_panel(): void {
   if (C_S_RUNNING !== client_state()) return;
 
-  let status_html = '';
+  // Ensure Preact StatusPanel is mounted in both panel elements.
+  mountStatusPanel();
 
-  if (clientPlaying() != null) {
-    const pplayer = clientPlaying()!;
-    const tax = pplayer['tax'];
-    const lux = pplayer['luxury'];
-    const sci = pplayer['science'];
+  // Signal the component to re-render with fresh data.
+  statusRefresh.value++;
 
-    let net_income: string | number = pplayer['expected_income'];
-    if (pplayer['expected_income'] > 0) {
-      net_income = '+' + pplayer['expected_income'];
-    }
-
-    if (!is_small_screen())
-      status_html +=
-        '<b>' +
-        escapeHtml(String(store.nations[pplayer['nation']]?.['adjective'] || '')) +
-        "</b> &nbsp;&nbsp; <span title='Population'>👤</span>: ";
-    if (!is_small_screen())
-      status_html += '<b>' + civ_population(clientPlaying()!.playerno) + '</b>  &nbsp;&nbsp;';
-    if (!is_small_screen())
-      status_html +=
-        "<span title='Year (turn)'>🕐</span>: <b>" +
-        get_year_string() +
-        '</b> &nbsp;&nbsp;';
-    status_html += "<span title='Gold (net income)'>💰</span>: ";
-    if (pplayer['expected_income'] >= 0) {
-      status_html += "<b title='Gold (net income)'>";
-    } else {
-      status_html += "<b class='negative_net_income' title='Gold (net income)'>";
-    }
-    status_html += pplayer['gold'] + ' (' + net_income + ')</b>  &nbsp;&nbsp;';
-    status_html +=
-      "<span style='cursor:pointer;' data-action='show-tax-rates'><span title='Tax rate'>📊</span>: <b>" +
-      tax +
-      '</b>% ';
-    status_html +=
-      "<span title='Luxury rate'>🎵</span>: <b>" + lux + '</b>% ';
-    status_html +=
-      "<span title='Science rate'>🧪</span>: <b>" +
-      sci +
-      '</b>%</span> ';
-  } else if (store.observing || clientPlaying() == null) {
-    // Observer mode: always show year + turn regardless of metamessage
-    const meta = store.serverSettings?.['metamessage']?.['val'];
-    if (meta) status_html += escapeHtml(String(meta)) + ' — ';
-    if (store.gameInfo) {
-      if (!is_small_screen()) {
-        status_html += "<span title='Year (turn)'>🕐</span>: <b>" + get_year_string() + '</b> &nbsp;&nbsp;';
-      } else {
-        status_html += '<b>' + get_year_string() + '</b> ';
-      }
-      status_html += 'Observing';
-    }
-  }
-
+  // Responsive visibility: show top panel when there is enough room.
   const panelTop = document.getElementById('game_status_panel_top');
   const panelBottom = document.getElementById('game_status_panel_bottom');
 
   if (window.innerWidth - sum_width() > 800) {
-    if (panelTop) {
-      panelTop.style.display = '';
-      setHtml(panelTop, status_html);
-    }
-    if (panelBottom) {
-      panelBottom.style.display = 'none';
-    }
+    if (panelTop) panelTop.style.display = '';
+    if (panelBottom) panelBottom.style.display = 'none';
   } else {
-    if (panelTop) {
-      panelTop.style.display = 'none';
-    }
+    if (panelTop) panelTop.style.display = 'none';
     if (panelBottom) {
       panelBottom.style.display = '';
       panelBottom.style.width = window.innerWidth + 'px';
-      setHtml(panelBottom, status_html);
     }
   }
 
