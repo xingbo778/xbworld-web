@@ -13,6 +13,7 @@
 import { store } from '../data/store';
 import { E_LOG_ERROR } from '../data/eventConstants';
 import { swal } from '../components/Dialogs/SwalDialog';
+import { connectionBanner } from '../data/signals';
 
 import { message_log } from '../core/messages';
 import { EventAggregator } from '../utils/EventAggregator';
@@ -115,44 +116,18 @@ function stopReconnectTimers(): void {
   if (_reconnectCountdownTimer != null) { clearInterval(_reconnectCountdownTimer); _reconnectCountdownTimer = null; }
 }
 
-function getOrCreateBanner(): HTMLElement | null {
-  let banner = document.getElementById('xbw_connection_banner');
-  if (!banner) {
-    const panel =
-      document.getElementById('game_status_panel_top') ||
-      document.getElementById('game_status_panel_bottom');
-    if (panel) {
-      banner = document.createElement('span');
-      banner.id = 'xbw_connection_banner';
-      banner.style.cssText =
-        'margin-right:12px;color:var(--xb-accent-orange,#d29922);font-weight:600;';
-      panel.prepend(banner);
-    }
-  }
-  return banner;
-}
-
 function showConnectionBanner(text: string): void {
-  const banner = getOrCreateBanner();
-  if (banner) banner.textContent = text;
+  connectionBanner.value = { text, showReload: false };
 }
 
 function clearConnectionBanner(): void {
-  document.getElementById('xbw_connection_banner')?.remove();
+  connectionBanner.value = null;
 }
 
 function startReconnect(): void {
   if (_reconnectAttempt >= MAX_RECONNECT_ATTEMPTS) {
     store.connectionState = 'disconnected';
-    const banner = getOrCreateBanner();
-    if (banner) {
-      banner.textContent = '⚠ Disconnected — ';
-      const link = document.createElement('button');
-      link.style.cssText = 'background:none;border:none;color:inherit;cursor:pointer;padding:0;text-decoration:underline;font:inherit;';
-      link.textContent = 'Reload page';
-      link.addEventListener('click', () => location.reload());
-      banner.appendChild(link);
-    }
+    connectionBanner.value = { text: '⚠ Disconnected — ', showReload: true };
     return;
   }
 

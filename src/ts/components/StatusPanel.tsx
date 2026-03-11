@@ -9,7 +9,7 @@
 import { render } from 'preact';
 import {
   isObserver, connectedPlayer, gameInfo, playerUpdated, rulesetReady,
-  statusRefresh, settingsUpdated,
+  statusRefresh, settingsUpdated, connectionBanner,
 } from '../data/signals';
 import { store } from '../data/store';
 import { clientPlaying } from '../client/clientState';
@@ -53,6 +53,22 @@ function getYearString(): string {
 // Component
 // ---------------------------------------------------------------------------
 
+function ConnectionBannerEl() {
+  const banner = connectionBanner.value;
+  if (!banner) return null;
+  return (
+    <span style="margin-right:12px;color:var(--xb-accent-orange,#d29922);font-weight:600;">
+      {banner.text}
+      {banner.showReload && (
+        <button
+          onClick={() => location.reload()}
+          style="background:none;border:none;color:inherit;cursor:pointer;padding:0;text-decoration:underline;font:inherit;"
+        >Reload page</button>
+      )}
+    </span>
+  );
+}
+
 function StatusPanelContent() {
   // Subscribe to every signal that can affect the display.
   void playerUpdated.value;
@@ -62,6 +78,7 @@ function StatusPanelContent() {
   void connectedPlayer.value;
   void statusRefresh.value;
   void settingsUpdated.value;
+  void connectionBanner.value;
 
   const pplayer = clientPlaying();
   const small = isSmallScreen();
@@ -76,6 +93,7 @@ function StatusPanelContent() {
 
     return (
       <>
+        <ConnectionBannerEl />
         {!small && adjective && (
           <><b>{adjective}</b>{'\u00a0\u00a0 '}
           <span title="Population">{'👤'}</span>{': '}
@@ -106,6 +124,7 @@ function StatusPanelContent() {
     const meta = store.serverSettings?.['metamessage']?.['val'];
     return (
       <>
+        <ConnectionBannerEl />
         {meta && <>{String(meta)}{' \u2014 '}</>}
         {gi && !small && (
           <><span title="Year (turn)">{'🕐'}</span>{': '}

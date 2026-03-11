@@ -116,3 +116,10 @@ export const statusRefresh = signal(0);
  * PregameLobby component subscribes to trigger re-renders without circular deps.
  */
 export const pregameRefresh = signal(0);
+
+/**
+ * Connection-banner state rendered by StatusPanel inside the status bar.
+ * Set by connection.ts instead of imperatively prepending a DOM element.
+ * null = no banner; otherwise show the text (and optionally a reload button).
+ */
+export const connectionBanner = signal<{ text: string; showReload: boolean } | null>(null);
