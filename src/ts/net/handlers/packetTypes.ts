@@ -246,9 +246,27 @@ export interface ConnPingInfoPacket {
   [key: string]: unknown;
 }
 
+/**
+ * SERVER_SETTING_CONTROL (pid 164) — announces the total number of settings
+ * and the list of category names. Sent once before all const+value packets.
+ *
+ * Freeciv 3.4 packet fields (common/packets.def):
+ *   UINT16 nSettings    — total number of settings to follow
+ *   UINT8  nCategories  — number of category strings
+ *   STRING categoryNames[nCategories]
+ */
+export interface ServerSettingControlPacket {
+  nSettings: number;
+  nCategories: number;
+  categoryNames: string[];
+  [key: string]: unknown;
+}
+
 export interface ServerSettingConstPacket {
   id: number;
   name: string;
+  /** Category index into categoryNames from SERVER_SETTING_CONTROL. */
+  category: number;
   [key: string]: unknown;
 }
 

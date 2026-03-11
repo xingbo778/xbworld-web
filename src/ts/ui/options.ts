@@ -23,6 +23,8 @@ import { audio, music_list, supports_mp3 } from '../audio/audioState';
 export let auto_center_on_unit: boolean = true;
 export let popup_actor_arrival: boolean = true;
 export let draw_fog_of_war: boolean = true;
+/** Update the fog-of-war render flag from a server setting change. */
+export function setDrawFogOfWar(val: boolean): void { draw_fog_of_war = val; }
 export let draw_units: boolean = true;
 export let draw_focus_unit: boolean = false;
 

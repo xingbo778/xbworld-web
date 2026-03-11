@@ -23,9 +23,11 @@ import type {
   ConnectMsgPacket,
   ServerInfoPacket,
   ConnPingInfoPacket,
+  ServerSettingControlPacket,
   ServerSettingConstPacket,
   ServerSettingUpdatePacket,
 } from './packetTypes';
+import { applySettingEffect } from '../../data/serverSettings';
 import { send_request as _send_request, markServerShutdown } from '../connection';
 import type { Connection, ServerSetting } from '../../data/types';
 
@@ -185,28 +187,73 @@ export function handle_edit_object_created(_packet: BasePacket): void { /* no-op
 
 export function handle_server_setting_const(packet: ServerSettingConstPacket): void {
   const setting = packet as unknown as ServerSetting;
+  // Resolve human-readable category name from the CONTROL packet.
+  const catIndex = packet['category'] as number | undefined;
+  if (catIndex != null && store.serverSettingCategories[catIndex] != null) {
+    (setting as Record<string, unknown>)['categoryName'] = store.serverSettingCategories[catIndex];
+  }
   store.serverSettings[packet['id']] = setting;
   store.serverSettings[packet['name']] = setting;
 }
 
+/** Shared helper: merge update fields into an existing slot and apply effects. */
+function _applySettingUpdate(packet: ServerSettingUpdatePacket, type: ServerSetting['type']): void {
+  const existing = store.serverSettings[packet['id']];
+  if (existing == null) {
+    // Guard: const packet must precede value packets in the Freeciv protocol,
+    // but be defensive in case of unexpected ordering.
+    console.warn('[xbw] server_setting update received before const for id', packet['id']);
+    return;
+  }
+  Object.assign(existing, packet);
+  existing['type'] = type;
+  applySettingEffect(existing);
+}
+
 export function handle_server_setting_int(packet: ServerSettingUpdatePacket): void {
-  Object.assign(store.serverSettings[packet['id']], packet);
+  _applySettingUpdate(packet, 'int');
 }
 
 export function handle_server_setting_enum(packet: ServerSettingUpdatePacket): void {
-  Object.assign(store.serverSettings[packet['id']], packet);
+  _applySettingUpdate(packet, 'enum');
 }
 
 export function handle_server_setting_bitwise(packet: ServerSettingUpdatePacket): void {
-  Object.assign(store.serverSettings[packet['id']], packet);
+  _applySettingUpdate(packet, 'bitwise');
 }
 
 export function handle_server_setting_bool(packet: ServerSettingUpdatePacket): void {
-  Object.assign(store.serverSettings[packet['id']], packet);
+  _applySettingUpdate(packet, 'bool');
 }
 
 export function handle_server_setting_str(packet: ServerSettingUpdatePacket): void {
-  Object.assign(store.serverSettings[packet['id']], packet);
+  _applySettingUpdate(packet, 'str');
 }
 
-export function handle_server_setting_control(_packet: BasePacket): void { /* TODO */ }
+/**
+ * SERVER_SETTING_CONTROL (pid 164) — sent once before all setting const+value
+ * packets. Announces the total count and category name list.
+ *
+ * Side effects:
+ *  1. Stores nSettings + categoryNames in the store for later reference.
+ *  2. Pre-initialises placeholder slots so update handlers never hit undefined
+ *     even if a const packet is somehow missed.
+ */
+export function handle_server_setting_control(packet: ServerSettingControlPacket): void {
+  const nSettings = (packet['nSettings'] as number | undefined) ?? 0;
+  const categoryNames = (packet['categoryNames'] as string[] | undefined) ?? [];
+
+  store.serverSettingCount = nSettings;
+  store.serverSettingCategories = categoryNames;
+
+  // Pre-initialise every slot so update handlers can safely call Object.assign.
+  for (let i = 0; i < nSettings; i++) {
+    const key = String(i);
+    if (store.serverSettings[key] == null) {
+      store.serverSettings[key] = { id: i, name: '', category: 0, val: null };
+    }
+  }
+
+  console.log(`[xbw] server_setting_control: ${nSettings} settings, ${categoryNames.length} categories`,
+    categoryNames);
+}

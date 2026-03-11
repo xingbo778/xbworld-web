@@ -338,6 +338,47 @@ function sendGameInit(ws, username) {
     }]);
   }
 
+  // 11g. Server settings — control + representative subset
+  // Mirrors the Freeciv 3.4 protocol: one CONTROL packet (164) announces the
+  // total count and category names, followed by per-setting CONST (165) +
+  // type-specific value packet (166-170) pairs.
+  const SETTING_CATEGORIES = ['General', 'Map', 'Players', 'Compact', 'Rare'];
+  const MOCK_SETTINGS = [
+    // id, name, category idx, type, val
+    [0, 'fogofwar',   0, 'bool', true],
+    [1, 'xsize',      1, 'int',  40],
+    [2, 'ysize',      1, 'int',  25],
+    [3, 'aifill',     2, 'int',  3],
+    [4, 'maxplayers', 2, 'int',  30],
+    [5, 'sciencebox', 0, 'int',  100],
+    [6, 'generator',  1, 'enum', 2],
+  ];
+
+  // CONTROL packet
+  sendPackets(ws, [{
+    pid: 164,
+    nSettings: MOCK_SETTINGS.length,
+    nCategories: SETTING_CATEGORIES.length,
+    categoryNames: SETTING_CATEGORIES,
+  }]);
+
+  // CONST + value packet for each setting
+  for (const [id, name, cat, type, val] of MOCK_SETTINGS) {
+    // CONST (165) — name, description, category
+    sendPackets(ws, [{
+      pid: 165,
+      id, name, category: cat,
+      short_help: name + ' setting',
+      extra_help: '',
+      category_name: SETTING_CATEGORIES[cat],
+      is_visible: true,
+      initial_setting: false,
+    }]);
+    // Type-specific value packet
+    const typePid = { bool: 166, int: 167, str: 168, enum: 169, bitwise: 170 }[type];
+    sendPackets(ws, [{ pid: typePid, id, val }]);
+  }
+
   // 12. Connection info — always observer
   sendPackets(ws, [{
     pid: 115, id: 1, used: true, established: true,

@@ -55,6 +55,10 @@ class GameStore {
   improvements: Record<number, Improvement> = {};
   extras: Record<number, Extra> = {};
   serverSettings: Record<string, ServerSetting> = {};
+  /** Category name list from SERVER_SETTING_CONTROL (index → human-readable name). */
+  serverSettingCategories: string[] = [];
+  /** Total number of settings announced by SERVER_SETTING_CONTROL. */
+  serverSettingCount: number = 0;
 
   // Ruleset data (previously window globals)
   resources: Record<number, Record<string, unknown> & { id: number }> = {};

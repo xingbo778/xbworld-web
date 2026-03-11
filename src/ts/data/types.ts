@@ -194,6 +194,17 @@ export interface Extra {
 }
 
 export interface ServerSetting {
+  /** Numeric id assigned by the server (matches the order in SERVER_SETTING_CONTROL). */
+  id: number;
+  /** Machine-readable setting name, e.g. "fogofwar", "xsize", "aifill". */
+  name: string;
+  /** Category index into store.serverSettingCategories. */
+  category: number;
+  /** Human-readable category name resolved from the CONTROL packet. */
+  categoryName?: string;
+  /** Setting type as received by the type-specific packet handler. */
+  type?: 'bool' | 'int' | 'str' | 'enum' | 'bitwise';
+  /** Current value. Type depends on `type` field. */
   val: unknown;
   [key: string]: unknown;
 }
