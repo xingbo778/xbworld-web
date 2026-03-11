@@ -1,4 +1,3 @@
-import { globalEvents } from '../core/events';
 import { init_game_unit_panel } from '../core/control/unitFocus';
 import { init_chatbox } from '../core/messages';
 import { setKeyboardInput } from '../core/control/controlState';
