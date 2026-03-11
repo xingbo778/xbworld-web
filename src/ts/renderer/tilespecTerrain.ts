@@ -103,6 +103,10 @@ export const _terrainBlendStats = {
   matchSameKeysMissing: 0,
   cellCornerRequests: 0,
   cellCornerNullNeighbors: 0,
+  /** Dither transitions where the direct-neighbor sprite was found and used. */
+  ditherTransitionFound: 0,
+  /** Dither transitions that fell back to same-terrain tile (no transition art). */
+  ditherTransitionFallback: 0,
 };
 
 export function resetTerrainBlendStats(): void {
@@ -111,6 +115,8 @@ export function resetTerrainBlendStats(): void {
   _terrainBlendStats.matchSameKeysMissing = 0;
   _terrainBlendStats.cellCornerRequests = 0;
   _terrainBlendStats.cellCornerNullNeighbors = 0;
+  _terrainBlendStats.ditherTransitionFound = 0;
+  _terrainBlendStats.ditherTransitionFallback = 0;
 }
 
 /**
@@ -146,12 +152,23 @@ export function fill_terrain_sprite_array(l: number, ptile: Tile, pterrain: Terr
                 for (let i = 0; i < num_cardinal_tileset_dirs; i++) {
                   const near_t = tterrain_near[DIR4_TO_DIR8[i]];
                   if (near_t == null || ts_tiles[near_t['graphic_str']] == null) continue;
-                  const near_dlp = tile_types_setup["l" + l + "." + near_t['graphic_str']];
-                  const terrain_near = (near_dlp?.['dither'] == true) ? near_t['graphic_str'] : pterrain!['graphic_str'];
-                  const dither_tile = i + pterrain!['graphic_str'] + "_" + terrain_near;
+                  // Prefer the direct-neighbor transition sprite (e.g. "0grassland_forest").
+                  // Previously, the direct key was only used when the neighbor also had
+                  // dither=true — this left hard edges at dither/MATCH_SAME boundaries
+                  // (grassland→forest, plains→hills, desert→mountains, etc.) even though
+                  // the tileset supplies smooth transition art for all combinations.
+                  // Fix: probe the tileset and fall back to same-terrain only if absent.
+                  const direct_key = i + pterrain!['graphic_str'] + '_' + near_t['graphic_str'];
+                  const fallback_key = i + pterrain!['graphic_str'] + '_' + pterrain!['graphic_str'];
+                  const dither_tile = store.tileset?.[direct_key] ? direct_key : fallback_key;
+                  if (dither_tile === direct_key) {
+                    _terrainBlendStats.ditherTransitionFound++;
+                  } else {
+                    _terrainBlendStats.ditherTransitionFallback++;
+                  }
                   const x = dither_offset_x[i];
                   const y = dither_offset_y[i];
-                  result_sprites.push({ "key": dither_tile, "offset_x": x, "offset_y": y });
+                  result_sprites.push({ 'key': dither_tile, 'offset_x': x, 'offset_y': y });
                 }
                 return result_sprites;
 

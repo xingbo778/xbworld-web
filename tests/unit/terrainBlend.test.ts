@@ -266,4 +266,112 @@ describe('_terrainBlendStats instrumentation', () => {
     fill_terrain_sprite_array(1, fakeTile, T_MOUNTAINS, near);
     expect(_terrainBlendStats.matchSameRequests).toBe(3);
   });
+
+  it('resetTerrainBlendStats clears dither transition counters', () => {
+    (store as any).tileset = { '0grassland_forest': [0, 0, 64, 64] };
+    const near = makeNear(T_GRASSLAND, { [N]: T_FOREST });
+    fill_terrain_sprite_array(0, fakeTile, T_GRASSLAND, near);
+    expect(_terrainBlendStats.ditherTransitionFound).toBeGreaterThan(0);
+    resetTerrainBlendStats();
+    expect(_terrainBlendStats.ditherTransitionFound).toBe(0);
+    expect(_terrainBlendStats.ditherTransitionFallback).toBe(0);
+  });
+});
+
+// ===========================================================================
+// 5. MATCH_NONE dither — direct-neighbor transition fix (A2)
+//
+// BEFORE fix: the dither key was built using the neighbor's name only when
+//   near_dlp.dither == true. For MATCH_SAME terrains (forest, hills, etc.)
+//   dither is false, so terrain_near was set to the *current* terrain name,
+//   producing e.g. "0grassland_grassland" even next to forest — a hard edge.
+//
+// AFTER fix: we probe store.tileset for the direct key first. The tileset
+//   supplies smooth transition art for all 9×9 combinations (e.g.
+//   "0grassland_forest", "0plains_mountains"), so the direct hit rate is
+//   ~100% for all standard terrain pairings, eliminating the hard edges.
+// ===========================================================================
+
+describe('MATCH_NONE dither — direct-neighbor transition fix', () => {
+  // DIR4_TO_DIR8 = [N=1, S=6, E=4, W=3]
+  // i=0 → DIR8_NORTH (near[1]), dither_offset_x[0]=48, dither_offset_y[0]=0
+  // i=1 → DIR8_SOUTH (near[6]), dither_offset_x[1]=0,  dither_offset_y[1]=24
+  // i=2 → DIR8_EAST  (near[4]), dither_offset_x[2]=48, dither_offset_y[2]=24
+  // i=3 → DIR8_WEST  (near[3]), dither_offset_x[3]=0,  dither_offset_y[3]=0
+
+  it('BEFORE/AFTER: grassland→forest uses direct transition (not hard-edge fallback)', () => {
+    // Old code would produce '0grassland_grassland' (no blending).
+    // New code produces '0grassland_forest' (smooth edge).
+    (store as any).tileset = { '0grassland_forest': [0, 0, 64, 64] };
+    const near = makeNear(T_GRASSLAND, { [N]: T_FOREST });
+    const sprites = fill_terrain_sprite_array(0, fakeTile, T_GRASSLAND, near);
+    expect(sprites[0].key).toBe('0grassland_forest');
+  });
+
+  it('BEFORE/AFTER: plains→mountains uses direct transition', () => {
+    (store as any).tileset = { '0plains_mountains': [0, 0, 64, 64] };
+    const near = makeNear(T_PLAINS, { [N]: T_MOUNTAINS });
+    const sprites = fill_terrain_sprite_array(0, fakeTile, T_PLAINS, near);
+    expect(sprites[0].key).toBe('0plains_mountains');
+  });
+
+  it('BEFORE/AFTER: grassland→hills uses direct transition', () => {
+    (store as any).tileset = { '2grassland_hills': [0, 0, 64, 64] };
+    // E neighbor is hills → i=2 (DIR8_EAST = near[4])
+    const near = makeNear(T_GRASSLAND, { [E]: T_HILLS });
+    const sprites = fill_terrain_sprite_array(0, fakeTile, T_GRASSLAND, near);
+    const eastSprite = sprites.find(s => s.offset_x === 48 && s.offset_y === 24);
+    expect(eastSprite?.key).toBe('2grassland_hills');
+  });
+
+  it('falls back to same-terrain key when direct transition absent from tileset', () => {
+    (store as any).tileset = {}; // no transition sprites loaded
+    const near = makeNear(T_GRASSLAND, { [N]: T_FOREST });
+    const sprites = fill_terrain_sprite_array(0, fakeTile, T_GRASSLAND, near);
+    expect(sprites[0].key).toBe('0grassland_grassland');
+  });
+
+  it('same-terrain neighbor: direct_key === fallback_key, treated as found', () => {
+    (store as any).tileset = { '0grassland_grassland': [0, 0, 64, 64] };
+    const near = makeNear(T_GRASSLAND);
+    const sprites = fill_terrain_sprite_array(0, fakeTile, T_GRASSLAND, near);
+    expect(sprites[0].key).toBe('0grassland_grassland');
+  });
+
+  it('counts ditherTransitionFound for each direct-key hit', () => {
+    // N=forest (i=0 → key "0grassland_forest"), E=hills (i=2 → key "2grassland_hills")
+    (store as any).tileset = {
+      '0grassland_forest': [0, 0, 64, 64],
+      '2grassland_hills':  [0, 0, 64, 64],
+    };
+    const near = makeNear(T_GRASSLAND, { [N]: T_FOREST, [E]: T_HILLS });
+    fill_terrain_sprite_array(0, fakeTile, T_GRASSLAND, near);
+    expect(_terrainBlendStats.ditherTransitionFound).toBeGreaterThanOrEqual(2);
+  });
+
+  it('counts ditherTransitionFallback when direct key is absent', () => {
+    (store as any).tileset = {}; // nothing
+    const near = makeNear(T_GRASSLAND, { [N]: T_FOREST });
+    fill_terrain_sprite_array(0, fakeTile, T_GRASSLAND, near);
+    // N→forest: direct "0grassland_forest" missing → fallback
+    expect(_terrainBlendStats.ditherTransitionFallback).toBeGreaterThanOrEqual(1);
+  });
+
+  it('south neighbor uses i=1 key prefix', () => {
+    (store as any).tileset = { '1plains_jungle': [0, 0, 64, 64] };
+    // S neighbor is jungle → i=1 (DIR8_SOUTH = near[6])
+    const near = makeNear(T_PLAINS, { [S]: T_JUNGLE });
+    const sprites = fill_terrain_sprite_array(0, fakeTile, T_PLAINS, near);
+    const southSprite = sprites.find(s => s.offset_x === 0 && s.offset_y === 24);
+    expect(southSprite?.key).toBe('1plains_jungle');
+  });
+
+  it('west neighbor uses i=3 key prefix', () => {
+    (store as any).tileset = { '3grassland_mountains': [0, 0, 64, 64] };
+    // W neighbor is mountains → i=3 (DIR8_WEST = near[3])
+    const near = makeNear(T_GRASSLAND, { [W]: T_MOUNTAINS });
+    const sprites = fill_terrain_sprite_array(0, fakeTile, T_GRASSLAND, near);
+    const westSprite = sprites.find(s => s.offset_x === 0 && s.offset_y === 0);
+    expect(westSprite?.key).toBe('3grassland_mountains');
+  });
 });
