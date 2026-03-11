@@ -4,6 +4,7 @@ import { cityPopulation as city_population } from './city';
 import { clientState as client_state, C_S_RUNNING, clientPlaying } from '../client/clientState';
 import { numberWithCommas, isSmallScreen as is_small_screen } from '../utils/helpers';
 import { setHtml } from '../utils/dom';
+import { escapeHtml } from '../utils/safeHtml';
 
 export const IDENTITY_NUMBER_ZERO = 0;
 
@@ -57,7 +58,7 @@ export function update_game_status_panel(): void {
     if (!is_small_screen())
       status_html +=
         '<b>' +
-        (store.nations[pplayer['nation']]?.['adjective'] || '') +
+        escapeHtml(String(store.nations[pplayer['nation']]?.['adjective'] || '')) +
         "</b> &nbsp;&nbsp; <span title='Population'>👤</span>: ";
     if (!is_small_screen())
       status_html += '<b>' + civ_population(clientPlaying()!.playerno) + '</b>  &nbsp;&nbsp;';
@@ -86,7 +87,7 @@ export function update_game_status_panel(): void {
   } else if (store.observing || clientPlaying() == null) {
     // Observer mode: always show year + turn regardless of metamessage
     const meta = store.serverSettings?.['metamessage']?.['val'];
-    if (meta) status_html += meta + ' — ';
+    if (meta) status_html += escapeHtml(String(meta)) + ' — ';
     if (store.gameInfo) {
       if (!is_small_screen()) {
         status_html += "<span title='Year (turn)'>🕐</span>: <b>" + get_year_string() + '</b> &nbsp;&nbsp;';

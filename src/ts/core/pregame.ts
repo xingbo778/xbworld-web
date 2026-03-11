@@ -2,6 +2,7 @@ import { clientState as client_state, C_S_PREPARING } from '../client/clientStat
 import { setupWindowSize as setup_window_size } from '../client/clientMain';
 import { store } from '../data/store';
 import { setHtml } from '../utils/dom';
+import { escapeHtml } from '../utils/safeHtml';
 
 const client = store.client;
 export let update_player_info_pregame_queued: boolean = false;
@@ -31,18 +32,18 @@ export function update_game_info_pregame(): void {
 
   if (store.scenarioInfo != null && store.scenarioInfo['is_scenario']) {
     game_info_html += "<p>";
-    game_info_html += String(store.scenarioInfo['description']).replace(/\n/g, "<br>");
+    game_info_html += escapeHtml(String(store.scenarioInfo['description'])).replace(/\n/g, "<br>");
     game_info_html += "</p>";
 
     if (store.scenarioInfo['authors']) {
       game_info_html += "<p>Scenario by ";
-      game_info_html += String(store.scenarioInfo['authors']).replace(/\n/g, "<br>");
+      game_info_html += escapeHtml(String(store.scenarioInfo['authors'])).replace(/\n/g, "<br>");
       game_info_html += "</p>";
     }
 
     if (store.scenarioInfo['prevent_new_cities']) {
       game_info_html += "<p>";
-      game_info_html += store.scenarioInfo['name'] + " forbids the founding of new cities.";
+      game_info_html += escapeHtml(String(store.scenarioInfo['name'])) + " forbids the founding of new cities.";
       game_info_html += "</p>";
     }
   }

@@ -23,6 +23,20 @@ const ALLOWED_TAGS = new Set([
 ]);
 
 /**
+ * Escape a plain-text value for safe inline use inside an HTML string.
+ * Use this when building HTML via string concatenation and inserting a value
+ * that comes from the server (nation names, player names, settings, etc.).
+ */
+export function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/**
  * Sanitize an HTML string from the game server.
  * Removes <script> blocks, strips on* event attributes, and blocks
  * javascript: / data: href values.
