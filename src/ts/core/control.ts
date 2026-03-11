@@ -24,6 +24,7 @@ export * from './control/unitFocus';
 import { network_stop } from '../net/connection';
 import { isTouchDevice as is_touch_device } from '../utils/helpers';
 import { update_city_screen } from '../ui/cityDialog';
+import { mountCitiesPanel } from '../components/CitiesPanel';
 import { init_options_dialog, init_theme_selector } from '../ui/options';
 import { refreshNationOverview } from '../components/NationOverview';
 import { store } from '../data/store';
@@ -138,7 +139,11 @@ export function control_init(): void {
   document.getElementById('map_tab')?.addEventListener('click', () => setTimeout(set_default_mapview_active, 5));
   document.getElementById('tech_tab')?.addEventListener('click', () => { set_default_mapview_inactive(); mount_tech_panel(); });
   document.getElementById('players_tab')?.addEventListener('click', () => { set_default_mapview_inactive(); mount_nation_overview(); update_nation_screen(); });
-  document.getElementById('cities_tab')?.addEventListener('click', () => { set_default_mapview_inactive(); update_city_screen(); });
+  document.getElementById('cities_tab')?.addEventListener('click', () => {
+    set_default_mapview_inactive();
+    update_city_screen();
+    mountCitiesPanel();
+  });
   document.getElementById('opt_tab')?.addEventListener('click', () => {
     const tabsHel = document.getElementById('tabs-hel');
     if (tabsHel) tabsHel.style.display = 'none';
