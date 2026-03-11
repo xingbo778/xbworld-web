@@ -13,6 +13,7 @@ import type { Player } from './types';
 import { PlayerFlag } from './player';
 import { clientIsObserver, clientPlaying } from '../client/clientState';
 import { send_message } from '../net/connection';
+import { escapeHtml } from '../utils/safeHtml';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -109,8 +110,8 @@ export function getPlayerScoresSummary(): string {
     const units = (p['units'] as number) ?? 0;
     return `<tr>
       <td style="padding:4px 8px;font-weight:bold">#${i + 1}</td>
-      <td style="padding:4px 8px">${p['name'] as string}</td>
-      <td style="padding:4px 8px;color:#8b949e">${adj}</td>
+      <td style="padding:4px 8px">${escapeHtml(String(p['name']))}</td>
+      <td style="padding:4px 8px;color:#8b949e">${escapeHtml(String(adj))}</td>
       <td style="padding:4px 8px;text-align:right;font-weight:bold;color:#58a6ff">${score}</td>
       <td style="padding:4px 8px;text-align:right">${cities} cities</td>
     </tr>`;
