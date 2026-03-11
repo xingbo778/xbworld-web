@@ -28,6 +28,7 @@ import { map_to_gui_pos } from './mapCoords';
 import { mapstep } from '../data/map';
 import { tileset_tile_width, tileset_tile_height } from './tilesetConfig';
 import { get_drawable_unit } from '../core/control/unitFocus';
+import { clearBlendCache } from './terrainBlendGen';
 import { draw_fog_of_war } from '../ui/options';
 import { clientState, C_S_RUNNING } from '../client/clientState';
 
@@ -160,6 +161,8 @@ export class PixiRenderer {
       if (tex) tex.destroy();
     }
     this.texCache.clear();
+    // Clear A2 blend sprites so they are regenerated from the new tileset.
+    clearBlendCache();
     // tilePosCache is NOT cleared: tile x/y→GUI positions are stable across sprite reloads.
   }
 

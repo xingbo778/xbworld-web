@@ -9,6 +9,7 @@ import {
   dither_offset_x, dither_offset_y,
   tile_types_setup, cellgroup_map, ts_tiles,
 } from './tilesetConfig';
+import { generateBlendSprite } from './terrainBlendGen';
 
 // DIR8 constants - standard Freeciv direction enum
 const DIR8_NORTHWEST = 0;
@@ -163,10 +164,17 @@ export function fill_terrain_sprite_array(l: number, ptile: Tile, pterrain: Terr
                   // Fix: probe the tileset and fall back to same-terrain only if absent.
                   const direct_key = i + pterrain!['graphic_str'] + '_' + near_t['graphic_str'];
                   const fallback_key = i + pterrain!['graphic_str'] + '_' + pterrain!['graphic_str'];
-                  const dither_tile = store.tileset?.[direct_key] ? direct_key : fallback_key;
-                  if (dither_tile === direct_key) {
+                  let dither_tile: string;
+                  if (store.tileset?.[direct_key]) {
+                    dither_tile = direct_key;
                     _terrainBlendStats.ditherTransitionFound++;
                   } else {
+                    // A2: generate a gradient-blended transition sprite instead of hard-edge fallback.
+                    // The blend composites the neighbor's own dither sprite over the source dither
+                    // using a directional linear-gradient alpha mask (bilinear-equivalent in 2D).
+                    const nbr_own_key = i + near_t['graphic_str'] + '_' + near_t['graphic_str'];
+                    const blended = generateBlendSprite(i, fallback_key, nbr_own_key);
+                    dither_tile = blended ?? fallback_key;
                     _terrainBlendStats.ditherTransitionFallback++;
                   }
                   const x = dither_offset_x[i];
