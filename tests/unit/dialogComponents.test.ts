@@ -3,6 +3,7 @@
  * MessageDialog, SwalDialog, AuthDialog, CityInputDialog, CityBuyDialog, TechGainedDialog.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
+import { render, h } from 'preact';
 
 // ---------------------------------------------------------------------------
 // MessageDialog
@@ -106,6 +107,42 @@ describe('CityInputDialog', () => {
     const onCancel = () => {};
     expect(() => showCityInputDialog('Name City', 'What to call it?', 'New City', 64, onConfirm, onCancel)).not.toThrow();
   });
+
+  it('renders closed — no dialog visible when state.open is false', async () => {
+    const { CityInputDialog, closeCityInputDialog } = await import('@/components/Dialogs/CityInputDialog');
+    closeCityInputDialog();
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    render(h(CityInputDialog, null), div);
+    // Dialog is closed — open=false so Dialog renders nothing or hidden
+    const dialog = div.querySelector('[open]') ?? div.querySelector('dialog');
+    // If there's a dialog element, it should not be the open modal
+    if (dialog) expect((dialog as HTMLDialogElement).open).toBeFalsy();
+    document.body.removeChild(div);
+  });
+
+  it('renders open — shows title, prompt, and input with initial value', async () => {
+    const { CityInputDialog, showCityInputDialog } = await import('@/components/Dialogs/CityInputDialog');
+    showCityInputDialog('Rename City', 'Enter new name:', 'Old Rome', 64, () => {}, () => {});
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    render(h(CityInputDialog, null), div);
+    expect(div.textContent).toContain('Rename City');
+    expect(div.textContent).toContain('Enter new name:');
+    document.body.removeChild(div);
+  });
+
+  it('renders open — shows Ok and Cancel buttons', async () => {
+    const { CityInputDialog, showCityInputDialog } = await import('@/components/Dialogs/CityInputDialog');
+    showCityInputDialog('Name City', 'What to call it?', 'New City', 64, () => {}, () => {});
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    render(h(CityInputDialog, null), div);
+    const buttons = Array.from(div.querySelectorAll('button')).map(b => b.textContent?.trim());
+    expect(buttons).toContain('Ok');
+    expect(buttons).toContain('Cancel');
+    document.body.removeChild(div);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -127,6 +164,33 @@ describe('CityBuyDialog', () => {
     const { showCityBuyDialog } = await import('@/components/Dialogs/CityBuyDialog');
     expect(() => showCityBuyDialog('Buy Barracks for 42 gold?', () => {})).not.toThrow();
   });
+
+  it('renders open — shows question text and Yes/No buttons', async () => {
+    const { CityBuyDialog, showCityBuyDialog } = await import('@/components/Dialogs/CityBuyDialog');
+    showCityBuyDialog('Buy Barracks for 42 gold?', () => {});
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    render(h(CityBuyDialog, null), div);
+    expect(div.textContent).toContain('42 gold');
+    const buttons = Array.from(div.querySelectorAll('button')).map(b => b.textContent?.trim());
+    expect(buttons).toContain('Yes');
+    expect(buttons).toContain('No');
+    document.body.removeChild(div);
+  });
+
+  it('Yes button calls onConfirm callback', async () => {
+    const { CityBuyDialog, showCityBuyDialog } = await import('@/components/Dialogs/CityBuyDialog');
+    let called = false;
+    showCityBuyDialog('Buy Library?', () => { called = true; });
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    render(h(CityBuyDialog, null), div);
+    const yesBtn = Array.from(div.querySelectorAll('button')).find(b => b.textContent?.trim() === 'Yes') as HTMLButtonElement;
+    expect(yesBtn).toBeDefined();
+    yesBtn.click();
+    expect(called).toBe(true);
+    document.body.removeChild(div);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -147,5 +211,28 @@ describe('TechGainedDialog', () => {
   it('showTechGainedDialog does not throw with title and message', async () => {
     const { showTechGainedDialog } = await import('@/components/Dialogs/TechGainedDialog');
     expect(() => showTechGainedDialog('Tech Gained!', '<b>You have discovered Pottery!</b>')).not.toThrow();
+  });
+
+  it('renders open — shows title and message content', async () => {
+    const { TechGainedDialog, showTechGainedDialog } = await import('@/components/Dialogs/TechGainedDialog');
+    showTechGainedDialog('Pottery Discovered', 'You have discovered Pottery!');
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    render(h(TechGainedDialog, null), div);
+    expect(div.textContent).toContain('Pottery Discovered');
+    expect(div.textContent).toContain('You have discovered Pottery!');
+    document.body.removeChild(div);
+  });
+
+  it('renders open — shows Close and Show Technology Tree buttons', async () => {
+    const { TechGainedDialog, showTechGainedDialog } = await import('@/components/Dialogs/TechGainedDialog');
+    showTechGainedDialog('Writing', 'Writing unlocked!');
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    render(h(TechGainedDialog, null), div);
+    const buttons = Array.from(div.querySelectorAll('button')).map(b => b.textContent?.trim());
+    expect(buttons).toContain('Close');
+    expect(buttons).toContain('Show Technology Tree');
+    document.body.removeChild(div);
   });
 });
