@@ -56,7 +56,7 @@ export function show_intelligence_report_hearsay(pplayer: Player): void {
   }
   msg += "<br>Establishing an embassy will show a detailed intelligence report.";
 
-  show_dialog_message("Intelligence report for " + String(pplayer['name']), msg);
+  show_dialog_message("Intelligence report for " + escapeHtml(String(pplayer['name'])), msg);
 }
 
 /** Build typed intel data for a player (embassy-level). No HTML strings. */
