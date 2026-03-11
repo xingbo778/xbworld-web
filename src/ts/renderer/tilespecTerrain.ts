@@ -94,6 +94,35 @@ export function fill_terrain_sprite_layer(layer_num: number, ptile: Tile, pterra
 
 }
 
+// ---------------------------------------------------------------------------
+// Terrain blend statistics — reset per-frame by PixiRenderer; read by tests
+// ---------------------------------------------------------------------------
+export const _terrainBlendStats = {
+  matchSameRequests: 0,
+  matchSameKeysFound: 0,
+  matchSameKeysMissing: 0,
+  cellCornerRequests: 0,
+  cellCornerNullNeighbors: 0,
+};
+
+export function resetTerrainBlendStats(): void {
+  _terrainBlendStats.matchSameRequests = 0;
+  _terrainBlendStats.matchSameKeysFound = 0;
+  _terrainBlendStats.matchSameKeysMissing = 0;
+  _terrainBlendStats.cellCornerRequests = 0;
+  _terrainBlendStats.cellCornerNullNeighbors = 0;
+}
+
+/**
+ * Safely resolve the match_index[0] for a potentially-undefined neighbor terrain.
+ * Returns -1 when the neighbor is unknown/unsupported.
+ */
+function neighborMatchIndex(terrain: Terrain | undefined, l: number): number {
+  if (terrain == null) return -1;
+  const key = 'l' + l + '.' + terrain['graphic_str'];
+  return (key in tile_types_setup) ? (tile_types_setup[key]['match_index'][0] ?? -1) : -1;
+}
+
 /****************************************************************************
   Helper function for fill_terrain_sprite_layer.
 ****************************************************************************/
@@ -115,10 +144,10 @@ export function fill_terrain_sprite_array(l: number, ptile: Tile, pterrain: Terr
               const result_sprites: SpriteEntry[] = [];
               if (dlp['dither'] == true) {
                 for (let i = 0; i < num_cardinal_tileset_dirs; i++) {
-                  const near_t = tterrain_near[DIR4_TO_DIR8[i]]!;
+                  const near_t = tterrain_near[DIR4_TO_DIR8[i]];
                   if (near_t == null || ts_tiles[near_t['graphic_str']] == null) continue;
                   const near_dlp = tile_types_setup["l" + l + "." + near_t['graphic_str']];
-                  const terrain_near = (near_dlp['dither'] == true) ? near_t['graphic_str'] : pterrain!['graphic_str'];
+                  const terrain_near = (near_dlp?.['dither'] == true) ? near_t['graphic_str'] : pterrain!['graphic_str'];
                   const dither_tile = i + pterrain!['graphic_str'] + "_" + terrain_near;
                   const x = dither_offset_x[i];
                   const y = dither_offset_y[i];
@@ -133,19 +162,28 @@ export function fill_terrain_sprite_array(l: number, ptile: Tile, pterrain: Terr
 
           case MATCH_SAME:
             {
+              _terrainBlendStats.matchSameRequests++;
               let tileno = 0;
-              const this_match_type = ts_tiles[pterrain!['graphic_str']]['layer' + l + '_match_type'];
+              const this_match_type = ts_tiles[pterrain!['graphic_str']]?.['layer' + l + '_match_type'];
 
+              // FIX: was tterrain_near[i] (NW/N/NE/W) → must be cardinal dirs (N/E/S/W)
+              // cardinal_tileset_dirs = [DIR8_NORTH, DIR8_EAST, DIR8_SOUTH, DIR8_WEST]
+              // cardinal_index_str sets bit i → label cardinal_tileset_dirs[i] name ("n"/"e"/"s"/"w")
               for (let i = 0; i < num_cardinal_tileset_dirs; i++) {
-                const near_t = tterrain_near[i]!;
+                const near_t = tterrain_near[cardinal_tileset_dirs[i]];
                 if (near_t == null || ts_tiles[near_t['graphic_str']] == null) continue;
-                const that = ts_tiles[near_t['graphic_str']]['layer' + l + '_match_type'];
+                const that = ts_tiles[near_t['graphic_str']]?.['layer' + l + '_match_type'];
                 if (that == this_match_type) {
                   tileno |= 1 << i;
                 }
               }
               const gfx_key = "t.l" + l + "." + pterrain!['graphic_str'] + "_" + cardinal_index_str(tileno);
-              const y = tileset_tile_height - store.tileset[gfx_key][3];
+              // FIX: guard against missing tileset entry (avoids crash during early loading)
+              const tileEntry = store.tileset?.[gfx_key];
+              const y = tileEntry ? tileset_tile_height - tileEntry[3] : 0;
+
+              if (tileEntry) _terrainBlendStats.matchSameKeysFound++;
+              else _terrainBlendStats.matchSameKeysMissing++;
 
               return [{ "key": gfx_key, "offset_x": 0, "offset_y": y }];
             }
@@ -173,13 +211,20 @@ export function fill_terrain_sprite_array(l: number, ptile: Tile, pterrain: Terr
         for (let i = 0; i < NUM_CORNER_DIRS; i++) {
           const count = dlp['match_indices'];
           let array_index = 0;
-          const dir = dir_ccw(DIR4_TO_DIR8[i]); // Assuming dir_ccw exists
+          const dir = dir_ccw(DIR4_TO_DIR8[i]);
           const x = iso_offsets[i][0];
           const y = iso_offsets[i][1];
 
-          const m = [('l' + l + '.' + tterrain_near[dir_ccw(dir)]!['graphic_str'] in tile_types_setup) ? tile_types_setup['l' + l + '.' + tterrain_near[dir_ccw(dir)]!['graphic_str']]['match_index'][0] : -1,
-          ('l' + l + '.' + tterrain_near[dir]!['graphic_str'] in tile_types_setup) ? tile_types_setup['l' + l + '.' + tterrain_near[dir]!['graphic_str']]['match_index'][0] : -1,
-          ('l' + l + '.' + tterrain_near[dir_cw(dir)]!['graphic_str'] in tile_types_setup) ? tile_types_setup['l' + l + '.' + tterrain_near[dir_cw(dir)]!['graphic_str']]['match_index'][0] : -1]; // Assuming dir_cw exists
+          _terrainBlendStats.cellCornerRequests++;
+
+          // FIX: guard against undefined neighbors (fog boundary tiles)
+          const n0 = tterrain_near[dir_ccw(dir)];
+          const n1 = tterrain_near[dir];
+          const n2 = tterrain_near[dir_cw(dir)];
+          if (n0 == null || n1 == null || n2 == null) {
+            _terrainBlendStats.cellCornerNullNeighbors++;
+          }
+          const m = [neighborMatchIndex(n0, l), neighborMatchIndex(n1, l), neighborMatchIndex(n2, l)];
 
           /* synthesize 4 dimensional array? */
           switch (dlp['match_style']) {

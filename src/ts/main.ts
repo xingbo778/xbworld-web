@@ -132,6 +132,7 @@ import { store } from './data/store';
 import { set_client_state } from './client/clientState';
 import { mark_all_dirty, mapview } from './renderer/mapviewCommon';
 import { map_to_gui_pos } from './renderer/mapCoords';
+import { _terrainBlendStats, resetTerrainBlendStats } from './renderer/tilespecTerrain';
 import { redraw_overview } from './core/overview';
 
 function syncStoreWithWindow(): void {
@@ -213,6 +214,9 @@ function init(): void {
   win['mark_all_dirty'] = mark_all_dirty;
   win['redraw_overview'] = redraw_overview;
   win['__store'] = store;
+  // Expose terrain blend stats for A2 diagnostics / tests
+  win['__terrainBlendStats'] = _terrainBlendStats;
+  win['__resetTerrainBlendStats'] = resetTerrainBlendStats;
   win['send_message'] = send_message;
   // Expose renderer globals needed by unit.ts (declared as globals to avoid circular deps)
   win['map_to_gui_pos'] = map_to_gui_pos;
