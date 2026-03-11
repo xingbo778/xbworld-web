@@ -16,6 +16,9 @@ import {
   set_active_city, set_city_prod_clicks, set_production_selection, set_worklist_selection,
 } from './cityDialogState';
 import { showCityDialogPreact, closeCityDialogPreact, cityDialogSignal } from '../components/Dialogs/CityDialog';
+import { showCityInputDialog } from '../components/Dialogs/CityInputDialog';
+import { sendUnitDoAction } from '../net/commands';
+import { ACTION_FOUND_CITY } from '../data/fcTypes';
 
 // Re-export state for backward compatibility
 export {
@@ -74,7 +77,22 @@ export function send_city_change(_city_id: number, _kind: number, _value: number
 export function city_sell_improvement(_improvement_id: number): void {}
 export function city_change_specialist(_city_id: number, _from_specialist_id: number): void {}
 export function rename_city(): void {}
-export function city_name_dialog(_suggested_name?: string, _unit_id?: number): void {}
+export function city_name_dialog(suggested_name?: string, unit_id?: number): void {
+  const name = suggested_name ?? '';
+  const uid = unit_id ?? 0;
+  showCityInputDialog(
+    'Name New City',
+    'What should the city be called?',
+    name,
+    64,
+    (cityName: string) => {
+      const unit = store.units[uid];
+      const tileId = unit ? (unit as unknown as Record<string, number>)['tile'] : 0;
+      sendUnitDoAction(ACTION_FOUND_CITY, uid, tileId, 0, cityName);
+    },
+    () => { /* cancel — do nothing */ },
+  );
+}
 export function next_city(): void {}
 export function previous_city(): void {}
 export function city_keyboard_listener(_ev: KeyboardEvent): void {}
