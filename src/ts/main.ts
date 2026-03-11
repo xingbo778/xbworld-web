@@ -186,6 +186,7 @@ import { mountPreactApp } from './components/App';
 import { registerAction } from './utils/eventDelegation';
 import { show_city_dialog_by_id } from './ui/cityDialog';
 import { show_tech_info_dialog, send_player_research, show_wikipedia_dialog } from './ui/techDialog';
+import { showTaxRatesDialog } from './components/Dialogs/TaxRatesDialog';
 import { nationTableSelectPlayer } from './data/nation';
 import { center_tile_id } from './renderer/mapviewCommon';
 import { send_message } from './net/connection';
@@ -205,6 +206,7 @@ function init(): void {
   registerAction('select-player', (el) => nationTableSelectPlayer(Number(el.dataset['playerno'])));
   registerAction('center-tile', (el) => center_tile_id(Number(el.dataset['tileid'])));
   registerAction('wiki-dialog', (el) => show_wikipedia_dialog(el.dataset['techname'] ?? ''));
+  registerAction('show-tax-rates', () => showTaxRatesDialog());
 
   syncStoreWithWindow();
   logNormal('[TS] Store ↔ window globals synced');

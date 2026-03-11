@@ -7,7 +7,7 @@ export { globalEvents } from './core/events';
 export type { Tile, Unit, City, Player, GameInfo } from './data/types';
 export { PixiRenderer } from './renderer/PixiRenderer';
 export { send_message as sendMessage, send_request as sendRequest, network_init as networkInit } from './net/connection';
-export { showDialog, closeDialog, showAlert, showMessage } from './ui/dialogs';
+export { showAlert, showMessage } from './ui/dialogs';
 export { audioManager } from './audio/AudioManager';
 export { BitVector } from './utils/bitvector';
 export * from './utils/helpers';

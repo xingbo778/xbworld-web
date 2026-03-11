@@ -276,3 +276,74 @@ describe('handle_server_setting_bool emits settings:updated', () => {
     globalEvents.off('settings:updated', handler);
   });
 });
+
+// ── player:updated / researchUpdated ──────────────────────────────────────
+
+describe('handle_player_info emits player:updated', () => {
+  it('emits player:updated and increments signal', async () => {
+    const { handle_player_info } = await import('@/net/handlers/player');
+    const { playerUpdated } = await import('@/data/signals');
+    const before = playerUpdated.value;
+
+    handle_player_info({
+      playerno: 1, name: 'Julius', username: 'julius',
+      nation: 2, is_alive: true, is_ready: true,
+      ai_skill_level: 0, gold: 100, tax: 0, luxury: 0, science: 100,
+      expected_income: 10, team: 0, embassy_txt: '',
+    } as never);
+
+    expect(playerUpdated.value).toBe(before + 1);
+  });
+
+  it('playerCount updates when handle_player_info is called', async () => {
+    const { playerCount } = await import('@/data/signals');
+    const { handle_player_info } = await import('@/net/handlers/player');
+    const before = Object.keys(store.players).length;
+
+    handle_player_info({
+      playerno: 5, name: 'Cleopatra', username: 'cleo',
+      nation: 3, is_alive: true, is_ready: true,
+      ai_skill_level: 0, gold: 80, tax: 0, luxury: 0, science: 100,
+      expected_income: 5, team: 0, embassy_txt: '',
+    } as never);
+
+    expect(playerCount.value).toBe(before + 1);
+  });
+});
+
+describe('handle_research_info emits player:research', () => {
+  it('emits player:research and increments researchUpdated signal', async () => {
+    const { handle_research_info } = await import('@/net/handlers/gameState');
+    const { researchUpdated } = await import('@/data/signals');
+    // Ensure player exists in store
+    store.players[0] = { playerno: 0 } as never;
+    const before = researchUpdated.value;
+
+    handle_research_info({
+      id: 0, researching: 1, bulbs_researched: 50,
+      researching_cost: 100, inventions: [],
+    } as never);
+
+    expect(researchUpdated.value).toBe(before + 1);
+  });
+});
+
+// ── tile:updated ───────────────────────────────────────────────────────────
+
+describe('handle_tile_info emits tile:updated', () => {
+  it('emits tile:updated', async () => {
+    const { handle_tile_info } = await import('@/net/handlers/map');
+    // Need tiles allocated for handle_tile_info to run
+    store.tiles = Array(100).fill(null).map((_, i) => ({ index: i })) as never;
+    const handler = vi.fn();
+    globalEvents.on('tile:updated', handler);
+
+    handle_tile_info({
+      tile: 5, known: 2, extras: [], terrain: 1,
+      resource: -1, unit_ident: 0,
+    } as never);
+
+    expect(handler).toHaveBeenCalled();
+    globalEvents.off('tile:updated', handler);
+  });
+});

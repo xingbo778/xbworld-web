@@ -52,6 +52,7 @@ export function handle_player_info(packet: PlayerInfoPacket): void {
       && packet['playerno'] === clientPlaying()!['playerno']) {
     store.client.conn.playing = store.players[packet['playerno']];
   }
+  globalEvents.emit('player:updated', packet);
 }
 
 export function handle_web_player_info_addition(packet: WebPlayerInfoAdditionPacket): void {
