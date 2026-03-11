@@ -1,5 +1,5 @@
 import { signal } from '@preact/signals';
-import { sanitizeGameHtml } from '../../utils/safeHtml';
+import { parseGameHtml } from '../../utils/parseGameHtml';
 import { Dialog } from '../Shared/Dialog';
 import { Button } from '../Shared/Button';
 
@@ -31,7 +31,7 @@ export function CityBuyDialog() {
 
   return (
     <Dialog title="Buy It!" open={open} onClose={close} width={window.innerWidth <= 600 ? '95%' : '50%'} modal>
-      <div dangerouslySetInnerHTML={{ __html: sanitizeGameHtml(question) }} />
+      <div>{parseGameHtml(question)}</div>
       <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
         <Button onClick={handleYes}>Yes</Button>
         <Button variant="secondary" onClick={close}>No</Button>

@@ -1,5 +1,5 @@
 import { signal } from '@preact/signals';
-import { sanitizeGameHtml } from '../../utils/safeHtml';
+import { parseGameHtml } from '../../utils/parseGameHtml';
 import { Dialog } from '../Shared/Dialog';
 import { Button } from '../Shared/Button';
 
@@ -50,10 +50,9 @@ export function MessageDialog() {
       width={window.innerWidth <= 600 ? '90%' : '50%'}
       modal={false}
     >
-      <div
-        style={{ maxHeight: '450px', overflow: 'auto' }}
-        dangerouslySetInnerHTML={{ __html: sanitizeGameHtml(message) }}
-      />
+      <div style={{ maxHeight: '450px', overflow: 'auto' }}>
+        {parseGameHtml(message)}
+      </div>
       <div style={{ marginTop: '12px', textAlign: 'right' }}>
         <Button onClick={closeMessageDialog}>Ok</Button>
       </div>

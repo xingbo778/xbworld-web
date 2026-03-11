@@ -1,5 +1,5 @@
 import { signal } from '@preact/signals';
-import { sanitizeGameHtml } from '../../utils/safeHtml';
+import { parseGameHtml } from '../../utils/parseGameHtml';
 import { Dialog } from '../Shared/Dialog';
 import { Button } from '../Shared/Button';
 
@@ -42,10 +42,9 @@ export function TechGainedDialog() {
       width={window.innerWidth <= 600 ? '90%' : '60%'}
       modal={false}
     >
-      <div
-        style={{ maxHeight: '70vh', overflow: 'auto' }}
-        dangerouslySetInnerHTML={{ __html: sanitizeGameHtml(message) }}
-      />
+      <div style={{ maxHeight: '70vh', overflow: 'auto' }}>
+        {parseGameHtml(message)}
+      </div>
       <div style={{ marginTop: '12px', display: 'flex', gap: '8px' }}>
         <Button onClick={close}>Close</Button>
         <Button variant="secondary" onClick={showTechTree}>Show Technology Tree</Button>
