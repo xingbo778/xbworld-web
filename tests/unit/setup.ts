@@ -17,3 +17,8 @@ if (!globalThis.requestAnimationFrame) {
   globalThis.requestAnimationFrame = (cb: FrameRequestCallback) => setTimeout(cb, 0) as unknown as number;
   globalThis.cancelAnimationFrame = (id: number) => clearTimeout(id);
 }
+
+// Stub scrollIntoView (jsdom doesn't implement it; prevents unhandled error in ChatBox/GameLog)
+if (!Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = vi.fn();
+}
