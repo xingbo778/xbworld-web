@@ -284,3 +284,65 @@ describe('NationOverview — Units tab content', () => {
     expect(container.textContent).toContain('Chariot');
   });
 });
+
+// ── Nations table sorted by score descending ──────────────────────────────────
+
+describe('NationOverview — Nations tab sorted by score descending', () => {
+  beforeEach(() => { store.reset(); });
+
+  it('shows higher-score player before lower-score player', async () => {
+    const { mountNationOverview, setNationOverviewTab } = await import('@/components/NationOverview');
+    store.players[0] = { ...makePlayer(0, 'Low'),  score: 10  } as never;
+    store.players[1] = { ...makePlayer(1, 'High'), score: 999 } as never;
+    setNationOverviewTab('nations');
+    const container = mountFresh(mountNationOverview);
+    const text = container.textContent ?? '';
+    expect(text.indexOf('High')).toBeLessThan(text.indexOf('Low'));
+  });
+
+  it('handles players with equal scores without throwing', async () => {
+    const { mountNationOverview, setNationOverviewTab } = await import('@/components/NationOverview');
+    store.players[0] = { ...makePlayer(0, 'Alpha'), score: 50 } as never;
+    store.players[1] = { ...makePlayer(1, 'Beta'),  score: 50 } as never;
+    setNationOverviewTab('nations');
+    const container = mountFresh(mountNationOverview);
+    expect(container.textContent).toContain('Alpha');
+    expect(container.textContent).toContain('Beta');
+  });
+
+  it('handles missing score gracefully (defaults to 0)', async () => {
+    const { mountNationOverview, setNationOverviewTab } = await import('@/components/NationOverview');
+    store.players[0] = { ...makePlayer(0, 'NoScore'), score: undefined } as never;
+    setNationOverviewTab('nations');
+    expect(() => mountFresh(mountNationOverview)).not.toThrow();
+  });
+});
+
+// ── ActionBar — View Intel button ─────────────────────────────────────────────
+
+describe('NationOverview — ActionBar View Intel button', () => {
+  beforeEach(() => { store.reset(); });
+
+  it('renders "View Intel" button in ActionBar', async () => {
+    const { mountNationOverview } = await import('@/components/NationOverview');
+    const container = mountFresh(mountNationOverview);
+    expect(container.textContent).toContain('View Intel');
+  });
+
+  it('View Intel button is disabled when no player is selected', async () => {
+    const { mountNationOverview } = await import('@/components/NationOverview');
+    const container = mountFresh(mountNationOverview);
+    const buttons = container.querySelectorAll('button');
+    const intelBtn = Array.from(buttons).find(b => b.textContent?.includes('View Intel'));
+    expect(intelBtn).toBeDefined();
+    expect(intelBtn?.disabled).toBe(true);
+  });
+
+  it('renders all three ActionBar buttons', async () => {
+    const { mountNationOverview } = await import('@/components/NationOverview');
+    const container = mountFresh(mountNationOverview);
+    expect(container.textContent).toContain('View on Map');
+    expect(container.textContent).toContain('View Intel');
+    expect(container.textContent).toContain('Game Scores');
+  });
+});
