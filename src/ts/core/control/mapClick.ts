@@ -304,13 +304,18 @@ export function do_map_click(ptile: Tile, qtype: number, first_time_called: bool
 }
 
 export function find_active_dialog() {
+  // Check Preact-managed dialogs (.xb-dialog) first
+  const xbDialogs = document.querySelectorAll('.xb-dialog');
+  for (let i = 0; i < xbDialogs.length; i++) {
+    const el = xbDialogs[i] as HTMLElement;
+    if (el.style.display !== 'none') return el;
+  }
+  // Legacy jQuery-UI dialogs (.ui-dialog) as fallback
   const permanent_widgets = ["game_overview_panel", "game_unit_panel", "game_chatbox_panel"];
   const dialogs = document.querySelectorAll(".ui-dialog");
   for (let i = 0; i < dialogs.length; i++) {
     const dialog = dialogs[i] as HTMLElement;
-    if (dialog.style.display == "none") {
-      continue;
-    }
+    if (dialog.style.display == "none") continue;
     const children = dialog.children;
     if (children.length >= 2 && permanent_widgets.indexOf((children[1] as HTMLElement).id) < 0) {
       return dialog;

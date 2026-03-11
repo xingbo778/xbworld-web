@@ -20,6 +20,7 @@ import { showDialogMessage as show_dialog_message } from '../../client/civClient
 import * as S from './controlState';
 import { update_unit_focus } from './unitFocus';
 import { update_mouse_cursor } from './mouse';
+import { turnDoneState, unitTextDetails, activeUnitInfo } from '../../data/signals';
 
 const ORDER_LAST = Order.LAST;
 
@@ -84,8 +85,7 @@ export function deactivate_goto(will_advance_unit_focus: boolean) {
 export function send_end_turn() {
   if (store.gameInfo == null) return;
 
-  const turnDoneBtn = document.getElementById("turn_done_button") as HTMLButtonElement | null;
-  if (turnDoneBtn) turnDoneBtn.disabled = true;
+  turnDoneState.value = { ...turnDoneState.value, disabled: true };
 
   sendPlayerPhaseDone(store.gameInfo['turn']);
   // update_turn_change_timer is a legacy function, may not exist
@@ -106,8 +106,7 @@ export function request_goto_path(unit_id: number, dst_x: number, dst_y: number)
 
     sendGotoPathReq(unit_id, map_pos_to_tile(dst_x, dst_y)!['index']);
     S.setCurrentGotoTurns(null);
-    const unitTextDetails = document.getElementById("unit_text_details");
-    if (unitTextDetails) unitTextDetails.textContent = "Choose unit goto";
+    unitTextDetails.value = 'Choose unit goto';
     setTimeout(update_mouse_cursor, 700);
   } else {
     const cached = S.goto_request_map[unit_id + "," + dst_x + "," + dst_y];
@@ -157,8 +156,7 @@ export function update_goto_path(goto_packet: Record<string, unknown> & { unit_i
     = S.current_goto_turns;
 
   if (S.current_goto_turns != undefined) {
-    const activeUnitInfo = document.getElementById("active_unit_info");
-    if (activeUnitInfo) activeUnitInfo.textContent = "Turns for goto: " + S.current_goto_turns;
+    activeUnitInfo.value = 'Turns for goto: ' + S.current_goto_turns;
   }
   update_mouse_cursor();
 }

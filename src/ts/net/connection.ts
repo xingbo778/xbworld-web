@@ -13,7 +13,7 @@
 import { store } from '../data/store';
 import { E_LOG_ERROR } from '../data/eventConstants';
 import { swal } from '../components/Dialogs/SwalDialog';
-import { connectionBanner } from '../data/signals';
+import { connectionBanner, turnDoneState } from '../data/signals';
 
 import { message_log } from '../core/messages';
 import { EventAggregator } from '../utils/EventAggregator';
@@ -322,8 +322,7 @@ export function websocket_init(): void {
       _beforeUnloadHandler = null;
     }
 
-    const turnBtn = document.getElementById('turn_done_button') as HTMLButtonElement | null;
-    if (turnBtn) turnBtn.disabled = true;
+    turnDoneState.value = { ...turnDoneState.value, disabled: true };
     const saveBtn = document.getElementById('save_button') as HTMLButtonElement | null;
     if (saveBtn) saveBtn.disabled = true;
 

@@ -38,6 +38,8 @@ import { setKeyboardInput, setResizeEnabled, setUrgentFocusQueue } from './contr
 import { global_keyboard_listener } from './control/keyboard';
 import { chat_context_change, check_text_input } from './control/chat';
 import * as S from './control/controlState';
+import { effect } from '@preact/signals';
+import { turnDoneState, unitTextDetails, activeUnitInfo } from '../data/signals';
 
 function set_default_mapview_active(): void { setKeyboardInput(true); }
 function set_default_mapview_inactive(): void { setKeyboardInput(true); }
@@ -79,6 +81,23 @@ function mount_nation_overview(): void {
 // ---------------------------------------------------------------------------
 export function control_init(): void {
   setUrgentFocusQueue([]);
+
+  // Sync player-mode signals → legacy DOM elements
+  effect(() => {
+    const { disabled, text } = turnDoneState.value;
+    const btn = document.getElementById('turn_done_button') as HTMLButtonElement | null;
+    if (!btn) return;
+    btn.disabled = disabled;
+    btn.textContent = text;
+  });
+  effect(() => {
+    const el = document.getElementById('unit_text_details');
+    if (el) el.textContent = unitTextDetails.value;
+  });
+  effect(() => {
+    const el = document.getElementById('active_unit_info');
+    if (el) el.textContent = activeUnitInfo.value;
+  });
 
   document.addEventListener('keydown', global_keyboard_listener);
   window.addEventListener('resize', mapview_window_resized);

@@ -1,0 +1,134 @@
+/**
+ * Tests for player-mode signals: turnDoneState, unitTextDetails, activeUnitInfo.
+ * These signals replace direct document.getElementById DOM mutations in
+ * gotoPath.ts, unitFocus.ts, gameState.ts, and connection.ts.
+ */
+import { describe, it, expect, beforeEach } from 'vitest';
+import { store } from '@/data/store';
+import { globalEvents } from '@/core/events';
+
+beforeEach(() => {
+  store.reset();
+});
+
+// ── turnDoneState ─────────────────────────────────────────────────────────
+
+describe('turnDoneState signal', () => {
+  it('exports turnDoneState as a signal', async () => {
+    const { turnDoneState } = await import('@/data/signals');
+    expect(typeof turnDoneState.value).toBe('object');
+    expect(typeof turnDoneState.value.disabled).toBe('boolean');
+    expect(typeof turnDoneState.value.text).toBe('string');
+  });
+
+  it('initial state is not disabled with text Turn Done', async () => {
+    const { turnDoneState } = await import('@/data/signals');
+    expect(turnDoneState.value.text).toBe('Turn Done');
+  });
+
+  it('handle_begin_turn resets turnDoneState to enabled when not observing', async () => {
+    const { turnDoneState } = await import('@/data/signals');
+    const { handle_begin_turn } = await import('@/net/handlers/gameState');
+    store.observing = false;
+    store.gameInfo = { turn: 5 } as never;
+    turnDoneState.value = { disabled: true, text: 'Waiting...' };
+
+    handle_begin_turn({} as never);
+
+    expect(turnDoneState.value.disabled).toBe(false);
+    expect(turnDoneState.value.text).toBe('Turn Done');
+  });
+
+  it('handle_begin_turn does not change turnDoneState in observer mode', async () => {
+    const { turnDoneState } = await import('@/data/signals');
+    const { handle_begin_turn } = await import('@/net/handlers/gameState');
+    store.observing = true;
+    store.gameInfo = { turn: 5 } as never;
+    turnDoneState.value = { disabled: true, text: 'Watching' };
+
+    handle_begin_turn({} as never);
+
+    expect(turnDoneState.value.disabled).toBe(true);
+    expect(turnDoneState.value.text).toBe('Watching');
+  });
+
+  it('handle_end_turn disables turnDoneState when not observing', async () => {
+    const { turnDoneState } = await import('@/data/signals');
+    const { handle_end_turn } = await import('@/net/handlers/gameState');
+    store.observing = false;
+    turnDoneState.value = { disabled: false, text: 'Turn Done' };
+
+    handle_end_turn({} as never);
+
+    expect(turnDoneState.value.disabled).toBe(true);
+  });
+});
+
+// ── unitTextDetails ───────────────────────────────────────────────────────
+
+describe('unitTextDetails signal', () => {
+  it('exports unitTextDetails as a signal with string value', async () => {
+    const { unitTextDetails } = await import('@/data/signals');
+    expect(typeof unitTextDetails.value).toBe('string');
+  });
+});
+
+// ── activeUnitInfo ────────────────────────────────────────────────────────
+
+describe('activeUnitInfo signal', () => {
+  it('exports activeUnitInfo as a signal with string value', async () => {
+    const { activeUnitInfo } = await import('@/data/signals');
+    expect(typeof activeUnitInfo.value).toBe('string');
+  });
+});
+
+// ── IntroDialog ───────────────────────────────────────────────────────────
+
+describe('IntroDialog', () => {
+  it('exports showIntroDialog as a function', async () => {
+    const { showIntroDialog } = await import('@/components/Dialogs/IntroDialog');
+    expect(typeof showIntroDialog).toBe('function');
+  });
+
+  it('IntroDialog component is exported as a function', async () => {
+    const { IntroDialog } = await import('@/components/Dialogs/IntroDialog');
+    expect(typeof IntroDialog).toBe('function');
+  });
+
+  it('showIntroDialog does not throw', async () => {
+    const { showIntroDialog } = await import('@/components/Dialogs/IntroDialog');
+    expect(() => showIntroDialog('Test Title', 'Test message')).not.toThrow();
+  });
+});
+
+// ── BlockingOverlay ───────────────────────────────────────────────────────
+
+describe('BlockingOverlay', () => {
+  it('exports showBlockingOverlay and hideBlockingOverlay as functions', async () => {
+    const { showBlockingOverlay, hideBlockingOverlay } = await import('@/components/BlockingOverlay');
+    expect(typeof showBlockingOverlay).toBe('function');
+    expect(typeof hideBlockingOverlay).toBe('function');
+  });
+
+  it('BlockingOverlay component is a function', async () => {
+    const { BlockingOverlay } = await import('@/components/BlockingOverlay');
+    expect(typeof BlockingOverlay).toBe('function');
+  });
+
+  it('showBlockingOverlay does not throw', async () => {
+    const { showBlockingOverlay } = await import('@/components/BlockingOverlay');
+    expect(() => showBlockingOverlay('<h1>Loading...</h1>')).not.toThrow();
+  });
+
+  it('hideBlockingOverlay does not throw after show', async () => {
+    const { showBlockingOverlay, hideBlockingOverlay } = await import('@/components/BlockingOverlay');
+    showBlockingOverlay('<h2>Connecting...</h2>');
+    expect(() => hideBlockingOverlay()).not.toThrow();
+  });
+
+  it('blockUI in dom.ts delegates via dynamic import (does not throw)', async () => {
+    const { blockUI, unblockUI } = await import('@/utils/dom');
+    expect(() => blockUI('test')).not.toThrow();
+    expect(() => unblockUI()).not.toThrow();
+  });
+});

@@ -53,10 +53,8 @@ globalEvents.on('map:allocated', syncFromStore);
 globalEvents.on('store:reset', syncFromStore);
 globalEvents.on('player:removed', syncFromStore);
 globalEvents.on('connection:updated', syncFromStore);
-globalEvents.on('tile:updated', () => {
-  // Don't update all signals on every tile — just map info
-  mapInfo.value = store.mapInfo;
-});
+// tile:updated fires for every tile; no signal update needed (PixiRenderer
+// handles dirty-marking directly via globalEvents.on in its own listener).
 globalEvents.on('city:updated', () => {
   cityCount.value = Object.keys(store.cities).length;
 });
@@ -126,3 +124,24 @@ export const pregameRefresh = signal(0);
  * null = no banner; otherwise show the text (and optionally a reload button).
  */
 export const connectionBanner = signal<{ text: string; showReload: boolean } | null>(null);
+
+/**
+ * Turn-done button state — driven by player turn lifecycle handlers.
+ * A small Preact component (or effect) mounts into #turn_done_button.
+ */
+export const turnDoneState = signal<{ disabled: boolean; text: string }>({
+  disabled: false,
+  text: 'Turn Done',
+});
+
+/**
+ * Unit-info line shown during goto path selection.
+ * Set by gotoPath.ts; read by any HUD component mounted near unit info.
+ */
+export const unitTextDetails = signal<string>('');
+
+/**
+ * Active-unit info line (e.g. "Turns for goto: 3").
+ * Set by gotoPath.ts update_goto_path().
+ */
+export const activeUnitInfo = signal<string>('');

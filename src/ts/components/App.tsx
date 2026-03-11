@@ -12,6 +12,7 @@ import { WikiDialog, TechInfoDialog } from './Dialogs/TechDialog';
 import { TaxRatesDialog } from './Dialogs/TaxRatesDialog';
 import { ChatContextDialog } from './ChatContextDialog';
 import { BlockingOverlay } from './BlockingOverlay';
+import { IntroDialog } from './Dialogs/IntroDialog';
 import { StatusBar } from './StatusBar';
 
 function App() {
@@ -33,6 +34,7 @@ function App() {
       <WikiDialog />
       <TechInfoDialog />
       <TaxRatesDialog />
+      <IntroDialog />
       <ChatContextDialog />
 
       {/* HUD — mounted into dedicated containers below */}

@@ -25,6 +25,7 @@ import { message_log } from '../../core/messages';
 import { E_BEGINNER_HELP } from '../../data/eventConstants';
 import { auto_center_on_unit } from '../../ui/options';
 import * as S from './controlState';
+import { turnDoneState } from '../../data/signals';
 // Circular imports — OK, only used inside functions
 import { should_ask_server_for_actions, can_ask_server_for_actions, action_selection_next_in_focus } from './actionSelection';
 import { request_new_unit_activity } from './unitCommands';
@@ -181,7 +182,7 @@ export function advance_unit_focus(): void {
     S.setCurrentFocus([]);
     update_active_units_dialog();
     const gameUnitOrdersDefault = document.getElementById('game_unit_orders_default');
-    if (gameUnitOrdersDefault) gameUnitOrdersDefault.style.display = 'none';
+    if (gameUnitOrdersDefault) gameUnitOrdersDefault.style.display = 'none'; // legacy panel
 
     if (store.gameInfo && store.gameInfo['turn'] <= 1) {
       for (const city_id_str in store.cities) {
@@ -193,8 +194,7 @@ export function advance_unit_focus(): void {
         }
       }
     }
-    const turnDoneBtn = document.getElementById('turn_done_button');
-    if (turnDoneBtn) turnDoneBtn.textContent = '✅ Turn Done';
+    turnDoneState.value = { disabled: false, text: '✅ Turn Done' };
     if (!S.end_turn_info_message_shown) {
       S.setEndTurnInfoMessageShown(true);
       message_log.update({ event: E_BEGINNER_HELP, message: "All units have moved, click the \"Turn Done\" button to end your turn." });

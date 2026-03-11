@@ -367,6 +367,8 @@ describe('handle_city_remove emits city:removed in observer mode', () => {
   it('cityCount decrements when handle_city_remove fires', async () => {
     const { cityCount } = await import('@/data/signals');
     const { handle_city_remove } = await import('@/net/handlers/city');
+    // Ensure exactly the two cities we want
+    store.cities = {} as never;
     store.cities[88] = { id: 88, owner: 2, tile: 5 } as never;
     store.cities[89] = { id: 89, owner: 2, tile: 6 } as never;
     globalEvents.emit('city:updated'); // sync cityCount to 2

@@ -18,6 +18,7 @@ import { get_units_in_focus, update_unit_focus, update_active_units_dialog } fro
 import { auto_center_on_focus_unit } from '../../core/control/unitFocus';
 import { update_game_info_pregame } from '../../core/pregame';
 import { reset_unit_anim_list } from '../../data/unit';
+import { turnDoneState } from '../../data/signals';
 import type {
   BasePacket,
   GameInfoPacket, CalendarInfoPacket, NewYearPacket,
@@ -156,11 +157,7 @@ export function handle_begin_turn(_packet: BasePacket): void {
   if (typeof mark_all_dirty === 'function') mark_all_dirty();
 
   if (!store.observing) {
-    const btn = document.getElementById('turn_done_button') as HTMLButtonElement | null;
-    if (btn) {
-      btn.disabled = false;
-      btn.textContent = 'Turn Done';
-    }
+    turnDoneState.value = { disabled: false, text: 'Turn Done' };
   }
   setWaitingUnitsList([]);
   update_unit_focus();
@@ -178,7 +175,6 @@ export function handle_begin_turn(_packet: BasePacket): void {
 export function handle_end_turn(_packet: BasePacket): void {
   reset_unit_anim_list();
   if (!store.observing) {
-    const btn = document.getElementById('turn_done_button') as HTMLButtonElement | null;
-    if (btn) btn.disabled = true;
+    turnDoneState.value = { ...turnDoneState.value, disabled: true };
   }
 }
