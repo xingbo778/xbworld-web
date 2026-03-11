@@ -2,6 +2,7 @@
  * Tests for ChatContextDialog Preact component and chat:directionChosen wiring.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
+import { render, h } from 'preact';
 
 describe('ChatContextDialog signal API', () => {
   beforeEach(async () => {
@@ -74,5 +75,57 @@ describe('chat:directionChosen CustomEvent', () => {
         new CustomEvent('chat:directionChosen', { detail: { id: 2 } }),
       );
     }).not.toThrow();
+  });
+});
+
+describe('ChatContextDialog rendering', () => {
+  beforeEach(async () => {
+    document.body.innerHTML = '';
+    const { closeChatContextDialog } = await import('@/components/ChatContextDialog');
+    closeChatContextDialog();
+  });
+
+  it('renders nothing when closed', async () => {
+    const { ChatContextDialog } = await import('@/components/ChatContextDialog');
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    render(h(ChatContextDialog, null), div);
+    expect(div.innerHTML).toBe('');
+    document.body.removeChild(div);
+  });
+
+  it('renders "Choose recipient" header when open', async () => {
+    const { ChatContextDialog, showChatContextDialog } = await import('@/components/ChatContextDialog');
+    showChatContextDialog([{ id: null, flag: null, description: 'Everybody' }], 99);
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    render(h(ChatContextDialog, null), div);
+    expect(div.textContent).toContain('Choose recipient');
+    document.body.removeChild(div);
+  });
+
+  it('renders recipient descriptions (excluding currentId)', async () => {
+    const { ChatContextDialog, showChatContextDialog } = await import('@/components/ChatContextDialog');
+    showChatContextDialog([
+      { id: null, flag: null, description: 'Everybody' },
+      { id: 1, flag: null, description: 'Caesar' },
+    ], 1); // currentId=1 so Caesar is excluded
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    render(h(ChatContextDialog, null), div);
+    expect(div.textContent).toContain('Everybody');
+    expect(div.textContent).not.toContain('Caesar');
+    document.body.removeChild(div);
+  });
+
+  it('renders close × button', async () => {
+    const { ChatContextDialog, showChatContextDialog } = await import('@/components/ChatContextDialog');
+    showChatContextDialog([{ id: null, flag: null, description: 'All' }], null);
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    render(h(ChatContextDialog, null), div);
+    const closeBtn = Array.from(div.querySelectorAll('button')).find(b => b.textContent?.includes('×'));
+    expect(closeBtn).toBeDefined();
+    document.body.removeChild(div);
   });
 });
