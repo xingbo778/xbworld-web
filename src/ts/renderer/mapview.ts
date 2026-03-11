@@ -15,6 +15,7 @@ import { chatbox_active } from '../core/messages';
 import { setupWindowSize } from '../client/clientMain';
 import { getTilesetFileExtension } from '../utils/helpers';
 import { blockUI, unblockUI } from '../utils/dom';
+import { swal } from '../components/Dialogs/SwalDialog';
 import { VUT_UTYPE } from '../data/fcTypes';
 
 // jQuery removed from this module
@@ -136,8 +137,7 @@ export function init_cache_sprites(): void {
   sprites_loading = true;
 
   if (typeof tileset === 'undefined') {
-    alert("Tileset not generated correctly. Run sync.sh in "
-      + "freeciv-img-extract and recompile.");
+    swal('Tileset error', 'Tileset not generated correctly. Run sync.sh in freeciv-img-extract and recompile.', 'error');
     sprites_loading = false;
     return;
   }
