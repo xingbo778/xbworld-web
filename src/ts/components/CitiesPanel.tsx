@@ -35,7 +35,7 @@ const TD_STYLE = {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-function CitiesPanel() {
+export function CitiesPanel() {
   // Re-render on city count, turn, ruleset, and player info changes
   cityCount.value;
   currentTurn.value;
