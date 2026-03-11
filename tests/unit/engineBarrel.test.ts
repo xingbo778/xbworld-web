@@ -34,4 +34,10 @@ describe('engine barrel', () => {
     const { tileGetKnown } = await import('@/engine');
     expect(typeof tileGetKnown).toBe('function');
   });
+
+  it('re-exports statusPanelLayout signal', async () => {
+    const { statusPanelLayout } = await import('@/engine');
+    expect(statusPanelLayout).toBeDefined();
+    expect(['top', 'bottom']).toContain(statusPanelLayout.value);
+  });
 });

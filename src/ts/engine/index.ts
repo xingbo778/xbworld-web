@@ -32,6 +32,7 @@ export {
   turnDoneState,
   unitTextDetails,
   activeUnitInfo,
+  statusPanelLayout,
 } from '../data/signals';
 export type { DisconnectOverlayState } from '../data/signals';
 
