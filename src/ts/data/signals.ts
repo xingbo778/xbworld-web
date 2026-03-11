@@ -126,6 +126,15 @@ export const pregameRefresh = signal(0);
 export const connectionBanner = signal<{ text: string; showReload: boolean } | null>(null);
 
 /**
+ * Disconnect overlay state — drives DisconnectOverlay.tsx.
+ * null = no overlay; 'reconnecting' = countdown shown; 'disconnected' = give-up state.
+ */
+export type DisconnectOverlayState =
+  | { phase: 'reconnecting'; attempt: number; max: number; countdown: number }
+  | { phase: 'disconnected' };
+export const disconnectOverlay = signal<DisconnectOverlayState | null>(null);
+
+/**
  * Turn-done button state — driven by player turn lifecycle handlers.
  * A small Preact component (or effect) mounts into #turn_done_button.
  */

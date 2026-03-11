@@ -13,7 +13,7 @@
 import { store } from '../data/store';
 import { E_LOG_ERROR } from '../data/eventConstants';
 import { swal } from '../components/Dialogs/SwalDialog';
-import { connectionBanner, turnDoneState } from '../data/signals';
+import { connectionBanner, disconnectOverlay, turnDoneState } from '../data/signals';
 
 import { message_log } from '../core/messages';
 import { EventAggregator } from '../utils/EventAggregator';
@@ -94,6 +94,7 @@ export function _resetReconnectStateForTests(): void {
   _reconnecting = false;
   _serverShutdown = false;
   store.connectionState = 'connected';
+  disconnectOverlay.value = null;
 }
 
 /** Returns true if the ping timer is currently active — for use in tests only. @internal */
@@ -128,6 +129,7 @@ function startReconnect(): void {
   if (_reconnectAttempt >= MAX_RECONNECT_ATTEMPTS) {
     store.connectionState = 'disconnected';
     connectionBanner.value = { text: '⚠ Disconnected — ', showReload: true };
+    disconnectOverlay.value = { phase: 'disconnected' };
     return;
   }
 
@@ -135,10 +137,17 @@ function startReconnect(): void {
   const delayMs = RECONNECT_DELAYS_MS[_reconnectAttempt];
   let countdown = Math.round(delayMs / 1000);
 
-  const updateBanner = () =>
+  const updateBanner = () => {
     showConnectionBanner(
       `⟳ Reconnecting in ${countdown}s… (attempt ${_reconnectAttempt + 1}/${MAX_RECONNECT_ATTEMPTS})`
     );
+    disconnectOverlay.value = {
+      phase: 'reconnecting',
+      attempt: _reconnectAttempt,
+      max: MAX_RECONNECT_ATTEMPTS,
+      countdown,
+    };
+  };
   updateBanner();
 
   _reconnectCountdownTimer = setInterval(() => {
@@ -155,6 +164,28 @@ function startReconnect(): void {
     _reconnecting = true;
     websocket_init();
   }, delayMs);
+}
+
+/**
+ * Skip the reconnect delay and attempt to reconnect immediately.
+ * Called by DisconnectOverlay's "Try Now" button.
+ */
+export function reconnectNow(): void {
+  stopReconnectTimers();
+  _reconnecting = true;
+  websocket_init();
+}
+
+/**
+ * Reset reconnect counter and start fresh reconnect cycle.
+ * Called by DisconnectOverlay's "Try Again" button (after exhaustion).
+ */
+export function tryAgain(): void {
+  stopReconnectTimers();
+  _reconnectAttempt = 0;
+  _reconnecting = false;
+  disconnectOverlay.value = null;
+  startReconnect();
 }
 
 /**
@@ -309,6 +340,7 @@ export function websocket_init(): void {
     _reconnecting = false;
     store.connectionState = 'connected';
     clearConnectionBanner();
+    disconnectOverlay.value = null;
     check_websocket_ready();
   };
 

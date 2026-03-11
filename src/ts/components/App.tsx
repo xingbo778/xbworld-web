@@ -12,6 +12,7 @@ import { WikiDialog, TechInfoDialog } from './Dialogs/TechDialog';
 import { TaxRatesDialog } from './Dialogs/TaxRatesDialog';
 import { ChatContextDialog } from './ChatContextDialog';
 import { BlockingOverlay } from './BlockingOverlay';
+import { DisconnectOverlay } from './DisconnectOverlay';
 import { IntroDialog } from './Dialogs/IntroDialog';
 import { StatusBar } from './StatusBar';
 
@@ -20,6 +21,8 @@ function App() {
     <div id="xb-preact-root">
       {/* Full-screen blocking overlay (loading/connecting) */}
       <BlockingOverlay />
+      {/* Disconnect/reconnect modal */}
+      <DisconnectOverlay />
 
       {/* Floating dialogs */}
       <MessageDialog />
