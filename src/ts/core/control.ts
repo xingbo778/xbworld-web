@@ -74,8 +74,7 @@ function mount_nation_overview(): void {
   if (_nationOverviewMounted) { refreshNationOverview(); return; }
   const tabsNat = document.getElementById('tabs-nat');
   if (!tabsNat) return;
-  // Clear legacy HTML (nations_title, nations_button_div, nations/nations_list)
-  // — NationOverview's ActionBar replaces the old button bar
+  // Ensure container is empty before mounting Preact component.
   tabsNat.innerHTML = '';
   const container = document.createElement('div');
   container.id = 'xb-nation-overview';
