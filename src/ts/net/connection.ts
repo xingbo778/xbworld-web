@@ -147,10 +147,10 @@ function startReconnect(): void {
     const banner = getOrCreateBanner();
     if (banner) {
       banner.textContent = '⚠ Disconnected — ';
-      const link = document.createElement('a');
-      link.href = 'javascript:location.reload()';
-      link.style.color = 'inherit';
+      const link = document.createElement('button');
+      link.style.cssText = 'background:none;border:none;color:inherit;cursor:pointer;padding:0;text-decoration:underline;font:inherit;';
       link.textContent = 'Reload page';
+      link.addEventListener('click', () => location.reload());
       banner.appendChild(link);
     }
     return;

@@ -13,8 +13,15 @@ import { isTouchDevice as is_touch_device } from '../../utils/helpers';
 import { message_log, max_chat_message_length } from '../../core/messages';
 import { E_LOG_ERROR } from '../../data/eventConstants';
 import * as S from './controlState';
+import { showChatContextDialog } from '../../components/ChatContextDialog';
 
 const FC_PLRF_AI = PlayerFlag.PLRF_AI;
+
+// Wire Preact ChatContextDialog selection back to set_chat_direction()
+document.addEventListener('chat:directionChosen', (ev: Event) => {
+  const id = (ev as CustomEvent<{ id: number | null }>).detail.id;
+  set_chat_direction(id);
+});
 
 import { store } from '../../data/store';
 
@@ -98,73 +105,15 @@ export function chat_context_set_next(recipients: ChatRecipient[]): void {
 }
 
 export function chat_context_dialog_show(recipients: ChatRecipient[]): void {
-  const existingDlg = document.getElementById('chat_context_dialog');
-  if (existingDlg) existingDlg.remove();
-  const dlgDiv = document.createElement('div');
-  dlgDiv.id = 'chat_context_dialog';
-  dlgDiv.title = 'Choose chat recipient';
-  document.querySelector('div#game_page')!.appendChild(dlgDiv);
-
-  let self = -1;
-  if (clientPlaying() != null) {
-    self = clientPlaying()!['playerno'];
-  }
-
-  const tbody_el = document.createElement('tbody');
-
-  const add_row = function(id: number | null, flag: CanvasImageSource | null, description: string): CanvasRenderingContext2D {
-    let flag_canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, row: HTMLTableRowElement, cell: HTMLTableCellElement;
-    row = document.createElement('tr');
-    cell = document.createElement('td');
-    flag_canvas = document.createElement('canvas');
-    flag_canvas.width = 29;
-    flag_canvas.height = 20;
-    ctx = flag_canvas.getContext("2d")!;
-    if (flag != null) {
-      ctx.drawImage(flag, 0, 0);
-    }
-    cell.appendChild(flag_canvas);
-    row.appendChild(cell);
-    cell = document.createElement('td');
-    cell.appendChild(document.createTextNode(description));
-    row.appendChild(cell);
-    if (id != null) {
-      row.dataset.chatSendTo = String(id);
-    }
-    tbody_el.appendChild(row);
-    return ctx;
-  };
-
-  for (let i = 0; i < recipients.length; i++) {
-    if (recipients[i].id != S.chat_send_to) {
-      const ctx = add_row(recipients[i].id, recipients[i].flag,
-        recipients[i].description);
-
-      if (recipients[i].id == null || recipients[i].id == self) {
-        ctx.font = "18px FontAwesome";
-        ctx.fillStyle = "rgba(32, 32, 32, 1)";
-        if (recipients[i].id == null) {
-          ctx.fillText(S.CHAT_ICON_EVERYBODY, 5, 15);
-        } else {
-          ctx.fillText(S.CHAT_ICON_ALLIES, 8, 16);
-        }
-      }
-    }
-  }
-
-  const table = document.createElement('table');
-  table.appendChild(tbody_el);
-  table.addEventListener('click', function(ev: Event) {
-    const row = (ev.target as HTMLElement).closest('tbody tr') as HTMLElement | null;
-    if (row) {
-      handle_chat_direction_chosen.call(row, ev);
-    }
-  });
-  dlgDiv.appendChild(table);
-
-  // Show as a simple positioned popup
-  dlgDiv.style.cssText = 'position:absolute;z-index:5000;background:#222;border:1px solid #555;padding:8px;max-height:' + Math.floor(0.9 * window.innerHeight) + 'px;overflow-y:auto;';
-  dlgDiv.style.display = 'block';
+  const self = clientPlaying()?.['playerno'] ?? -1;
+  // Annotate each recipient with the icon text used when no flag is available
+  const mapped = recipients.map(r => ({
+    ...r,
+    iconText: r.id == null
+      ? S.CHAT_ICON_EVERYBODY
+      : r.id === self ? S.CHAT_ICON_ALLIES : undefined,
+  }));
+  showChatContextDialog(mapped, S.chat_send_to);
 }
 
 export function handle_chat_direction_chosen(this: HTMLElement, ev: Event): void {

@@ -8,6 +8,7 @@ import { CityBuyDialog } from './Dialogs/CityBuyDialog';
 import { CityInputDialog } from './Dialogs/CityInputDialog';
 import { TechGainedDialog } from './Dialogs/TechGainedDialog';
 import { WikiDialog, TechInfoDialog } from './Dialogs/TechDialog';
+import { ChatContextDialog } from './ChatContextDialog';
 import { StatusBar } from './StatusBar';
 
 function App() {
@@ -24,6 +25,7 @@ function App() {
       <TechGainedDialog />
       <WikiDialog />
       <TechInfoDialog />
+      <ChatContextDialog />
 
       {/* HUD — mounted into dedicated containers below */}
     </div>
