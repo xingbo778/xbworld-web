@@ -402,6 +402,13 @@ export const CAPITAL_NOT = 0;
 export const CAPITAL_SECONDARY = 1;
 export const CAPITAL_PRIMARY = 2;
 
+// VUT_IMPR_GENUS values (improvement genus / category)
+export const IG_GREAT_WONDER = 0;
+export const IG_SMALL_WONDER = 1;
+export const IG_IMPROVEMENT = 2;
+export const IG_SPECIAL = 3;
+export const IG_CONVERT = 4;
+
 // VUT_CITYTILE values
 export const CITYT_CENTER = 0;   // tile is the city center
 export const CITYT_WORKER = 1;   // tile is currently worked by a city

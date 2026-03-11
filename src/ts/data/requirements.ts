@@ -314,10 +314,17 @@ export function isReqActive(
       result = TRI_MAYBE;
       break;
 
-    // ── TRI_MAYBE: improvement genus classification is server-side ────────────
-    case VUT_IMPR_GENUS:
-      result = TRI_MAYBE;
+    // ── Implemented: improvement genus ───────────────────────────────────────
+    // IG_GREAT_WONDER=0, IG_SMALL_WONDER=1, IG_IMPROVEMENT=2, IG_SPECIAL=3, IG_CONVERT=4.
+    // targetBuilding is canonical; falls back to targetOutput (call-site parity with IMPR_FLAG).
+    case VUT_IMPR_GENUS: {
+      const genusTgt = targetBuilding ?? targetOutput;
+      if (genusTgt == null) { result = TRI_MAYBE; break; }
+      const genus = (genusTgt as Record<string, unknown>)['genus'] as number | undefined;
+      if (genus == null) { result = TRI_MAYBE; break; }
+      result = genus === req['value'] ? TRI_YES : TRI_NO;
       break;
+    }
 
     // ── TRI_MAYBE: action enabler evaluation not implemented ──────────────────
     case VUT_ACTION:
@@ -524,9 +531,40 @@ export function isReqActive(
       break;
     }
 
+    // ── Implemented: AI skill level ───────────────────────────────────────────
+    // Checks player.ai_skill_level: 0=human/Away, 1=Handicapped … 7=Experimental.
+    // TRI_MAYBE when targetPlayer is null (observer context without specific player).
+    case VUT_AI_LEVEL: {
+      if (targetPlayer == null) { result = TRI_MAYBE; break; }
+      result = (targetPlayer as Player).ai_skill_level === req['value'] ? TRI_YES : TRI_NO;
+      break;
+    }
+
+    // ── Implemented: minimum age in turns ────────────────────────────────────
+    // REQ_RANGE_CITY:   (gameInfo.turn - city.turn_founded)   >= req.value
+    // REQ_RANGE_PLAYER: player.turns_alive                    >= req.value
+    // Falls back to TRI_MAYBE when the needed field is absent.
+    case VUT_AGE: {
+      const gameTurn = (store.gameInfo as Record<string, unknown> | null)?.['turn'] as number | undefined;
+      if (gameTurn == null) { result = TRI_MAYBE; break; }
+      if (req['range'] === REQ_RANGE_CITY) {
+        if (targetCity == null) { result = TRI_MAYBE; break; }
+        const founded = (targetCity as Record<string, unknown>)['turn_founded'] as number | undefined;
+        if (founded == null) { result = TRI_MAYBE; break; }
+        result = (gameTurn - founded) >= req['value'] ? TRI_YES : TRI_NO;
+      } else if (req['range'] === REQ_RANGE_PLAYER) {
+        if (targetPlayer == null) { result = TRI_MAYBE; break; }
+        const alive = (targetPlayer as Record<string, unknown>)['turns_alive'] as number | undefined;
+        if (alive == null) { result = TRI_MAYBE; break; }
+        result = (alive as number) >= req['value'] ? TRI_YES : TRI_NO;
+      } else {
+        result = TRI_MAYBE;
+      }
+      break;
+    }
+
     case VUT_OTYPE:
     case VUT_SPECIALIST:
-    case VUT_AI_LEVEL:
     case VUT_TERRAINALTER:
     case VUT_GOOD:
     case VUT_NATIONALITY:
@@ -535,7 +573,6 @@ export function isReqActive(
     case VUT_ACHIEVEMENT:
     case VUT_MAXTILEUNITS:
     case VUT_STYLE:
-    case VUT_AGE:
     case VUT_MINCALFRAG:
     case VUT_SERVERSETTING:
     // New Freeciv 3.4 types
