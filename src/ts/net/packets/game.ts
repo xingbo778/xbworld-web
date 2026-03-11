@@ -107,12 +107,4 @@ export function registerGameHandlers(): void {
     store.frozen = false;
   });
 
-  registerHandler(PacketType.SERVER_SHUTDOWN, (packet) => {
-    const p = packet as Record<string, unknown>;
-    globalEvents.emit('ui:alert', {
-      title: 'Server Shutdown',
-      text: (p.message as string) ?? (p.reason as string) ?? 'Server is shutting down',
-      type: 'error',
-    });
-  });
 }

@@ -410,6 +410,9 @@ export async function check_websocket_ready(): Promise<void> {
  * Stops network sync.
  */
 export function network_stop(): void {
+  stopReconnectTimers();
+  _reconnectAttempt = 0;
+  _reconnecting = false;
   if (ws != null) ws.close();
   ws = null;
 }
@@ -418,7 +421,7 @@ export function network_stop(): void {
  * Sends a request to the server, with a JSON packet.
  */
 export function send_request(packet_payload: string): void {
-  if (ws != null) {
+  if (ws != null && ws.readyState === 1 /* WebSocket.OPEN */) {
     ws.send(packet_payload);
   }
   if (store.debugActive) {
