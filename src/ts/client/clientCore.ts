@@ -187,8 +187,8 @@ export function showFullscreenWindow(): void {
   const bigScreen = win.BigScreen as Record<string, unknown> | undefined;
   if (bigScreen && bigScreen.enabled) {
     (bigScreen.toggle as () => void)();
-  } else if (typeof win.show_dialog_message === 'function') {
-    (win.show_dialog_message as (title: string, msg: string) => void)('Fullscreen', 'Press F11 for fullscreen mode.');
+  } else {
+    import('../client/civClient').then(({ showDialogMessage }) => showDialogMessage('Fullscreen', 'Press F11 for fullscreen mode.'));
   }
 }
 
