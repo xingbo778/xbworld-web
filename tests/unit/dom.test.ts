@@ -3,7 +3,7 @@ import {
   $id,
   show,
   hide,
-  setHtml,
+  appendSafeHtml,
   setText,
   addClass,
   removeClass,
@@ -42,10 +42,12 @@ describe('DOM utilities', () => {
     expect(el.style.display).toBe('');
   });
 
-  it('setHtml should set innerHTML', () => {
+  it('appendSafeHtml should append sanitized nodes', () => {
     const el = $id('child1')!;
-    setHtml(el, '<b>New</b>');
-    expect(el.innerHTML).toBe('<b>New</b>');
+    el.textContent = '';
+    appendSafeHtml(el, '<b>New</b>');
+    expect(el.querySelector('b')).not.toBeNull();
+    expect(el.textContent).toBe('New');
   });
 
   it('setText should set textContent', () => {
@@ -186,8 +188,8 @@ describe('DOM utilities', () => {
     expect(() => hide(null)).not.toThrow();
   });
 
-  it('setHtml/setText should handle null element', () => {
-    expect(() => setHtml(null, 'test')).not.toThrow();
+  it('appendSafeHtml/setText should handle null element', () => {
+    expect(() => appendSafeHtml(null as unknown as HTMLElement, 'test')).not.toThrow();
     expect(() => setText(null, 'test')).not.toThrow();
   });
 

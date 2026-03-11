@@ -48,8 +48,11 @@ function syncFromStore(): void {
 // Listen to global events that indicate data changes
 globalEvents.on('game:info', syncFromStore);
 globalEvents.on('game:beginturn', syncFromStore);
+globalEvents.on('game:newyear', syncFromStore);
 globalEvents.on('map:allocated', syncFromStore);
 globalEvents.on('store:reset', syncFromStore);
+globalEvents.on('player:removed', syncFromStore);
+globalEvents.on('connection:updated', syncFromStore);
 globalEvents.on('tile:updated', () => {
   // Don't update all signals on every tile — just map info
   mapInfo.value = store.mapInfo;
@@ -87,6 +90,14 @@ globalEvents.on('player:updated', () => { playerUpdated.value++; });
  */
 export const researchUpdated = signal(0);
 globalEvents.on('player:research', () => { researchUpdated.value++; });
+
+/**
+ * Incremented when server settings change (settings:updated event).
+ * StatusPanel reads store.serverSettings.metamessage — subscribe to this
+ * so it re-renders when the metamessage is updated.
+ */
+export const settingsUpdated = signal(0);
+globalEvents.on('settings:updated', () => { settingsUpdated.value++; });
 
 /**
  * Incremented by update_game_status_panel() to tell StatusPanel to re-render.

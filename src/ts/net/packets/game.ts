@@ -2,6 +2,7 @@ import { registerHandler } from './index';
 import { PacketType } from './protocol';
 import { store } from '../../data/store';
 import { globalEvents } from '../../core/events';
+import { swal } from '../../components/Dialogs/SwalDialog';
 import { mapAllocate } from '../../data/map';
 import { send_message as sendMessage } from '../connection';
 import { PlayerFlag } from '../../data/player';
@@ -48,11 +49,7 @@ export function registerGameHandlers(): void {
         setTimeout(doTake, 3000);
       }
     } else {
-      globalEvents.emit('ui:alert', {
-        title: 'Join failed',
-        text: (p.reason as string) ?? 'Cannot join',
-        type: 'error',
-      });
+      swal('Join failed', (p.reason as string) ?? 'Cannot join', 'error');
     }
   });
 

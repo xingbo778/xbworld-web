@@ -16,17 +16,14 @@ export function hide(el: HTMLElement | null): void {
   if (el) el.style.display = 'none';
 }
 
-export function setHtml(el: HTMLElement | null, html: string): void {
-  if (el) el.innerHTML = html;
-}
-
 /**
  * Sanitize `html` and append its nodes into `container` without ever
  * setting innerHTML on a live DOM element.  The browser parses the
  * sanitized string into a detached temp element; its children are then
  * moved into the container one by one.
  */
-export function appendSafeHtml(container: HTMLElement, html: string): void {
+export function appendSafeHtml(container: HTMLElement | null, html: string): void {
+  if (!container) return;
   const tmp = document.createElement('div');
   tmp.innerHTML = sanitizeGameHtml(html);
   while (tmp.firstChild) container.appendChild(tmp.firstChild);

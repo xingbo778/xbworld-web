@@ -8,7 +8,8 @@
  */
 import { render } from 'preact';
 import {
-  isObserver, connectedPlayer, gameInfo, playerUpdated, rulesetReady, statusRefresh,
+  isObserver, connectedPlayer, gameInfo, playerUpdated, rulesetReady,
+  statusRefresh, settingsUpdated,
 } from '../data/signals';
 import { store } from '../data/store';
 import { clientPlaying } from '../client/clientState';
@@ -60,6 +61,7 @@ function StatusPanelContent() {
   void isObserver.value;
   void connectedPlayer.value;
   void statusRefresh.value;
+  void settingsUpdated.value;
 
   const pplayer = clientPlaying();
   const small = isSmallScreen();
