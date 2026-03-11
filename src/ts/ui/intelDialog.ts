@@ -18,11 +18,12 @@
 ***********************************************************************/
 
 import { store } from '../data/store';
-import type { Player, City, Tech } from '../data/types';
+import type { Player } from '../data/types';
 import { player_capital, get_diplstate_text, research_get, DiplState } from '../data/player';
 import { TECH_KNOWN } from '../data/tech';
 import { clientIsObserver as client_is_observer, clientPlaying } from '../client/clientState';
 import { showDialogMessage as show_dialog_message } from '../client/civClient';
+import type { IntelData } from '../components/Dialogs/IntelDialog';
 import { showIntelDialog } from '../components/Dialogs/IntelDialog';
 
 export function show_intelligence_report_dialog(): void {
@@ -39,84 +40,74 @@ export function show_intelligence_report_dialog(): void {
 }
 
 export function show_intelligence_report_hearsay(pplayer: Player): void {
-  let msg: string = "Ruler " + pplayer['name'] + "<br>";
+  let msg: string = "Ruler " + pplayer['name'] + "\n";
   if ((pplayer['government'] as number) > 0) {
-    msg += "Government: " + store.governments[pplayer['government'] as number]['name'] + "<br>";
+    msg += "Government: " + store.governments[pplayer['government'] as number]['name'] + "\n";
   }
-
   if ((pplayer['gold'] as number) > 0) {
-    msg += "Gold: " + pplayer['gold'] + "<br>";
+    msg += "Gold: " + pplayer['gold'] + "\n";
   }
-
   if (pplayer['researching'] != null && (pplayer['researching'] as number) > 0 && store.techs[pplayer['researching'] as number] != null) {
-    msg += "Researching: " + store.techs[pplayer['researching'] as number]['name'] + "<br>";
+    msg += "Researching: " + store.techs[pplayer['researching'] as number]['name'] + "\n";
   }
+  msg += "\nEstablishing an embassy will show a detailed intelligence report.";
 
-  msg += "<br><br>Establishing an embassy will show a detailed intelligence report.";
-
-  show_dialog_message("Intelligence report for " + pplayer['name'],
-      msg);
+  show_dialog_message("Intelligence report for " + pplayer['name'], msg);
 }
 
-export function show_intelligence_report_embassy(pplayer: Player): void {
+/** Build typed intel data for a player (embassy-level). No HTML strings. */
+export function buildIntelData(pplayer: Player): IntelData {
   const capital = player_capital(pplayer);
   const gov = store.governments[pplayer['government'] as number];
-  const govName = gov ? gov['name'] : '(Unknown)';
-  const capitalName = capital ? capital.name : '(capital unknown)';
-
-  let html = '<table style="width:100%;border-collapse:collapse;">';
-  html += `<tr><td><b>Ruler:</b></td><td>${pplayer['name']}</td></tr>`;
-  html += `<tr><td><b>Government:</b></td><td>${govName}</td></tr>`;
-  html += `<tr><td><b>Capital:</b></td><td>${capitalName}</td></tr>`;
-  html += `<tr><td><b>Gold:</b></td><td>${pplayer['gold']}</td></tr>`;
-  html += `<tr><td><b>Tax:</b></td><td>${pplayer['tax']}%</td></tr>`;
-  html += `<tr><td><b>Science:</b></td><td>${pplayer['science']}%</td></tr>`;
-  html += `<tr><td><b>Luxury:</b></td><td>${pplayer['luxury']}%</td></tr>`;
-  html += `<tr><td><b>Culture:</b></td><td>${pplayer['culture']}</td></tr>`;
 
   const research = research_get(pplayer);
   let researchText = '(Unknown)';
-  const techNames: string[] = [];
+  const knownTechs: string[] = [];
+
   if (research != null) {
-    const researching = store.techs[research['researching']];
-    if (researching !== undefined) {
-      researchText = `${researching['name']} (${research['bulbs_researched']}/${research['researching_cost']})`;
+    const researchingTech = store.techs[research['researching'] as number];
+    if (researchingTech !== undefined) {
+      researchText = `${researchingTech['name']} (${research['bulbs_researched']}/${research['researching_cost']})`;
     } else {
       researchText = '(Nothing)';
     }
     const inventions = research['inventions'] as Record<string, number> | undefined;
     for (const tech_id in store.techs) {
       if (inventions?.[tech_id] === TECH_KNOWN) {
-        techNames.push(store.techs[tech_id]['name']);
+        knownTechs.push(store.techs[tech_id]['name'] as string);
       }
     }
   }
-  html += `<tr><td><b>Researching:</b></td><td>${researchText}</td></tr>`;
-  html += '</table>';
 
+  const diplomacy: IntelData['diplomacy'] = [];
   if (pplayer['diplstates'] !== undefined) {
-    const diplEntries: string[] = [];
-    (pplayer['diplstates'] as Record<string, unknown>[]).forEach(function (st: Record<string, unknown>, i: number) {
-      if (st['state'] !== DiplState.DS_NO_CONTACT && i !== pplayer['playerno'] && store.players[i]) {
-        const stateText = get_diplstate_text(st['state'] as number);
-        const nationAdj = store.nations[store.players[i]['nation'] as number]?.['adjective'] || 'Unknown';
-        diplEntries.push(`${nationAdj}: ${stateText}`);
+    (pplayer['diplstates'] as Record<string, unknown>[]).forEach((st, i) => {
+      if (st['state'] !== DiplState.DS_NO_CONTACT && i !== (pplayer['playerno'] as number) && store.players[i]) {
+        diplomacy.push({
+          nation: (store.nations[store.players[i]['nation'] as number]?.['adjective'] as string) || 'Unknown',
+          state: get_diplstate_text(st['state'] as number),
+        });
       }
     });
-    if (diplEntries.length > 0) {
-      html += '<h3 style="margin:8px 0 4px;">Diplomacy</h3><ul>';
-      for (const entry of diplEntries) {
-        html += `<li>${entry}</li>`;
-      }
-      html += '</ul>';
-    }
   }
 
-  if (techNames.length > 0) {
-    html += `<h3 style="margin:8px 0 4px;">Known Techs (${techNames.length})</h3>`;
-    html += `<p style="font-size:12px;">${techNames.join(', ')}</p>`;
-  }
+  return {
+    ruler: pplayer['name'] as string,
+    government: gov ? (gov['name'] as string) : '(Unknown)',
+    capital: capital ? (capital as Record<string, unknown>)['name'] as string : '(capital unknown)',
+    gold: String(pplayer['gold']),
+    tax: `${pplayer['tax']}%`,
+    science: `${pplayer['science']}%`,
+    luxury: `${pplayer['luxury']}%`,
+    culture: String(pplayer['culture']),
+    researching: researchText,
+    diplomacy,
+    knownTechs,
+  };
+}
 
-  const nationAdj = store.nations[pplayer['nation']]?.['adjective'] || pplayer['name'];
-  showIntelDialog(`Foreign Intelligence: ${nationAdj} Empire`, html);
+export function show_intelligence_report_embassy(pplayer: Player): void {
+  const data = buildIntelData(pplayer);
+  const nationAdj = (store.nations[pplayer['nation'] as number]?.['adjective'] as string) || (pplayer['name'] as string);
+  showIntelDialog(`Foreign Intelligence: ${nationAdj} Empire`, data);
 }

@@ -44,7 +44,7 @@ export function AuthDialog() {
       width={window.innerWidth <= 600 ? '80%' : '60%'}
       modal={true}
     >
-      <div dangerouslySetInnerHTML={{ __html: message }} />
+      <div style={{ marginBottom: '8px', color: 'var(--xb-text-primary, #e6edf3)' }}>{message}</div>
       <div style={{ marginTop: '12px' }}>
         <label>
           Password:{' '}
