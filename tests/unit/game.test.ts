@@ -211,4 +211,22 @@ describe('update_game_status_panel', () => {
     expect(statusRefresh.value).toBe(before + 1);
     store.civclientState = 0;
   });
+
+  it('sets statusPanelLayout signal when state is C_S_RUNNING', async () => {
+    const { statusPanelLayout } = await import('@/data/signals');
+    store.gameInfo = { turn: 1, year: 0 } as never;
+    store.civclientState = 2; // C_S_RUNNING
+    update_game_status_panel();
+    // Layout is either 'top' or 'bottom' depending on window.innerWidth
+    expect(['top', 'bottom']).toContain(statusPanelLayout.value);
+    store.civclientState = 0;
+  });
+
+  it('statusPanelLayout stays unchanged when not C_S_RUNNING', async () => {
+    const { statusPanelLayout } = await import('@/data/signals');
+    store.civclientState = 0; // C_S_INITIAL — not running
+    const before = statusPanelLayout.value;
+    update_game_status_panel();
+    expect(statusPanelLayout.value).toBe(before); // unchanged
+  });
 });
