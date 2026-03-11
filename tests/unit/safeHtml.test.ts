@@ -5,7 +5,7 @@
  * formatting (bold, italic, colour spans, links) is preserved.
  */
 import { describe, it, expect } from 'vitest';
-import { sanitizeGameHtml } from '@/utils/safeHtml';
+import { sanitizeGameHtml, escapeHtml } from '@/utils/safeHtml';
 
 describe('sanitizeGameHtml — safe content preserved', () => {
   it('returns empty string for empty input', () => {
@@ -89,6 +89,47 @@ describe('sanitizeGameHtml — dangerous content stripped', () => {
   it('strips <object> tags', () => {
     const result = sanitizeGameHtml('<object data="evil.swf"></object>ok');
     expect(result).not.toContain('object');
+  });
+});
+
+describe('escapeHtml — plain text escaping', () => {
+  it('returns empty string for empty input', () => {
+    expect(escapeHtml('')).toBe('');
+  });
+
+  it('passes through text with no special characters', () => {
+    expect(escapeHtml('Hello world')).toBe('Hello world');
+  });
+
+  it('escapes & ampersand', () => {
+    expect(escapeHtml('fish & chips')).toBe('fish &amp; chips');
+  });
+
+  it('escapes < less-than', () => {
+    expect(escapeHtml('<b>')).toBe('&lt;b&gt;');
+  });
+
+  it('escapes > greater-than', () => {
+    expect(escapeHtml('a > b')).toBe('a &gt; b');
+  });
+
+  it('escapes " double quote', () => {
+    expect(escapeHtml('"hello"')).toBe('&quot;hello&quot;');
+  });
+
+  it("escapes ' single quote", () => {
+    expect(escapeHtml("it's")).toBe('it&#39;s');
+  });
+
+  it('escapes all special chars in one string', () => {
+    expect(escapeHtml('<script>alert("xss\'s")</script>')).toBe(
+      '&lt;script&gt;alert(&quot;xss&#39;s&quot;)&lt;/script&gt;'
+    );
+  });
+
+  it('handles a nation adjective with unsafe chars safely', () => {
+    const adjective = 'Roman<b>';
+    expect(escapeHtml(adjective)).toBe('Roman&lt;b&gt;');
   });
 });
 
