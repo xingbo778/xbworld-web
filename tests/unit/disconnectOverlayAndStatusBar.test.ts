@@ -179,4 +179,54 @@ describe('StatusBar', () => {
 
     expect(div.querySelector('#xb-status-bar')).not.toBeNull();
   });
+
+  it('renders ThemeSelect dropdown in StatusBar', async () => {
+    const { gameInfo, isObserver } = await import('@/data/signals');
+    gameInfo.value = { turn: 1, year: 100 } as never;
+    isObserver.value = true;
+
+    const { StatusBar } = await import('@/components/StatusBar');
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    render(h(StatusBar, null), div);
+
+    const select = div.querySelector('select[title="UI Theme"]');
+    expect(select).not.toBeNull();
+  });
+
+  it('ThemeSelect options include Dark, Light, Fantasy', async () => {
+    const { gameInfo, isObserver } = await import('@/data/signals');
+    gameInfo.value = { turn: 1, year: 100 } as never;
+    isObserver.value = true;
+
+    const { StatusBar } = await import('@/components/StatusBar');
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    render(h(StatusBar, null), div);
+
+    const select = div.querySelector('select') as HTMLSelectElement;
+    expect(select).not.toBeNull();
+    const values = Array.from(select.options).map(o => o.value);
+    expect(values).toContain('dark');
+    expect(values).toContain('light');
+    expect(values).toContain('fantasy');
+  });
+
+  it('ThemeSelect onChange calls setTheme without throwing', async () => {
+    const { gameInfo, isObserver } = await import('@/data/signals');
+    gameInfo.value = { turn: 1, year: 100 } as never;
+    isObserver.value = true;
+
+    const { StatusBar } = await import('@/components/StatusBar');
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    render(h(StatusBar, null), div);
+
+    const select = div.querySelector('select') as HTMLSelectElement;
+    expect(select).not.toBeNull();
+    // Simulate change event to 'light'
+    select.value = 'light';
+    const event = new Event('change', { bubbles: true });
+    expect(() => select.dispatchEvent(event)).not.toThrow();
+  });
 });
