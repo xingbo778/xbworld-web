@@ -89,17 +89,16 @@ export function cityOwner(pcity: City): Player {
 
 /** Removes a city from the game. */
 export function removeCity(pcityId: number): void {
-  if (pcityId == null || clientPlaying() == null) return;
+  if (pcityId == null) return;
   const pcity = store.cities[pcityId];
   if (pcity == null) return;
 
-  const update =
-    clientPlaying()?.playerno &&
-    cityOwner(pcity).playerno === clientPlaying()?.playerno;
   const ptile = cityTile(store.cities[pcityId]);
   delete store.cities[pcityId];
-  if (update) {
-    globalEvents.emit('city:removed', pcityId);
+
+  const pplayer = clientPlaying();
+  if (pplayer != null && pplayer.playerno != null &&
+      cityOwner(pcity)?.playerno === pplayer.playerno) {
     globalEvents.emit('city:screenUpdate');
   }
 }

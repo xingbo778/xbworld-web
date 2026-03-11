@@ -92,6 +92,9 @@ export function handle_city_update_counter(_packet: BasePacket): void { /* TODO 
 
 export function handle_city_remove(packet: CityRemovePacket): void {
   removeCity(packet['city_id']);
+  // removeCity only emits city:removed for player-owned cities; always emit
+  // here so the cityCount signal stays correct in observer mode.
+  globalEvents.emit('city:removed', packet['city_id']);
 }
 
 export function handle_city_name_suggestion_info(packet: CityNameSuggestionInfoPacket): void {

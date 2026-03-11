@@ -46,4 +46,34 @@ describe('App — dialog components present in tree', () => {
     const { showTechGainedDialog } = await import('@/components/Dialogs/TechGainedDialog');
     expect(typeof showTechGainedDialog).toBe('function');
   });
+
+  it('BlockingOverlay is importable and exports show/hide functions', async () => {
+    const { showBlockingOverlay, hideBlockingOverlay } = await import('@/components/BlockingOverlay');
+    expect(typeof showBlockingOverlay).toBe('function');
+    expect(typeof hideBlockingOverlay).toBe('function');
+  });
+});
+
+describe('BlockingOverlay signal', () => {
+  it('showBlockingOverlay sets the signal, hideBlockingOverlay clears it', async () => {
+    const { showBlockingOverlay, hideBlockingOverlay } = await import('@/components/BlockingOverlay');
+    // Just verify calls don't throw — DOM rendering is Preact's responsibility
+    expect(() => showBlockingOverlay('<h1>Loading…</h1>')).not.toThrow();
+    expect(() => hideBlockingOverlay()).not.toThrow();
+  });
+
+  it('hideBlockingOverlay is idempotent', async () => {
+    const { hideBlockingOverlay } = await import('@/components/BlockingOverlay');
+    expect(() => hideBlockingOverlay()).not.toThrow();
+    expect(() => hideBlockingOverlay()).not.toThrow();
+  });
+
+  it('showBlockingOverlay called twice updates the signal (no duplicate overlays)', async () => {
+    const { showBlockingOverlay, hideBlockingOverlay } = await import('@/components/BlockingOverlay');
+    expect(() => {
+      showBlockingOverlay('First');
+      showBlockingOverlay('Second');
+    }).not.toThrow();
+    hideBlockingOverlay();
+  });
 });

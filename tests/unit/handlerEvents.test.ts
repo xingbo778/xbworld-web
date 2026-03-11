@@ -347,3 +347,32 @@ describe('handle_tile_info emits tile:updated', () => {
     globalEvents.off('tile:updated', handler);
   });
 });
+
+// ── city:removed (observer mode fix) ──────────────────────────────────────────
+
+describe('handle_city_remove emits city:removed in observer mode', () => {
+  it('emits city:removed even when clientPlaying() is null (observer)', async () => {
+    const { handle_city_remove } = await import('@/net/handlers/city');
+    // Seed city
+    store.cities[77] = { id: 77, owner: 3, tile: 10 } as never;
+    const handler = vi.fn();
+    globalEvents.on('city:removed', handler);
+
+    handle_city_remove({ city_id: 77 } as never);
+
+    expect(handler).toHaveBeenCalled();
+    globalEvents.off('city:removed', handler);
+  });
+
+  it('cityCount decrements when handle_city_remove fires', async () => {
+    const { cityCount } = await import('@/data/signals');
+    const { handle_city_remove } = await import('@/net/handlers/city');
+    store.cities[88] = { id: 88, owner: 2, tile: 5 } as never;
+    store.cities[89] = { id: 89, owner: 2, tile: 6 } as never;
+    globalEvents.emit('city:updated'); // sync cityCount to 2
+    expect(cityCount.value).toBe(2);
+
+    handle_city_remove({ city_id: 88 } as never);
+    expect(cityCount.value).toBe(1);
+  });
+});
