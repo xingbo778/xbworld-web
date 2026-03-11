@@ -10,7 +10,7 @@ import { requestObserveGame } from '../../client/clientCore';
 import { set_client_page, get_client_page, PAGE_MAIN, PAGE_NETWORK, PAGE_START } from '../../core/pages';
 import { valid_player_by_number } from '../../data/player';
 import { freelog } from '../../core/log';
-import { showAuthDialog } from '../../client/civClient';
+import { showAuthDialog, stopGameTimers } from '../../client/civClient';
 import { wait_for_text, add_chatbox_text } from '../../core/messages';
 import { update_player_info_pregame, update_game_info_pregame } from '../../core/pregame';
 import { mapInitTopology } from '../../data/map';
@@ -28,7 +28,7 @@ import type {
   ServerSettingUpdatePacket,
 } from './packetTypes';
 import { applySettingEffect } from '../../data/serverSettings';
-import { send_request as _send_request, markServerShutdown } from '../connection';
+import { send_request as _send_request, markServerShutdown, network_stop } from '../connection';
 import type { Connection, ServerSetting } from '../../data/types';
 
 // Connection management
@@ -115,8 +115,26 @@ export function handle_authentication_req(packet: AuthenticationReqPacket): void
   showAuthDialog(packet);
 }
 
+/**
+ * Handles the server shutdown packet (pid 8).
+ *
+ * Shutdown sequence:
+ *  1. markServerShutdown() — prevents ws.onclose from triggering reconnect loop
+ *  2. stopGameTimers()    — stops overview/status/timeout intervals
+ *  3. network_stop()      — proactively closes ws + frees network resources
+ *                           (ping_timer, _packetWorker, _beforeUnloadHandler)
+ *  4. store.reset()       — clears stale game state (tiles, cities, players…)
+ *  5. UI notification     — chatbox message + swal dialog
+ *
+ * If the server closes the WebSocket after the packet, ws.onclose sees
+ * _serverShutdown=true and skips the reconnect path.  network_stop() also
+ * sends a clean-close (code 1000) so the onclose guard is redundant but safe.
+ */
 export function handle_server_shutdown(_packet: BasePacket): void {
-  markServerShutdown(); // prevent onclose from triggering reconnect loop
+  markServerShutdown(); // must be first — sets flag before ws.close() fires
+  stopGameTimers();     // stop recurring client-side intervals
+  network_stop();       // close ws + terminate worker + clear timers
+  store.reset();        // wipe stale game data
   store.connectionState = 'disconnected';
   add_chatbox_text({ message: 'The server has shut down.', conn_id: -1 } as unknown as ConnectMsgPacket);
   swal('Server Shutdown', 'The game server has shut down. Please reload the page to reconnect.', 'error');

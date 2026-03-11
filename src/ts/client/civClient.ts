@@ -129,6 +129,32 @@ export function civClientInit(): void {
 }
 
 // ---------------------------------------------------------------------------
+// stopGameTimers
+// ---------------------------------------------------------------------------
+
+/**
+ * Stops all recurring game timers that were started by civClientInit().
+ * Called on server shutdown so that overview/status intervals don't keep
+ * firing after the connection is gone.
+ *
+ * Safe to call multiple times or when no timers are active.
+ */
+export function stopGameTimers(): void {
+  if (store.overviewTimerId != null) {
+    clearInterval(store.overviewTimerId);
+    store.overviewTimerId = null;
+  }
+  if (store.statusTimerId != null) {
+    clearInterval(store.statusTimerId);
+    store.statusTimerId = null;
+  }
+  if (store.timeoutTimerId != null) {
+    clearInterval(store.timeoutTimerId);
+    store.timeoutTimerId = null;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // init_common_intro_dialog
 // ---------------------------------------------------------------------------
 
