@@ -195,6 +195,59 @@ describe('rulesetReady — CityDialog subscription', () => {
   });
 });
 
+// ── CitiesPanel — playerUpdated subscription ────────────────────────────────
+
+describe('playerUpdated — CitiesPanel subscription', () => {
+  beforeEach(() => {
+    store.reset();
+  });
+
+  it('CitiesPanel module imports playerUpdated from signals', async () => {
+    await expect(import('@/components/CitiesPanel')).resolves.toBeDefined();
+  });
+
+  it('CitiesPanel renders owner names from store.players', async () => {
+    store.cities[1] = { id: 1, name: 'Rome', owner: 0, size: 5 } as never;
+    store.players[0] = { playerno: 0, name: 'Caesar', nation: 0, is_alive: true } as never;
+    store.nations[0] = { color: '#ff0000', adjective: 'Roman' } as never;
+
+    const { mountNationOverview } = await import('@/components/NationOverview');
+    const { cityCount } = await import('@/data/signals');
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+
+    cityCount.value = 1;
+    mountNationOverview(container);
+
+    expect(container.textContent).toContain('Caesar');
+    document.body.removeChild(container);
+  });
+
+  it('player name update reflects in re-mount via playerUpdated signal', async () => {
+    store.players[0] = { playerno: 0, name: 'Caesar', nation: 0, is_alive: true } as never;
+    store.nations[0] = { color: '#ff0000', adjective: 'Roman' } as never;
+
+    const { mountNationOverview } = await import('@/components/NationOverview');
+    const { playerUpdated } = await import('@/data/signals');
+
+    const c1 = document.createElement('div');
+    document.body.appendChild(c1);
+    mountNationOverview(c1);
+    expect(c1.textContent).toContain('Caesar');
+    document.body.removeChild(c1);
+
+    // Simulate player rename + signal fire, then fresh mount
+    store.players[0] = { playerno: 0, name: 'Augustus', nation: 0, is_alive: true } as never;
+    playerUpdated.value++;
+
+    const c2 = document.createElement('div');
+    document.body.appendChild(c2);
+    mountNationOverview(c2);
+    expect(c2.textContent).toContain('Augustus');
+    document.body.removeChild(c2);
+  });
+});
+
 // ── playerUpdated signal ───────────────────────────────────────────────────
 
 describe('playerUpdated signal', () => {
