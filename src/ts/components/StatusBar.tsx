@@ -1,7 +1,41 @@
 /**
- * StatusBar — Preact HUD showing game turn, year, and connection status.
+ * StatusBar — Preact HUD showing game turn, year, connection status, and theme switcher.
  */
+import { useState } from 'preact/hooks';
 import { currentTurn, currentYear, playerCount, cityCount, unitCount, isObserver } from '../data/signals';
+import { setTheme, getTheme, type ThemeName } from '../utils/theme';
+
+function ThemeSelect() {
+  const [current, setCurrent] = useState<ThemeName>(getTheme);
+
+  function handleChange(e: Event) {
+    const val = (e.target as HTMLSelectElement).value as ThemeName;
+    setTheme(val);
+    setCurrent(val);
+  }
+
+  return (
+    <select
+      value={current}
+      onChange={handleChange}
+      title="UI Theme"
+      style={{
+        marginLeft: 'auto',
+        background: 'var(--xb-bg-elevated, #21262d)',
+        color: 'var(--xb-text-secondary, #8b949e)',
+        border: '1px solid var(--xb-border-default, #30363d)',
+        borderRadius: '3px',
+        padding: '1px 4px',
+        fontSize: 'var(--xb-font-size-xs, 11px)',
+        cursor: 'pointer',
+      }}
+    >
+      <option value="dark">Dark</option>
+      <option value="light">Light</option>
+      <option value="fantasy">Fantasy</option>
+    </select>
+  );
+}
 
 export function StatusBar() {
   const turn = currentTurn.value;
@@ -36,6 +70,7 @@ export function StatusBar() {
       <span>{players} players</span>
       <span>{cities} cities</span>
       <span>{units} units</span>
+      <ThemeSelect />
     </div>
   );
 }
