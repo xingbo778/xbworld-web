@@ -9,7 +9,7 @@ import { render } from 'preact';
 import { signal } from '@preact/signals';
 import { useCallback, useState } from 'preact/hooks';
 import { store } from '../../data/store';
-import { currentTurn, researchUpdated, rulesetReady } from '../../data/signals';
+import { currentTurn, researchUpdated, rulesetReady, playerUpdated } from '../../data/signals';
 import { research_get } from '../../data/player';
 import { reqtree } from '../../data/reqtree';
 import { A_NONE, TECH_KNOWN } from '../../data/tech';
@@ -60,6 +60,7 @@ function ResearchList() {
   currentTurn.value;     // re-render on each new turn
   researchUpdated.value; // re-render when research state changes
   rulesetReady.value;    // re-render when ruleset is loaded
+  playerUpdated.value;   // re-render when player count/state changes
   const players = Object.values(store.players);
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
