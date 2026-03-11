@@ -107,6 +107,8 @@ export const _terrainBlendStats = {
   ditherTransitionFound: 0,
   /** Dither transitions that fell back to same-terrain tile (no transition art). */
   ditherTransitionFallback: 0,
+  /** CELL_CORNER corners skipped because cellgroup_map had no entry for the terrain. */
+  cellCornerMapMissing: 0,
 };
 
 export function resetTerrainBlendStats(): void {
@@ -117,6 +119,7 @@ export function resetTerrainBlendStats(): void {
   _terrainBlendStats.cellCornerNullNeighbors = 0;
   _terrainBlendStats.ditherTransitionFound = 0;
   _terrainBlendStats.ditherTransitionFallback = 0;
+  _terrainBlendStats.cellCornerMapMissing = 0;
 }
 
 /**
@@ -287,7 +290,15 @@ export function fill_terrain_sprite_array(l: number, ptile: Tile, pterrain: Terr
               break;
           };
           array_index = array_index * NUM_CORNER_DIRS + i;
-          result_sprites.push({ "key": cellgroup_map[pterrain!['graphic_str'] + "." + array_index] + "." + i, "offset_x": x, "offset_y": y });
+          const cgKey = pterrain!['graphic_str'] + '.' + array_index;
+          const cgEntry = cellgroup_map[cgKey];
+          if (cgEntry == null) {
+            // Missing cellgroup entry — terrain not configured in tilesetConfig.ts.
+            // Skip this corner rather than emitting "undefined.N" as a sprite key.
+            _terrainBlendStats.cellCornerMapMissing++;
+            continue;
+          }
+          result_sprites.push({ "key": cgEntry + "." + i, "offset_x": x, "offset_y": y });
 
         }
 

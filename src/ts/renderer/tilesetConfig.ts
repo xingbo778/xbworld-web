@@ -482,4 +482,26 @@ export const cellgroup_map: {[key: string]: string} =
 "floor.104":"t.l0.cellgroup_l_l_d_l",
 "floor.105":"t.l0.cellgroup_d_l_l_l",
 "floor.106":"t.l0.cellgroup_l_l_l_d",
-"floor.107":"t.l0.cellgroup_l_d_l_l"};
+"floor.107":"t.l0.cellgroup_l_d_l_l",
+// Lake terrain uses MATCH_PAIR (binary: shallow vs land).
+// Each lake array_index (0-7) maps to the coast MATCH_FULL array_index that has the
+// equivalent shallow/land combination (no "deep" neighbours for inland lakes):
+//   lake bits (b1,b2,b3) → coast n[2],n[1],n[0] (0=shallow, 2=land)
+//   lake array = b1*4+b2*2+b3 → coast array = n[2]*9+n[1]*3+n[0]
+//   coast total = coast_array*4 + corner  (maps to cellgroup_map["coast.*"])
+"lake.0":"t.l0.cellgroup_s_s_s_s","lake.1":"t.l0.cellgroup_s_s_s_s",
+"lake.2":"t.l0.cellgroup_s_s_s_s","lake.3":"t.l0.cellgroup_s_s_s_s",
+"lake.4":"t.l0.cellgroup_s_s_s_l","lake.5":"t.l0.cellgroup_s_l_s_s",
+"lake.6":"t.l0.cellgroup_l_s_s_s","lake.7":"t.l0.cellgroup_s_s_l_s",
+"lake.8":"t.l0.cellgroup_l_s_s_s","lake.9":"t.l0.cellgroup_s_s_l_s",
+"lake.10":"t.l0.cellgroup_s_l_s_s","lake.11":"t.l0.cellgroup_s_s_s_l",
+"lake.12":"t.l0.cellgroup_l_s_s_l","lake.13":"t.l0.cellgroup_s_l_l_s",
+"lake.14":"t.l0.cellgroup_l_l_s_s","lake.15":"t.l0.cellgroup_s_s_l_l",
+"lake.16":"t.l0.cellgroup_s_l_s_s","lake.17":"t.l0.cellgroup_s_s_s_l",
+"lake.18":"t.l0.cellgroup_s_s_l_s","lake.19":"t.l0.cellgroup_l_s_s_s",
+"lake.20":"t.l0.cellgroup_s_l_s_l","lake.21":"t.l0.cellgroup_s_l_s_l",
+"lake.22":"t.l0.cellgroup_l_s_l_s","lake.23":"t.l0.cellgroup_l_s_l_s",
+"lake.24":"t.l0.cellgroup_l_l_s_s","lake.25":"t.l0.cellgroup_s_s_l_l",
+"lake.26":"t.l0.cellgroup_s_l_l_s","lake.27":"t.l0.cellgroup_l_s_s_l",
+"lake.28":"t.l0.cellgroup_l_l_s_l","lake.29":"t.l0.cellgroup_s_l_l_l",
+"lake.30":"t.l0.cellgroup_l_l_l_s","lake.31":"t.l0.cellgroup_l_s_l_l"};

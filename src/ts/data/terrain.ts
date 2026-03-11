@@ -54,7 +54,9 @@ export function tileTerrainNear(ptile: Tile): (Terrain | undefined)[] {
 export function isOceanTile(ptile: Tile): boolean {
   const t = tileTerrain(ptile);
   if (!t) return false;
-  return t.graphic_str === 'floor' || t.graphic_str === 'coast';
+  // Lake is shallow water — rivers should produce outlet sprites at lake edges
+  // just as they do at coast edges.
+  return t.graphic_str === 'floor' || t.graphic_str === 'coast' || t.graphic_str === 'lake';
 }
 
 // ---------------------------------------------------------------------------
