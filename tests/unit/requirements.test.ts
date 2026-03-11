@@ -14,6 +14,14 @@ import {
   VUT_GOVERNMENT,
   VUT_IMPROVEMENT,
   VUT_COUNT,
+  VUT_UTYPE,
+  VUT_TOPO,
+  VUT_MINTECHS,
+  VUT_MINVETERAN,
+  VUT_NATIONGROUP,
+  VUT_IMPR_GENUS,
+  VUT_ACTION,
+  VUT_EXTRAFLAG,
   REQ_RANGE_PLAYER,
   REQ_RANGE_TEAM,
   REQ_RANGE_WORLD,
@@ -28,6 +36,7 @@ import {
   universalBuildShieldCost,
 } from '@/data/requirements';
 import { playerInventionState, TECH_KNOWN } from '@/data/tech';
+import { store } from '@/data/store';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -142,13 +151,106 @@ describe('isReqActive', () => {
     expect(isReqActive(null, null, null, null, null, null, null, req, RPT_POSSIBLE)).toBe(false);
   });
 
-  it('should return false for unimplemented VUT types (result stays TRI_NO)', () => {
+  it('should return true for unimplemented VUT types with RPT_POSSIBLE (TRI_MAYBE → possible)', () => {
+    // VUT_IMPROVEMENT cannot be evaluated client-side → TRI_MAYBE → RPT_POSSIBLE → true
     const req = makeReq({ kind: VUT_IMPROVEMENT, value: 5, present: true });
-    expect(isReqActive(null, null, null, null, null, null, null, req, RPT_POSSIBLE)).toBe(false);
+    expect(isReqActive(null, null, null, null, null, null, null, req, RPT_POSSIBLE)).toBe(true);
   });
 
-  it('should return true for unimplemented VUT types with present=false', () => {
-    const req = makeReq({ kind: VUT_IMPROVEMENT, value: 5, present: false });
+  // ── VUT_UTYPE ────────────────────────────────────────────────────────────
+
+  it('VUT_UTYPE: returns TRI_MAYBE (true) when targetUnittype is null', () => {
+    const req = makeReq({ kind: VUT_UTYPE, value: 5, present: true });
+    expect(isReqActive(null, null, null, null, null, null, null, req, RPT_POSSIBLE)).toBe(true);
+  });
+
+  it('VUT_UTYPE: returns true when unit type id matches', () => {
+    const req = makeReq({ kind: VUT_UTYPE, value: 5, present: true });
+    const ut = { id: 5 };
+    expect(isReqActive(null, null, null, null, ut, null, null, req, RPT_POSSIBLE)).toBe(true);
+  });
+
+  it('VUT_UTYPE: returns false when unit type id does not match', () => {
+    const req = makeReq({ kind: VUT_UTYPE, value: 5, present: true });
+    const ut = { id: 7 };
+    expect(isReqActive(null, null, null, null, ut, null, null, req, RPT_POSSIBLE)).toBe(false);
+  });
+
+  it('VUT_UTYPE: present=false inverts — true when id does NOT match', () => {
+    const req = makeReq({ kind: VUT_UTYPE, value: 5, present: false });
+    const ut = { id: 7 };
+    expect(isReqActive(null, null, null, null, ut, null, null, req, RPT_POSSIBLE)).toBe(true);
+  });
+
+  // ── VUT_MINTECHS ─────────────────────────────────────────────────────────
+
+  it('VUT_MINTECHS: returns TRI_MAYBE (true) with null player', () => {
+    const req = makeReq({ kind: VUT_MINTECHS, value: 3, present: true });
+    expect(isReqActive(null, null, null, null, null, null, null, req, RPT_POSSIBLE)).toBe(true);
+  });
+
+  it('VUT_MINTECHS: returns true when player knows enough techs', () => {
+    store.techs = { 1: {}, 2: {}, 3: {} };
+    const player = { inventions: { 1: TECH_KNOWN, 2: TECH_KNOWN, 3: TECH_KNOWN } } as any;
+    const req = makeReq({ kind: VUT_MINTECHS, value: 3, present: true });
+    expect(isReqActive(player, null, null, null, null, null, null, req, RPT_POSSIBLE)).toBe(true);
+    store.techs = {};
+  });
+
+  it('VUT_MINTECHS: returns false when player knows too few techs', () => {
+    store.techs = { 1: {}, 2: {}, 3: {} };
+    const player = { inventions: { 1: TECH_KNOWN } } as any;
+    const req = makeReq({ kind: VUT_MINTECHS, value: 3, present: true });
+    expect(isReqActive(player, null, null, null, null, null, null, req, RPT_POSSIBLE)).toBe(false);
+    store.techs = {};
+  });
+
+  // ── VUT_TOPO ──────────────────────────────────────────────────────────────
+
+  it('VUT_TOPO: returns TRI_MAYBE (true) when mapInfo has no topology_id', () => {
+    store.mapInfo = null;
+    const req = makeReq({ kind: VUT_TOPO, value: 4, present: true });
+    expect(isReqActive(null, null, null, null, null, null, null, req, RPT_POSSIBLE)).toBe(true);
+  });
+
+  it('VUT_TOPO: returns true when topology_id matches', () => {
+    store.mapInfo = { topology_id: 4 };
+    const req = makeReq({ kind: VUT_TOPO, value: 4, present: true });
+    expect(isReqActive(null, null, null, null, null, null, null, req, RPT_POSSIBLE)).toBe(true);
+    store.mapInfo = null;
+  });
+
+  it('VUT_TOPO: returns false when topology_id does not match', () => {
+    store.mapInfo = { topology_id: 2 };
+    const req = makeReq({ kind: VUT_TOPO, value: 4, present: true });
+    expect(isReqActive(null, null, null, null, null, null, null, req, RPT_POSSIBLE)).toBe(false);
+    store.mapInfo = null;
+  });
+
+  // ── TRI_MAYBE types (VUT_MINVETERAN, VUT_NATIONGROUP, VUT_IMPR_GENUS, VUT_ACTION, VUT_EXTRAFLAG)
+
+  it('VUT_MINVETERAN: returns TRI_MAYBE → true with RPT_POSSIBLE', () => {
+    const req = makeReq({ kind: VUT_MINVETERAN, value: 1, present: true });
+    expect(isReqActive(null, null, null, null, null, null, null, req, RPT_POSSIBLE)).toBe(true);
+  });
+
+  it('VUT_NATIONGROUP: returns TRI_MAYBE → true with RPT_POSSIBLE', () => {
+    const req = makeReq({ kind: VUT_NATIONGROUP, value: 1, present: true });
+    expect(isReqActive(null, null, null, null, null, null, null, req, RPT_POSSIBLE)).toBe(true);
+  });
+
+  it('VUT_IMPR_GENUS: returns TRI_MAYBE → true with RPT_POSSIBLE', () => {
+    const req = makeReq({ kind: VUT_IMPR_GENUS, value: 1, present: true });
+    expect(isReqActive(null, null, null, null, null, null, null, req, RPT_POSSIBLE)).toBe(true);
+  });
+
+  it('VUT_ACTION: returns TRI_MAYBE → true with RPT_POSSIBLE', () => {
+    const req = makeReq({ kind: VUT_ACTION, value: 1, present: true });
+    expect(isReqActive(null, null, null, null, null, null, null, req, RPT_POSSIBLE)).toBe(true);
+  });
+
+  it('VUT_EXTRAFLAG: returns TRI_MAYBE → true with RPT_POSSIBLE', () => {
+    const req = makeReq({ kind: VUT_EXTRAFLAG, value: 1, present: true });
     expect(isReqActive(null, null, null, null, null, null, null, req, RPT_POSSIBLE)).toBe(true);
   });
 });

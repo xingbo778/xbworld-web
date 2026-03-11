@@ -59,9 +59,9 @@ describe('improvement.ts', () => {
   beforeEach(() => {
     improvements_init();
     const buildings = [
-      { id: 0, name: 'Palace', soundtag: 'b_palace', reqs: [{ kind: 1, value: 5, present: true }] },
-      { id: 1, name: 'Barracks', soundtag: 'b_barracks', reqs: [{ kind: 1, value: 3, present: true }] },
-      { id: 2, name: 'Great Wall', soundtag: 'w_great_wall', reqs: [{ kind: 1, value: 10, present: true }] },
+      { id: 0, name: 'Palace', soundtag: 'b_palace', reqs: [{ kind: 4, value: 5, present: true }] },
+      { id: 1, name: 'Barracks', soundtag: 'b_barracks', reqs: [{ kind: 4, value: 3, present: true }] },
+      { id: 2, name: 'Great Wall', soundtag: 'w_great_wall', reqs: [{ kind: 4, value: 10, present: true }] },
       { id: 3, name: 'Library', soundtag: 'b_library', reqs: [] },
     ];
     buildings.forEach((b) => improvements_add_building(b as any));
@@ -83,7 +83,7 @@ describe('improvement.ts', () => {
   });
 
   describe('get_improvement_requirements', () => {
-    it('should return tech ids from reqs with kind=1 and present=true', () => {
+    it('should return tech ids from reqs with kind=VUT_ADVANCE and present=true', () => {
       expect(get_improvement_requirements(0)).toEqual([5]);
       expect(get_improvement_requirements(1)).toEqual([3]);
     });

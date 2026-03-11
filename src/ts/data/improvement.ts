@@ -9,6 +9,7 @@
 import { MAX_NUM_BUILDINGS } from '../core/constants';
 import { store } from './store';
 import type { Improvement } from './types';
+import { VUT_ADVANCE } from './fcTypes';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -83,7 +84,7 @@ export function get_improvement_requirements(improvementId: number): number[] {
   if (reqs != null) {
     for (let i = 0; i < reqs.length; i++) {
       if (
-        reqs[i]['kind'] == 1 &&
+        reqs[i]['kind'] == VUT_ADVANCE &&
         reqs[i]['present']
       ) {
         result.push(reqs[i]['value'] as number);

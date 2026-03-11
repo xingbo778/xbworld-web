@@ -36,7 +36,6 @@ import {
   VUT_GOOD,
   VUT_TERRFLAG,
   VUT_NATIONALITY,
-  // VUT_BASEFLAG removed — not present in XBWorld fc_types.js
   VUT_ROADFLAG,
   VUT_EXTRA,
   VUT_TECHFLAG,
@@ -58,6 +57,28 @@ import {
   VUT_EXTRAFLAG,
   VUT_MINCALFRAG,
   VUT_SERVERSETTING,
+  // New Freeciv 3.4 VUT types (added to avoid "Unknown requirement" warnings)
+  VUT_ACTIVITY,
+  VUT_CITYSTATUS,
+  VUT_COUNTER,
+  VUT_DIPLREL_TILE,
+  VUT_DIPLREL_TILE_O,
+  VUT_DIPLREL_UNITANY,
+  VUT_DIPLREL_UNITANY_O,
+  VUT_FORM_AGE,
+  VUT_IMPR_FLAG,
+  VUT_MAXLATITUDE,
+  VUT_MAX_DISTANCE_SQ,
+  VUT_MAX_REGION_TILES,
+  VUT_MINCITIES,
+  VUT_MINFOREIGNPCT,
+  VUT_MINLATITUDE,
+  VUT_ORIGINAL_OWNER,
+  VUT_PLAYER_FLAG,
+  VUT_PLAYER_STATE,
+  VUT_SITE,
+  VUT_TILE_REL,
+  VUT_WRAP,
   VUT_COUNT,
   REQ_RANGE_LOCAL,
   REQ_RANGE_TILE,
@@ -74,6 +95,7 @@ import {
   RPT_POSSIBLE,
 } from './fcTypes';
 import { playerInventionState, TECH_KNOWN } from './tech';
+import { store } from './store';
 import type { Player } from './types';
 
 export interface Requirement {
@@ -155,10 +177,64 @@ export function isReqActive(
           targetPlayer['government'] == req['value'] ? TRI_YES : TRI_NO;
       }
       break;
+    // ── Implemented: unit type match ─────────────────────────────────────────
+    case VUT_UTYPE: {
+      // Present iff the target unit type matches the required type id.
+      if (targetUnittype == null) { result = TRI_MAYBE; break; }
+      result = (targetUnittype as { id: number })['id'] === req['value'] ? TRI_YES : TRI_NO;
+      break;
+    }
+
+    // ── Implemented: map topology ─────────────────────────────────────────────
+    case VUT_TOPO: {
+      const topoId = (store.mapInfo as Record<string, unknown> | null)?.['topology_id'];
+      if (topoId == null) { result = TRI_MAYBE; break; }
+      result = topoId === req['value'] ? TRI_YES : TRI_NO;
+      break;
+    }
+
+    // ── Implemented: minimum number of techs known ────────────────────────────
+    case VUT_MINTECHS: {
+      if (targetPlayer == null) { result = TRI_MAYBE; break; }
+      let techCount = 0;
+      for (const techId in store.techs) {
+        if (playerInventionState(targetPlayer, Number(techId)) === TECH_KNOWN) techCount++;
+      }
+      result = techCount >= req['value'] ? TRI_YES : TRI_NO;
+      break;
+    }
+
+    // ── TRI_MAYBE: veteran level requires unit instance, not unit type ────────
+    case VUT_MINVETERAN:
+      result = TRI_MAYBE;
+      break;
+
+    // ── TRI_MAYBE: nation group membership data not available client-side ─────
+    case VUT_NATIONGROUP:
+      result = TRI_MAYBE;
+      break;
+
+    // ── TRI_MAYBE: improvement genus classification is server-side ────────────
+    case VUT_IMPR_GENUS:
+      result = TRI_MAYBE;
+      break;
+
+    // ── TRI_MAYBE: action enabler evaluation not implemented ──────────────────
+    case VUT_ACTION:
+      result = TRI_MAYBE;
+      break;
+
+    // ── TRI_MAYBE: extra flag evaluation requires full tile data ─────────────
+    case VUT_EXTRAFLAG:
+      result = TRI_MAYBE;
+      break;
+
+    // ── TRI_MAYBE: all remaining unimplemented types ──────────────────────────
+    // Returning TRI_MAYBE rather than TRI_NO: we cannot evaluate these
+    // client-side, but we should not assume the requirement is unmet.
+    // With RPT_POSSIBLE callers get true (assume possible); RPT_CERTAIN → false.
     case VUT_IMPROVEMENT:
     case VUT_TERRAIN:
-    case VUT_NATION:
-    case VUT_UTYPE:
     case VUT_UTFLAG:
     case VUT_UCLASS:
     case VUT_UCFLAG:
@@ -173,7 +249,6 @@ export function isReqActive(
     case VUT_GOOD:
     case VUT_TERRFLAG:
     case VUT_NATIONALITY:
-    // case VUT_BASEFLAG: — removed, not present in XBWorld
     case VUT_ROADFLAG:
     case VUT_EXTRA:
     case VUT_TECHFLAG:
@@ -184,19 +259,34 @@ export function isReqActive(
     case VUT_MINCULTURE:
     case VUT_UNITSTATE:
     case VUT_MINMOVES:
-    case VUT_MINVETERAN:
     case VUT_MINHP:
     case VUT_AGE:
-    case VUT_NATIONGROUP:
-    case VUT_TOPO:
-    case VUT_IMPR_GENUS:
-    case VUT_ACTION:
-    case VUT_MINTECHS:
-    case VUT_EXTRAFLAG:
     case VUT_MINCALFRAG:
     case VUT_SERVERSETTING:
-      // FIXME: implement
-      console.log('Unimplemented requirement type ' + req['kind']);
+    case VUT_NATION:
+    // New Freeciv 3.4 types
+    case VUT_ACTIVITY:
+    case VUT_CITYSTATUS:
+    case VUT_COUNTER:
+    case VUT_DIPLREL_TILE:
+    case VUT_DIPLREL_TILE_O:
+    case VUT_DIPLREL_UNITANY:
+    case VUT_DIPLREL_UNITANY_O:
+    case VUT_FORM_AGE:
+    case VUT_IMPR_FLAG:
+    case VUT_MAXLATITUDE:
+    case VUT_MAX_DISTANCE_SQ:
+    case VUT_MAX_REGION_TILES:
+    case VUT_MINCITIES:
+    case VUT_MINFOREIGNPCT:
+    case VUT_MINLATITUDE:
+    case VUT_ORIGINAL_OWNER:
+    case VUT_PLAYER_FLAG:
+    case VUT_PLAYER_STATE:
+    case VUT_SITE:
+    case VUT_TILE_REL:
+    case VUT_WRAP:
+      result = TRI_MAYBE;
       break;
     case VUT_COUNT:
       return false;
