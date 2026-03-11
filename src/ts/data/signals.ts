@@ -88,7 +88,10 @@ globalEvents.on('rules:ready', () => { rulesetReady.value++; });
  * by reading `playerUpdated.value` inside their render body.
  */
 export const playerUpdated = signal(0);
-globalEvents.on('player:updated', () => { playerUpdated.value++; });
+globalEvents.on('player:updated', () => {
+  playerUpdated.value++;
+  playerCount.value = Object.keys(store.players).length;
+});
 
 /**
  * Incremented whenever research state changes (player:research event).

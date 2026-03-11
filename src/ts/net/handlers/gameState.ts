@@ -63,9 +63,8 @@ export function handle_spaceship_info(_packet: BasePacket): void {
 
 export function handle_new_year(packet: NewYearPacket): void {
   if (!store.gameInfo) return;
-  store.gameInfo['year'] = packet['year'];
-  store.gameInfo['fragments'] = packet['fragments'];
-  store.gameInfo['turn'] = packet['turn'];
+  // Assign a new object so Preact signal detects the change (signals use === comparison).
+  store.gameInfo = { ...store.gameInfo, year: packet['year'], fragments: packet['fragments'], turn: packet['turn'] } as typeof store.gameInfo;
   globalEvents.emit('game:newyear', packet);
 }
 

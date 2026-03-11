@@ -218,6 +218,18 @@ describe('playerUpdated signal', () => {
     expect(playerUpdated.value).toBe(beforeP + 1);
     expect(rulesetReady.value).toBe(beforeR); // unaffected
   });
+
+  it('playerCount re-syncs when player:updated fires (new player join)', async () => {
+    const { playerUpdated, playerCount } = await import('@/data/signals');
+    store.players = {};
+    globalEvents.emit('player:updated'); // simulate an update with no players
+    expect(playerCount.value).toBe(0);
+
+    store.players[7] = { playerno: 7, name: 'New' } as never;
+    globalEvents.emit('player:updated');
+    expect(playerCount.value).toBe(1);
+    void playerUpdated; // suppress unused warning
+  });
 });
 
 // ── researchUpdated signal ─────────────────────────────────────────────────
