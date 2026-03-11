@@ -95,6 +95,21 @@ export function _resetReconnectStateForTests(): void {
   store.connectionState = 'connected';
 }
 
+/** Returns true if the ping timer is currently active — for use in tests only. @internal */
+export function _isPingTimerActiveForTests(): boolean {
+  return ping_timer != null;
+}
+
+/** Returns true if a packet worker is currently active — for use in tests only. @internal */
+export function _isPacketWorkerActiveForTests(): boolean {
+  return _packetWorker != null;
+}
+
+/** Returns true if the beforeunload handler is currently registered — for use in tests only. @internal */
+export function _isBeforeUnloadHandlerRegisteredForTests(): boolean {
+  return _beforeUnloadHandler != null;
+}
+
 function stopReconnectTimers(): void {
   if (_reconnectTimer != null) { clearTimeout(_reconnectTimer); _reconnectTimer = null; }
   if (_reconnectCountdownTimer != null) { clearInterval(_reconnectCountdownTimer); _reconnectCountdownTimer = null; }
@@ -370,7 +385,8 @@ export function websocket_init(): void {
  * send the first login message to the server.
  */
 export async function check_websocket_ready(): Promise<void> {
-  if (ws != null && ws.readyState === 1) {
+  if (ws == null) return; // ws was nulled by network_stop() — abort retry loop
+  if (ws.readyState === 1) {
     let sha_password: string | null = null;
     const stored_password = localStorage.getItem('password') ?? '';
     if (stored_password != null && stored_password !== '') {
@@ -407,12 +423,21 @@ export async function check_websocket_ready(): Promise<void> {
 }
 
 /**
- * Stops network sync.
+ * Stops network sync and cleans up all associated resources.
  */
 export function network_stop(): void {
   stopReconnectTimers();
   _reconnectAttempt = 0;
   _reconnecting = false;
+  // Stop ping timer
+  if (ping_timer != null) { clearInterval(ping_timer); ping_timer = null; }
+  // Remove beforeunload handler
+  if (_beforeUnloadHandler != null) {
+    window.removeEventListener('beforeunload', _beforeUnloadHandler);
+    _beforeUnloadHandler = null;
+  }
+  // Terminate packet worker (prevents detached worker running after page nav)
+  if (_packetWorker != null) { _packetWorker.terminate(); _packetWorker = null; }
   if (ws != null) ws.close();
   ws = null;
 }

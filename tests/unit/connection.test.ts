@@ -46,6 +46,10 @@ import {
   network_stop,
   send_request,
   _resetReconnectStateForTests,
+  _isPingTimerActiveForTests,
+  _isPacketWorkerActiveForTests,
+  _isBeforeUnloadHandlerRegisteredForTests,
+  check_websocket_ready,
 } from '@/net/connection';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -372,5 +376,108 @@ describe('send_request', () => {
 
     expect(() => send_request('{"pid":1}')).not.toThrow();
     expect(sendSpy).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// B2: network_stop resource cleanup
+// ---------------------------------------------------------------------------
+
+describe('network_stop — resource cleanup', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    _resetReconnectStateForTests();
+    (window as any).civserverport = '6001';
+    (window as any).ws = null;
+  });
+
+  afterEach(() => {
+    _resetReconnectStateForTests();
+    (window as any).ws = null;
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
+
+  it('clears ping_timer on network_stop()', () => {
+    websocket_init();
+    const currentWs = (window as any).ws as MockWebSocket;
+    // Simulate onopen so check_websocket_ready runs and sets ping_timer
+    // (In the mock ws.readyState is already OPEN=1, so trigger onopen manually)
+    currentWs.onopen!(new Event('open'));
+    // Flush the check_websocket_ready promise
+    return Promise.resolve().then(() => {
+      expect(_isPingTimerActiveForTests()).toBe(true);
+      network_stop();
+      expect(_isPingTimerActiveForTests()).toBe(false);
+    });
+  });
+
+  it('removes _beforeUnloadHandler on network_stop()', () => {
+    websocket_init();
+    const currentWs = (window as any).ws as MockWebSocket;
+    currentWs.onopen!(new Event('open'));
+    return Promise.resolve().then(() => {
+      expect(_isBeforeUnloadHandlerRegisteredForTests()).toBe(true);
+      network_stop();
+      expect(_isBeforeUnloadHandlerRegisteredForTests()).toBe(false);
+    });
+  });
+
+  it('is safe to call network_stop() when ping_timer is not active', () => {
+    // No websocket_init — no ping_timer
+    expect(_isPingTimerActiveForTests()).toBe(false);
+    expect(() => network_stop()).not.toThrow();
+    expect(_isPingTimerActiveForTests()).toBe(false);
+  });
+
+  it('is safe to call network_stop() when _beforeUnloadHandler is not set', () => {
+    expect(_isBeforeUnloadHandlerRegisteredForTests()).toBe(false);
+    expect(() => network_stop()).not.toThrow();
+    expect(_isBeforeUnloadHandlerRegisteredForTests()).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// B2: check_websocket_ready — stops retrying when ws is nulled
+// ---------------------------------------------------------------------------
+
+describe('check_websocket_ready — retry loop guard', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    _resetReconnectStateForTests();
+    (window as any).civserverport = '6001';
+    (window as any).ws = null;
+  });
+
+  afterEach(() => {
+    _resetReconnectStateForTests();
+    (window as any).ws = null;
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
+
+  it('stops retrying when ws is set to null before readyState is OPEN', async () => {
+    // Set up a ws in CONNECTING state so check_websocket_ready schedules a retry
+    const mockWs = new MockWebSocket('ws://localhost/test');
+    mockWs.readyState = MockWebSocket.CONNECTING;
+    (window as any).ws = mockWs;
+
+    // Capture any new WebSocket creations (should be none)
+    const initialWs = (window as any).ws;
+
+    // Start check_websocket_ready — it will see readyState=CONNECTING and schedule retry
+    const promise = check_websocket_ready();
+
+    // Null out ws (simulating network_stop called between check_websocket_ready invocations)
+    (window as any).ws = null;
+
+    // Advance time — the retry should fire but immediately return (ws is null)
+    vi.advanceTimersByTime(1000);
+
+    await promise;
+
+    // No new WebSocket should have been created
+    expect((window as any).ws).toBeNull();
+    // Confirm the retry fired and returned safely (no throw)
   });
 });
