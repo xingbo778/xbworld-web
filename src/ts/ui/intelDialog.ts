@@ -22,10 +22,8 @@ import type { Player } from '../data/types';
 import { player_capital, get_diplstate_text, research_get, DiplState } from '../data/player';
 import { TECH_KNOWN } from '../data/tech';
 import { clientIsObserver as client_is_observer, clientPlaying } from '../client/clientState';
-import { showDialogMessage as show_dialog_message } from '../client/civClient';
 import type { IntelData } from '../components/Dialogs/IntelDialog';
 import { showIntelDialog } from '../components/Dialogs/IntelDialog';
-import { escapeHtml } from '../utils/safeHtml';
 
 export function show_intelligence_report_dialog(): void {
   const selected_player = store.selectedPlayer;
@@ -41,22 +39,30 @@ export function show_intelligence_report_dialog(): void {
 }
 
 export function show_intelligence_report_hearsay(pplayer: Player): void {
-  const name = escapeHtml(String(pplayer['name']));
-  let msg: string = "Ruler " + name + "<br>";
-  if ((pplayer['government'] as number) > 0) {
-    const govName = escapeHtml(String(store.governments[pplayer['government'] as number]['name']));
-    msg += "Government: " + govName + "<br>";
+  const gov = (pplayer['government'] as number) > 0
+    ? String(store.governments[pplayer['government'] as number]?.['name'] ?? '(Unknown)')
+    : '(Unknown)';
+  const gold = (pplayer['gold'] as number) > 0 ? String(pplayer['gold']) : '—';
+  let researching = '—';
+  const researchingId = pplayer['researching'] as number | undefined;
+  if (researchingId != null && researchingId > 0 && store.techs[researchingId] != null) {
+    researching = String(store.techs[researchingId]['name']);
   }
-  if ((pplayer['gold'] as number) > 0) {
-    msg += "Gold: " + Number(pplayer['gold']) + "<br>";
-  }
-  if (pplayer['researching'] != null && (pplayer['researching'] as number) > 0 && store.techs[pplayer['researching'] as number] != null) {
-    const techName = escapeHtml(String(store.techs[pplayer['researching'] as number]['name']));
-    msg += "Researching: " + techName + "<br>";
-  }
-  msg += "<br>Establishing an embassy will show a detailed intelligence report.";
-
-  show_dialog_message("Intelligence report for " + escapeHtml(String(pplayer['name'])), msg);
+  const nationAdj = (store.nations[pplayer['nation'] as number]?.['adjective'] as string) || (pplayer['name'] as string);
+  const data: IntelData = {
+    ruler: String(pplayer['name']),
+    government: gov,
+    capital: '(Establishing an embassy will show full details)',
+    gold,
+    tax: '—',
+    science: '—',
+    luxury: '—',
+    culture: '—',
+    researching,
+    diplomacy: [],
+    knownTechs: [],
+  };
+  showIntelDialog(`Intelligence report: ${nationAdj}`, data);
 }
 
 /** Build typed intel data for a player (embassy-level). No HTML strings. */
