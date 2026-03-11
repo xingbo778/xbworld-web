@@ -173,45 +173,6 @@ export function getInvalidUsernameReason(name: string | null): string | null {
   return null;
 }
 
-/**
- * Validates the username from the #username_req input field.
- * Stores valid username in localStorage.
- * Returns true if valid, false otherwise.
- *
- * Migrated from civclient.js validate_username().
- */
-export function validateUsername(): boolean {
-  const usernameVal = (document.getElementById('username_req') as HTMLInputElement)?.value ?? '';
-  win.username = usernameVal;
-
-  if (!isUsernameValidShow(usernameVal)) {
-    return false;
-  }
-
-  localStorage.setItem('username', usernameVal);
-
-  return true;
-}
-
-/**
- * Checks if the username is valid and shows the reason if it is not.
- * Returns whether the username is valid.
- *
- * Migrated from civclient.js is_username_valid_show().
- */
-export function isUsernameValidShow(username: string | null): boolean {
-  const reason = getInvalidUsernameReason(username);
-  if (reason != null) {
-    const valEl = document.getElementById('username_validation_result');
-    if (valEl) {
-      valEl.textContent = "The username '" + (username ?? '') + "' is " + reason + '.';
-      valEl.style.display = '';
-    }
-    return false;
-  }
-  return true;
-}
-
 // ---------------------------------------------------------------------------
 // Fullscreen
 // ---------------------------------------------------------------------------
