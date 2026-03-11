@@ -66,7 +66,12 @@ function NationsTable() {
   _tick.value;        // re-render on turn/player events
   rulesetReady.value; // re-render when tech names become available
   const selectedNo = _selectedPlayerno.value;
-  const players = Object.values(store.players);
+  const players = Object.values(store.players)
+    .sort((a, b) => {
+      const aScore = ((a as Record<string, unknown>)['score'] as number) ?? 0;
+      const bScore = ((b as Record<string, unknown>)['score'] as number) ?? 0;
+      return bScore - aScore;
+    });
 
   if (players.length === 0) {
     return (
