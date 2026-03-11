@@ -53,8 +53,7 @@ export function civClientInit(): void {
   store.observing = true;
   store.gameType = 'observe';
   // Remove observer-irrelevant UI elements (both tab buttons and their panels)
-  // hel_tab and tabs-hel are kept — help tab is useful for observers
-  for (const id of ['civ_tab', 'cities_tab', 'opt_tab', 'pregame_buttons', 'game_unit_orders_default', 'civ_dialog', 'game_unit_panel', 'tabs-cities', 'tabs-opt', 'tabs-civ']) {
+  for (const id of ['civ_tab', 'cities_tab', 'opt_tab', 'hel_tab', 'pregame_buttons', 'game_unit_orders_default', 'civ_dialog', 'game_unit_panel', 'tabs-cities', 'tabs-opt', 'tabs-civ', 'tabs-hel']) {
     document.getElementById(id)?.remove();
   }
 

@@ -170,25 +170,25 @@ test.describe('Observer UI Elements', () => {
 
   test('research tab: tech tree elements exist', async ({ page }) => {
     await page.locator('#tech_tab a').click();
-    await page.waitForTimeout(1000);
+    // Wait for the lazy-loaded Preact TechPanel to mount
+    await page.waitForSelector('#xb-tech-panel', { timeout: 6000 });
 
-    await expect(page.locator('#technology_dialog')).toBeVisible();
-    // tech_info_box may be hidden when no tech data from server, but must exist in DOM
-    await expect(page.locator('#tech_info_box')).toBeAttached();
-    // tech_canvas may be dynamically created/replaced by the tech dialog code
-    // Just verify the technology_dialog container is present
-    await expect(page.locator('#technologies')).toBeAttached();
+    // The Preact TechPanel container is present
+    await expect(page.locator('#xb-tech-panel')).toBeAttached();
+    // Sub-tab buttons rendered by TechPanel
+    await expect(page.locator('#xb-tech-panel').getByRole('button', { name: 'Research Progress' })).toBeAttached();
+    await expect(page.locator('#xb-tech-panel').getByRole('button', { name: 'Tech Tree' })).toBeAttached();
   });
 
   test('research tab: progress elements exist', async ({ page }) => {
     await page.locator('#tech_tab a').click();
-    await page.waitForTimeout(500);
+    // Wait for the lazy-loaded Preact TechPanel to mount
+    await page.waitForSelector('#xb-tech-panel', { timeout: 6000 });
 
-    // These are in DOM but may be hidden without full ruleset data
-    await expect(page.locator('#tech_goal_box')).toBeAttached();
-    await expect(page.locator('#tech_progress_box')).toBeAttached();
-    await expect(page.locator('#progress_bg')).toBeAttached();
-    await expect(page.locator('#progress_fg')).toBeAttached();
+    // TechPanel container is present with its sub-tab navigation
+    await expect(page.locator('#xb-tech-panel')).toBeAttached();
+    // "Research Progress" is the default active sub-tab
+    await expect(page.locator('#xb-tech-panel').getByRole('button', { name: 'Research Progress' })).toBeAttached();
   });
 
   // ─── Nations Tab ──────────────────────────────────────────────────
