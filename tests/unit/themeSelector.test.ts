@@ -2,6 +2,7 @@
  * Tests for ThemeSelector Preact component and theme utility.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
+import { render, h } from 'preact';
 
 describe('ThemeSelector module', () => {
   it('exports ThemeSelector and mountThemeSelector as functions', async () => {
@@ -69,5 +70,43 @@ describe('options.ts init_theme_selector', () => {
     document.body.appendChild(el);
     expect(() => init_theme_selector()).not.toThrow();
     document.body.removeChild(el);
+  });
+});
+
+describe('ThemeSelector rendering', () => {
+  beforeEach(() => { document.body.innerHTML = ''; });
+
+  it('renders a select element with theme options', async () => {
+    const { ThemeSelector } = await import('@/components/ThemeSelector');
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    render(h(ThemeSelector, null), div);
+    const select = div.querySelector('select');
+    expect(select).not.toBeNull();
+    const values = Array.from(select!.options).map(o => o.value);
+    expect(values).toContain('dark');
+    expect(values).toContain('light');
+    expect(values).toContain('fantasy');
+    document.body.removeChild(div);
+  });
+
+  it('renders "UI Theme:" label', async () => {
+    const { ThemeSelector } = await import('@/components/ThemeSelector');
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    render(h(ThemeSelector, null), div);
+    expect(div.textContent).toContain('UI Theme:');
+    document.body.removeChild(div);
+  });
+
+  it('onChange does not throw when selecting light theme', async () => {
+    const { ThemeSelector } = await import('@/components/ThemeSelector');
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    render(h(ThemeSelector, null), div);
+    const select = div.querySelector('select') as HTMLSelectElement;
+    select.value = 'light';
+    expect(() => select.dispatchEvent(new Event('change', { bubbles: true }))).not.toThrow();
+    document.body.removeChild(div);
   });
 });
