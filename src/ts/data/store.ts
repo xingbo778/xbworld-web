@@ -114,6 +114,9 @@ class GameStore {
     conn: { id: 0, playing: null },
   };
 
+  // Connection state — drives reconnect UI
+  connectionState: 'connected' | 'reconnecting' | 'disconnected' = 'connected';
+
   // Client-side state
   username: string | null = null;
   gameType: string = '';

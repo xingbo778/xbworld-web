@@ -26,7 +26,7 @@ import type {
   ServerSettingConstPacket,
   ServerSettingUpdatePacket,
 } from './packetTypes';
-import { send_request as _send_request } from '../connection';
+import { send_request as _send_request, markServerShutdown } from '../connection';
 import type { Connection, ServerSetting } from '../../data/types';
 
 // Connection management
@@ -114,6 +114,8 @@ export function handle_authentication_req(packet: AuthenticationReqPacket): void
 }
 
 export function handle_server_shutdown(_packet: BasePacket): void {
+  markServerShutdown(); // prevent onclose from triggering reconnect loop
+  store.connectionState = 'disconnected';
   add_chatbox_text({ message: 'The server has shut down.', conn_id: -1 } as unknown as ConnectMsgPacket);
   swal('Server Shutdown', 'The game server has shut down. Please reload the page to reconnect.', 'error');
 }

@@ -62,6 +62,100 @@ let _beforeUnloadHandler: ((e: BeforeUnloadEvent) => string) | null = null;
 const pingtime_check = 240000;
 let ping_timer: ReturnType<typeof setInterval> | null = null;
 
+// ---------------------------------------------------------------------------
+// Reconnect state
+// ---------------------------------------------------------------------------
+
+/** Delays (ms) for each reconnect attempt: 1s, 2s, 4s, 8s, 16s */
+export const RECONNECT_DELAYS_MS = [1000, 2000, 4000, 8000, 16000];
+const MAX_RECONNECT_ATTEMPTS = RECONNECT_DELAYS_MS.length;
+
+let _reconnectAttempt = 0;
+let _reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+let _reconnectCountdownTimer: ReturnType<typeof setInterval> | null = null;
+let _reconnecting = false;   // true while a reconnect attempt is in flight
+let _serverShutdown = false; // set by handle_server_shutdown before ws.close arrives
+
+/**
+ * Called by handle_server_shutdown so onclose knows not to reconnect.
+ */
+export function markServerShutdown(): void {
+  _serverShutdown = true;
+}
+
+/**
+ * Reset all reconnect state — for use in tests only.
+ * @internal
+ */
+export function _resetReconnectStateForTests(): void {
+  stopReconnectTimers();
+  _reconnectAttempt = 0;
+  _reconnecting = false;
+  _serverShutdown = false;
+  store.connectionState = 'connected';
+}
+
+function stopReconnectTimers(): void {
+  if (_reconnectTimer != null) { clearTimeout(_reconnectTimer); _reconnectTimer = null; }
+  if (_reconnectCountdownTimer != null) { clearInterval(_reconnectCountdownTimer); _reconnectCountdownTimer = null; }
+}
+
+function showConnectionBanner(html: string): void {
+  let banner = document.getElementById('xbw_connection_banner');
+  if (!banner) {
+    const panel =
+      document.getElementById('game_status_panel_top') ||
+      document.getElementById('game_status_panel_bottom');
+    if (panel) {
+      banner = document.createElement('span');
+      banner.id = 'xbw_connection_banner';
+      banner.style.cssText =
+        'margin-right:12px;color:var(--xb-accent-orange,#d29922);font-weight:600;';
+      panel.prepend(banner);
+    }
+  }
+  if (banner) banner.innerHTML = html;
+}
+
+function clearConnectionBanner(): void {
+  document.getElementById('xbw_connection_banner')?.remove();
+}
+
+function startReconnect(): void {
+  if (_reconnectAttempt >= MAX_RECONNECT_ATTEMPTS) {
+    store.connectionState = 'disconnected';
+    showConnectionBanner(
+      '⚠ Disconnected — <a href="javascript:location.reload()" style="color:inherit">Reload page</a>'
+    );
+    return;
+  }
+
+  store.connectionState = 'reconnecting';
+  const delayMs = RECONNECT_DELAYS_MS[_reconnectAttempt];
+  let countdown = Math.round(delayMs / 1000);
+
+  const updateBanner = () =>
+    showConnectionBanner(
+      `⟳ Reconnecting in ${countdown}s… (attempt ${_reconnectAttempt + 1}/${MAX_RECONNECT_ATTEMPTS})`
+    );
+  updateBanner();
+
+  _reconnectCountdownTimer = setInterval(() => {
+    countdown--;
+    if (countdown > 0) updateBanner();
+    else {
+      clearInterval(_reconnectCountdownTimer!);
+      _reconnectCountdownTimer = null;
+    }
+  }, 1000);
+
+  _reconnectTimer = setTimeout(() => {
+    _reconnectAttempt++;
+    _reconnecting = true;
+    websocket_init();
+  }, delayMs);
+}
+
 /**
  * Initialize the Network communication, by requesting a valid server port.
  * Always connects as observer.
@@ -122,7 +216,9 @@ export function network_init(): void {
  * Includes the proxy patch: handles both single-packet and array-wrapped packets.
  */
 export function websocket_init(): void {
-  blockUI('<h2>Please wait while connecting to the server.</h2>');
+  if (!_reconnecting) {
+    blockUI('<h2>Please wait while connecting to the server.</h2>');
+  }
   const proxyport = 1000 + parseFloat(civserverport!);
   const ws_protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
   const port = window.location.port ? ':' + window.location.port : '';
@@ -206,44 +302,55 @@ export function websocket_init(): void {
 
   ws.onopen = (e) => {
     console.log('[xbw] WebSocket onopen fired, readyState:', ws?.readyState, 'event:', e.type);
+    // Successful (re)connection — reset reconnect state
+    stopReconnectTimers();
+    _reconnectAttempt = 0;
+    _reconnecting = false;
+    store.connectionState = 'connected';
+    clearConnectionBanner();
     check_websocket_ready();
   };
 
   ws.onclose = function (event: CloseEvent) {
-    swal(
-      'Network Error',
-      'Connection to server is closed. Please reload the page to restart. Sorry!',
-      'error'
-    );
-    const ml = getMessageLog();
-    if (ml != null) {
-      ml.update({
-        event: E_LOG_ERROR,
-        message: 'Error: connection to server is closed. Please reload the page to restart. Sorry!',
-      });
-    }
-    console.info('WebSocket connection closed, code+reason: ' + event.code + ', ' + event.reason);
+    console.info(`[xbw] WebSocket closed code=${event.code} reason="${event.reason}"`);
 
-    const turnBtn = document.getElementById('turn_done_button') as HTMLButtonElement | null;
-    if (turnBtn) turnBtn.disabled = true;
-    const saveBtn = document.getElementById('save_button') as HTMLButtonElement | null;
-    if (saveBtn) saveBtn.disabled = true;
+    if (ping_timer) { clearInterval(ping_timer); ping_timer = null; }
 
     if (_beforeUnloadHandler) {
       window.removeEventListener('beforeunload', _beforeUnloadHandler);
       _beforeUnloadHandler = null;
     }
 
-    if (ping_timer) clearInterval(ping_timer);
+    const turnBtn = document.getElementById('turn_done_button') as HTMLButtonElement | null;
+    if (turnBtn) turnBtn.disabled = true;
+    const saveBtn = document.getElementById('save_button') as HTMLButtonElement | null;
+    if (saveBtn) saveBtn.disabled = true;
+
+    // code 1000 = Normal Closure (intentional), 1001 = Going Away (page nav)
+    const isCleanClose = event.code === 1000 || event.code === 1001;
+
+    if (_serverShutdown || isCleanClose) {
+      // Server explicitly shut down or user navigated away — do not reconnect
+      _serverShutdown = false;
+      store.connectionState = 'disconnected';
+      if (!isCleanClose) {
+        // handle_server_shutdown already showed a swal; only log here
+        const ml = getMessageLog();
+        if (ml != null) {
+          ml.update({ event: E_LOG_ERROR, message: 'Server connection closed.' });
+        }
+      }
+      return;
+    }
+
+    // Abnormal close (network drop, server crash, proxy timeout, etc.) — reconnect
+    stopReconnectTimers();
+    startReconnect();
   };
 
   ws.onerror = function (evt: Event) {
-    show_dialog_message(
-      'Network error',
-      'A problem occured with the ' + document.location.protocol
-        + ' WebSocket connection to the server: ' + (ws ? ws.url : '')
-    );
-    console.error('WebSocket error:', evt);
+    // onclose always fires after onerror — let it handle reconnect
+    console.error('[xbw] WebSocket error:', evt);
   };
 }
 
