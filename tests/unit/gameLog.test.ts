@@ -53,4 +53,33 @@ describe('mountGameLog', () => {
     expect(container.textContent).toContain('Clear');
     document.body.removeChild(container);
   });
+
+  it('shows pushed entry text after mount + signal update', async () => {
+    const { mountGameLog, pushGameLogEntry } = await import('@/components/GameLog');
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    mountGameLog(container);
+
+    // Push an entry — signal update triggers re-render
+    pushGameLogEntry('Unit moved to Rome');
+    await Promise.resolve();
+
+    expect(container.textContent).toContain('Unit moved to Rome');
+    document.body.removeChild(container);
+  });
+
+  it('shows multiple pushed entries', async () => {
+    const { mountGameLog, pushGameLogEntry } = await import('@/components/GameLog');
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    mountGameLog(container);
+
+    pushGameLogEntry('First event');
+    pushGameLogEntry('Second event');
+    await Promise.resolve();
+
+    expect(container.textContent).toContain('First event');
+    expect(container.textContent).toContain('Second event');
+    document.body.removeChild(container);
+  });
 });
