@@ -113,3 +113,48 @@ describe('ChatBox — MAX_MESSAGES cap', () => {
     expect(chatEntries.value[chatEntries.value.length - 1].html).toBe('msg509');
   });
 });
+
+describe('ChatBox — mountChatBox rendering', () => {
+  beforeEach(async () => {
+    document.body.innerHTML = '';
+    const { clipChatMessages } = await import('@/components/ChatBox');
+    clipChatMessages(0);
+  });
+
+  it('exports mountChatBox as a function', async () => {
+    const { mountChatBox } = await import('@/components/ChatBox');
+    expect(typeof mountChatBox).toBe('function');
+  });
+
+  it('mounts into a container without throwing', async () => {
+    const { mountChatBox } = await import('@/components/ChatBox');
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    expect(() => mountChatBox(div)).not.toThrow();
+    document.body.removeChild(div);
+  });
+
+  it('renders pushed messages into the DOM', async () => {
+    const { mountChatBox, pushChatMessage } = await import('@/components/ChatBox');
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    mountChatBox(div);
+    pushChatMessage('Turn 10 has begun', 'system');
+    await Promise.resolve();
+    expect(div.textContent).toContain('Turn 10 has begun');
+    document.body.removeChild(div);
+  });
+
+  it('renders multiple messages in order', async () => {
+    const { mountChatBox, pushChatMessage } = await import('@/components/ChatBox');
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    mountChatBox(div);
+    pushChatMessage('Alpha', 'chat');
+    pushChatMessage('Beta', 'chat');
+    await Promise.resolve();
+    const text = div.textContent ?? '';
+    expect(text.indexOf('Alpha')).toBeLessThan(text.indexOf('Beta'));
+    document.body.removeChild(div);
+  });
+});
