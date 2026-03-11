@@ -10,6 +10,7 @@ import {
   cityOwner,
   canCityBuildUnitNow,
   canCityBuildImprovementNow,
+  canCityBuildUnitDirect,
 } from '../data/city';
 import { get_supported_units, tile_units, get_unit_city_info } from '../data/unit';
 import { get_unit_image_sprite, get_improvement_image_sprite, get_unit_type_image_sprite } from '../renderer/tilespec';
@@ -281,9 +282,12 @@ export function buildProductionListData(pcity: City): ProductionListData {
   for (const id in store.unitTypes) {
     const ut: UnitType = store.unitTypes[Number(id)];
     if (ut['name'] === 'Barbarian Leader' || ut['name'] === 'Leader') continue;
-    if (!hasData || canCityBuildUnitNow(pcity, Number(id))) {
-      units.push({ type: ut, cost: ut['build_cost'] as number });
+    if (hasData) {
+      if (!canCityBuildUnitNow(pcity, Number(id))) continue;
+    } else {
+      if (!canCityBuildUnitDirect(pcity, ut)) continue;
     }
+    units.push({ type: ut, cost: ut['build_cost'] as number });
   }
 
   for (const id in store.improvements) {

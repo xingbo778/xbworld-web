@@ -14,13 +14,15 @@ import {
   VUT_IMPROVEMENT,
   O_SHIELD,
   CAPITAL_PRIMARY,
+  RPT_POSSIBLE,
 } from './fcTypes';
 import { store } from './store';
 import { clientPlaying } from '../client/clientState';
 import {
   indexToTile,
 } from './map';
-import { universalBuildShieldCost } from './requirements';
+import { universalBuildShieldCost, areReqsActive, type Requirement } from './requirements';
+import { can_player_build_unit_direct } from './unittype';
 import {
   get_unit_type_image_sprite,
   get_improvement_image_sprite,
@@ -272,8 +274,20 @@ export function generateProductionList(): ProductionItem[] {
 // ---------------------------------------------------------------------------
 
 /** Return whether given city can build given unit, ignoring obsolete. */
-export function canCityBuildUnitDirect(_pcity: City, _punittype: UnitType): boolean {
-  // TODO: implement
+export function canCityBuildUnitDirect(pcity: City, punittype: UnitType): boolean {
+  const pplayer = cityOwner(pcity);
+
+  // Player-level check: tech requirement + obsoleted_by
+  if (!can_player_build_unit_direct(pplayer, punittype)) return false;
+
+  // City-level check: build_reqs (e.g. VUT_IMPROVEMENT, VUT_GOVERNMENT, etc.)
+  const buildReqs = punittype['build_reqs'] as Requirement[] | null | undefined;
+  if (buildReqs != null && buildReqs.length > 0) {
+    if (!areReqsActive(pplayer, pcity, null, null, punittype, null, null, buildReqs, RPT_POSSIBLE)) {
+      return false;
+    }
+  }
+
   return true;
 }
 
