@@ -28,6 +28,7 @@ import type {
 
 export function handle_game_info(packet: GameInfoPacket): void {
   store.gameInfo = packet;
+  globalEvents.emit('game:info', packet);
 
   const turn = packet.turn ?? 0;
   const obs = store.observing;
@@ -151,6 +152,7 @@ export function handle_research_info(packet: ResearchInfoPacket): void {
 }
 
 export function handle_begin_turn(_packet: BasePacket): void {
+  globalEvents.emit('game:beginturn');
   if (typeof mark_all_dirty === 'function') mark_all_dirty();
 
   if (!store.observing) {
