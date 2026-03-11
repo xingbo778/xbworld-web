@@ -23,11 +23,7 @@ export * from './control/unitFocus';
 // ---------------------------------------------------------------------------
 import { network_stop } from '../net/connection';
 import { isTouchDevice as is_touch_device } from '../utils/helpers';
-import { update_city_screen } from '../ui/cityDialog';
-import { mountCitiesPanel } from '../components/CitiesPanel';
-import { init_options_dialog, init_theme_selector } from '../ui/options';
 import { refreshNationOverview } from '../components/NationOverview';
-import { store } from '../data/store';
 import {
   updateNationScreen as update_nation_screen,
   centerOnPlayer as center_on_player,
@@ -39,8 +35,9 @@ import { setKeyboardInput, setResizeEnabled, setUrgentFocusQueue } from './contr
 import { global_keyboard_listener } from './control/keyboard';
 import { chat_context_change, check_text_input } from './control/chat';
 import * as S from './control/controlState';
-import { effect } from '@preact/signals';
-import { turnDoneState, unitTextDetails, activeUnitInfo } from '../data/signals';
+
+// Suppress unused-variable warning (is_touch_device kept for backward compat)
+void is_touch_device;
 
 function set_default_mapview_active(): void { setKeyboardInput(true); }
 function set_default_mapview_inactive(): void { setKeyboardInput(true); }
@@ -83,23 +80,6 @@ function mount_nation_overview(): void {
 export function control_init(): void {
   setUrgentFocusQueue([]);
 
-  // Sync player-mode signals → legacy DOM elements
-  effect(() => {
-    const { disabled, text } = turnDoneState.value;
-    const btn = document.getElementById('turn_done_button') as HTMLButtonElement | null;
-    if (!btn) return;
-    btn.disabled = disabled;
-    btn.textContent = text;
-  });
-  effect(() => {
-    const el = document.getElementById('unit_text_details');
-    if (el) el.textContent = unitTextDetails.value;
-  });
-  effect(() => {
-    const el = document.getElementById('active_unit_info');
-    if (el) el.textContent = activeUnitInfo.value;
-  });
-
   document.addEventListener('keydown', global_keyboard_listener);
   window.addEventListener('resize', mapview_window_resized);
   window.addEventListener('orientationchange', orientation_changed);
@@ -135,35 +115,10 @@ export function control_init(): void {
     if (!S.allow_right_click) e.preventDefault();
   }, false);
 
-  // Tab navigation
+  // Tab navigation — observer mode shows: Map, Research, Nations
   document.getElementById('map_tab')?.addEventListener('click', () => setTimeout(set_default_mapview_active, 5));
   document.getElementById('tech_tab')?.addEventListener('click', () => { set_default_mapview_inactive(); mount_tech_panel(); });
   document.getElementById('players_tab')?.addEventListener('click', () => { set_default_mapview_inactive(); mount_nation_overview(); update_nation_screen(); });
-  document.getElementById('cities_tab')?.addEventListener('click', () => {
-    set_default_mapview_inactive();
-    update_city_screen();
-    mountCitiesPanel();
-  });
-  document.getElementById('opt_tab')?.addEventListener('click', () => {
-    const tabsHel = document.getElementById('tabs-hel');
-    if (tabsHel) tabsHel.style.display = 'none';
-    init_options_dialog(); init_theme_selector();
-    set_default_mapview_inactive();
-  });
-  document.getElementById('chat_tab')?.addEventListener('click', () => {
-    set_default_mapview_inactive();
-    const tabsChat = document.getElementById('tabs-chat');
-    if (tabsChat) tabsChat.style.display = '';
-  });
-  // Log tab — show game event log
-  document.getElementById('hel_tab')?.addEventListener('click', () => {
-    set_default_mapview_inactive();
-    const panel = document.getElementById('tabs-hel');
-    if (panel && !panel.dataset['logMounted']) {
-      panel.dataset['logMounted'] = '1';
-      import('../components/GameLog').then(({ mountGameLog }) => mountGameLog(panel));
-    }
-  });
 
   // Game Scores button — show sorted player rankings
   document.getElementById('game_scores_button')?.addEventListener('click', () => {
