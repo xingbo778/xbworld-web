@@ -217,6 +217,11 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
 }
 
+#game_status_panel_top {
+  min-height: 20px;
+  line-height: 20px;
+}
+
 #game_status_panel_bottom {
   position: absolute;
   bottom: 40px;
