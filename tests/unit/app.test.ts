@@ -3,6 +3,7 @@
  * mounted in the root App and that mountPreactApp() is idempotent.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
+import { render, h } from 'preact';
 
 describe('mountPreactApp — mounts all dialogs', () => {
   beforeEach(() => {
@@ -75,5 +76,41 @@ describe('BlockingOverlay signal', () => {
       showBlockingOverlay('Second');
     }).not.toThrow();
     hideBlockingOverlay();
+  });
+});
+
+describe('BlockingOverlay rendering', () => {
+  beforeEach(() => { document.body.innerHTML = ''; });
+
+  it('renders nothing when hidden', async () => {
+    const { BlockingOverlay, hideBlockingOverlay } = await import('@/components/BlockingOverlay');
+    hideBlockingOverlay();
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    render(h(BlockingOverlay, null), div);
+    expect(div.innerHTML).toBe('');
+    document.body.removeChild(div);
+  });
+
+  it('renders overlay content when shown', async () => {
+    const { BlockingOverlay, showBlockingOverlay, hideBlockingOverlay } = await import('@/components/BlockingOverlay');
+    showBlockingOverlay('Connecting to server...');
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    render(h(BlockingOverlay, null), div);
+    expect(div.textContent).toContain('Connecting to server...');
+    hideBlockingOverlay();
+    document.body.removeChild(div);
+  });
+
+  it('overlay has xb-block-overlay class when visible', async () => {
+    const { BlockingOverlay, showBlockingOverlay, hideBlockingOverlay } = await import('@/components/BlockingOverlay');
+    showBlockingOverlay('<b>Loading</b>');
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    render(h(BlockingOverlay, null), div);
+    expect(div.querySelector('.xb-block-overlay')).not.toBeNull();
+    hideBlockingOverlay();
+    document.body.removeChild(div);
   });
 });
