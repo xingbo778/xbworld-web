@@ -20,10 +20,9 @@ import { E_CHAT_MSG, E_CHAT_PRIVATE, E_CHAT_ALLIES, E_CHAT_OBSERVER, fc_e_events
 import { clientState, C_S_PREPARING } from '../client/clientState';
 import { check_text_with_banlist } from '../utils/banlist';
 import { isLongturn } from '../client/clientCore';
-import { is_small_screen } from '../renderer/mapview';
 
 import { EventAggregator } from '../utils/EventAggregator';
-import { appendSafeHtml } from '../utils/dom';
+import { pushChatMessage, clipChatMessages, chatLogText, mountChatBox } from '../components/ChatBox';
 
 const is_longturn = isLongturn;
 const civclient_state = clientState();
@@ -46,6 +45,15 @@ export function init_chatbox(): void
   if (panel) {
     panel.title = 'Messages';
     panel.style.display = 'block';
+  }
+
+  // Mount Preact ChatBox into the scrollable container (replaces DOM <ol>)
+  const scrollDiv = document.getElementById('freeciv_custom_scrollbar_div');
+  if (scrollDiv) {
+    // Remove the legacy <ol> that was rendered into by the old DOM path
+    const ol = scrollDiv.querySelector('ol#game_message_area');
+    if (ol) ol.remove();
+    mountChatBox(scrollDiv);
   }
 }
 
@@ -129,26 +137,12 @@ export function add_chatbox_text(packet: Record<string, unknown>): void
 }
 
 /**************************************************************************
- Returns the chatbox messages.
+ Returns the chatbox messages as plain text (for wait_for_text).
+ Reads from the in-memory chatLogText buffer — no DOM access needed.
 **************************************************************************/
 export function get_chatbox_text(): string | null
 {
-  const chatbox_msg_list: HTMLElement | null = get_chatbox_msg_list();
-  if (chatbox_msg_list != null) {
-    return chatbox_msg_list.textContent;
-  } else {
-    return null;
-  }
-
-}
-
-/**************************************************************************
- Returns the chatbox message list element.
-**************************************************************************/
-export function get_chatbox_msg_list(): HTMLElement | null
-{
-  return document.getElementById(civclient_state <= C_S_PREPARING ?
-    'pregame_message_area' : 'game_message_area');
+  return chatLogText || null;
 }
 
 /**************************************************************************
@@ -162,33 +156,23 @@ export function clear_chatbox(): void
 
 /**************************************************************************
  Updates the chatbox text window.
+ Pushes messages into the Preact ChatBox signal (always ready; no DOM wait).
 **************************************************************************/
 export function update_chatbox(messages: Record<string, unknown>[]): void
 {
-  const scrollDiv: HTMLElement | null = get_chatbox_msg_list();
-
-  if (scrollDiv != null) {
-    for (let i = 0; i < messages.length; i++) {
-        const item: HTMLLIElement = document.createElement('li');
-        item.className = fc_e_events[messages[i]['event'] as number] || '';
-        appendSafeHtml(item, messages[i]['message'] as string);
-        scrollDiv.appendChild(item);
-        // Push to GameLog panel (lazy import to avoid circular dep)
-        import('../components/GameLog').then(({ pushGameLogEntry }) => pushGameLogEntry(messages[i]['message'] as string)).catch(() => {});
-    }
-
-  } else {
-      // It seems this might happen in pregame while handling a join request.
-      // If so, enqueue the messages again, but we'll be emptying-requeueing
-      // every second until the state changes.
-      for (let i = 0; i < messages.length; i++) {
-        message_log.update(messages[i]);
-      }
+  for (let i = 0; i < messages.length; i++) {
+    const html = messages[i]['message'] as string;
+    const className = fc_e_events[messages[i]['event'] as number] || '';
+    pushChatMessage(html, className);
+    // Mirror to GameLog panel (lazy import to avoid circular dep)
+    import('../components/GameLog').then(({ pushGameLogEntry }) => pushGameLogEntry(html)).catch(() => {});
   }
-  setTimeout(() => {
-    const el = document.getElementById('freeciv_custom_scrollbar_div');
-    if (el) el.scrollTop = el.scrollHeight;
-  }, 100);
+  if (messages.length > 0) {
+    setTimeout(() => {
+      const el = document.getElementById('freeciv_custom_scrollbar_div');
+      if (el) el.scrollTop = el.scrollHeight;
+    }, 100);
+  }
 }
 
 /**************************************************************************
@@ -200,20 +184,10 @@ export function chatbox_clip_messages(lines?: number): void
     lines = 24;
   }
 
-  // Flush the buffered messages
+  // Flush the buffered messages first
   message_log.fireNow();
 
-  const msglist: HTMLElement | null = get_chatbox_msg_list();
-  if (!msglist) return;
-  let remove: number = msglist.children.length - lines;
-  while (remove-- > 0) {
-    if (msglist.firstChild) {
-      msglist.removeChild(msglist.firstChild);
-    }
-  }
-
-  // To update scroll size
-  update_chatbox([]);
+  clipChatMessages(lines);
 }
 
 /**************************************************************************
