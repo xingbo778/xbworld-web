@@ -64,9 +64,13 @@ function mount_nation_overview(): void {
   if (_nationOverviewMounted) { refreshNationOverview(); return; }
   const tabsNat = document.getElementById('tabs-nat');
   if (!tabsNat) return;
+  // Clear legacy HTML (nations_title, nations_button_div, nations/nations_list)
+  // — NationOverview's ActionBar replaces the old button bar
+  tabsNat.innerHTML = '';
   const container = document.createElement('div');
   container.id = 'xb-nation-overview';
-  tabsNat.insertBefore(container, tabsNat.firstChild);
+  container.style.height = '100%';
+  tabsNat.appendChild(container);
   // Lazy-import to keep control.ts as a .ts file (no JSX)
   import('../components/NationOverview').then(({ mountNationOverview }) => {
     mountNationOverview(container);

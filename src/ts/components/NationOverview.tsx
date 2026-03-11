@@ -13,6 +13,8 @@ import { currentTurn, cityCount, unitCount, playerUpdated, researchUpdated, rule
 import { research_get, PlayerFlag } from '../data/player';
 import { nationSelectPlayer, selectNoNation } from '../data/nationScreen';
 import { Tabs, TabPanel } from './Shared/Tabs';
+import { Button } from './Shared/Button';
+import { centerOnPlayer } from '../data/nationScreen';
 
 type OverviewTab = 'nations' | 'cities' | 'units';
 
@@ -261,6 +263,53 @@ function UnitsTable() {
 
 // ── root component ────────────────────────────────────────────────────────────
 
+// ── Action bar ───────────────────────────────────────────────────────────────
+
+function ActionBar() {
+  const selectedNo = _selectedPlayerno.value;
+  const hasSelection = selectedNo >= 0;
+  const pplayer = hasSelection ? store.players[selectedNo] : null;
+  const isAlive = hasSelection && pplayer && (pplayer as Record<string, unknown>)['is_alive'] !== false;
+
+  function handleViewOnMap() {
+    if (!isAlive) return;
+    centerOnPlayer();
+  }
+
+  function handleGameScores() {
+    import('../data/nation').then(({ getPlayerScoresSummary }) => {
+      const text = getPlayerScoresSummary();
+      import('../client/civClient').then(({ showDialogMessage }) =>
+        showDialogMessage('Game Scores', text),
+      );
+    });
+  }
+
+  return (
+    <div style={{
+      display: 'flex',
+      gap: 8,
+      padding: '8px 12px',
+      borderBottom: '1px solid var(--xb-border-default, #30363d)',
+      background: 'var(--xb-bg-secondary, #161b22)',
+      flexShrink: 0,
+    }}>
+      <Button
+        onClick={handleViewOnMap}
+        disabled={!isAlive}
+        variant="secondary"
+      >
+        View on Map
+      </Button>
+      <Button onClick={handleGameScores} variant="secondary">
+        Game Scores
+      </Button>
+    </div>
+  );
+}
+
+// ── root component ────────────────────────────────────────────────────────────
+
 export function NationOverview() {
   _tick.value;           // explicit external refresh (refreshNationOverview())
   currentTurn.value;     // re-render on each new turn
@@ -272,14 +321,19 @@ export function NationOverview() {
   const activeTab = _activeTab.value;
 
   return (
-    <Tabs
-      tabs={OVERVIEW_TABS}
-      activeTab={activeTab}
-      onTabChange={(id) => { _activeTab.value = id as OverviewTab; }}
-    >
-      <TabPanel id="nations" activeTab={activeTab}><NationsTable /></TabPanel>
-      <TabPanel id="cities"  activeTab={activeTab}><CitiesTable /></TabPanel>
-      <TabPanel id="units"   activeTab={activeTab}><UnitsTable /></TabPanel>
-    </Tabs>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <ActionBar />
+      <div style={{ flex: 1, overflow: 'auto' }}>
+        <Tabs
+          tabs={OVERVIEW_TABS}
+          activeTab={activeTab}
+          onTabChange={(id) => { _activeTab.value = id as OverviewTab; }}
+        >
+          <TabPanel id="nations" activeTab={activeTab}><NationsTable /></TabPanel>
+          <TabPanel id="cities"  activeTab={activeTab}><CitiesTable /></TabPanel>
+          <TabPanel id="units"   activeTab={activeTab}><UnitsTable /></TabPanel>
+        </Tabs>
+      </div>
+    </div>
   );
 }
