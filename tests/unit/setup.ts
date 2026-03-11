@@ -22,3 +22,23 @@ if (!globalThis.requestAnimationFrame) {
 if (!Element.prototype.scrollIntoView) {
   Element.prototype.scrollIntoView = vi.fn();
 }
+
+// Stub localStorage if jsdom does not provide a working implementation.
+// Some jsdom environments expose the object but with non-functional methods.
+try {
+  localStorage.getItem('__probe__');
+} catch {
+  Object.defineProperty(globalThis, 'localStorage', {
+    value: {
+      _store: {} as Record<string, string>,
+      getItem(k: string) { return this._store[k] ?? null; },
+      setItem(k: string, v: string) { this._store[k] = v; },
+      removeItem(k: string) { delete this._store[k]; },
+      clear() { this._store = {}; },
+      get length() { return Object.keys(this._store).length; },
+      key(i: number) { return Object.keys(this._store)[i] ?? null; },
+    },
+    writable: true,
+    configurable: true,
+  });
+}

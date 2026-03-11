@@ -23,7 +23,7 @@ export function showIntroDialog(title: string, message: string): void {
   state.value = { open: true, title, message, error: '' };
 }
 
-function closeIntroDialog(): void {
+export function closeIntroDialog(): void {
   state.value = { ...state.value, open: false };
 }
 

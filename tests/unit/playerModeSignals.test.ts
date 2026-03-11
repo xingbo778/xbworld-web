@@ -4,6 +4,7 @@
  * gotoPath.ts, unitFocus.ts, gameState.ts, and connection.ts.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
+import { render, h } from 'preact';
 import { store } from '@/data/store';
 import { globalEvents } from '@/core/events';
 
@@ -130,5 +131,45 @@ describe('BlockingOverlay', () => {
     const { blockUI, unblockUI } = await import('@/utils/dom');
     expect(() => blockUI('test')).not.toThrow();
     expect(() => unblockUI()).not.toThrow();
+  });
+});
+
+describe('IntroDialog rendering', () => {
+  beforeEach(async () => {
+    document.body.innerHTML = '';
+    const { closeIntroDialog } = await import('@/components/Dialogs/IntroDialog');
+    closeIntroDialog();
+  });
+
+  it('renders nothing when closed', async () => {
+    const { IntroDialog } = await import('@/components/Dialogs/IntroDialog');
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    render(h(IntroDialog, null), div);
+    expect(div.innerHTML).toBe('');
+    document.body.removeChild(div);
+  });
+
+  it('renders title and message text when open', async () => {
+    const { IntroDialog, showIntroDialog } = await import('@/components/Dialogs/IntroDialog');
+    showIntroDialog('Welcome', 'Please enter your username to begin');
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    render(h(IntroDialog, null), div);
+    expect(div.textContent).toContain('Welcome');
+    expect(div.textContent).toContain('Please enter your username to begin');
+    document.body.removeChild(div);
+  });
+
+  it('renders username input field and Observe Game button when open', async () => {
+    const { IntroDialog, showIntroDialog } = await import('@/components/Dialogs/IntroDialog');
+    showIntroDialog('Connect', 'Enter a name');
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    render(h(IntroDialog, null), div);
+    expect(div.querySelector('#username_req')).not.toBeNull();
+    const buttons = Array.from(div.querySelectorAll('button')).map(b => b.textContent?.trim());
+    expect(buttons).toContain('Observe Game');
+    document.body.removeChild(div);
   });
 });
