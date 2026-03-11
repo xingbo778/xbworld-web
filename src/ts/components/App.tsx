@@ -11,11 +11,15 @@ import { TechGainedDialog } from './Dialogs/TechGainedDialog';
 import { WikiDialog, TechInfoDialog } from './Dialogs/TechDialog';
 import { TaxRatesDialog } from './Dialogs/TaxRatesDialog';
 import { ChatContextDialog } from './ChatContextDialog';
+import { BlockingOverlay } from './BlockingOverlay';
 import { StatusBar } from './StatusBar';
 
 function App() {
   return (
     <div id="xb-preact-root">
+      {/* Full-screen blocking overlay (loading/connecting) */}
+      <BlockingOverlay />
+
       {/* Floating dialogs */}
       <MessageDialog />
       <AlertDialog />

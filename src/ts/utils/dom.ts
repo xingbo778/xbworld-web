@@ -110,22 +110,11 @@ export function ready(fn: () => void): void {
   }
 }
 
-/** Blocking UI overlay (replaces $.blockUI). */
-let blockOverlay: HTMLElement | null = null;
-
+/** Blocking UI overlay — delegates to Preact BlockingOverlay signal component. */
 export function blockUI(message: string): void {
-  unblockUI();
-  blockOverlay = create('div');
-  blockOverlay.className = 'xb-block-overlay';
-  const msgDiv = create('div', { class: 'xb-block-message' });
-  appendSafeHtml(msgDiv, message);
-  blockOverlay.appendChild(msgDiv);
-  document.body.appendChild(blockOverlay);
+  import('../components/BlockingOverlay').then(({ showBlockingOverlay }) => showBlockingOverlay(message)).catch(() => {});
 }
 
 export function unblockUI(): void {
-  if (blockOverlay) {
-    blockOverlay.remove();
-    blockOverlay = null;
-  }
+  import('../components/BlockingOverlay').then(({ hideBlockingOverlay }) => hideBlockingOverlay()).catch(() => {});
 }
