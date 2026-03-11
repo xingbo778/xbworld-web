@@ -1,8 +1,10 @@
 /**
  * NationOverview — Preact panel showing all players' status (observer mode).
  *
- * Renders in the "players" tab area. Shows nation name, score, cities,
- * units, gold, current research, and diplomatic state at a glance.
+ * Renders in the "players" tab area. Three sub-tabs:
+ *  • Nations — player score/gold/research overview (one row per player)
+ *  • Cities  — all cities with owner / size
+ *  • Units   — all units with type / owner / HP
  */
 import { render } from 'preact';
 import { signal } from '@preact/signals';
@@ -11,12 +13,17 @@ import { rulesetReady } from '../data/signals';
 import { research_get, PlayerFlag } from '../data/player';
 import { globalEvents } from '../core/events';
 import { nationSelectPlayer, selectNoNation } from '../data/nationScreen';
+import { Tabs, TabPanel } from './Shared/Tabs';
+
+type OverviewTab = 'nations' | 'cities' | 'units';
 
 // Refresh counter — bump to force re-render
 const _tick = signal(0);
 const _selectedPlayerno = signal(-1);
+const _activeTab = signal<OverviewTab>('nations');
 
 export function refreshNationOverview(): void { _tick.value++; }
+export function setNationOverviewTab(tab: OverviewTab): void { _activeTab.value = tab; }
 
 export function mountNationOverview(container: HTMLElement): void {
   render(<NationOverview />, container);
@@ -26,8 +33,37 @@ globalEvents.on('game:beginturn', refreshNationOverview);
 globalEvents.on('player:updated', refreshNationOverview);
 globalEvents.on('city:updated', refreshNationOverview);
 
-export function NationOverview() {
-  _tick.value;        // subscribe to turn/player events
+// ── shared styles ────────────────────────────────────────────────────────────
+
+const TABLE_STYLE = {
+  width: '100%',
+  borderCollapse: 'collapse' as const,
+  fontSize: 'var(--xb-font-size-sm, 12px)',
+  color: 'var(--xb-text-primary, #e6edf3)',
+};
+const TH_STYLE = {
+  padding: '6px 10px',
+  textAlign: 'left' as const,
+  color: 'var(--xb-text-secondary, #8b949e)',
+  fontWeight: 600,
+};
+const TD_STYLE = { padding: '6px 10px' };
+const THEAD_TR_STYLE = {
+  borderBottom: '2px solid var(--xb-border-default, #30363d)',
+  background: 'var(--xb-bg-secondary, #161b22)',
+};
+const TBODY_TR_STYLE = { borderBottom: '1px solid var(--xb-border-muted, #21262d)' };
+
+const OVERVIEW_TABS = [
+  { id: 'nations', label: 'Nations' },
+  { id: 'cities',  label: 'Cities'  },
+  { id: 'units',   label: 'Units'   },
+];
+
+// ── sub-components ────────────────────────────────────────────────────────────
+
+function NationsTable() {
+  _tick.value;        // re-render on turn/player events
   rulesetReady.value; // re-render when tech names become available
   const selectedNo = _selectedPlayerno.value;
   const players = Object.values(store.players);
@@ -42,16 +78,11 @@ export function NationOverview() {
 
   return (
     <div style={{ overflowX: 'auto' }}>
-      <table style={{
-        width: '100%',
-        borderCollapse: 'collapse',
-        fontSize: 'var(--xb-font-size-sm, 12px)',
-        color: 'var(--xb-text-primary, #e6edf3)',
-      }}>
+      <table style={TABLE_STYLE}>
         <thead>
-          <tr style={{ borderBottom: '2px solid var(--xb-border-default, #30363d)', background: 'var(--xb-bg-secondary, #161b22)' }}>
+          <tr style={THEAD_TR_STYLE}>
             {['Nation', 'Score', 'Cities', 'Units', 'Gold', 'Researching', 'Progress', 'State'].map(h => (
-              <th key={h} style={{ padding: '6px 10px', textAlign: 'left', color: 'var(--xb-text-secondary, #8b949e)', fontWeight: 600 }}>{h}</th>
+              <th key={h} style={TH_STYLE}>{h}</th>
             ))}
           </tr>
         </thead>
@@ -67,7 +98,6 @@ export function NationOverview() {
             const pct = Math.min(100, Math.round((bulbs / cost) * 100));
             const isAI = pplayer.flags?.isSet(PlayerFlag.PLRF_AI) ?? false;
 
-            // Count cities and units belonging to this player
             const myCities = Object.values(store.cities).filter(
               c => (c as Record<string, unknown>)['owner'] === p['playerno']
             ).length;
@@ -75,7 +105,6 @@ export function NationOverview() {
               u => (u as Record<string, unknown>)['owner'] === p['playerno']
             ).length;
 
-            // Turn state
             let stateText = '';
             let stateColor = 'var(--xb-text-secondary, #8b949e)';
             if (!p['is_alive']) {
@@ -109,25 +138,25 @@ export function NationOverview() {
                   }
                 }}
                 style={{
-                  borderBottom: '1px solid var(--xb-border-muted, #21262d)',
+                  ...TBODY_TR_STYLE,
                   background: isSelected ? 'var(--xb-bg-elevated, #21262d)' : undefined,
                   cursor: 'pointer',
                 }}
               >
-                <td style={{ padding: '6px 10px' }}>
+                <td style={TD_STYLE}>
                   <span style={{ fontWeight: 600, color }}>{p['name'] as string}</span>
                   {p['is_alive'] === false && (
                     <span style={{ marginLeft: 6, fontSize: 11, color: 'var(--xb-accent-red, #f85149)' }}>💀</span>
                   )}
                 </td>
-                <td style={{ padding: '6px 10px' }}>{(p['score'] as number) ?? '—'}</td>
-                <td style={{ padding: '6px 10px' }}>{myCities}</td>
-                <td style={{ padding: '6px 10px' }}>{myUnits}</td>
-                <td style={{ padding: '6px 10px' }}>{(p['gold'] as number) ?? '—'}</td>
-                <td style={{ padding: '6px 10px', color: 'var(--xb-text-secondary, #8b949e)' }}>
+                <td style={TD_STYLE}>{(p['score'] as number) ?? '—'}</td>
+                <td style={TD_STYLE}>{myCities}</td>
+                <td style={TD_STYLE}>{myUnits}</td>
+                <td style={TD_STYLE}>{(p['gold'] as number) ?? '—'}</td>
+                <td style={{ ...TD_STYLE, color: 'var(--xb-text-secondary, #8b949e)' }}>
                   {techData ? techData['name'] as string : '—'}
                 </td>
-                <td style={{ padding: '6px 10px', minWidth: 80 }}>
+                <td style={{ ...TD_STYLE, minWidth: 80 }}>
                   {pr && (
                     <div title={`${bulbs}/${cost} bulbs (${pct}%)`}>
                       <div style={{ background: 'var(--xb-bg-elevated, #21262d)', borderRadius: 3, height: 6, overflow: 'hidden' }}>
@@ -136,7 +165,7 @@ export function NationOverview() {
                     </div>
                   )}
                 </td>
-                <td style={{ padding: '6px 10px', color: stateColor, fontWeight: stateText === 'Moving' ? 600 : 400 }}>
+                <td style={{ ...TD_STYLE, color: stateColor, fontWeight: stateText === 'Moving' ? 600 : 400 }}>
                   {stateText}
                 </td>
               </tr>
@@ -145,5 +174,109 @@ export function NationOverview() {
         </tbody>
       </table>
     </div>
+  );
+}
+
+function CitiesTable() {
+  const cities = Object.values(store.cities);
+
+  if (cities.length === 0) {
+    return (
+      <div style={{ padding: 16, color: 'var(--xb-text-secondary, #8b949e)', fontSize: 'var(--xb-font-size-sm, 12px)' }}>
+        No cities known yet.
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ overflowX: 'auto' }}>
+      <table style={TABLE_STYLE}>
+        <thead>
+          <tr style={THEAD_TR_STYLE}>
+            {['City', 'Owner', 'Size'].map(h => (
+              <th key={h} style={TH_STYLE}>{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {cities.map((city) => {
+            const owner = store.players[city.owner];
+            const ownerName = (owner as Record<string, unknown> | undefined)?.['name'] as string ?? `#${city.owner}`;
+            const nation = owner ? store.nations[(owner as Record<string, unknown>)['nation'] as number] : null;
+            const color: string = (nation as Record<string, unknown> | undefined)?.['color'] as string ?? 'var(--xb-text-primary)';
+            return (
+              <tr key={city.id} style={TBODY_TR_STYLE}>
+                <td style={TD_STYLE}>{city.name}</td>
+                <td style={{ ...TD_STYLE, color }}>{ownerName}</td>
+                <td style={TD_STYLE}>{city.size}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function UnitsTable() {
+  const units = Object.values(store.units);
+
+  if (units.length === 0) {
+    return (
+      <div style={{ padding: 16, color: 'var(--xb-text-secondary, #8b949e)', fontSize: 'var(--xb-font-size-sm, 12px)' }}>
+        No units known yet.
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ overflowX: 'auto' }}>
+      <table style={TABLE_STYLE}>
+        <thead>
+          <tr style={THEAD_TR_STYLE}>
+            {['Type', 'Owner', 'HP'].map(h => (
+              <th key={h} style={TH_STYLE}>{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {units.map((unit) => {
+            const utype = store.unitTypes[unit.type];
+            const typeName = (utype as Record<string, unknown> | undefined)?.['name'] as string ?? `#${unit.type}`;
+            const owner = store.players[unit.owner];
+            const ownerName = (owner as Record<string, unknown> | undefined)?.['name'] as string ?? `#${unit.owner}`;
+            const nation = owner ? store.nations[(owner as Record<string, unknown>)['nation'] as number] : null;
+            const color: string = (nation as Record<string, unknown> | undefined)?.['color'] as string ?? 'var(--xb-text-primary)';
+            return (
+              <tr key={unit.id} style={TBODY_TR_STYLE}>
+                <td style={TD_STYLE}>{typeName}</td>
+                <td style={{ ...TD_STYLE, color }}>{ownerName}</td>
+                <td style={TD_STYLE}>{unit.hp}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ── root component ────────────────────────────────────────────────────────────
+
+export function NationOverview() {
+  _tick.value;        // subscribe to turn/player/city events
+  rulesetReady.value; // re-render when tech names become available
+  const activeTab = _activeTab.value;
+
+  return (
+    <Tabs
+      tabs={OVERVIEW_TABS}
+      activeTab={activeTab}
+      onTabChange={(id) => { _activeTab.value = id as OverviewTab; }}
+    >
+      <TabPanel id="nations" activeTab={activeTab}><NationsTable /></TabPanel>
+      <TabPanel id="cities"  activeTab={activeTab}><CitiesTable /></TabPanel>
+      <TabPanel id="units"   activeTab={activeTab}><UnitsTable /></TabPanel>
+    </Tabs>
   );
 }

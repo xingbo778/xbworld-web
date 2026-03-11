@@ -151,8 +151,8 @@ describe('rulesetReady — NationOverview subscription', () => {
     store.techs[42] = { id: 42, name: 'Alphabet' } as never;
     rulesetReady.value++;
     refreshNationOverview();
-    // Preact schedules component updates via microtask; flush before asserting.
-    await Promise.resolve();
+    // Preact batches DOM updates via a macrotask (setTimeout 0). Wait for it.
+    await new Promise(resolve => setTimeout(resolve, 0));
 
     expect(container.textContent).toContain('Alphabet');
     document.body.removeChild(container);
