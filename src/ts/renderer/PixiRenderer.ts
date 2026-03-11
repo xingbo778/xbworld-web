@@ -46,11 +46,14 @@ export class PixiRenderer {
   private layers: Container[] = [];
 
   // Per-tile-per-layer display containers
-  // key: `${tileIndex}_${layer}` → Container holding that tile's sprites
-  private tileLayerContainers = new Map<string, Container>();
+  // key: tileIndex * LAYER_COUNT + layer → Container holding that tile's sprites
+  private tileLayerContainers = new Map<number, Container>();
 
   // Texture cache: sprite key → Pixi Texture (created from store.sprites)
   private texCache = new Map<string, Texture | null>();
+
+  // Pre-rendered fog overlay texture (created once, reused as Sprite per fogged tile)
+  private fogTexture: Texture | null = null;
 
   // Dirty tracking
   private dirtyTiles = new Set<number>();
@@ -114,6 +117,7 @@ export class PixiRenderer {
     this.setupEventListeners();
     this.startRenderLoop();
     this.initialized = true;
+    this.createFogTexture();
 
     logNormal('PixiJS renderer initialized');
   }
@@ -157,7 +161,7 @@ export class PixiRenderer {
   // ---------------------------------------------------------------------------
 
   private getTileLayerContainer(tileIndex: number, layer: number): Container {
-    const key = `${tileIndex}_${layer}`;
+    const key = tileIndex * LAYER_COUNT + layer;
     let c = this.tileLayerContainers.get(key);
     if (!c) {
       c = new Container();
@@ -168,7 +172,7 @@ export class PixiRenderer {
   }
 
   private clearTileLayer(tileIndex: number, layer: number): void {
-    const c = this.tileLayerContainers.get(`${tileIndex}_${layer}`);
+    const c = this.tileLayerContainers.get(tileIndex * LAYER_COUNT + layer);
     if (c) c.removeChildren().forEach(ch => ch.destroy({ children: true }));
   }
 
@@ -301,14 +305,26 @@ export class PixiRenderer {
     container.addChild(g);
   }
 
-  private addFogOverlay(gx: number, gy: number, container: Container): void {
+  /** Create a shared fog texture once. Reused as Sprite per fogged tile (~2µs vs ~20µs for Graphics). */
+  private createFogTexture(): void {
     const tw = tileset_tile_width, th = tileset_tile_height;
     const hw = tw / 2, hh = th / 2;
     const g = new Graphics();
-    // Diamond-shaped semi-transparent dark overlay
-    g.poly([gx + hw, gy, gx + tw, gy + hh, gx + hw, gy + th, gx, gy + hh])
-      .fill({ color: 0x000000, alpha: 0.45 });
-    container.addChild(g);
+    g.poly([hw, 0, tw, hh, hw, th, 0, hh]).fill({ color: 0x000000, alpha: 0.45 });
+    try {
+      this.fogTexture = this.app.renderer.generateTexture({ target: g, resolution: 1 });
+    } catch {
+      this.fogTexture = null; // fallback: fog simply won't render
+    }
+    g.destroy();
+  }
+
+  private addFogOverlay(gx: number, gy: number, container: Container): void {
+    if (!this.fogTexture) return;
+    const sp = new Sprite(this.fogTexture);
+    sp.x = gx;
+    sp.y = gy;
+    container.addChild(sp);
   }
 
   private parseCSSColor(color: string): number {
@@ -333,9 +349,16 @@ export class PixiRenderer {
       return;
     }
 
-    const pos = map_to_gui_pos(tile.x, tile.y);
-    const gx = pos['gui_dx'];
-    const gy = pos['gui_dy'];
+    // Use tilePosCache (populated during processFrame scan); recompute only if missing.
+    let gx: number, gy: number;
+    const cached = this.tilePosCache.get(tile.index);
+    if (cached) {
+      gx = cached[0]; gy = cached[1];
+    } else {
+      const pos = map_to_gui_pos(tile.x, tile.y);
+      gx = pos['gui_dx'] as number; gy = pos['gui_dy'] as number;
+      this.tilePosCache.set(tile.index, [gx, gy]);
+    }
     const fog = draw_fog_of_war && known === TILE_KNOWN_UNSEEN;
     const fogAlpha = fog ? 0.5 : 1.0;
     const punit = get_drawable_unit(tile, false);
@@ -559,6 +582,8 @@ export class PixiRenderer {
   destroy(): void {
     if (this.rafHandle != null) cancelAnimationFrame(this.rafHandle);
     this.clearTextureCache();
+    this.fogTexture?.destroy();
+    this.fogTexture = null;
     this.app.destroy(true);
   }
 }
