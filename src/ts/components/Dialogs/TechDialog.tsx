@@ -16,6 +16,11 @@ import { reqtree } from '../../data/reqtree';
 import { A_NONE, TECH_KNOWN } from '../../data/tech';
 import { Dialog } from '../Shared/Dialog';
 import { ProgressBar } from '../Shared/ProgressBar';
+import {
+  buildWikiDialogData,
+  buildTechInfoDialogData,
+} from '../../ui/techLogic';
+import type { WikiDialogData, TechInfoDialogData, WikiDoc } from '../../ui/techLogic';
 import type { Tech } from '../../data/types';
 
 // ── Signals ───────────────────────────────────────────────────────────────────
@@ -339,6 +344,114 @@ export function TechDialog() {
   return (
     <Dialog title="Research Progress" open onClose={onClose} width={480} modal={false}>
       <ResearchList />
+    </Dialog>
+  );
+}
+
+// ── WikiDialog ─────────────────────────────────────────────────────────────────
+
+export const wikiDialogSignal = signal<WikiDialogData | null>(null);
+
+export function showWikiDialogPreact(
+  tech_name: string,
+  docs: Record<string, WikiDoc>,
+): void {
+  const data = buildWikiDialogData(tech_name, docs);
+  if (data) wikiDialogSignal.value = data;
+}
+
+export function closeWikiDialog(): void { wikiDialogSignal.value = null; }
+
+export function WikiDialog() {
+  const data = wikiDialogSignal.value;
+  const onClose = useCallback(() => { wikiDialogSignal.value = null; }, []);
+  if (!data) return null;
+  return (
+    <Dialog title={data.techName} open onClose={onClose} width={600}>
+      <p style={{ margin: '0 0 8px' }}>
+        <strong>
+          <a href={data.wikiUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit' }}>
+            {data.title}
+          </a>
+        </strong>
+      </p>
+      {data.imageUrl && (
+        <img src={data.imageUrl} alt={data.title} style={{ maxWidth: '100%', marginBottom: 8, display: 'block' }} />
+      )}
+      <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{data.summary}</p>
+    </Dialog>
+  );
+}
+
+// ── TechInfoDialog ─────────────────────────────────────────────────────────────
+
+export const techInfoDialogSignal = signal<TechInfoDialogData | null>(null);
+
+export function showTechInfoDialogPreact(
+  tech_name: string,
+  unit_type_id: number | null,
+  improvement_id: number | null,
+  docs: Record<string, WikiDoc>,
+): void {
+  techInfoDialogSignal.value = buildTechInfoDialogData(tech_name, unit_type_id, improvement_id, docs);
+}
+
+export function closeTechInfoDialog(): void { techInfoDialogSignal.value = null; }
+
+export function TechInfoDialog() {
+  const data = techInfoDialogSignal.value;
+  const onClose = useCallback(() => { techInfoDialogSignal.value = null; }, []);
+  if (!data) return null;
+
+  const dtStyle = { fontWeight: 600, paddingRight: 8, color: 'var(--xb-text-secondary, #8b949e)', whiteSpace: 'nowrap' as const };
+  const ddStyle = { margin: 0 };
+
+  return (
+    <Dialog title={data.techName} open onClose={onClose} width={640}>
+      {data.unit && (
+        <section style={{ marginBottom: 12 }}>
+          <p style={{ margin: '0 0 6px' }}><strong>Unit: {data.unit.name}</strong></p>
+          {data.unit.helptext && <p style={{ margin: '0 0 6px', color: 'var(--xb-text-secondary, #8b949e)', fontSize: 'var(--xb-font-size-sm, 12px)' }}>{data.unit.helptext}</p>}
+          <table style={{ borderCollapse: 'collapse', fontSize: 'var(--xb-font-size-sm, 12px)' }}>
+            <tbody>
+              {([
+                ['Cost',        data.unit.build_cost],
+                ['Attack',      data.unit.attack_strength],
+                ['Defense',     data.unit.defense_strength],
+                ['Firepower',   data.unit.firepower],
+                ['Hitpoints',   data.unit.hp],
+                ['Moves',       data.unit.move_rate_text],
+                ['Vision',      data.unit.vision_radius_sq],
+              ] as [string, string | number][]).map(([label, val]) => (
+                <tr key={label}>
+                  <td style={dtStyle}>{label}</td>
+                  <td style={ddStyle}>{val}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
+      {data.improvement && (
+        <section style={{ marginBottom: 12 }}>
+          <p style={{ margin: 0 }}><strong>Improvement info</strong>: {data.improvement.helptext}</p>
+        </section>
+      )}
+      {data.wiki && (
+        <section style={{ marginTop: data.unit || data.improvement ? 8 : 0 }}>
+          <p style={{ margin: '0 0 8px' }}>
+            <strong>
+              <a href={data.wiki.wikiUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit' }}>
+                Wikipedia: {data.wiki.title}
+              </a>
+            </strong>
+          </p>
+          {data.wiki.imageUrl && (
+            <img src={data.wiki.imageUrl} alt={data.wiki.title} style={{ maxWidth: '100%', marginBottom: 8, display: 'block' }} />
+          )}
+          <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{data.wiki.summary}</p>
+        </section>
+      )}
     </Dialog>
   );
 }

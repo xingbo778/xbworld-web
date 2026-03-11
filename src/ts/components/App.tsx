@@ -4,6 +4,7 @@ import { AuthDialog } from './Dialogs/AuthDialog';
 import { IntelDialog } from './Dialogs/IntelDialog';
 import { SwalDialog } from './Dialogs/SwalDialog';
 import { CityDialog } from './Dialogs/CityDialog';
+import { WikiDialog, TechInfoDialog } from './Dialogs/TechDialog';
 import { StatusBar } from './StatusBar';
 
 function App() {
@@ -15,6 +16,8 @@ function App() {
       <IntelDialog />
       <SwalDialog />
       <CityDialog />
+      <WikiDialog />
+      <TechInfoDialog />
 
       {/* HUD — mounted into dedicated containers below */}
     </div>

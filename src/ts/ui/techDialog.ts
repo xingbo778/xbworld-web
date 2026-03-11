@@ -14,11 +14,10 @@ import { store } from '../data/store';
 import { getCurrentBulbsOutput as get_current_bulbs_output, getCurrentBulbsOutputText as get_current_bulbs_output_text } from '../data/tech';
 import { sendPlayerResearch } from '../net/commands';
 import { clientIsObserver as client_is_observer, clientState as client_state, C_S_RUNNING } from '../client/clientState';
-import { isSmallScreen as is_small_screen } from '../utils/helpers';
-import { move_points_text } from '../data/unit';
 import { get_advances_text as _get_advances_text } from './techLogic';
+import type { WikiDoc } from './techLogic';
 import { setHtml as domSetHtml } from '../utils/dom';
-import { refreshTechPanel } from '../components/Dialogs/TechDialog';
+import { refreshTechPanel, showWikiDialogPreact, showTechInfoDialogPreact } from '../components/Dialogs/TechDialog';
 import { globalEvents } from '../core/events';
 import type { Tech } from '../data/types';
 
@@ -97,7 +96,7 @@ export function send_player_research(tech_id: number): void {
 }
 
 // ---------------------------------------------------------------------------
-// Wiki / tech info dialogs — observer-useful (show unit/improvement info)
+// Wiki / tech info dialogs — delegate to Preact components
 // ---------------------------------------------------------------------------
 
 // Wiki docs loaded lazily on first use
@@ -111,73 +110,20 @@ function loadWikiDocs(): void {
     .catch(() => { /* non-critical */ });
 }
 
-function getWikiDoc(tech_name: string): { image: string | null; summary: string; title: string } | undefined {
-  return (store.freecivWikiDocs || {})[tech_name];
+function getWikiDocs(): Record<string, WikiDoc> {
+  return (store.freecivWikiDocs || {}) as Record<string, WikiDoc>;
 }
-
-function byId(id: string): HTMLElement | null { return document.getElementById(id); }
 
 export function show_wikipedia_dialog(tech_name: string): void {
   loadWikiDocs();
-  const doc = getWikiDoc(tech_name);
-  if (!doc) return;
-
-  let message = `<b>Wikipedia on <a href='${wikipedia_url}${doc.title}' target='_new'>${doc.title}</a></b><br>`;
-  if (doc.image) message += `<img id='wiki_image' src='/images/wiki/${doc.image}'><br>`;
-  message += doc.summary;
-
-  byId('wiki_dialog')?.remove();
-  const dlg = Object.assign(document.createElement('div'), { id: 'wiki_dialog' });
-  dlg.style.cssText = `position:fixed;z-index:5000;background:var(--xb-bg-secondary,#161b22);border:1px solid var(--xb-border-default,#30363d);padding:16px;top:10%;left:50%;transform:translateX(-50%);width:${is_small_screen() ? '90%' : '60%'};max-height:${window.innerHeight - 100}px;overflow-y:auto;color:var(--xb-text-primary,#e6edf3);`;
-  const titleEl = Object.assign(document.createElement('h3'), { textContent: tech_name });
-  titleEl.style.margin = '0 0 8px';
-  const body = document.createElement('div');
-  domSetHtml(body, message);
-  const okBtn = Object.assign(document.createElement('button'), { textContent: 'Ok' });
-  okBtn.style.marginTop = '8px';
-  okBtn.addEventListener('click', () => dlg.remove());
-  dlg.append(titleEl, body, okBtn);
-  byId('game_page')?.appendChild(dlg);
-  (byId('game_text_input') as HTMLElement | null)?.blur();
+  showWikiDialogPreact(tech_name, getWikiDocs());
 }
 
-export function show_tech_info_dialog(tech_name: string, unit_type_id: number | null, improvement_id: number | null): void {
+export function show_tech_info_dialog(
+  tech_name: string,
+  unit_type_id: number | null,
+  improvement_id: number | null,
+): void {
   loadWikiDocs();
-
-  let message = '';
-  if (unit_type_id != null) {
-    const punit_type = store.unitTypes[unit_type_id];
-    if (punit_type) {
-      message += `<b>Unit info</b>: ${punit_type['helptext']}<br><br>`
-        + `Cost: ${punit_type['build_cost']}`
-        + `<br>Attack: ${punit_type['attack_strength']}`
-        + `<br>Defense: ${punit_type['defense_strength']}`
-        + `<br>Firepower: ${punit_type['firepower']}`
-        + `<br>Hitpoints: ${punit_type['hp']}`
-        + `<br>Moves: ${move_points_text(punit_type['move_rate'])}`
-        + `<br>Vision: ${punit_type['vision_radius_sq']}<br><br>`;
-    }
-  }
-  if (improvement_id != null) message += `<b>Improvement info</b>: ${store.improvements[improvement_id]?.['helptext']}<br><br>`;
-
-  const doc = getWikiDoc(tech_name);
-  if (doc) {
-    message += `<b>Wikipedia on <a href='${wikipedia_url}${doc.title}' target='_new' style='color:inherit'>${doc.title}</a>:</b><br>`;
-    if (doc.image) message += `<img id='wiki_image' src='/images/wiki/${doc.image}'><br>`;
-    message += doc.summary;
-  }
-
-  byId('wiki_dialog')?.remove();
-  const dlg = Object.assign(document.createElement('div'), { id: 'wiki_dialog' });
-  dlg.style.cssText = `position:fixed;z-index:5000;background:var(--xb-bg-secondary,#161b22);border:1px solid var(--xb-border-default,#30363d);padding:16px;top:10%;left:50%;transform:translateX(-50%);width:${is_small_screen() ? '95%' : '70%'};height:${window.innerHeight - 60}px;overflow-y:auto;color:var(--xb-text-primary,#e6edf3);`;
-  const titleEl = Object.assign(document.createElement('h3'), { textContent: tech_name });
-  titleEl.style.margin = '0 0 8px';
-  const body = document.createElement('div');
-  domSetHtml(body, message);
-  const okBtn = Object.assign(document.createElement('button'), { textContent: 'Ok' });
-  okBtn.style.marginTop = '8px';
-  okBtn.addEventListener('click', () => dlg.remove());
-  dlg.append(titleEl, body, okBtn);
-  byId('game_page')?.appendChild(dlg);
-  (byId('game_text_input') as HTMLElement | null)?.blur();
+  showTechInfoDialogPreact(tech_name, unit_type_id, improvement_id, getWikiDocs());
 }
