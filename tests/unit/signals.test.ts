@@ -363,3 +363,34 @@ describe('calendarInfo signal — game:calendar bridge', () => {
     expect(currentYear.value).toContain('BP');
   });
 });
+
+// ── store:reset → syncFromStore ─────────────────────────────────────────────
+
+describe('store:reset clears all counts via syncFromStore', () => {
+  it('cityCount becomes 0 after store:reset', async () => {
+    const { cityCount } = await import('@/data/signals');
+    store.cities = { 1: { id: 1 } as never, 2: { id: 2 } as never };
+    globalEvents.emit('city:updated');
+    expect(cityCount.value).toBe(2);
+    store.reset(); // store.reset() emits 'store:reset' internally
+    expect(cityCount.value).toBe(0);
+  });
+
+  it('unitCount becomes 0 after store:reset', async () => {
+    const { unitCount } = await import('@/data/signals');
+    store.units = { 5: { id: 5 } as never };
+    globalEvents.emit('unit:updated');
+    expect(unitCount.value).toBe(1);
+    store.reset();
+    expect(unitCount.value).toBe(0);
+  });
+
+  it('playerCount syncs to 0 after store:reset (clears players map)', async () => {
+    const { playerCount } = await import('@/data/signals');
+    store.players = { 1: { playerno: 1 } as never, 2: { playerno: 2 } as never };
+    globalEvents.emit('player:updated');
+    expect(playerCount.value).toBe(2);
+    store.reset(); // store.reset() clears players and emits store:reset → syncFromStore
+    expect(playerCount.value).toBe(0);
+  });
+});
