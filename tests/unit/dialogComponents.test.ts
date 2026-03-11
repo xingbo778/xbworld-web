@@ -85,6 +85,29 @@ describe('SwalDialog', () => {
     const cb = () => {};
     expect(() => swal({ title: 'Confirm', text: 'Are you sure?', type: 'warning', showCancelButton: true, confirmButtonText: 'Yes' }, cb)).not.toThrow();
   });
+
+  it('renders title and text when open', async () => {
+    const { SwalDialog, swal } = await import('@/components/Dialogs/SwalDialog');
+    swal('Confirm Action', 'Do you want to continue?', 'warning');
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    render(h(SwalDialog, null), div);
+    expect(div.textContent).toContain('Confirm Action');
+    expect(div.textContent).toContain('Do you want to continue?');
+    document.body.removeChild(div);
+  });
+
+  it('renders Cancel button when showCancelButton is true', async () => {
+    const { SwalDialog, swal } = await import('@/components/Dialogs/SwalDialog');
+    swal({ title: 'Confirm', text: 'Sure?', type: 'warning', showCancelButton: true, confirmButtonText: 'Yes' }, () => {});
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    render(h(SwalDialog, null), div);
+    const buttons = Array.from(div.querySelectorAll('button')).map(b => b.textContent?.trim());
+    expect(buttons).toContain('Yes');
+    expect(buttons).toContain('Cancel');
+    document.body.removeChild(div);
+  });
 });
 
 // ---------------------------------------------------------------------------

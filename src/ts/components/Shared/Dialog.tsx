@@ -32,7 +32,7 @@ export function Dialog({
 
   // Center on first open
   useEffect(() => {
-    if (open && pos.x === -1 && dialogRef.current) {
+    if (open && pos.x === -1 && dialogRef.current && typeof window !== 'undefined') {
       const rect = dialogRef.current.getBoundingClientRect();
       setPos({
         x: Math.max(0, (window.innerWidth - rect.width) / 2),
