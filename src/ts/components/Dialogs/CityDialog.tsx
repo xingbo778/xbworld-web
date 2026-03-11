@@ -18,7 +18,9 @@ import {
   buildPresentUnitsHtml,
   buildSupportedUnitsHtml,
   get_city_state,
+  buildProductionListData,
 } from '../../ui/cityLogic';
+import { get_unit_type_image_sprite, get_improvement_image_sprite } from '../../renderer/tilespec';
 import { cityOwner } from '../../data/city';
 import { store } from '../../data/store';
 
@@ -38,6 +40,7 @@ const TABS = [
   { id: 'overview', label: 'Overview' },
   { id: 'buildings', label: 'Buildings' },
   { id: 'units', label: 'Units' },
+  { id: 'production', label: 'Can Build' },
 ];
 
 export function CityDialog() {
@@ -64,6 +67,7 @@ export function CityDialog() {
   const improvementsHtml = buildImprovementsHtml(pcity);
   const presentHtml = buildPresentUnitsHtml(pcity);
   const supportedHtml = buildSupportedUnitsHtml(pcity);
+  const prodList = activeTab === 'production' ? buildProductionListData(pcity) : null;
 
   return (
     <Dialog title={title} open onClose={onClose} width={560} modal={false}>
@@ -137,6 +141,70 @@ export function CityDialog() {
             style={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}
             dangerouslySetInnerHTML={{ __html: supportedHtml ?? '<span style="color:var(--xb-text-secondary)">None</span>' }}
           />
+        </TabPanel>
+
+        <TabPanel id="production" activeTab={activeTab}>
+          {prodList == null ? null : !prodList.hasData ? (
+            <div style={{ color: 'var(--xb-text-secondary, #8b949e)', fontSize: 'var(--xb-font-size-sm, 12px)' }}>
+              Build data not available (requires live server).
+            </div>
+          ) : (
+            <div style={{ fontSize: 'var(--xb-font-size-sm, 12px)', maxHeight: 360, overflowY: 'auto' }}>
+              {prodList.units.length > 0 && (
+                <>
+                  <div style={{ color: 'var(--xb-text-secondary, #8b949e)', marginBottom: 4 }}>Units ({prodList.units.length}):</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 12 }}>
+                    {prodList.units.map(({ type, cost }) => {
+                      const sprite = get_unit_type_image_sprite(type);
+                      return (
+                        <div key={type['id']} title={`${type['name']} — Cost: ${cost}`}
+                          style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--xb-bg-tertiary, #21262d)', borderRadius: 3, padding: '2px 6px', cursor: 'default' }}>
+                          {sprite && (
+                            <div style={{
+                              background: `transparent url(${sprite['image-src']})`,
+                              backgroundPosition: `-${sprite['tileset-x']}px -${sprite['tileset-y']}px`,
+                              width: sprite['width'], height: sprite['height'],
+                              flexShrink: 0,
+                            }} />
+                          )}
+                          <span>{type['name']}</span>
+                          <span style={{ color: 'var(--xb-text-secondary, #8b949e)' }}>{cost}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+              {prodList.improvements.length > 0 && (
+                <>
+                  <div style={{ color: 'var(--xb-text-secondary, #8b949e)', marginBottom: 4 }}>Improvements ({prodList.improvements.length}):</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                    {prodList.improvements.map(({ impr, cost }) => {
+                      const sprite = get_improvement_image_sprite(impr);
+                      return (
+                        <div key={impr['id']} title={`${impr['name']} — Cost: ${cost}`}
+                          style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--xb-bg-tertiary, #21262d)', borderRadius: 3, padding: '2px 6px', cursor: 'default' }}>
+                          {sprite && (
+                            <div style={{
+                              background: `transparent url(${sprite['image-src']})`,
+                              backgroundPosition: `-${sprite['tileset-x']}px -${sprite['tileset-y']}px`,
+                              width: sprite['width'], height: sprite['height'],
+                              flexShrink: 0,
+                            }} />
+                          )}
+                          <span>{impr['name']}</span>
+                          <span style={{ color: 'var(--xb-text-secondary, #8b949e)' }}>{cost}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+              {prodList.units.length === 0 && prodList.improvements.length === 0 && (
+                <div style={{ color: 'var(--xb-text-secondary, #8b949e)' }}>Nothing buildable.</div>
+              )}
+            </div>
+          )}
         </TabPanel>
       </Tabs>
     </Dialog>

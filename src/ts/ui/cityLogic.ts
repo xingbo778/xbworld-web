@@ -1,5 +1,5 @@
 import { store } from '../data/store';
-import type { City, Unit } from '../data/types';
+import type { City, Unit, UnitType, Improvement } from '../data/types';
 import {
   getCityProductionTypeSprite as get_city_production_type_sprite,
   getCityProductionTime as get_city_production_time,
@@ -7,10 +7,12 @@ import {
   getCityProductionType as get_city_production_type,
   cityPopulation as city_population,
   cityTurnsToGrowthText as city_turns_to_growth_text,
-  cityOwner
+  cityOwner,
+  canCityBuildUnitNow,
+  canCityBuildImprovementNow,
 } from '../data/city';
 import { get_supported_units, tile_units, get_unit_city_info } from '../data/unit';
-import { get_unit_image_sprite, get_improvement_image_sprite } from '../renderer/tilespec';
+import { get_unit_image_sprite, get_improvement_image_sprite, get_unit_type_image_sprite } from '../renderer/tilespec';
 import { cityTile } from '../data/city';
 import { FC_INFINITY, O_FOOD, O_SHIELD, O_TRADE, O_GOLD, O_LUXURY, O_SCIENCE } from '../data/fcTypes';
 import { numberWithCommas } from '../utils/helpers';
@@ -260,4 +262,37 @@ export function get_city_state(pcity: City | null): string | undefined {
   } else {
     return "Peace";
   }
+}
+
+export interface ProductionListData {
+  hasData: boolean;
+  units: Array<{ type: UnitType; cost: number }>;
+  improvements: Array<{ impr: Improvement; cost: number | string }>;
+}
+
+/** Build a list of units and improvements this city can currently produce.
+ *  Returns hasData=false if the server hasn't sent can_build_* BitVectors. */
+export function buildProductionListData(pcity: City): ProductionListData {
+  const hasData = typeof pcity['can_build_unit'] !== 'undefined';
+
+  const units: ProductionListData['units'] = [];
+  const improvements: ProductionListData['improvements'] = [];
+
+  for (const id in store.unitTypes) {
+    const ut: UnitType = store.unitTypes[Number(id)];
+    if (ut['name'] === 'Barbarian Leader' || ut['name'] === 'Leader') continue;
+    if (!hasData || canCityBuildUnitNow(pcity, Number(id))) {
+      units.push({ type: ut, cost: ut['build_cost'] as number });
+    }
+  }
+
+  for (const id in store.improvements) {
+    const impr: Improvement = store.improvements[Number(id)];
+    if (!hasData || canCityBuildImprovementNow(pcity, Number(id))) {
+      const cost = impr['name'] === 'Coinage' ? '-' : impr['build_cost'];
+      improvements.push({ impr, cost });
+    }
+  }
+
+  return { hasData, units, improvements };
 }
