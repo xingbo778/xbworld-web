@@ -186,3 +186,55 @@ describe('unitCount signal updates via handle_unit_info', () => {
     expect(unitCount.value).toBe(before + 1);
   });
 });
+
+// ── game:info / game:beginturn ─────────────────────────────────────────────
+
+describe('handle_game_info emits game:info', () => {
+  it('emits game:info with packet', async () => {
+    const { handle_game_info } = await import('@/net/handlers/gameState');
+    const handler = vi.fn();
+    globalEvents.on('game:info', handler);
+
+    handle_game_info({ turn: 3, year: -3000 } as never);
+
+    expect(handler).toHaveBeenCalledWith(expect.objectContaining({ turn: 3 }));
+    globalEvents.off('game:info', handler);
+  });
+
+  it('currentTurn signal updates via handle_game_info', async () => {
+    const { currentTurn } = await import('@/data/signals');
+    const { handle_game_info } = await import('@/net/handlers/gameState');
+
+    handle_game_info({ turn: 42, year: 0 } as never);
+
+    expect(currentTurn.value).toBe(42);
+  });
+});
+
+describe('handle_begin_turn emits game:beginturn', () => {
+  it('emits game:beginturn', async () => {
+    const { handle_begin_turn } = await import('@/net/handlers/gameState');
+    const handler = vi.fn();
+    globalEvents.on('game:beginturn', handler);
+
+    handle_begin_turn({} as never);
+
+    expect(handler).toHaveBeenCalled();
+    globalEvents.off('game:beginturn', handler);
+  });
+});
+
+// ── map:allocated / tile:updated ───────────────────────────────────────────
+
+describe('handle_map_info emits map:allocated', () => {
+  it('emits map:allocated', async () => {
+    const { handle_map_info } = await import('@/net/handlers/map');
+    const handler = vi.fn();
+    globalEvents.on('map:allocated', handler);
+
+    handle_map_info({ xsize: 80, ysize: 50, topology_id: 0, wrap_id: 0 } as never);
+
+    expect(handler).toHaveBeenCalled();
+    globalEvents.off('map:allocated', handler);
+  });
+});
