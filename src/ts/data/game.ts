@@ -3,7 +3,8 @@ import { store } from './store';
 import { cityPopulation as city_population } from './city';
 import { clientState as client_state, C_S_RUNNING, clientPlaying } from '../client/clientState';
 import { numberWithCommas, isSmallScreen as is_small_screen } from '../utils/helpers';
-import { mountStatusPanel, statusRefresh } from '../components/StatusPanel';
+import { statusRefresh } from './signals';
+import { mountStatusPanel } from '../components/StatusPanel';
 
 export const IDENTITY_NUMBER_ZERO = 0;
 

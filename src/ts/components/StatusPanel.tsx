@@ -2,22 +2,55 @@
  * StatusPanel — Preact component replacing the HTML-string-based
  * update_game_status_panel() in data/game.ts.
  *
- * Mounted once into #game_status_panel_top and #game_status_panel_bottom;
- * signal subscriptions drive automatic re-renders.
- * The show/hide + page-title logic stays in update_game_status_panel().
+ * Mounted once into #game_status_panel_top and #game_status_panel_bottom.
+ * Signal subscriptions drive automatic re-renders with no circular imports
+ * (does not import from data/game.ts — stats are computed locally from store).
  */
-import { signal } from '@preact/signals';
 import { render } from 'preact';
 import {
-  isObserver, connectedPlayer, gameInfo, playerUpdated, rulesetReady,
+  isObserver, connectedPlayer, gameInfo, playerUpdated, rulesetReady, statusRefresh,
 } from '../data/signals';
 import { store } from '../data/store';
 import { clientPlaying } from '../client/clientState';
-import { isSmallScreen } from '../utils/helpers';
-import { civ_population, get_year_string } from '../data/game';
+import { isSmallScreen, numberWithCommas } from '../utils/helpers';
+import { cityPopulation } from '../data/city';
 
-/** Bump to force a re-render (e.g. after tax-rate change). */
-export const statusRefresh = signal(0);
+// Re-export so callers that used the old location still work.
+export { statusRefresh } from '../data/signals';
+
+// ---------------------------------------------------------------------------
+// Pure helpers (previously in data/game.ts — inlined here to avoid circular dep)
+// ---------------------------------------------------------------------------
+
+function civPopulation(playerno: number): string {
+  let population = 0;
+  for (const city_id in store.cities) {
+    const pcity = store.cities[city_id];
+    if (playerno === (pcity['owner'] as number)) {
+      population += cityPopulation(pcity);
+    }
+  }
+  return numberWithCommas(population * 1000);
+}
+
+function getYearString(): string {
+  const gi = store.gameInfo;
+  if (!gi) return '';
+  const cal = store.calendarInfo;
+  let s = '';
+  const year = gi['year'] as number;
+  if (year < 0) {
+    s = Math.abs(year) + String(cal?.['negative_year_label'] ?? 'BC') + ' ';
+  } else {
+    s = year + String(cal?.['positive_year_label'] ?? 'AD') + ' ';
+  }
+  s += isSmallScreen() ? '(T:' + String(gi['turn']) + ')' : '(Turn:' + String(gi['turn']) + ')';
+  return s;
+}
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 
 function StatusPanelContent() {
   // Subscribe to every signal that can affect the display.
@@ -42,12 +75,13 @@ function StatusPanelContent() {
     return (
       <>
         {!small && adjective && (
-          <><b>{adjective}</b>{'\u00a0\u00a0 '}<span title="Population">{'👤'}</span>{': '}
-          <b>{civ_population(pplayer.playerno)}</b>{'\u00a0\u00a0 '}</>
+          <><b>{adjective}</b>{'\u00a0\u00a0 '}
+          <span title="Population">{'👤'}</span>{': '}
+          <b>{civPopulation(pplayer.playerno)}</b>{'\u00a0\u00a0 '}</>
         )}
         {!small && gi && (
           <><span title="Year (turn)">{'🕐'}</span>{': '}
-          <b>{get_year_string()}</b>{'\u00a0\u00a0 '}</>
+          <b>{getYearString()}</b>{'\u00a0\u00a0 '}</>
         )}
         <span title="Gold (net income)">{'💰'}</span>{': '}
         <b
@@ -73,9 +107,9 @@ function StatusPanelContent() {
         {meta && <>{String(meta)}{' \u2014 '}</>}
         {gi && !small && (
           <><span title="Year (turn)">{'🕐'}</span>{': '}
-          <b>{get_year_string()}</b>{'\u00a0\u00a0 '}</>
+          <b>{getYearString()}</b>{'\u00a0\u00a0 '}</>
         )}
-        {gi && small && <><b>{get_year_string()}</b>{' '}</>}
+        {gi && small && <><b>{getYearString()}</b>{' '}</>}
         {gi && 'Observing'}
       </>
     );
@@ -83,6 +117,10 @@ function StatusPanelContent() {
 
   return null;
 }
+
+// ---------------------------------------------------------------------------
+// Mount helpers
+// ---------------------------------------------------------------------------
 
 let _mountedTop = false;
 let _mountedBottom = false;

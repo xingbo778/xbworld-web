@@ -87,3 +87,9 @@ globalEvents.on('player:updated', () => { playerUpdated.value++; });
  */
 export const researchUpdated = signal(0);
 globalEvents.on('player:research', () => { researchUpdated.value++; });
+
+/**
+ * Incremented by update_game_status_panel() to tell StatusPanel to re-render.
+ * Decouples data/game.ts from components/StatusPanel.tsx (no circular import).
+ */
+export const statusRefresh = signal(0);

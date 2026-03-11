@@ -52,7 +52,7 @@ export function update_game_info_pregame(): void {
 
     if (store.scenarioInfo['prevent_new_cities']) {
       const p = document.createElement('p');
-      p.textContent = escapeHtml(String(store.scenarioInfo['name'])) + ' forbids the founding of new cities.';
+      p.textContent = String(store.scenarioInfo['name']) + ' forbids the founding of new cities.';
       pregameGameInfo.appendChild(p);
     }
   }
