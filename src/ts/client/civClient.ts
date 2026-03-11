@@ -95,7 +95,8 @@ export function civClientInit(): void {
   // Set tab container and tab panel heights
   const tabs = document.getElementById('tabs');
   if (tabs) tabs.style.height = window.innerHeight + 'px';
-  for (const id of ['tabs-map', 'tabs-civ', 'tabs-tec', 'tabs-nat', 'tabs-cities', 'tabs-opt', 'tabs-hel']) {
+  // Set tab panel heights for remaining observer tabs (Map, Research, Nations)
+  for (const id of ['tabs-map', 'tabs-tec', 'tabs-nat']) {
     const el = document.getElementById(id);
     if (el) el.style.height = 'auto';
   }
