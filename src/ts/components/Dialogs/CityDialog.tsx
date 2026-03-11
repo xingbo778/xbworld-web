@@ -7,6 +7,7 @@
 import { signal } from '@preact/signals';
 import { useCallback, useEffect, useState } from 'preact/hooks';
 import type { City } from '../../data/types';
+import { rulesetReady } from '../../data/signals';
 import { Dialog } from '../Shared/Dialog';
 import { Tabs, TabPanel } from '../Shared/Tabs';
 import {
@@ -45,6 +46,7 @@ const TABS = [
 
 export function CityDialog() {
   const pcity = cityDialogSignal.value;
+  rulesetReady.value; // re-render when improvements/unitTypes become available
   const [activeTab, setActiveTab] = useState('overview');
 
   // Reset tab when a different city opens

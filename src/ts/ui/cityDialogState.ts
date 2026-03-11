@@ -1,5 +1,6 @@
 import { EventAggregator } from '../utils/EventAggregator';
 import type { City } from '../data/types';
+import { store } from '../data/store';
 
 export let citydlg_map_width: number = 384;      // default values for most rulesets
 export let citydlg_map_height: number = 192;     // default value for most rulesets
@@ -7,7 +8,23 @@ export let citydlg_map_height: number = 192;     // default value for most rules
 export const tileset_width: number = 96;         // amplio2 based tileset
 export const tileset_height: number = 48;
 
-export let cities: Record<number, City> = {};
+/**
+ * Transparent proxy onto store.cities.
+ *
+ * Previously this was a separate `{}` that was never populated, which caused
+ * store.cities (correctly filled by packet handlers) to be invisible to the UI
+ * layer — breaking city-dialog open in observer mode and the city overview list.
+ * All consumers (cityDialog.ts, cityLogic.ts, legacy re-exports) continue to
+ * use `cities[id]` / `for…in cities` unchanged; the proxy makes every access
+ * redirect to the authoritative store.
+ */
+export const cities: Record<number, City> = new Proxy({} as Record<number, City>, {
+  get(_t, p) { return (store.cities as Record<string | symbol, unknown>)[p]; },
+  set(_t, p, v) { (store.cities as Record<string | symbol, unknown>)[p] = v as City; return true; },
+  has(_t, p) { return p in store.cities; },
+  ownKeys() { return Reflect.ownKeys(store.cities); },
+  getOwnPropertyDescriptor(_t, p) { return Object.getOwnPropertyDescriptor(store.cities, p); },
+});
 export let city_rules: Record<number, Record<string, unknown>> = {};
 export let city_trade_routes: Record<number, Record<number, Record<string, unknown>>> = {};
 
