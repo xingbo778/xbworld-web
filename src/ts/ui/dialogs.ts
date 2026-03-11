@@ -4,6 +4,7 @@
  */
 
 import { create, on, setHtml } from '../utils/dom';
+import { sanitizeGameHtml } from '../utils/safeHtml';
 
 interface DialogOptions {
   title: string;
@@ -52,7 +53,7 @@ export function showDialog(id: string, options: DialogOptions): HTMLDialogElemen
   header.appendChild(controls);
 
   const body = create('div', { class: 'xb-dialog-body' });
-  setHtml(body, options.content);
+  setHtml(body, sanitizeGameHtml(options.content));
 
   dialog.appendChild(header);
   dialog.appendChild(body);

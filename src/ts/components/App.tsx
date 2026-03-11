@@ -4,6 +4,9 @@ import { AuthDialog } from './Dialogs/AuthDialog';
 import { IntelDialog } from './Dialogs/IntelDialog';
 import { SwalDialog } from './Dialogs/SwalDialog';
 import { CityDialog } from './Dialogs/CityDialog';
+import { CityBuyDialog } from './Dialogs/CityBuyDialog';
+import { CityInputDialog } from './Dialogs/CityInputDialog';
+import { TechGainedDialog } from './Dialogs/TechGainedDialog';
 import { WikiDialog, TechInfoDialog } from './Dialogs/TechDialog';
 import { StatusBar } from './StatusBar';
 
@@ -16,6 +19,9 @@ function App() {
       <IntelDialog />
       <SwalDialog />
       <CityDialog />
+      <CityBuyDialog />
+      <CityInputDialog />
+      <TechGainedDialog />
       <WikiDialog />
       <TechInfoDialog />
 
