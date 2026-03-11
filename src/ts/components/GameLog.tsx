@@ -2,8 +2,9 @@
  * Game Log panel — shows game event messages in the Log tab.
  * Mirrors messages from #game_message_area into a full-height scrollable list.
  */
+import { signal } from '@preact/signals';
 import { render } from 'preact';
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useRef } from 'preact/hooks';
 import { parseGameHtml } from '../utils/parseGameHtml';
 
 interface LogEntry {
@@ -12,27 +13,20 @@ interface LogEntry {
   ts: number;
 }
 
-let _entries: LogEntry[] = [];
 let _counter = 0;
-let _listeners: Array<(entries: LogEntry[]) => void> = [];
+const logEntries = signal<LogEntry[]>([]);
 
 /** Called from messages.ts to push a new log entry. */
 export function pushGameLogEntry(html: string): void {
-  _entries = [..._entries, { id: _counter++, html, ts: Date.now() }];
-  if (_entries.length > 500) _entries = _entries.slice(-500);
-  _listeners.forEach(fn => fn(_entries));
+  let entries = [...logEntries.value, { id: _counter++, html, ts: Date.now() }];
+  if (entries.length > 500) entries = entries.slice(-500);
+  logEntries.value = entries;
 }
 
 function GameLog() {
-  const [entries, setEntries] = useState<LogEntry[]>(_entries);
+  const entries = logEntries.value;
   const bottomRef = useRef<HTMLDivElement>(null);
   const autoScroll = useRef(true);
-
-  useEffect(() => {
-    const fn = (e: LogEntry[]) => { setEntries([...e]); };
-    _listeners.push(fn);
-    return () => { _listeners = _listeners.filter(f => f !== fn); };
-  }, []);
 
   useEffect(() => {
     if (autoScroll.current && bottomRef.current) {
@@ -53,7 +47,7 @@ function GameLog() {
       }}>
         <span style={{ color: '#58a6ff', fontWeight: 'bold', fontSize: '14px' }}>📋 Game Event Log</span>
         <button
-          onClick={() => { _entries = []; _listeners.forEach(fn => fn([])); setEntries([]); }}
+          onClick={() => { logEntries.value = []; }}
           style={{
             background: 'none', border: '1px solid #30363d', color: '#8b949e',
             cursor: 'pointer', borderRadius: '4px', padding: '2px 8px', fontSize: '12px',
@@ -98,7 +92,7 @@ export function mountGameLog(container: HTMLElement): void {
   // Pull existing messages from #game_message_area
   const existing = document.querySelectorAll('#game_message_area li');
   existing.forEach(li => {
-    _entries.push({ id: _counter++, html: li.textContent ?? '', ts: Date.now() });
+    logEntries.value = [...logEntries.value, { id: _counter++, html: li.textContent ?? '', ts: Date.now() }];
   });
   render(<GameLog />, container);
 }

@@ -23,8 +23,7 @@ import { isLongturn } from '../client/clientCore';
 import { is_small_screen } from '../renderer/mapview';
 
 import { EventAggregator } from '../utils/EventAggregator';
-import { setHtml } from '../utils/dom';
-import { sanitizeGameHtml } from '../utils/safeHtml';
+import { appendSafeHtml } from '../utils/dom';
 
 const is_longturn = isLongturn;
 const civclient_state = clientState();
@@ -172,7 +171,7 @@ export function update_chatbox(messages: Record<string, unknown>[]): void
     for (let i = 0; i < messages.length; i++) {
         const item: HTMLLIElement = document.createElement('li');
         item.className = fc_e_events[messages[i]['event'] as number] || '';
-        setHtml(item, sanitizeGameHtml(messages[i]['message'] as string));
+        appendSafeHtml(item, messages[i]['message'] as string);
         scrollDiv.appendChild(item);
         // Push to GameLog panel (lazy import to avoid circular dep)
         import('../components/GameLog').then(({ pushGameLogEntry }) => pushGameLogEntry(messages[i]['message'] as string)).catch(() => {});

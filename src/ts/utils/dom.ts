@@ -2,6 +2,7 @@
  * Lightweight DOM helpers replacing jQuery.
  * Every function operates on native DOM elements.
  */
+import { sanitizeGameHtml } from './safeHtml';
 
 export function $id(id: string): HTMLElement | null {
   return document.getElementById(id);
@@ -17,6 +18,18 @@ export function hide(el: HTMLElement | null): void {
 
 export function setHtml(el: HTMLElement | null, html: string): void {
   if (el) el.innerHTML = html;
+}
+
+/**
+ * Sanitize `html` and append its nodes into `container` without ever
+ * setting innerHTML on a live DOM element.  The browser parses the
+ * sanitized string into a detached temp element; its children are then
+ * moved into the container one by one.
+ */
+export function appendSafeHtml(container: HTMLElement, html: string): void {
+  const tmp = document.createElement('div');
+  tmp.innerHTML = sanitizeGameHtml(html);
+  while (tmp.firstChild) container.appendChild(tmp.firstChild);
 }
 
 export function setText(el: HTMLElement | null, text: string): void {
@@ -107,7 +120,9 @@ export function blockUI(message: string): void {
   unblockUI();
   blockOverlay = create('div');
   blockOverlay.className = 'xb-block-overlay';
-  setHtml(blockOverlay, `<div class="xb-block-message">${message}</div>`);
+  const msgDiv = create('div', { class: 'xb-block-message' });
+  appendSafeHtml(msgDiv, message);
+  blockOverlay.appendChild(msgDiv);
   document.body.appendChild(blockOverlay);
 }
 

@@ -51,6 +51,11 @@ function elementToVNode(el: Element): ComponentChild {
       const style = el.getAttribute('style');
       return style ? <span style={style}>{children}</span> : <span>{children}</span>;
     }
+    case 'font': {
+      // <font color="#RRGGBB"> used in Freeciv server chat messages → <span style="color:...">
+      const color = el.getAttribute('color');
+      return color ? <span style={`color:${color}`}>{children}</span> : <span>{children}</span>;
+    }
     case 'a': {
       const href = el.getAttribute('href') ?? '';
       if (/^https?:\/\//i.test(href)) {
