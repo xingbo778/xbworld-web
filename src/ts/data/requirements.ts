@@ -204,12 +204,107 @@ export function isReqActive(
       break;
     }
 
-    // ── TRI_MAYBE: veteran level requires unit instance, not unit type ────────
-    case VUT_MINVETERAN:
-      result = TRI_MAYBE;
+    // ── Implemented: city size ────────────────────────────────────────────────
+    // Only REQ_RANGE_CITY is evaluated; other ranges (traderoute, player, world)
+    // require iterating cities we don't have fully client-side → TRI_MAYBE.
+    case VUT_MINSIZE: {
+      if (targetCity == null || req['range'] !== REQ_RANGE_CITY) { result = TRI_MAYBE; break; }
+      const citySize = (targetCity as Record<string, unknown>)['size'];
+      if (citySize == null) { result = TRI_MAYBE; break; }
+      result = (citySize as number) >= req['value'] ? TRI_YES : TRI_NO;
       break;
+    }
 
-    // ── TRI_MAYBE: nation group membership data not available client-side ─────
+    // ── Implemented: minimum game year ───────────────────────────────────────
+    // Uses store.gameInfo.year; TRI_MAYBE before game info is loaded.
+    case VUT_MINYEAR: {
+      const year = (store.gameInfo as Record<string, unknown> | null)?.['year'];
+      if (year == null) { result = TRI_MAYBE; break; }
+      result = (year as number) >= req['value'] ? TRI_YES : TRI_NO;
+      break;
+    }
+
+    // ── Implemented: city improvement present ─────────────────────────────────
+    // Only REQ_RANGE_CITY evaluated; traderoute/player/world ranges → TRI_MAYBE.
+    case VUT_IMPROVEMENT: {
+      if (targetCity == null || req['range'] !== REQ_RANGE_CITY) { result = TRI_MAYBE; break; }
+      const imprBv = (targetCity as Record<string, unknown>)['improvements'];
+      if (imprBv == null || typeof (imprBv as Record<string, unknown>)['isSet'] !== 'function') {
+        result = TRI_MAYBE; break;
+      }
+      result = (imprBv as { isSet(n: number): boolean }).isSet(req['value']) ? TRI_YES : TRI_NO;
+      break;
+    }
+
+    // ── Implemented: tile terrain ─────────────────────────────────────────────
+    // Checks targetTile.terrain; TRI_MAYBE when no tile context provided.
+    case VUT_TERRAIN: {
+      if (targetTile == null) { result = TRI_MAYBE; break; }
+      const tileTerrain = (targetTile as Record<string, unknown>)['terrain'];
+      if (tileTerrain == null) { result = TRI_MAYBE; break; }
+      result = tileTerrain === req['value'] ? TRI_YES : TRI_NO;
+      break;
+    }
+
+    // ── Implemented: unit type flag ───────────────────────────────────────────
+    // Checks the 'flags' BitVector on the unit type (converted from number[]
+    // by handle_ruleset_unit). TRI_MAYBE if no unit type or no flags field.
+    case VUT_UTFLAG: {
+      if (targetUnittype == null) { result = TRI_MAYBE; break; }
+      const utFlags = (targetUnittype as Record<string, unknown>)['flags'];
+      if (utFlags == null || typeof (utFlags as Record<string, unknown>)['isSet'] !== 'function') {
+        result = TRI_MAYBE; break;
+      }
+      result = (utFlags as { isSet(n: number): boolean }).isSet(req['value']) ? TRI_YES : TRI_NO;
+      break;
+    }
+
+    // ── Implemented: unit class ───────────────────────────────────────────────
+    // Freeciv RULESET_UNIT packet carries the class id as 'unit_class'.
+    // TRI_MAYBE when the field is absent (old protocol or unit type not loaded).
+    case VUT_UCLASS: {
+      if (targetUnittype == null) { result = TRI_MAYBE; break; }
+      const classId = (targetUnittype as Record<string, unknown>)['unit_class'];
+      if (classId == null) { result = TRI_MAYBE; break; }
+      result = classId === req['value'] ? TRI_YES : TRI_NO;
+      break;
+    }
+
+    // ── Implemented: minimum veteran level ───────────────────────────────────
+    // Requires a unit INSTANCE (has 'veteran' field from Unit packet).
+    // Unit types have no veteran level → TRI_MAYBE when no 'veteran' field.
+    case VUT_MINVETERAN: {
+      if (targetUnittype == null) { result = TRI_MAYBE; break; }
+      const vet = (targetUnittype as Record<string, unknown>)['veteran'];
+      if (vet == null) { result = TRI_MAYBE; break; }
+      result = (vet as number) >= req['value'] ? TRI_YES : TRI_NO;
+      break;
+    }
+
+    // ── Implemented: minimum moves left ──────────────────────────────────────
+    // Requires a unit INSTANCE (has 'movesleft' field).
+    // Unit types have 'move_rate' (max), not 'movesleft' (current) → TRI_MAYBE.
+    case VUT_MINMOVES: {
+      if (targetUnittype == null) { result = TRI_MAYBE; break; }
+      const moves = (targetUnittype as Record<string, unknown>)['movesleft'];
+      if (moves == null) { result = TRI_MAYBE; break; }
+      result = (moves as number) >= req['value'] ? TRI_YES : TRI_NO;
+      break;
+    }
+
+    // ── Implemented: minimum hit points ──────────────────────────────────────
+    // Requires a unit INSTANCE (current hp, not unit type max hp).
+    // Discriminant: unit instances always have 'movesleft'; types do not.
+    case VUT_MINHP: {
+      if (targetUnittype == null) { result = TRI_MAYBE; break; }
+      const rec = targetUnittype as Record<string, unknown>;
+      // Unit instances have 'movesleft'; unit types only have 'move_rate'.
+      if (rec['movesleft'] == null) { result = TRI_MAYBE; break; }
+      result = (rec['hp'] as number) >= req['value'] ? TRI_YES : TRI_NO;
+      break;
+    }
+
+    // ── TRI_MAYBE: nation group membership not available client-side ──────────
     case VUT_NATIONGROUP:
       result = TRI_MAYBE;
       break;
@@ -224,7 +319,13 @@ export function isReqActive(
       result = TRI_MAYBE;
       break;
 
-    // ── TRI_MAYBE: extra flag evaluation requires full tile data ─────────────
+    // ── TRI_MAYBE: extra flag evaluation ──────────────────────────────────────
+    // VUT_EXTRAFLAG checks if any extra on the relevant tile has a specific flag
+    // from its 'efs' (extra flag set) BitVector. Cannot implement because:
+    // (a) RulesetExtraPacket does not explicitly type 'efs', and it is unclear
+    //     whether the server sends it in this web protocol;
+    // (b) evaluation requires a tile context (which extra on which tile?),
+    //     not just targetTile.terrain.
     case VUT_EXTRAFLAG:
       result = TRI_MAYBE;
       break;
@@ -233,17 +334,11 @@ export function isReqActive(
     // Returning TRI_MAYBE rather than TRI_NO: we cannot evaluate these
     // client-side, but we should not assume the requirement is unmet.
     // With RPT_POSSIBLE callers get true (assume possible); RPT_CERTAIN → false.
-    case VUT_IMPROVEMENT:
-    case VUT_TERRAIN:
-    case VUT_UTFLAG:
-    case VUT_UCLASS:
     case VUT_UCFLAG:
     case VUT_OTYPE:
     case VUT_SPECIALIST:
-    case VUT_MINSIZE:
     case VUT_AI_LEVEL:
     case VUT_TERRAINCLASS:
-    case VUT_MINYEAR:
     case VUT_TERRAINALTER:
     case VUT_CITYTILE:
     case VUT_GOOD:
@@ -258,8 +353,6 @@ export function isReqActive(
     case VUT_STYLE:
     case VUT_MINCULTURE:
     case VUT_UNITSTATE:
-    case VUT_MINMOVES:
-    case VUT_MINHP:
     case VUT_AGE:
     case VUT_MINCALFRAG:
     case VUT_SERVERSETTING:
