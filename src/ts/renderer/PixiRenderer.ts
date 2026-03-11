@@ -73,7 +73,7 @@ export class PixiRenderer {
   // Viewport-culled rebuild queue (only visible tiles are rebuilt per event)
   private rebuildQueue: Tile[] | null = null;
   private rebuildQueueIdx = 0;
-  private static readonly REBUILD_PER_FRAME = 400;
+  private static readonly REBUILD_PER_FRAME = 200;
 
   // Viewport tracking for pan-reveal (rebuild after pan stops)
   private lastViewX0 = 0;
@@ -388,6 +388,25 @@ export class PixiRenderer {
   }
 
   // ---------------------------------------------------------------------------
+  // Texture pre-warming
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Pre-upload road/rail/river sprites to GPU on first sprite-ready frame.
+   * Without this, the first tile rebuild that encounters a road sprite triggers
+   * a synchronous GPU texture upload per sprite, causing one large frame spike.
+   * Called once when store.sprites becomes available.
+   */
+  private preWarmRoadTextures(): void {
+    const dirs = ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw'];
+    const prefixes = ['road.road', 'road.rail'];
+    for (const prefix of prefixes) {
+      this.getTexture(`${prefix}_isolated`);
+      for (const d of dirs) this.getTexture(`${prefix}_${d}`);
+    }
+  }
+
+  // ---------------------------------------------------------------------------
   // Render loop
   // ---------------------------------------------------------------------------
 
@@ -396,6 +415,7 @@ export class PixiRenderer {
     if (!this.spritesReady) {
       if (!store.sprites || Object.keys(store.sprites).length === 0) return;
       this.spritesReady = true; // cache once — sprites don't change after load
+      this.preWarmRoadTextures();
     }
 
     // O(1) panning: shift the entire map container

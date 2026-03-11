@@ -6,6 +6,7 @@ import { isOceanTile as is_ocean_tile } from '../data/terrain';
 import type { Tile, City } from '../data/types';
 import type { SpriteEntry } from './tilespec';
 import { TILE_KNOWN_SEEN, TILE_KNOWN_UNSEEN, TILE_UNKNOWN } from '../data/tile';
+import { roads } from '../core/control/controlState';
 import {
   normal_tile_height,
   citybar_offset_x, citybar_offset_y,
@@ -25,6 +26,15 @@ const DIR8_SOUTHEAST = 7;
 
 let num_cardinal_tileset_dirs: number = 4;
 let cardinal_tileset_dirs: number[] = [DIR8_NORTH, DIR8_EAST, DIR8_SOUTH, DIR8_WEST];
+
+// All 8 directions used for road/rail connectivity checks
+const all8_tileset_dirs: number[] = [
+  DIR8_NORTHWEST, DIR8_NORTH, DIR8_NORTHEAST,
+  DIR8_WEST,                  DIR8_EAST,
+  DIR8_SOUTHWEST, DIR8_SOUTH, DIR8_SOUTHEAST,
+];
+// Pre-computed direction name strings (avoids switch-per-call in hot path)
+const all8_dir_names: string[] = all8_tileset_dirs.map(dir_get_tileset_name);
 
 /**************************************************************************
   Return the store.tileset name of the direction. This is similar to
@@ -174,15 +184,46 @@ export function get_tile_river_sprite(ptile: Tile | null): SpriteEntry | null {
 }
 
 /****************************************************************************
-  Returns a list of tiles to draw to render roads, railroads, and maglevs.
-  TODO:
-    - Support generic road types
-    - Properly support generic extra hiding properties
+  Returns sprites to render roads, railroads, and other road-type extras.
+
+  For each road-type extra present on the tile, emits one directional sprite
+  per adjacent tile that shares the same extra (e.g. "road.road_n").
+  If no adjacent tile shares the extra, emits the "_isolated" sprite instead.
+
+  Drawing order mirrors the `roads` array from the ruleset (Road before
+  Railroad), so rail sprites render on top of road sprites.
 ****************************************************************************/
-export function fill_path_sprite_array(_ptile: Tile, _pcity: City | null): SpriteEntry[] {
-  // Road/rail sprite rendering is not yet implemented (TODO).
-  // The result is always [] so skip all computation.
-  return [];
+export function fill_path_sprite_array(ptile: Tile, _pcity: City | null): SpriteEntry[] {
+  if (roads.length === 0) return [];
+
+  const result: SpriteEntry[] = [];
+
+  // Compute all 8 neighbors once — shared across road types to halve mapstep calls.
+  const neighbors: (Tile | null)[] = new Array(8);
+  for (let i = 0; i < 8; i++) neighbors[i] = mapstep(ptile, all8_tileset_dirs[i]);
+
+  for (const road of roads) {
+    const roadId = road.id;
+    if (!tile_has_extra(ptile, roadId)) continue;
+
+    const prefix = road['graphic_str'] as string;
+    if (!prefix) continue;
+
+    let hasConnection = false;
+    for (let i = 0; i < 8; i++) {
+      const neighbor = neighbors[i];
+      if (neighbor && tile_has_extra(neighbor, roadId)) {
+        result.push({ key: `${prefix}_${all8_dir_names[i]}` });
+        hasConnection = true;
+      }
+    }
+
+    if (!hasConnection) {
+      result.push({ key: `${prefix}_isolated` });
+    }
+  }
+
+  return result;
 }
 
 /***********************************************************************
