@@ -9,7 +9,7 @@
 import { render } from 'preact';
 import { signal } from '@preact/signals';
 import { store } from '../data/store';
-import { currentTurn, cityCount, unitCount, playerUpdated, rulesetReady } from '../data/signals';
+import { currentTurn, cityCount, unitCount, playerUpdated, researchUpdated, rulesetReady } from '../data/signals';
 import { research_get, PlayerFlag } from '../data/player';
 import { nationSelectPlayer, selectNoNation } from '../data/nationScreen';
 import { Tabs, TabPanel } from './Shared/Tabs';
@@ -264,10 +264,11 @@ function UnitsTable() {
 export function NationOverview() {
   _tick.value;           // explicit external refresh (refreshNationOverview())
   currentTurn.value;     // re-render on each new turn
-  playerUpdated.value;   // re-render when any player changes
-  cityCount.value;       // re-render when city count changes
-  unitCount.value;       // re-render when unit count changes
-  rulesetReady.value;    // re-render when tech names become available
+  playerUpdated.value;    // re-render when any player changes
+  researchUpdated.value;  // re-render when research state changes (RESEARCH_INFO)
+  cityCount.value;        // re-render when city count changes
+  unitCount.value;        // re-render when unit count changes
+  rulesetReady.value;     // re-render when tech names become available
   const activeTab = _activeTab.value;
 
   return (
