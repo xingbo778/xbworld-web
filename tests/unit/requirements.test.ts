@@ -560,3 +560,71 @@ describe('B1 VUT_MINHP', () => {
     expect(b1callPoss(r(5), undefined, undefined, { id: 1, hp: 10 })).toBe(true);
   });
 });
+
+// ---------------------------------------------------------------------------
+// A1-Fix-5: VUT_IMPR_GENUS — iterates city buildings for genus match
+// ---------------------------------------------------------------------------
+
+/** Fake BitVector */
+function makeBVS(ids: number[]) { return { isSet: (n: number) => ids.includes(n) }; }
+
+describe('A1 VUT_IMPR_GENUS (city buildings iteration)', () => {
+  const IG_GREAT_WONDER = 0;
+  const IG_IMPROVEMENT = 2;
+
+  beforeEach(() => {
+    store.improvements = {
+      0: { id: 0, name: 'Pyramids', genus: IG_GREAT_WONDER },
+      1: { id: 1, name: 'Library', genus: IG_IMPROVEMENT },
+      2: { id: 2, name: 'University', genus: IG_IMPROVEMENT },
+    } as any;
+  });
+
+  afterEach(() => { store.improvements = {}; });
+
+  it('returns true when city has a building of the required genus', () => {
+    const city = { improvements: makeBVS([1]) }; // Library (IG_IMPROVEMENT)
+    const req = makeReq({ kind: VUT_IMPR_GENUS, value: IG_IMPROVEMENT, range: REQ_RANGE_CITY, present: true });
+    expect(isReqActive(null, city, null, null, null, null, null, req, RPT_CERTAIN)).toBe(true);
+  });
+
+  it('returns false when city has no building of the required genus', () => {
+    const city = { improvements: makeBVS([1, 2]) }; // Library + University, no great wonder
+    const req = makeReq({ kind: VUT_IMPR_GENUS, value: IG_GREAT_WONDER, range: REQ_RANGE_CITY, present: true });
+    expect(isReqActive(null, city, null, null, null, null, null, req, RPT_CERTAIN)).toBe(false);
+  });
+
+  it('returns true when city has the great wonder matching genus', () => {
+    const city = { improvements: makeBVS([0, 1]) }; // Pyramids + Library
+    const req = makeReq({ kind: VUT_IMPR_GENUS, value: IG_GREAT_WONDER, range: REQ_RANGE_CITY, present: true });
+    expect(isReqActive(null, city, null, null, null, null, null, req, RPT_CERTAIN)).toBe(true);
+  });
+
+  it('handles present=false: true when city has NO building of that genus', () => {
+    const city = { improvements: makeBVS([1]) }; // only Library (IG_IMPROVEMENT)
+    const req = makeReq({ kind: VUT_IMPR_GENUS, value: IG_GREAT_WONDER, range: REQ_RANGE_CITY, present: false });
+    expect(isReqActive(null, city, null, null, null, null, null, req, RPT_CERTAIN)).toBe(true);
+  });
+
+  it('handles present=false: false when city DOES have a building of that genus', () => {
+    const city = { improvements: makeBVS([1]) }; // Library (IG_IMPROVEMENT)
+    const req = makeReq({ kind: VUT_IMPR_GENUS, value: IG_IMPROVEMENT, range: REQ_RANGE_CITY, present: false });
+    expect(isReqActive(null, city, null, null, null, null, null, req, RPT_CERTAIN)).toBe(false);
+  });
+
+  it('returns TRI_MAYBE (→ true at RPT_POSSIBLE) when city is null', () => {
+    const req = makeReq({ kind: VUT_IMPR_GENUS, value: IG_IMPROVEMENT, range: REQ_RANGE_CITY, present: true });
+    expect(isReqActive(null, null, null, null, null, null, null, req, RPT_POSSIBLE)).toBe(true);
+  });
+
+  it('returns TRI_MAYBE (→ false at RPT_CERTAIN) when city is null', () => {
+    const req = makeReq({ kind: VUT_IMPR_GENUS, value: IG_IMPROVEMENT, range: REQ_RANGE_CITY, present: true });
+    expect(isReqActive(null, null, null, null, null, null, null, req, RPT_CERTAIN)).toBe(false);
+  });
+
+  it('returns TRI_MAYBE when city has no improvements BitVector', () => {
+    const city = {}; // no improvements field
+    const req = makeReq({ kind: VUT_IMPR_GENUS, value: IG_IMPROVEMENT, range: REQ_RANGE_CITY, present: true });
+    expect(isReqActive(null, city, null, null, null, null, null, req, RPT_CERTAIN)).toBe(false);
+  });
+});

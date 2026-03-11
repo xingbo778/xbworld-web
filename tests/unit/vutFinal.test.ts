@@ -81,36 +81,43 @@ function resetStore() {
 // ---------------------------------------------------------------------------
 // VIG: VUT_IMPR_GENUS
 // ---------------------------------------------------------------------------
-describe('VUT_IMPR_GENUS — improvement genus check', () => {
+/** Minimal BitVector for tests */
+function bv(ids: number[]) { return { isSet: (n: number) => ids.includes(n) }; }
+
+describe('VUT_IMPR_GENUS — city buildings iteration (A1-Fix-5)', () => {
   beforeEach(resetStore);
 
-  it('VIG-1: TRI_YES when targetBuilding genus matches (great wonder)', () => {
-    const impr = { id: 1, name: 'Pyramids', genus: IG_GREAT_WONDER };
-    expect(isReqActive(null, null, impr, null, null, null, null,
-      makeReq(VUT_IMPR_GENUS, IG_GREAT_WONDER), RPT_CERTAIN)).toBe(true);
+  it('VIG-1: TRI_YES when city has a built improvement of the required genus', () => {
+    mockStore.improvements = { 1: { id: 1, name: 'Pyramids', genus: IG_GREAT_WONDER } } as any;
+    const city = { improvements: bv([1]) }; // Pyramids built
+    expect(isReqActive(null, city, null, null, null, null, null,
+      makeReq(VUT_IMPR_GENUS, IG_GREAT_WONDER, true, REQ_RANGE_CITY), RPT_CERTAIN)).toBe(true);
   });
 
-  it('VIG-2: TRI_NO when genus does not match', () => {
-    const impr = { id: 2, name: 'Barracks', genus: IG_IMPROVEMENT };
-    expect(isReqActive(null, null, impr, null, null, null, null,
-      makeReq(VUT_IMPR_GENUS, IG_GREAT_WONDER), RPT_CERTAIN)).toBe(false);
+  it('VIG-2: TRI_NO when city has no building of the required genus', () => {
+    mockStore.improvements = { 2: { id: 2, name: 'Barracks', genus: IG_IMPROVEMENT } } as any;
+    const city = { improvements: bv([2]) }; // only regular improvement, no great wonder
+    expect(isReqActive(null, city, null, null, null, null, null,
+      makeReq(VUT_IMPR_GENUS, IG_GREAT_WONDER, true, REQ_RANGE_CITY), RPT_CERTAIN)).toBe(false);
   });
 
-  it('VIG-3: TRI_YES via targetOutput fallback (legacy call-site pattern)', () => {
-    const impr = { id: 3, name: 'Palace', genus: IG_SMALL_WONDER };
-    expect(isReqActive(null, null, null, null, null, impr, null,
-      makeReq(VUT_IMPR_GENUS, IG_SMALL_WONDER), RPT_CERTAIN)).toBe(true);
+  it('VIG-3: TRI_YES when city has a small wonder of matching genus', () => {
+    mockStore.improvements = { 3: { id: 3, name: 'Palace', genus: IG_SMALL_WONDER } } as any;
+    const city = { improvements: bv([3]) }; // Palace (small wonder) built
+    expect(isReqActive(null, city, null, null, null, null, null,
+      makeReq(VUT_IMPR_GENUS, IG_SMALL_WONDER, true, REQ_RANGE_CITY), RPT_CERTAIN)).toBe(true);
   });
 
-  it('VIG-4: TRI_MAYBE when both targetBuilding and targetOutput are null', () => {
+  it('VIG-4: TRI_MAYBE when city is null', () => {
     expect(isReqActive(null, null, null, null, null, null, null,
-      makeReq(VUT_IMPR_GENUS, IG_IMPROVEMENT), RPT_POSSIBLE)).toBe(true);
+      makeReq(VUT_IMPR_GENUS, IG_IMPROVEMENT, true, REQ_RANGE_CITY), RPT_POSSIBLE)).toBe(true);
   });
 
-  it('VIG-5: present=false inverts — non-wonder genus means requirement met', () => {
-    const impr = { id: 4, name: 'Library', genus: IG_IMPROVEMENT };
-    expect(isReqActive(null, null, impr, null, null, null, null,
-      makeReq(VUT_IMPR_GENUS, IG_GREAT_WONDER, false), RPT_CERTAIN)).toBe(true);
+  it('VIG-5: present=false — true when city has no building of that genus', () => {
+    mockStore.improvements = { 4: { id: 4, name: 'Library', genus: IG_IMPROVEMENT } } as any;
+    const city = { improvements: bv([4]) }; // only regular impr, no great wonder
+    expect(isReqActive(null, city, null, null, null, null, null,
+      makeReq(VUT_IMPR_GENUS, IG_GREAT_WONDER, false, REQ_RANGE_CITY), RPT_CERTAIN)).toBe(true);
   });
 });
 

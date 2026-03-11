@@ -315,14 +315,24 @@ export function isReqActive(
       break;
 
     // ── Implemented: improvement genus ───────────────────────────────────────
+    // VUT_IMPR_GENUS: the city has at least one built improvement of genus X.
     // IG_GREAT_WONDER=0, IG_SMALL_WONDER=1, IG_IMPROVEMENT=2, IG_SPECIAL=3, IG_CONVERT=4.
-    // targetBuilding is canonical; falls back to targetOutput (call-site parity with IMPR_FLAG).
+    // Must iterate city buildings — NOT check the target improvement's own genus.
     case VUT_IMPR_GENUS: {
-      const genusTgt = targetBuilding ?? targetOutput;
-      if (genusTgt == null) { result = TRI_MAYBE; break; }
-      const genus = (genusTgt as Record<string, unknown>)['genus'] as number | undefined;
-      if (genus == null) { result = TRI_MAYBE; break; }
-      result = genus === req['value'] ? TRI_YES : TRI_NO;
+      if (targetCity == null) { result = TRI_MAYBE; break; }
+      const imprBvG = (targetCity as Record<string, unknown>)['improvements'];
+      if (imprBvG == null || typeof (imprBvG as Record<string, unknown>)['isSet'] !== 'function') {
+        result = TRI_MAYBE; break;
+      }
+      const bvG = imprBvG as { isSet(n: number): boolean };
+      let genusFound = false;
+      for (const imprId in store.improvements) {
+        const n = Number(imprId);
+        if (!bvG.isSet(n)) continue;
+        const g = (store.improvements[n] as Record<string, unknown>)['genus'] as number | undefined;
+        if (g === req['value']) { genusFound = true; break; }
+      }
+      result = genusFound ? TRI_YES : TRI_NO;
       break;
     }
 

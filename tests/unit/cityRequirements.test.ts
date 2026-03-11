@@ -239,6 +239,19 @@ describe('cityCanBuy', () => {
     });
     expect(cityCanBuy(city as any)).toBe(false);
   });
+
+  it('returns false when gameInfo is null (game not loaded)', () => {
+    const impr = makeImprovement(1, 'Barracks');
+    storeState.improvements[1] = impr;
+    storeState.gameInfo = null; // game info not loaded yet
+    const city = makeCity({
+      production_kind: VUT_IMPROVEMENT,
+      production_value: 1,
+      did_buy: false,
+      turn_founded: 1,
+    });
+    expect(cityCanBuy(city as any)).toBe(false);
+  });
 });
 
 // ---------------------------------------------------------------------------

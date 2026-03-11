@@ -14,6 +14,7 @@ import {
   VUT_IMPROVEMENT,
   VUT_GOVERNMENT,
   VUT_ADVANCE,
+  VUT_MINSIZE,
   O_SHIELD,
   CAPITAL_PRIMARY,
   RPT_POSSIBLE,
@@ -292,15 +293,17 @@ export function canCityBuildUnitDirect(pcity: City, punittype: UnitType): boolea
   // City-level check: build_reqs
   const buildReqs = punittype['build_reqs'] as Requirement[] | null | undefined;
   if (buildReqs != null && buildReqs.length > 0) {
-    // VUT_GOVERNMENT and VUT_ADVANCE can be precisely evaluated client-side.
-    // Use RPT_CERTAIN so TRI_MAYBE (e.g. unusual range, null player) is a hard block.
-    const preciseReqs = buildReqs.filter(r => r.kind === VUT_GOVERNMENT || r.kind === VUT_ADVANCE);
+    // These types are evaluable client-side — use RPT_CERTAIN (TRI_MAYBE blocks).
+    const isPrecise = (r: Requirement) =>
+      r.kind === VUT_GOVERNMENT || r.kind === VUT_ADVANCE ||
+      r.kind === VUT_IMPROVEMENT || r.kind === VUT_MINSIZE;
+    const preciseReqs = buildReqs.filter(isPrecise);
     if (preciseReqs.length > 0 &&
         !areReqsActive(pplayer, pcity, null, null, punittype, null, null, preciseReqs, RPT_CERTAIN)) {
       return false;
     }
     // All other requirement types fall back to RPT_POSSIBLE (unknown → assume possible).
-    const fuzzyReqs = buildReqs.filter(r => r.kind !== VUT_GOVERNMENT && r.kind !== VUT_ADVANCE);
+    const fuzzyReqs = buildReqs.filter(r => !isPrecise(r));
     if (fuzzyReqs.length > 0 &&
         !areReqsActive(pplayer, pcity, null, null, punittype, null, null, fuzzyReqs, RPT_POSSIBLE)) {
       return false;
@@ -391,15 +394,17 @@ export function canCityBuildImprovementDirect(pcity: City, impr: Improvement): b
   // City-level build requirements
   const buildReqs = impr['build_reqs'] as Requirement[] | null | undefined;
   if (buildReqs != null && buildReqs.length > 0) {
-    // VUT_GOVERNMENT and VUT_ADVANCE can be precisely evaluated client-side.
-    // Use RPT_CERTAIN so TRI_MAYBE (e.g. unusual range, null player) is a hard block.
-    const preciseReqs = buildReqs.filter(r => r.kind === VUT_GOVERNMENT || r.kind === VUT_ADVANCE);
+    // These types are evaluable client-side — use RPT_CERTAIN (TRI_MAYBE blocks).
+    const isPrecise = (r: Requirement) =>
+      r.kind === VUT_GOVERNMENT || r.kind === VUT_ADVANCE ||
+      r.kind === VUT_IMPROVEMENT || r.kind === VUT_MINSIZE;
+    const preciseReqs = buildReqs.filter(isPrecise);
     if (preciseReqs.length > 0 &&
         !areReqsActive(pplayer, pcity, null, null, null, impr as unknown as Improvement, null, preciseReqs, RPT_CERTAIN)) {
       return false;
     }
     // All other requirement types fall back to RPT_POSSIBLE (unknown → assume possible).
-    const fuzzyReqs = buildReqs.filter(r => r.kind !== VUT_GOVERNMENT && r.kind !== VUT_ADVANCE);
+    const fuzzyReqs = buildReqs.filter(r => !isPrecise(r));
     if (fuzzyReqs.length > 0 &&
         !areReqsActive(pplayer, pcity, null, null, null, impr as unknown as Improvement, null, fuzzyReqs, RPT_POSSIBLE)) {
       return false;
@@ -415,9 +420,11 @@ export function cityCanBuy(pcity: City): boolean {
   if (pcity['production_kind'] !== VUT_IMPROVEMENT) return false;
   const improvement = store.improvements[pcity['production_value']];
   if (improvement == null) return false;
+  // Game info must be loaded to compare turn_founded vs current turn
+  if (store.gameInfo == null) return false;
   return (
     !pcity['did_buy'] &&
-    pcity['turn_founded'] !== store.gameInfo?.['turn'] &&
+    pcity['turn_founded'] !== store.gameInfo['turn'] &&
     improvement['name'] !== 'Coinage'
   );
 }
