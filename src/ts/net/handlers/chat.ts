@@ -6,6 +6,7 @@ import { E_SCRIPT, E_UNDEFINED } from '../../data/eventConstants';
 import { showDialogMessage } from '../../client/civClient';
 import { add_chatbox_text } from '../../core/messages';
 import { isLongturn } from '../../client/clientCore';
+import { escapeHtml } from '../../utils/safeHtml';
 import type { ChatMsgPacket, PageMsgPacket, PageMsgPartPacket } from './packetTypes';
 
 interface PageMsgState {
@@ -33,7 +34,7 @@ export function handle_chat_msg(packet: ChatMsgPacket): void {
 
   if (store.connections[conn_id] != null) {
     if (!isLongturn()) {
-      message = '<b>' + store.connections[conn_id]['username'] + ':</b>' + message;
+      message = '<b>' + escapeHtml(String(store.connections[conn_id]['username'])) + ':</b>' + message;
     }
   } else if (packet['event'] === E_SCRIPT) {
     const regxp = /\n/gi;
