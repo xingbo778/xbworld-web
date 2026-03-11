@@ -39,11 +39,9 @@
     <ul id="tabs_menu">
       <div id="xbworld_logo_tabs"></div>
       <li id="map_tab"><a href="#tabs-map" title="Map">🌍 Map</a></li>
-      <li id="civ_tab"><a href="#tabs-civ" title="Government">🏛 Government</a></li>
       <li id="tech_tab"><a id="tech_tab_item" href="#tabs-tec" title="Research">🧪 Research</a></li>
       <li id="players_tab"><a href="#tabs-nat" title="Nations">🏴 Nations</a></li>
       <li id="cities_tab"><a href="#tabs-cities" title="Cities">🏰 Cities</a></li>
-      <li id="opt_tab"><a href="#tabs-opt" title="Options">⚙️ Options</a></li>
       <li id="hel_tab"><a href="#tabs-hel" title="Game Log">📋 Log</a></li>
       <div id="game_status_panel_top"></div>
     </ul>
@@ -67,38 +65,12 @@
             <canvas id="overview_viewrect" width="200" height="100"></canvas>
           </div>
         </div>
-        <div id="game_unit_panel">
-          <div id="game_unit_info">&nbsp;</div>
-        </div>
-      </div>
-    </div>
-    <div id="tabs-civ">
-      <div id="civ_dialog">
-        <h2 id="nation_title">Your Nation</h2>
-        <div id="civ_dialog_text"></div>
-        <button id="wonders_report" type="button">Wonders of the World</button>
-        <button id="demography_report" type="button">Demographics</button>
       </div>
     </div>
     <div id="tabs-tec"></div>
     <div id="tabs-nat"></div>
-    <div id="tabs-cities">
-      <h2>Your Cities</h2>
-      <div id="cities_scroll"><div id="cities"><div id="cities_list"></div></div></div>
-    </div>
-    <div id="tabs-hel" class="manual_doc"></div>
-    <div id="tabs-opt">
-      <div style="text-align: center;">
-        <h2>Game Options</h2>
-        <div class="main_menu_buttons"><b>Music:</b><br><audio preload="none"></audio></div>
-        <table>
-          <tr><td><button id="save_button" type="button">Save Game</button></td>
-              <td><button id="fullscreen_button" type="button">Fullscreen</button></td></tr>
-          <tr><td><button id="surrender_button" type="button">Surrender</button></td>
-              <td><button id="end_button" type="button">End Game</button></td></tr>
-        </table>
-      </div>
-    </div>
+    <div id="tabs-cities"></div>
+    <div id="tabs-hel"></div>
   </div>
 </div>
 <script>

@@ -52,9 +52,8 @@ export function civClientInit(): void {
   // Always observer mode
   store.observing = true;
   store.gameType = 'observe';
-  // Remove observer-irrelevant UI elements (both tab buttons and their panels).
-  // hel_tab (Game Log) and tabs-hel are kept — GameLog mounts there lazily.
-  for (const id of ['civ_tab', 'cities_tab', 'opt_tab', 'pregame_buttons', 'game_unit_orders_default', 'civ_dialog', 'game_unit_panel', 'tabs-cities', 'tabs-opt', 'tabs-civ']) {
+  // Remove remaining observer-irrelevant elements not in HTML for player-only mode.
+  for (const id of ['pregame_buttons', 'game_unit_orders_default']) {
     document.getElementById(id)?.remove();
   }
 
