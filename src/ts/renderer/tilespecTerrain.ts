@@ -165,7 +165,7 @@ export function fill_terrain_sprite_array(l: number, ptile: Tile, pterrain: Terr
 
         // dlp is already tile_types_setup[_tts_key] — reuse it instead of rebuilding the key
         const this_match_index = dlp['match_index'][0] ?? -1;
-        /* var that_match_index = ('l' + l + '.' + pterrain!['graphic_str'] in tile_types_setup) ? tile_types_setup['l' + l + '.' + pterrain!['graphic_str']]['match_index'][1] : -1; */
+        const that_match_index = dlp['match_index'][1] ?? -1;
         const result_sprites: SpriteEntry[] = [];
 
         /* Put corner cells */
@@ -186,7 +186,7 @@ export function fill_terrain_sprite_array(l: number, ptile: Tile, pterrain: Terr
             case MATCH_NONE:
               /* We have no need for matching, just plug the piece in place. */
               break;
-            case MATCH_SAME:
+            case MATCH_SAME: {
               const b1 = (m[2] != this_match_index) ? 1 : 0;
               const b2 = (m[1] != this_match_index) ? 1 : 0;
               const b3 = (m[0] != this_match_index) ? 1 : 0;
@@ -194,16 +194,16 @@ export function fill_terrain_sprite_array(l: number, ptile: Tile, pterrain: Terr
               array_index = array_index * 2 + b2;
               array_index = array_index * 2 + b3;
               break;
-            case MATCH_PAIR:
-              // FIXME: This doesn't work!
-              /*var b1 = (m[2] == that_match_index) ? 1 : 0;
-              var b2 = (m[1] == that_match_index) ? 1 : 0;
-              var b3 = (m[0] == that_match_index) ? 1 : 0;
+            }
+            case MATCH_PAIR: {
+              const b1 = (m[2] == that_match_index) ? 1 : 0;
+              const b2 = (m[1] == that_match_index) ? 1 : 0;
+              const b3 = (m[0] == that_match_index) ? 1 : 0;
               array_index = array_index * 2 + b1;
               array_index = array_index * 2 + b2;
-              array_index = array_index * 2 + b3;*/
-
-              return [];
+              array_index = array_index * 2 + b3;
+              break;
+            }
 
             case MATCH_FULL:
               {

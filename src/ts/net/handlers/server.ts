@@ -112,7 +112,10 @@ export function handle_authentication_req(packet: AuthenticationReqPacket): void
   showAuthDialog(packet);
 }
 
-export function handle_server_shutdown(_packet: BasePacket): void { /* TODO */ }
+export function handle_server_shutdown(_packet: BasePacket): void {
+  add_chatbox_text({ message: 'The server has shut down.', conn_id: -1 } as unknown as ConnectMsgPacket);
+  swal('Server Shutdown', 'The game server has shut down. Please reload the page to reconnect.', 'error');
+}
 
 export function handle_connect_msg(packet: ConnectMsgPacket): void {
   add_chatbox_text(packet);

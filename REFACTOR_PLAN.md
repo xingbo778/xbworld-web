@@ -69,9 +69,18 @@ Observer-only 模式：UI 层完全解耦，可以像换皮肤一样轻松重新
   - `mouse.ts`: 移除 `update_tech_dialog_cursor` 调用（inline early return）
   - `gameState.ts` / `player.ts`: 移除永远为 false 的 `is_tech_tree_init &&` 判断
   - `TechDialog.tsx`: 移除未使用导入 `AR_ONE`, `AR_TWO`, `computed`
+- **Ruleset packet handler stubs** (~25 TODO no-ops) ✅:
+  - `handle_rulesets_ready` → emit `rules:ready` event
+  - `handle_ruleset_government_ruler_title` → store male/female title on gov
+  - `handle_ruleset_unit_bonus` → store bonuses array on unit type
+  - `handle_ruleset_unit_flag` / `handle_ruleset_unit_class_flag` / etc. → store in dynamic slots
+  - `handle_worker_task` → store per-city workerTasks
+  - No-ops: music, popup_image, ruleset_choices, game_load
+  - `handle_ruleset_control` → reset all dynamic ruleset slots on reload
+- **`ui/helpdata.ts`**: 保持旧 DOM 渲染 ✅ (works fine, no jQuery, uses domSetHtml wrapper)
 
 ### 还未完成 🔄
-- `ui/helpdata.ts` → 保持旧 DOM 渲染 (works fine)
+*(计划已完成，无遗留项目)*
 
 ---
 
@@ -105,7 +114,8 @@ setTheme('fantasy') // 奇幻主题 (紫色)
 ```
 
 ## 下一步优化 (可选)
-1. `TechDialog.tsx` 改为取代 canvas tech tab (而非并列显示)
-2. 删除 `ui/techDialog.ts` 旧 canvas 渲染代码 (需要先做完整的 Preact 科技树)
-3. Pixi.js 渲染集成到主地图 (WebGL 加速)
-4. E2E 测试在 mock backend 下完整验证
+*(以下均已完成)*
+1. ~~`TechDialog.tsx` 改为取代 canvas tech tab~~ — Phase E 完成
+2. ~~删除 `ui/techDialog.ts` 旧 canvas 渲染代码~~ — techDialog.ts 深度清理完成
+3. ~~Pixi.js 渲染集成到主地图~~ — Phase D 完成
+4. ~~E2E 测试在 mock backend 下完整验证~~ — 8/8 tests pass
