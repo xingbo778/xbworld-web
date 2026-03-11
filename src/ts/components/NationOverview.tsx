@@ -9,9 +9,8 @@
 import { render } from 'preact';
 import { signal } from '@preact/signals';
 import { store } from '../data/store';
-import { rulesetReady } from '../data/signals';
+import { currentTurn, cityCount, playerUpdated, rulesetReady } from '../data/signals';
 import { research_get, PlayerFlag } from '../data/player';
-import { globalEvents } from '../core/events';
 import { nationSelectPlayer, selectNoNation } from '../data/nationScreen';
 import { Tabs, TabPanel } from './Shared/Tabs';
 
@@ -29,9 +28,8 @@ export function mountNationOverview(container: HTMLElement): void {
   render(<NationOverview />, container);
 }
 
-globalEvents.on('game:beginturn', refreshNationOverview);
-globalEvents.on('player:updated', refreshNationOverview);
-globalEvents.on('city:updated', refreshNationOverview);
+// Refresh is now driven by signals (currentTurn, cityCount, playerUpdated)
+// read inside the render body — no manual globalEvents wiring needed.
 
 // ── shared styles ────────────────────────────────────────────────────────────
 
@@ -264,8 +262,11 @@ function UnitsTable() {
 // ── root component ────────────────────────────────────────────────────────────
 
 export function NationOverview() {
-  _tick.value;        // subscribe to turn/player/city events
-  rulesetReady.value; // re-render when tech names become available
+  _tick.value;           // explicit external refresh (refreshNationOverview())
+  currentTurn.value;     // re-render on each new turn
+  playerUpdated.value;   // re-render when any player changes
+  cityCount.value;       // re-render when city count changes
+  rulesetReady.value;    // re-render when tech names become available
   const activeTab = _activeTab.value;
 
   return (

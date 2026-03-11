@@ -72,3 +72,18 @@ globalEvents.on('unit:updated', () => {
  */
 export const rulesetReady = signal(0);
 globalEvents.on('rules:ready', () => { rulesetReady.value++; });
+
+/**
+ * Incremented whenever a player object is updated (player:updated event).
+ * Components that display per-player data (NationOverview, etc.) subscribe
+ * by reading `playerUpdated.value` inside their render body.
+ */
+export const playerUpdated = signal(0);
+globalEvents.on('player:updated', () => { playerUpdated.value++; });
+
+/**
+ * Incremented whenever research state changes (player:research event).
+ * TechPanel/TechTree subscribe to this so they re-render on each bulb update.
+ */
+export const researchUpdated = signal(0);
+globalEvents.on('player:research', () => { researchUpdated.value++; });

@@ -194,3 +194,60 @@ describe('rulesetReady — CityDialog subscription', () => {
     closeCityDialogPreact();
   });
 });
+
+// ── playerUpdated signal ───────────────────────────────────────────────────
+
+describe('playerUpdated signal', () => {
+  it('is a number signal', async () => {
+    const { playerUpdated } = await import('@/data/signals');
+    expect(typeof playerUpdated.value).toBe('number');
+  });
+
+  it('increments when player:updated is emitted', async () => {
+    const { playerUpdated } = await import('@/data/signals');
+    const before = playerUpdated.value;
+    globalEvents.emit('player:updated');
+    expect(playerUpdated.value).toBe(before + 1);
+  });
+
+  it('increments independently from rulesetReady', async () => {
+    const { playerUpdated, rulesetReady } = await import('@/data/signals');
+    const beforeP = playerUpdated.value;
+    const beforeR = rulesetReady.value;
+    globalEvents.emit('player:updated');
+    expect(playerUpdated.value).toBe(beforeP + 1);
+    expect(rulesetReady.value).toBe(beforeR); // unaffected
+  });
+});
+
+// ── researchUpdated signal ─────────────────────────────────────────────────
+
+describe('researchUpdated signal', () => {
+  it('is a number signal', async () => {
+    const { researchUpdated } = await import('@/data/signals');
+    expect(typeof researchUpdated.value).toBe('number');
+  });
+
+  it('increments when player:research is emitted', async () => {
+    const { researchUpdated } = await import('@/data/signals');
+    const before = researchUpdated.value;
+    globalEvents.emit('player:research');
+    expect(researchUpdated.value).toBe(before + 1);
+  });
+
+  it('increments multiple times', async () => {
+    const { researchUpdated } = await import('@/data/signals');
+    const before = researchUpdated.value;
+    globalEvents.emit('player:research');
+    globalEvents.emit('player:research');
+    expect(researchUpdated.value).toBe(before + 2);
+  });
+
+  it('does not affect playerUpdated', async () => {
+    const { researchUpdated, playerUpdated } = await import('@/data/signals');
+    const beforePu = playerUpdated.value;
+    globalEvents.emit('player:research');
+    expect(playerUpdated.value).toBe(beforePu); // unaffected
+    void researchUpdated; // suppress unused warning
+  });
+});

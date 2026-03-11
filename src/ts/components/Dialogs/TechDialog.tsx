@@ -9,9 +9,8 @@ import { render } from 'preact';
 import { signal } from '@preact/signals';
 import { useCallback, useState } from 'preact/hooks';
 import { store } from '../../data/store';
-import { rulesetReady } from '../../data/signals';
+import { currentTurn, researchUpdated, rulesetReady } from '../../data/signals';
 import { research_get } from '../../data/player';
-import { globalEvents } from '../../core/events';
 import { reqtree } from '../../data/reqtree';
 import { A_NONE, TECH_KNOWN } from '../../data/tech';
 import { Dialog } from '../Shared/Dialog';
@@ -37,9 +36,8 @@ export function closeTechDialog(): void { techDialogOpen.value = false; }
 /** Refresh the panel (and modal if open) with latest research data. */
 export function refreshTechPanel(): void { _refreshTick.value++; }
 
-// Auto-refresh on game events
-globalEvents.on('game:beginturn', () => { _refreshTick.value++; });
-globalEvents.on('player:research', () => { _refreshTick.value++; });
+// Auto-refresh is now driven by currentTurn + researchUpdated signals
+// read inside ResearchList/TechTree render bodies — no globalEvents wiring needed.
 
 // ── Tech tree layout constants ────────────────────────────────────────────────
 const XSCALE = 1.2;
@@ -58,7 +56,9 @@ function getActiveLayout(): typeof reqtree {
 
 // ── Shared content ────────────────────────────────────────────────────────────
 function ResearchList() {
-  _refreshTick.value;    // subscribe to turn/research events
+  _refreshTick.value;    // explicit external refresh (refreshTechPanel / openTechDialog)
+  currentTurn.value;     // re-render on each new turn
+  researchUpdated.value; // re-render when research state changes
   rulesetReady.value;    // re-render when ruleset is loaded
   const players = Object.values(store.players);
   return (
@@ -149,8 +149,10 @@ function getPrereqs(tech: Tech, layout: typeof reqtree): number[] {
 }
 
 function TechTree() {
-  _refreshTick.value; // subscribe to turn/research events
-  rulesetReady.value; // re-render when ruleset (techs/computedReqtree) is loaded
+  _refreshTick.value;    // explicit external refresh
+  currentTurn.value;     // re-render on each new turn
+  researchUpdated.value; // re-render when research state changes
+  rulesetReady.value;    // re-render when ruleset (techs/computedReqtree) is loaded
 
   const techs = store.techs;
   const layout = getActiveLayout();

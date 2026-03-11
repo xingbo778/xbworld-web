@@ -4,6 +4,7 @@
  */
 import { render } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
+import { sanitizeGameHtml } from '../utils/safeHtml';
 
 interface LogEntry {
   id: number;
@@ -83,7 +84,7 @@ function GameLog() {
               color: '#c9d1d9',
               lineHeight: '1.5',
             }}
-            dangerouslySetInnerHTML={{ __html: entry.html }}
+            dangerouslySetInnerHTML={{ __html: sanitizeGameHtml(entry.html) }}
           />
         ))}
         <div ref={bottomRef} />
