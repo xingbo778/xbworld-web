@@ -56,6 +56,7 @@ export function handle_game_info(packet: GameInfoPacket): void {
 
 export function handle_calendar_info(packet: CalendarInfoPacket): void {
   store.calendarInfo = packet;
+  globalEvents.emit('game:calendar', packet);
 }
 
 export function handle_spaceship_info(_packet: BasePacket): void {

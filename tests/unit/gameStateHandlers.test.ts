@@ -1,7 +1,7 @@
 /**
  * Unit tests for net/handlers/gameState.ts
  */
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { store } from '@/data/store';
 
 beforeEach(() => {
@@ -26,6 +26,23 @@ describe('handle_calendar_info', () => {
     const { handle_calendar_info } = await import('@/net/handlers/gameState');
     handle_calendar_info({ positive_label: 'AD', negative_label: 'BC', fragments: 1 } as never);
     expect((store.calendarInfo as Record<string, unknown>)?.['positive_label']).toBe('AD');
+  });
+
+  it('emits game:calendar event', async () => {
+    const { handle_calendar_info } = await import('@/net/handlers/gameState');
+    const { globalEvents } = await import('@/core/events');
+    const handler = vi.fn();
+    globalEvents.on('game:calendar', handler);
+    handle_calendar_info({ positive_year_label: 'AD', negative_year_label: 'BC' } as never);
+    expect(handler).toHaveBeenCalled();
+    globalEvents.off('game:calendar', handler);
+  });
+
+  it('calendarInfo signal updates when handle_calendar_info fires', async () => {
+    const { handle_calendar_info } = await import('@/net/handlers/gameState');
+    const { calendarInfo } = await import('@/data/signals');
+    handle_calendar_info({ positive_year_label: 'CE', negative_year_label: 'BCE' } as never);
+    expect((calendarInfo.value as Record<string, unknown>)?.['positive_year_label']).toBe('CE');
   });
 });
 

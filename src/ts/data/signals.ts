@@ -53,6 +53,9 @@ globalEvents.on('map:allocated', syncFromStore);
 globalEvents.on('store:reset', syncFromStore);
 globalEvents.on('player:removed', syncFromStore);
 globalEvents.on('connection:updated', syncFromStore);
+// calendarInfo arrives once before game:info; bridge directly so currentYear
+// computes correctly even before the first game:info syncFromStore call.
+globalEvents.on('game:calendar', () => { calendarInfo.value = store.calendarInfo; });
 // tile:updated fires for every tile; no signal update needed (PixiRenderer
 // handles dirty-marking directly via globalEvents.on in its own listener).
 globalEvents.on('city:updated', () => {
