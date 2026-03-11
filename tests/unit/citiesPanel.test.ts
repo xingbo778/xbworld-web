@@ -29,7 +29,7 @@ describe('CitiesPanel rendering', () => {
 
     // Reset mounted flag by re-importing fresh module (module cache)
     // We can't reset the singleton, so just test that mountCitiesPanel doesn't throw
-    expect(() => (mod as unknown as Record<string, unknown>)['mountCitiesPanel']?.()).not.toThrow();
+    expect(() => ((mod as unknown as Record<string, unknown>)['mountCitiesPanel'] as (() => void) | undefined)?.()).not.toThrow();
   });
 
   it('renders cities from store', async () => {

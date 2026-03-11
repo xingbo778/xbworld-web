@@ -43,9 +43,9 @@ describe('handle_city_info emits city:updated', () => {
       surplus: [], waste: [], unhappy_penalty: [], prod: [],
       citizen_extra: [], ppl_happy: [], ppl_content: [], ppl_unhappy: [], ppl_angry: [],
       improvements: [], city_options: [],
-    } as never;
+    };
 
-    handle_city_info(basePacket); // create
+    handle_city_info(basePacket as never); // create
     globalEvents.on('city:updated', handler);
     handle_city_info({ ...basePacket, size: 6 } as never); // update
 

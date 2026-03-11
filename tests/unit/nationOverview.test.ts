@@ -13,7 +13,7 @@ function makePlayer(playerno: number, name: string) {
     playerno, name, nation: playerno, is_alive: true,
     score: 100, gold: 50, phase_done: false, nturns_idle: 0,
     flags: { isSet: vi.fn().mockReturnValue(false) },
-  } as never;
+  };
 }
 
 function mountFresh(
@@ -62,7 +62,7 @@ describe('NationOverview — mountNationOverview', () => {
   it('renders player rows when players exist', async () => {
     const { mountNationOverview, refreshNationOverview } = await import('@/components/NationOverview');
 
-    store.players[0] = makePlayer(0, 'Caesar');
+    store.players[0] = makePlayer(0, 'Caesar') as never;
     store.nations[1] = { color: '#ff0000', adjective: 'Roman', legend: '', graphic_str: '' } as never;
 
     const container = document.createElement('div');
@@ -127,7 +127,7 @@ describe('NationOverview — tab switching', () => {
 
   it('default active tab shows Nations content', async () => {
     const { mountNationOverview } = await import('@/components/NationOverview');
-    store.players[0] = makePlayer(0, 'Caesar');
+    store.players[0] = makePlayer(0, 'Caesar') as never;
     const container = mountFresh(mountNationOverview);
     // Nations tab panel should be visible — contains player name or "No players"
     expect(container.textContent).toContain('Caesar');
@@ -189,7 +189,7 @@ describe('NationOverview — tab switching', () => {
 
   it('switching back to Nations tab shows player data again', async () => {
     const { mountNationOverview, setNationOverviewTab } = await import('@/components/NationOverview');
-    store.players[0] = makePlayer(0, 'Alexander');
+    store.players[0] = makePlayer(0, 'Alexander') as never;
     const container = mountFresh(mountNationOverview);
 
     setNationOverviewTab('cities');
@@ -219,7 +219,7 @@ describe('NationOverview — Cities tab content', () => {
 
   it('shows city name, owner, and size', async () => {
     const { mountNationOverview } = await import('@/components/NationOverview');
-    store.players[0] = makePlayer(0, 'Caesar');
+    store.players[0] = makePlayer(0, 'Caesar') as never;
     store.cities[1] = { id: 1, name: 'Carthage', owner: 0, tile: 0, size: 7 } as never;
     const container = mountFresh(mountNationOverview);
     expect(container.textContent).toContain('Carthage');
@@ -257,7 +257,7 @@ describe('NationOverview — Units tab content', () => {
 
   it('shows unit type name, owner, and HP', async () => {
     const { mountNationOverview } = await import('@/components/NationOverview');
-    store.players[0] = makePlayer(0, 'Hannibal');
+    store.players[0] = makePlayer(0, 'Hannibal') as never;
     store.unitTypes[2] = { id: 2, name: 'Cavalry' } as never;
     store.units[10] = { id: 10, owner: 0, tile: 0, type: 2, hp: 15 } as never;
     const container = mountFresh(mountNationOverview);

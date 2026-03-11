@@ -203,7 +203,7 @@ describe('isReqActive', () => {
   });
 
   it('VUT_MINTECHS: returns true when player knows enough techs', () => {
-    store.techs = { 1: {}, 2: {}, 3: {} };
+    store.techs = { 1: {}, 2: {}, 3: {} } as never;
     const player = { inventions: { 1: TECH_KNOWN, 2: TECH_KNOWN, 3: TECH_KNOWN } } as any;
     const req = makeReq({ kind: VUT_MINTECHS, value: 3, present: true });
     expect(isReqActive(player, null, null, null, null, null, null, req, RPT_POSSIBLE)).toBe(true);
@@ -211,7 +211,7 @@ describe('isReqActive', () => {
   });
 
   it('VUT_MINTECHS: returns false when player knows too few techs', () => {
-    store.techs = { 1: {}, 2: {}, 3: {} };
+    store.techs = { 1: {}, 2: {}, 3: {} } as never;
     const player = { inventions: { 1: TECH_KNOWN } } as any;
     const req = makeReq({ kind: VUT_MINTECHS, value: 3, present: true });
     expect(isReqActive(player, null, null, null, null, null, null, req, RPT_POSSIBLE)).toBe(false);
@@ -227,14 +227,14 @@ describe('isReqActive', () => {
   });
 
   it('VUT_TOPO: returns true when topology_id matches', () => {
-    store.mapInfo = { topology_id: 4 };
+    store.mapInfo = { topology_id: 4 } as never;
     const req = makeReq({ kind: VUT_TOPO, value: 4, present: true });
     expect(isReqActive(null, null, null, null, null, null, null, req, RPT_POSSIBLE)).toBe(true);
     store.mapInfo = null;
   });
 
   it('VUT_TOPO: returns false when topology_id does not match', () => {
-    store.mapInfo = { topology_id: 2 };
+    store.mapInfo = { topology_id: 2 } as never;
     const req = makeReq({ kind: VUT_TOPO, value: 4, present: true });
     expect(isReqActive(null, null, null, null, null, null, null, req, RPT_POSSIBLE)).toBe(false);
     store.mapInfo = null;

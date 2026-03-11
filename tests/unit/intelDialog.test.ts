@@ -145,7 +145,7 @@ describe('buildIntelData', () => {
 
 describe('IntelDialog — JSX rendering', () => {
   it('IDD-1: mounts without error when closed', async () => {
-    const { IntelDialog, closeIntelDialog, mountIntelDialog } = await import('@/components/Dialogs/IntelDialog');
+    const { IntelDialog, closeIntelDialog } = await import('@/components/Dialogs/IntelDialog');
     closeIntelDialog();
     const container = document.createElement('div');
     document.body.appendChild(container);

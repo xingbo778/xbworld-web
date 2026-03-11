@@ -364,10 +364,10 @@ export function isReqActive(
       const uclass = store.unitClasses[classId as number];
       if (uclass == null) { result = TRI_MAYBE; break; }
       const ucFlags = uclass['flags'];
-      if (ucFlags == null || typeof (ucFlags as Record<string, unknown>)['isSet'] !== 'function') {
+      if (ucFlags == null || typeof (ucFlags as unknown as Record<string, unknown>)['isSet'] !== 'function') {
         result = TRI_MAYBE; break;
       }
-      result = (ucFlags as { isSet(n: number): boolean }).isSet(req['value']) ? TRI_YES : TRI_NO;
+      result = (ucFlags as unknown as { isSet(n: number): boolean }).isSet(req['value']) ? TRI_YES : TRI_NO;
       break;
     }
 

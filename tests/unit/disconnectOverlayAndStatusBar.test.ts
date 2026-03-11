@@ -15,7 +15,7 @@ vi.mock('@/net/connection', () => ({
 
 vi.mock('@/components/Shared/Button', () => ({
   Button: ({ onClick, children }: { onClick: () => void; children: unknown }) =>
-    h('button', { onClick }, children),
+    h('button', { onClick }, children as import('preact').ComponentChildren),
 }));
 
 // ---------------------------------------------------------------------------
@@ -57,7 +57,7 @@ describe('DisconnectOverlay', () => {
 
   it('renders disconnected phase with error state', async () => {
     const { disconnectOverlay } = await import('@/data/signals');
-    disconnectOverlay.value = { phase: 'disconnected', countdown: 0, attempt: 5, max: 5 };
+    disconnectOverlay.value = { phase: 'disconnected' };
 
     const { DisconnectOverlay } = await import('@/components/DisconnectOverlay');
     const div = document.createElement('div');

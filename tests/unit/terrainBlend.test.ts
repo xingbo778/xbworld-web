@@ -430,7 +430,7 @@ describe('Lake terrain — CELL_CORNER MATCH_PAIR cellgroup_map entries', () => 
     // lake.28="t.l0.cellgroup_l_l_s_l", lake.29="t.l0.cellgroup_s_l_l_l",
     // lake.30="t.l0.cellgroup_l_l_l_s", lake.31="t.l0.cellgroup_l_s_l_l"
     const keys = sprites.map(s => s.key);
-    expect(keys.some(k => k.includes('l_l'))).toBe(true); // majority-land cellgroups
+    expect(keys.some(k => k?.includes('l_l'))).toBe(true); // majority-land cellgroups
     for (const k of keys) {
       expect(k).not.toContain('undefined');
     }

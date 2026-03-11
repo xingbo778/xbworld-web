@@ -255,7 +255,7 @@ export function generateProductionList(): ProductionItem[] {
 
     // Filter non-player-buildable units using flags (replaces hardcoded name hack).
     // Units with UTYF_PROVIDES_RANSOM are barbarian leader types never built by cities.
-    const utFlags = punitType['flags'] as { isSet(n: number): boolean } | null | undefined;
+    const utFlags = punitType['flags'] as unknown as { isSet(n: number): boolean } | null | undefined;
     if (utFlags != null && typeof utFlags.isSet === 'function' && utFlags.isSet(UTYF_PROVIDES_RANSOM)) continue;
 
     // Resolve unit class name for display (e.g. "Land", "Sea", "Air").

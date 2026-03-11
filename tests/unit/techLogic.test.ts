@@ -152,17 +152,17 @@ describe('buildTechInfoDialogData — wiki field', () => {
 
 describe('findTechAtPosition', () => {
   beforeEach(() => {
-    (store as Record<string, unknown>).techs = {
+    (store as unknown as Record<string, unknown>).techs = {
       1: { id: 1, name: 'Alphabet' },
     };
     // XSCALE=1.2, so tech at x=0,y=0 renders at pixel x≈2, y=2
     // tech_item_width=208, tech_item_height=52
-    (store as Record<string, unknown>).computedReqtree = { '1': { x: 0, y: 0 } };
+    (store as unknown as Record<string, unknown>).computedReqtree = { '1': { x: 0, y: 0 } };
   });
 
   afterEach(() => {
-    delete (store as Record<string, unknown>).techs;
-    delete (store as Record<string, unknown>).computedReqtree;
+    delete (store as unknown as Record<string, unknown>).techs;
+    delete (store as unknown as Record<string, unknown>).computedReqtree;
   });
 
   it('returns tech id when click is inside the tech box', () => {
