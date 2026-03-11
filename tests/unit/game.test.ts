@@ -20,6 +20,7 @@ import {
   civ_population,
   get_year_string,
   current_turn_timeout,
+  update_game_status_panel,
 } from '@/data/game';
 import { store } from '@/data/store';
 import { isSmallScreen } from '@/utils/helpers';
@@ -185,5 +186,29 @@ describe('current_turn_timeout', () => {
     store.gameInfo!['turn'] = 1;
     store.gameInfo!['first_timeout'] = -1;
     expect(current_turn_timeout()).toBe(60);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// update_game_status_panel
+// ---------------------------------------------------------------------------
+
+describe('update_game_status_panel', () => {
+  it('does nothing when client state is not C_S_RUNNING', async () => {
+    const { statusRefresh } = await import('@/data/signals');
+    const before = statusRefresh.value;
+    // store.civclientState is 0 (C_S_INITIAL) after reset, not C_S_RUNNING (2)
+    update_game_status_panel();
+    expect(statusRefresh.value).toBe(before); // unchanged
+  });
+
+  it('increments statusRefresh when state is C_S_RUNNING', async () => {
+    const { statusRefresh } = await import('@/data/signals');
+    store.gameInfo = { turn: 5, year: 0 } as never;
+    store.civclientState = 2; // C_S_RUNNING
+    const before = statusRefresh.value;
+    update_game_status_panel();
+    expect(statusRefresh.value).toBe(before + 1);
+    store.civclientState = 0;
   });
 });
