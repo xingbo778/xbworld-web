@@ -33,13 +33,59 @@ export const unitCount = signal(0);
 export const isObserver = signal(false);
 export const connectedPlayer = signal<number | null>(null);
 
+// ---------------------------------------------------------------------------
+// A1 City demand optimization — smart cityCount tracking
+//
+// BEFORE: city:updated always called Object.keys(store.cities).length (O(n)),
+//   which during a bulk city load (N cities at turn start) ran N × O(N) = O(N²)
+//   times and triggered N Preact signal updates even when the count hadn't changed.
+//   Example: 200-city game start → 200 × Object.keys(200) = 40,000 iterations.
+//
+// AFTER: track known city IDs in a Set; only update cityCount when the count
+//   actually changes (new city added or existing city removed). Redundant updates
+//   for existing-city refreshes are suppressed entirely.
+//   Same 200-city game → 200 Set.has() checks + 200 Set.add() calls = O(N).
+//   Re-render count drops from N to 1 (Preact still batches, but signal writes
+//   now only occur on genuine count changes, not on every packet).
+//
+// Fallback: when city:updated fires without an ID (e.g. test-only patterns or
+//   future callers that don't include packet data), fall back to Object.keys()
+//   recount to maintain backward compatibility.
+// ---------------------------------------------------------------------------
+
+/** Set of city IDs we have already accounted for in cityCount. */
+let _knownCityIds = new Set<number>();
+
+/**
+ * A1 City demand optimization metrics — exported for tests and observability.
+ * Reset via _resetCityDemandMetrics() between test runs.
+ */
+export const _cityDemandMetrics = {
+  /** Times cityCount signal was actually written (genuine count change). */
+  cityCountUpdates: 0,
+  /** Times a redundant city:updated was suppressed (city already known). */
+  cityCountSuppressed: 0,
+};
+
+export function _resetCityDemandMetrics(): void {
+  _cityDemandMetrics.cityCountUpdates = 0;
+  _cityDemandMetrics.cityCountSuppressed = 0;
+}
+
+/** Rebuild _knownCityIds from current store state (used by syncFromStore). */
+function _resyncKnownCityIds(): void {
+  _knownCityIds = new Set(Object.keys(store.cities).map(Number));
+}
+
 // Sync signals from events
 function syncFromStore(): void {
   gameInfo.value = store.gameInfo;
   calendarInfo.value = store.calendarInfo;
   mapInfo.value = store.mapInfo;
   playerCount.value = Object.keys(store.players).length;
-  cityCount.value = Object.keys(store.cities).length;
+  // Full resync: rebuild the known-IDs set and update cityCount once.
+  _resyncKnownCityIds();
+  cityCount.value = _knownCityIds.size;
   unitCount.value = Object.keys(store.units).length;
   isObserver.value = store.observing;
   connectedPlayer.value = clientPlaying()?.playerno ?? null;
@@ -58,11 +104,39 @@ globalEvents.on('connection:updated', syncFromStore);
 globalEvents.on('game:calendar', () => { calendarInfo.value = store.calendarInfo; });
 // tile:updated fires for every tile; no signal update needed (PixiRenderer
 // handles dirty-marking directly via globalEvents.on in its own listener).
-globalEvents.on('city:updated', () => {
-  cityCount.value = Object.keys(store.cities).length;
+globalEvents.on('city:updated', (data: unknown) => {
+  const id = (data as Record<string, unknown>)?.['id'];
+  if (typeof id === 'number') {
+    // Fast path: O(1) Set lookup — only update signal if this is a new city.
+    if (!_knownCityIds.has(id)) {
+      _knownCityIds.add(id);
+      cityCount.value = _knownCityIds.size;
+      _cityDemandMetrics.cityCountUpdates++;
+    } else {
+      // Existing city refreshed — count unchanged, suppress the signal write.
+      _cityDemandMetrics.cityCountSuppressed++;
+    }
+  } else {
+    // Fallback for callers that don't include packet data (e.g. legacy tests).
+    _resyncKnownCityIds();
+    cityCount.value = _knownCityIds.size;
+    _cityDemandMetrics.cityCountUpdates++;
+  }
 });
-globalEvents.on('city:removed', () => {
-  cityCount.value = Object.keys(store.cities).length;
+globalEvents.on('city:removed', (data: unknown) => {
+  // city:removed payload is the city ID (number) or an object with city_id.
+  const id = typeof data === 'number' ? data
+    : (data as Record<string, unknown>)?.['city_id'] as number | undefined;
+  if (typeof id === 'number' && _knownCityIds.has(id)) {
+    _knownCityIds.delete(id);
+    cityCount.value = _knownCityIds.size;
+    _cityDemandMetrics.cityCountUpdates++;
+  } else {
+    // Fallback: recount from scratch (ID missing or unknown).
+    _resyncKnownCityIds();
+    cityCount.value = _knownCityIds.size;
+    _cityDemandMetrics.cityCountUpdates++;
+  }
 });
 globalEvents.on('unit:updated', () => {
   unitCount.value = Object.keys(store.units).length;

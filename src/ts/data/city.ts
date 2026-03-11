@@ -224,8 +224,30 @@ export function getProductionProgress(pcity: City | null): string {
   return ' ';
 }
 
-/** Generates the full production list (units + improvements). */
+// ---------------------------------------------------------------------------
+// A1 City demand optimization — production list cache
+//
+// BEFORE: generateProductionList() iterated ALL unit types + ALL improvements
+//   every call (O(numUnitTypes + numImprovements)). If called multiple times
+//   between ruleset loads, it repeated this full iteration each time.
+//
+// AFTER: cache the result keyed to rules:ready / store:reset events. The list
+//   only rebuilds when the ruleset actually changes. Subsequent calls return
+//   the cached array in O(1). Typical savings: 50–100 unit types + 70 improvements
+//   × however many times the caller invokes it per session.
+// ---------------------------------------------------------------------------
+
+let _cachedProductionList: ProductionItem[] | null = null;
+
+globalEvents.on('rules:ready', () => { _cachedProductionList = null; });
+// store:reset listener already added above for _improvementNameIndex; no double-register needed
+// (globalEvents supports multiple listeners per event).
+globalEvents.on('store:reset', () => { _cachedProductionList = null; });
+
+/** Generates the full production list (units + improvements), cached per ruleset. */
 export function generateProductionList(): ProductionItem[] {
+  if (_cachedProductionList !== null) return _cachedProductionList;
+
   const productionList: ProductionItem[] = [];
 
   for (const unitTypeId in store.unitTypes) {
@@ -274,6 +296,7 @@ export function generateProductionList(): ProductionItem[] {
       sprite: get_improvement_image_sprite(pimprovement),
     });
   }
+  _cachedProductionList = productionList;
   return productionList;
 }
 
@@ -357,23 +380,67 @@ export function cityHasBuilding(pcity: City, improvementId: number): boolean {
   );
 }
 
+// ---------------------------------------------------------------------------
+// A1 City demand optimization — improvement name → id index
+//
+// BEFORE: doesCityHaveImprovement() did an O(num_impr_types) linear scan for
+//   every call: iterate all improvement slots, compare names one by one.
+//   Called from areReqsActive() for every VUT_IMPROVEMENT requirement; with
+//   70 improvement types and ~3 requirements per buildable item, opening the
+//   city production tab triggered ~210 calls × O(70) = ~14,700 iterations.
+//
+// AFTER: lazily build a Map<name, id> once (O(num_impr_types) one-time cost),
+//   then every doesCityHaveImprovement() call is O(1) — one Map.get() + one
+//   BitVector.isSet(). The index is invalidated on rules:ready and store:reset.
+//   Same production-tab open → ~210 calls × O(1) = ~210 operations.
+// ---------------------------------------------------------------------------
+
+/** Lazily built improvement-name → id index. Null = not yet built / invalidated. */
+let _improvementNameIndex: Map<string, number> | null = null;
+
+/**
+ * A1 Improvement lookup optimization metrics — exported for tests and observability.
+ */
+export const _improvementLookupMetrics = {
+  /** How many times the index was built (invalidations + initial build). */
+  indexBuilds: 0,
+  /** Total doesCityHaveImprovement() calls routed through the fast path. */
+  lookups: 0,
+};
+
+export function _resetImprovementLookupMetrics(): void {
+  _improvementLookupMetrics.indexBuilds = 0;
+  _improvementLookupMetrics.lookups = 0;
+}
+
+/** Returns the improvement name→id index, building it lazily on first use. */
+function getImprovementNameIndex(): Map<string, number> {
+  if (_improvementNameIndex !== null) return _improvementNameIndex;
+  const idx = new Map<string, number>();
+  for (const idStr in store.improvements) {
+    const impr = store.improvements[Number(idStr)];
+    if (impr?.['name']) idx.set(impr['name'] as string, Number(idStr));
+  }
+  _improvementNameIndex = idx;
+  _improvementLookupMetrics.indexBuilds++;
+  return idx;
+}
+
+// Invalidate the index whenever the ruleset or store changes.
+globalEvents.on('rules:ready', () => { _improvementNameIndex = null; });
+globalEvents.on('store:reset', () => { _improvementNameIndex = null; });
+
 /** Return TRUE iff the city has this improvement (by name). */
 export function doesCityHaveImprovement(
   pcity: City | null | undefined,
   improvementName: string,
 ): boolean {
   if (pcity == null || pcity['improvements'] == null) return false;
-
-  for (let z = 0; z < (store.rulesControl as Record<string, number>).num_impr_types; z++) {
-    if (
-      (pcity['improvements'] as unknown as BitVector).isSet(z) &&
-      store.improvements[z] != null &&
-      store.improvements[z]['name'] === improvementName
-    ) {
-      return true;
-    }
-  }
-  return false;
+  _improvementLookupMetrics.lookups++;
+  const idx = getImprovementNameIndex();
+  const id = idx.get(improvementName);
+  if (id === undefined) return false;
+  return (pcity['improvements'] as unknown as BitVector).isSet(id);
 }
 
 /** Return whether given city can build given improvement, ignoring server BitVectors. */
