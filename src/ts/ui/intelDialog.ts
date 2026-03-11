@@ -25,6 +25,7 @@ import { clientIsObserver as client_is_observer, clientPlaying } from '../client
 import { showDialogMessage as show_dialog_message } from '../client/civClient';
 import type { IntelData } from '../components/Dialogs/IntelDialog';
 import { showIntelDialog } from '../components/Dialogs/IntelDialog';
+import { escapeHtml } from '../utils/safeHtml';
 
 export function show_intelligence_report_dialog(): void {
   const selected_player = store.selectedPlayer;
@@ -40,19 +41,22 @@ export function show_intelligence_report_dialog(): void {
 }
 
 export function show_intelligence_report_hearsay(pplayer: Player): void {
-  let msg: string = "Ruler " + pplayer['name'] + "\n";
+  const name = escapeHtml(String(pplayer['name']));
+  let msg: string = "Ruler " + name + "<br>";
   if ((pplayer['government'] as number) > 0) {
-    msg += "Government: " + store.governments[pplayer['government'] as number]['name'] + "\n";
+    const govName = escapeHtml(String(store.governments[pplayer['government'] as number]['name']));
+    msg += "Government: " + govName + "<br>";
   }
   if ((pplayer['gold'] as number) > 0) {
-    msg += "Gold: " + pplayer['gold'] + "\n";
+    msg += "Gold: " + Number(pplayer['gold']) + "<br>";
   }
   if (pplayer['researching'] != null && (pplayer['researching'] as number) > 0 && store.techs[pplayer['researching'] as number] != null) {
-    msg += "Researching: " + store.techs[pplayer['researching'] as number]['name'] + "\n";
+    const techName = escapeHtml(String(store.techs[pplayer['researching'] as number]['name']));
+    msg += "Researching: " + techName + "<br>";
   }
-  msg += "\nEstablishing an embassy will show a detailed intelligence report.";
+  msg += "<br>Establishing an embassy will show a detailed intelligence report.";
 
-  show_dialog_message("Intelligence report for " + pplayer['name'], msg);
+  show_dialog_message("Intelligence report for " + String(pplayer['name']), msg);
 }
 
 /** Build typed intel data for a player (embassy-level). No HTML strings. */
