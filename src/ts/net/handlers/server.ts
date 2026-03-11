@@ -250,6 +250,7 @@ function _applySettingUpdate(packet: ServerSettingUpdatePacket, type: ServerSett
   Object.assign(existing, packet);
   existing['type'] = type;
   applySettingEffect(existing);
+  globalEvents.emit('settings:updated');
 }
 
 export function handle_server_setting_int(packet: ServerSettingUpdatePacket): void {

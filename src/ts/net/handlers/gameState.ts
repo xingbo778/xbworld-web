@@ -66,6 +66,7 @@ export function handle_new_year(packet: NewYearPacket): void {
   store.gameInfo['year'] = packet['year'];
   store.gameInfo['fragments'] = packet['fragments'];
   store.gameInfo['turn'] = packet['turn'];
+  globalEvents.emit('game:newyear', packet);
 }
 
 export function handle_timeout_info(packet: TimeoutInfoPacket): void {

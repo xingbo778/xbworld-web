@@ -238,3 +238,41 @@ describe('handle_map_info emits map:allocated', () => {
     globalEvents.off('map:allocated', handler);
   });
 });
+
+// ── game:newyear ───────────────────────────────────────────────────────────
+
+describe('handle_new_year emits game:newyear', () => {
+  it('emits game:newyear and updates store.gameInfo', async () => {
+    const { handle_game_info, handle_new_year } = await import('@/net/handlers/gameState');
+    // Ensure store.gameInfo exists
+    handle_game_info({ turn: 1, year: -4000 } as never);
+
+    const handler = vi.fn();
+    globalEvents.on('game:newyear', handler);
+    handle_new_year({ turn: 2, year: -3950, fragments: 0 } as never);
+
+    expect(handler).toHaveBeenCalled();
+    expect(store.gameInfo?.['turn']).toBe(2);
+    globalEvents.off('game:newyear', handler);
+  });
+});
+
+// ── settings:updated ───────────────────────────────────────────────────────
+
+describe('handle_server_setting_bool emits settings:updated', () => {
+  it('emits settings:updated when a setting is applied', async () => {
+    const { handle_server_setting_const, handle_server_setting_bool } = await import('@/net/handlers/server');
+    // Prime the slot via const packet first
+    handle_server_setting_const({
+      id: 0, name: 'test', category: 0, settable: true,
+      initial_value: 'true', default_value: 'true',
+    } as never);
+
+    const handler = vi.fn();
+    globalEvents.on('settings:updated', handler);
+    handle_server_setting_bool({ id: 0, value: true, default: true } as never);
+
+    expect(handler).toHaveBeenCalled();
+    globalEvents.off('settings:updated', handler);
+  });
+});
