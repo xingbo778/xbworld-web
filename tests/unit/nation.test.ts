@@ -9,6 +9,7 @@ import {
   loveText,
   getScoreText,
   colLove,
+  getPlayerScoresSummary,
 } from '@/data/nation';
 import { store } from '@/data/store';
 import { PlayerFlag } from '@/data/player';
@@ -161,5 +162,56 @@ describe('colLove', () => {
       love: { 0: -950 },
     } as unknown as Player;
     expect(colLove(pplayer)).toBe('Genocidal');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getPlayerScoresSummary
+// ---------------------------------------------------------------------------
+
+describe('getPlayerScoresSummary', () => {
+  beforeEach(() => {
+    store.reset();
+  });
+
+  it('returns no-data message when store has no players', () => {
+    const result = getPlayerScoresSummary();
+    expect(result).toContain('No score data');
+  });
+
+  it('returns an HTML table when players exist', () => {
+    store.players = {
+      0: { playerno: 0, name: 'Caesar', nation: 0, score: 120 } as never,
+      1: { playerno: 1, name: 'Pericles', nation: 1, score: 80 } as never,
+    };
+    store.nations = {
+      0: { id: 0, adjective: 'Roman' } as never,
+      1: { id: 1, adjective: 'Greek' } as never,
+    };
+    const result = getPlayerScoresSummary();
+    expect(result).toContain('<table');
+    expect(result).toContain('Caesar');
+    expect(result).toContain('Pericles');
+  });
+
+  it('sorts players by score descending', () => {
+    store.players = {
+      0: { playerno: 0, name: 'Low', nation: 0, score: 10 } as never,
+      1: { playerno: 1, name: 'High', nation: 1, score: 999 } as never,
+    };
+    store.nations = {};
+    const result = getPlayerScoresSummary();
+    // High scorer should appear before Low scorer in the table
+    expect(result.indexOf('High')).toBeLessThan(result.indexOf('Low'));
+  });
+
+  it('escapes player name HTML', () => {
+    store.players = {
+      0: { playerno: 0, name: '<script>xss</script>', nation: 0, score: 5 } as never,
+    };
+    store.nations = {};
+    const result = getPlayerScoresSummary();
+    expect(result).not.toContain('<script>');
+    expect(result).toContain('&lt;script&gt;');
   });
 });
