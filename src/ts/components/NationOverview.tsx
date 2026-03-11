@@ -48,7 +48,7 @@ export function NationOverview() {
       }}>
         <thead>
           <tr style={{ borderBottom: '2px solid var(--xb-border-default, #30363d)', background: 'var(--xb-bg-secondary, #161b22)' }}>
-            {['Nation', 'Score', 'Cities', 'Gold', 'Researching', 'Progress', 'State'].map(h => (
+            {['Nation', 'Score', 'Cities', 'Units', 'Gold', 'Researching', 'Progress', 'State'].map(h => (
               <th key={h} style={{ padding: '6px 10px', textAlign: 'left', color: 'var(--xb-text-secondary, #8b949e)', fontWeight: 600 }}>{h}</th>
             ))}
           </tr>
@@ -65,9 +65,12 @@ export function NationOverview() {
             const pct = Math.min(100, Math.round((bulbs / cost) * 100));
             const isAI = pplayer.flags?.isSet(PlayerFlag.PLRF_AI) ?? false;
 
-            // Count cities belonging to this player
+            // Count cities and units belonging to this player
             const myCities = Object.values(store.cities).filter(
               c => (c as Record<string, unknown>)['owner'] === p['playerno']
+            ).length;
+            const myUnits = Object.values(store.units).filter(
+              u => (u as Record<string, unknown>)['owner'] === p['playerno']
             ).length;
 
             // Turn state
@@ -117,6 +120,7 @@ export function NationOverview() {
                 </td>
                 <td style={{ padding: '6px 10px' }}>{(p['score'] as number) ?? '—'}</td>
                 <td style={{ padding: '6px 10px' }}>{myCities}</td>
+                <td style={{ padding: '6px 10px' }}>{myUnits}</td>
                 <td style={{ padding: '6px 10px' }}>{(p['gold'] as number) ?? '—'}</td>
                 <td style={{ padding: '6px 10px', color: 'var(--xb-text-secondary, #8b949e)' }}>
                   {techData ? techData['name'] as string : '—'}

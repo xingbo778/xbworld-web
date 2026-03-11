@@ -83,9 +83,18 @@ export function update_game_status_panel(): void {
       "<span title='Science rate'>🧪</span>: <b>" +
       sci +
       '</b>%</span> ';
-  } else if (store.serverSettings != null && store.serverSettings['metamessage'] != null) {
-    status_html += store.serverSettings['metamessage']['val'] + ' Observing - ';
-    status_html += 'Turn: <b>' + store.gameInfo!['turn'] + '</b>  ';
+  } else if (store.observing || clientPlaying() == null) {
+    // Observer mode: always show year + turn regardless of metamessage
+    const meta = store.serverSettings?.['metamessage']?.['val'];
+    if (meta) status_html += meta + ' — ';
+    if (store.gameInfo) {
+      if (!is_small_screen()) {
+        status_html += "<span title='Year (turn)'>🕐</span>: <b>" + get_year_string() + '</b> &nbsp;&nbsp;';
+      } else {
+        status_html += '<b>' + get_year_string() + '</b> ';
+      }
+      status_html += 'Observing';
+    }
   }
 
   const panelTop = document.getElementById('game_status_panel_top');

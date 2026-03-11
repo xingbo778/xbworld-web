@@ -13,6 +13,7 @@ import { freelog } from '../../core/log';
 import { showAuthDialog } from '../../client/civClient';
 import { wait_for_text, add_chatbox_text } from '../../core/messages';
 import { update_player_info_pregame, update_game_info_pregame } from '../../core/pregame';
+import { mapInitTopology } from '../../data/map';
 import type {
   BasePacket,
   ServerJoinReplyPacket,
@@ -133,7 +134,20 @@ export function handle_server_info(packet: ServerInfoPacket): void {
   }
 }
 
-export function handle_set_topology(_packet: BasePacket): void { /* TODO */ }
+export function handle_set_topology(packet: BasePacket): void {
+  const p = packet as Record<string, unknown>;
+  if (store.mapInfo && p['topology_id'] != null) {
+    (store.mapInfo as Record<string, unknown>)['topology_id'] = p['topology_id'];
+  }
+  if (store.mapInfo && p['wrap_id'] != null) {
+    (store.mapInfo as Record<string, unknown>)['wrap_id'] = p['wrap_id'];
+  }
+  // Update the legacy window.map mirror so mapInitTopology reads the new values
+  const winMap = (window as unknown as Record<string, unknown>)['map'] as Record<string, unknown> | undefined;
+  if (winMap && p['topology_id'] != null) winMap['topology_id'] = p['topology_id'];
+  if (winMap && p['wrap_id'] != null) winMap['wrap_id'] = p['wrap_id'];
+  mapInitTopology(false);
+}
 
 export function handle_conn_ping_info(packet: ConnPingInfoPacket): void {
   if (store.debugActive) {
