@@ -7,6 +7,7 @@
 import { render } from 'preact';
 import { signal } from '@preact/signals';
 import { store } from '../data/store';
+import { rulesetReady } from '../data/signals';
 import { research_get, PlayerFlag } from '../data/player';
 import { globalEvents } from '../core/events';
 import { nationSelectPlayer, selectNoNation } from '../data/nationScreen';
@@ -26,7 +27,8 @@ globalEvents.on('player:updated', refreshNationOverview);
 globalEvents.on('city:updated', refreshNationOverview);
 
 export function NationOverview() {
-  _tick.value; // subscribe
+  _tick.value;        // subscribe to turn/player events
+  rulesetReady.value; // re-render when tech names become available
   const selectedNo = _selectedPlayerno.value;
   const players = Object.values(store.players);
 

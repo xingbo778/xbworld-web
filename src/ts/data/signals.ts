@@ -60,3 +60,15 @@ globalEvents.on('city:updated', () => {
 globalEvents.on('unit:updated', () => {
   unitCount.value = Object.keys(store.units).length;
 });
+
+/**
+ * Ruleset-ready signal — incremented each time the server completes sending
+ * ruleset packets (handle_rulesets_ready → 'rules:ready' event).
+ *
+ * Preact components that render government/unitClass/tech data should read
+ * `rulesetReady.value` once inside their render body so Preact's signal
+ * tracking automatically re-renders them when the ruleset becomes available,
+ * without any manual globalEvents.on('rules:ready', ...) wiring.
+ */
+export const rulesetReady = signal(0);
+globalEvents.on('rules:ready', () => { rulesetReady.value++; });

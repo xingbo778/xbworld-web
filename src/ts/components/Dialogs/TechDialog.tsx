@@ -9,6 +9,7 @@ import { render } from 'preact';
 import { signal } from '@preact/signals';
 import { useCallback, useState } from 'preact/hooks';
 import { store } from '../../data/store';
+import { rulesetReady } from '../../data/signals';
 import { research_get } from '../../data/player';
 import { globalEvents } from '../../core/events';
 import { reqtree } from '../../data/reqtree';
@@ -34,7 +35,6 @@ export function refreshTechPanel(): void { _refreshTick.value++; }
 // Auto-refresh on game events
 globalEvents.on('game:beginturn', () => { _refreshTick.value++; });
 globalEvents.on('player:research', () => { _refreshTick.value++; });
-globalEvents.on('rules:ready',     () => { _refreshTick.value++; });
 
 // ── Tech tree layout constants ────────────────────────────────────────────────
 const XSCALE = 1.2;
@@ -53,7 +53,8 @@ function getActiveLayout(): typeof reqtree {
 
 // ── Shared content ────────────────────────────────────────────────────────────
 function ResearchList() {
-  _refreshTick.value; // subscribe
+  _refreshTick.value;    // subscribe to turn/research events
+  rulesetReady.value;    // re-render when ruleset is loaded
   const players = Object.values(store.players);
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -143,7 +144,8 @@ function getPrereqs(tech: Tech, layout: typeof reqtree): number[] {
 }
 
 function TechTree() {
-  _refreshTick.value; // subscribe to refresh signal
+  _refreshTick.value; // subscribe to turn/research events
+  rulesetReady.value; // re-render when ruleset (techs/computedReqtree) is loaded
 
   const techs = store.techs;
   const layout = getActiveLayout();
