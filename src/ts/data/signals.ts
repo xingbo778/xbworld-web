@@ -110,3 +110,9 @@ globalEvents.on('settings:updated', () => { settingsUpdated.value++; });
  * Decouples data/game.ts from components/StatusPanel.tsx (no circular import).
  */
 export const statusRefresh = signal(0);
+
+/**
+ * Incremented when pregame lobby data changes (scenario info or player list).
+ * PregameLobby component subscribes to trigger re-renders without circular deps.
+ */
+export const pregameRefresh = signal(0);
