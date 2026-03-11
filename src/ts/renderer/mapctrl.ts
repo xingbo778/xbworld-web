@@ -35,6 +35,7 @@ import { showDialogMessage as show_dialog_message } from '../client/civClient';
 import { do_city_map_click } from '../ui/cityDialog';
 import { IDENTITY_NUMBER_ZERO } from '../core/constants';
 import { center_tile_mapcanvas } from '../core/control';
+import { escapeHtml } from '../utils/safeHtml';
 
 export { mouse_x, mouse_y };
 export let touch_start_x: number;
@@ -400,7 +401,7 @@ export function handle_web_info_text_message(packet: { message: string; [key: st
                  + "<a href='#' data-action='select-player' data-playerno='"
                  + pplayer['playerno']
                  + "' style='color: black;'>"
-                 + split_txt[2]
+                 + escapeHtml(split_txt[2])
                  + "</a>"
                  + split_txt[3]
                  + ", "

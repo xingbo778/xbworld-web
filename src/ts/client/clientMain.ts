@@ -19,6 +19,7 @@ import { mark_all_dirty, mapview } from '../renderer/mapviewCommon';
 import { unblockUI } from '../utils/dom';
 import { showMessageDialog } from '../components/Dialogs/MessageDialog';
 import { getActiveTab, setActiveTab } from '../ui/tabs';
+import { escapeHtml } from '../utils/safeHtml';
 import { setTechDialogActive } from '../ui/techDialog';
 
 // ---------------------------------------------------------------------------
@@ -166,7 +167,7 @@ export function showEndgameDialog(): void {
     const info = store.endgamePlayerInfo[i];
     const pplayer = store.players[info['player_id'] as number];
     const nation_adj = store.nations[pplayer['nation']]?.['adjective'] ?? 'Unknown';
-    message += (i + 1) + ': The ' + nation_adj + ' ruler ' + pplayer['name'] +
+    message += (i + 1) + ': The ' + escapeHtml(String(nation_adj)) + ' ruler ' + escapeHtml(String(pplayer['name'])) +
       ' scored ' + info['score'] + ' points' + '<br>';
   }
   showMessageDialog(title, message);
