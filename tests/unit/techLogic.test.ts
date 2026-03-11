@@ -1,16 +1,16 @@
 /**
  * Unit tests for src/ts/ui/techLogic.ts
  *
- * Covers the pure data-extraction functions added during the TechDialog
- * Preact migration: buildWikiDialogData, buildTechInfoDialogData, as well as
- * the pre-existing helpers get_advances_text and findTechAtPosition.
+ * Covers the pure data-extraction functions: buildWikiDialogData,
+ * buildTechInfoDialogData, and findTechAtPosition.
+ * (get_advances_text was removed — its HTML-string output has been superseded
+ * by the structured TechInfoDialogData returned by buildTechInfoDialogData.)
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { store } from '@/data/store';
 import {
   buildWikiDialogData,
   buildTechInfoDialogData,
-  get_advances_text,
   findTechAtPosition,
 } from '@/ui/techLogic';
 import type { WikiDoc } from '@/ui/techLogic';
@@ -145,40 +145,6 @@ describe('buildTechInfoDialogData — wiki field', () => {
   it('leaves wiki null when no doc matches', () => {
     const data = buildTechInfoDialogData('Unknown', null, null, docs);
     expect(data.wiki).toBeNull();
-  });
-});
-
-// ── get_advances_text ─────────────────────────────────────────────────────────
-
-describe('get_advances_text', () => {
-  beforeEach(() => {
-    (store as Record<string, unknown>).techs = {
-      1: { id: 1, name: 'Alphabet', cost: 20, req: [], research_reqs: [] },
-      2: { id: 2, name: 'Writing',  cost: 40, req: [1], research_reqs: [{ value: 1 }] },
-    };
-    (store as Record<string, unknown>).computedReqtree = { '1': { x: 0, y: 0 }, '2': { x: 100, y: 0 } };
-  });
-
-  afterEach(() => {
-    delete (store as Record<string, unknown>).techs;
-    delete (store as Record<string, unknown>).computedReqtree;
-  });
-
-  it('includes tech name and cost in output', () => {
-    const text = get_advances_text(1, store.techs as never);
-    expect(text).toContain('Alphabet');
-    expect(text).toContain('20');
-  });
-
-  it('includes follow-on tech when tech is a prerequisite for another', () => {
-    const text = get_advances_text(1, store.techs as never);
-    expect(text).toContain('Writing');
-  });
-
-  it('uses data-action="tech-info" span for event delegation (no onclick=)', () => {
-    const text = get_advances_text(1, store.techs as never);
-    expect(text).toContain('data-action=\'tech-info\'');
-    expect(text).not.toContain('onclick=');
   });
 });
 

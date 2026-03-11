@@ -1,5 +1,6 @@
 import { render } from 'preact';
 import { MessageDialog } from './Dialogs/MessageDialog';
+import { AlertDialog } from './Dialogs/AlertDialog';
 import { AuthDialog } from './Dialogs/AuthDialog';
 import { IntelDialog } from './Dialogs/IntelDialog';
 import { SwalDialog } from './Dialogs/SwalDialog';
@@ -16,6 +17,7 @@ function App() {
     <div id="xb-preact-root">
       {/* Floating dialogs */}
       <MessageDialog />
+      <AlertDialog />
       <AuthDialog />
       <IntelDialog />
       <SwalDialog />

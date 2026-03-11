@@ -4,13 +4,10 @@
  */
 
 import { store } from '../data/store';
-import { isTechReqForTech as is_tech_req_for_tech } from '../data/tech';
-import { get_units_from_tech } from '../data/unittype';
-import { get_improvements_from_tech } from '../data/improvement';
 import { move_points_text } from '../data/unit';
 import { reqtree } from '../data/reqtree';
 import type { ReqTreeNode } from '../data/reqtree';
-import type { Tech, UnitType, Improvement } from '../data/types';
+import type { Tech } from '../data/types';
 
 // These constants are duplicated here to avoid circular imports; they match techDialog.ts
 const tech_xscale = 1.2;
@@ -21,43 +18,6 @@ function getActiveLayout(): Record<string, ReqTreeNode> {
 }
 const tech_item_width = 208;
 const tech_item_height = 52;
-
-/**
- * Build the descriptive text for a tech advance (units, improvements, follow-on techs).
- * Pure string formatting - no DOM access.
- */
-export function get_advances_text(
-  tech_id: number,
-  techs: Record<string, Tech>,
-): string {
-  const num = (value: number | null) => value === null ? 'null' : value;
-  const tech_span = (name: string, unit_id: number | null, impr_id: number | null, title?: string) =>
-    `<span ${title ? `title='${title}'` : ''}`
-    + ` data-action='tech-info' data-name='${name}' data-unit='${num(unit_id)}' data-impr='${num(impr_id)}'>${name}</span>`;
-
-  const activeLayout = getActiveLayout();
-  const is_valid_and_required = (next_tech_id: string) =>
-    Object.prototype.hasOwnProperty.call(activeLayout, next_tech_id) && is_tech_req_for_tech(tech_id, parseInt(next_tech_id));
-
-  const format_list_with_intro = (intro: string, list: (string | undefined)[]) =>
-    (list = list.filter(Boolean) as string[]).length ? (intro + ' ' + list.join(', ')) : '';
-
-  const ptech = techs[tech_id];
-
-  return tech_span(ptech.name, null, null) + ' (' + Math.floor(ptech['cost'] as number) + ')'
-    + format_list_with_intro(' allows',
-      [
-        format_list_with_intro('building unit', get_units_from_tech(tech_id)
-          .map((unit: UnitType) => tech_span(unit.name, unit.id, null, unit['helptext'] as string))),
-        format_list_with_intro('building', get_improvements_from_tech(tech_id)
-          .map((impr: Improvement) => tech_span(impr.name, null, impr.id, impr['helptext'] as string))),
-        format_list_with_intro('researching', Object.keys(techs)
-          .filter(is_valid_and_required)
-          .map((tid: string) => techs[tid])
-          .map((tech: Tech) => tech_span(tech.name, null, null)))
-      ]) + '.';
-}
-
 
 /**
  * Find the tech_id at given mouse coordinates in the tech tree canvas.

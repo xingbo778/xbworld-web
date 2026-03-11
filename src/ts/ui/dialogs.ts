@@ -1,9 +1,14 @@
 /**
  * Dialog system replacing jQuery UI dialogs.
  * Uses native HTML dialog element with custom styling.
+ *
+ * showAlert() delegates to AlertDialog (Preact) — no more DOM innerHTML building.
+ * showMessage() delegates to MessageDialog (Preact) via showMessageDialog().
  */
 
 import { create, on, appendSafeHtml } from '../utils/dom';
+import { showAlertDialog } from '../components/Dialogs/AlertDialog';
+import { showMessageDialog } from '../components/Dialogs/MessageDialog';
 
 interface DialogOptions {
   title: string;
@@ -118,30 +123,16 @@ export function closeDialog(id: string): void {
   }
 }
 
+/** Show an alert dialog using the Preact AlertDialog component. */
 export function showAlert(
   title: string,
   text: string,
   type: 'info' | 'error' | 'warning' = 'info',
 ): void {
-  const p = document.createElement('p');
-  p.className = `xb-alert-${type}`;
-  p.textContent = text;
-  showDialog('xb-alert', {
-    title,
-    content: p.outerHTML,
-    modal: true,
-    width: '400px',
-    buttons: { Ok: () => closeDialog('xb-alert') },
-  });
+  showAlertDialog(title, text, type);
 }
 
+/** Show a message dialog using the Preact MessageDialog component. */
 export function showMessage(title: string, message: string): void {
-  showDialog('generic_dialog', {
-    title,
-    content: message,
-    width: window.innerWidth <= 600 ? '90%' : '50%',
-    minimizable: true,
-    autoClose: 24000,
-    buttons: { Ok: () => closeDialog('generic_dialog') },
-  });
+  showMessageDialog(title, message);
 }

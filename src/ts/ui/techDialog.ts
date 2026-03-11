@@ -9,15 +9,11 @@
  * observer-useful (used via window globals from helpdata onclick strings).
  */
 
-import { EventAggregator } from '../utils/EventAggregator';
 import { store } from '../data/store';
-import { getCurrentBulbsOutput as get_current_bulbs_output, getCurrentBulbsOutputText as get_current_bulbs_output_text } from '../data/tech';
 import { sendPlayerResearch } from '../net/commands';
 import { clientIsObserver as client_is_observer, clientState as client_state, C_S_RUNNING } from '../client/clientState';
-import { get_advances_text as _get_advances_text } from './techLogic';
 import type { WikiDoc } from './techLogic';
 import { refreshTechPanel, showWikiDialogPreact, showTechInfoDialogPreact } from '../components/Dialogs/TechDialog';
-import { globalEvents } from '../core/events';
 import type { Tech } from '../data/types';
 
 // ---------------------------------------------------------------------------
@@ -49,32 +45,11 @@ export let tech_dialog_active: boolean = false;
 export function setTechDialogActive(v: boolean): void { tech_dialog_active = v; }
 
 // ---------------------------------------------------------------------------
-// Bulbs updater (called by net handlers)
-// ---------------------------------------------------------------------------
-export const bulbs_output_updater: EventAggregator = new EventAggregator(
-  update_bulbs_output_info, 250, EventAggregator.DP_NONE, 250, 3, 250
-);
-globalEvents.on('tech:bulbsUpdate', () => bulbs_output_updater?.update());
-
-export function update_bulbs_output_info(): void {
-  const cbo = get_current_bulbs_output();
-  const el = document.getElementById('bulbs_output');
-  if (el) el.textContent = get_current_bulbs_output_text(cbo);
-}
-
-// ---------------------------------------------------------------------------
 // update_tech_screen — refreshes the TechPanel in the Research tab
 // ---------------------------------------------------------------------------
 export function update_tech_screen(): void {
   tech_dialog_active = true;
   refreshTechPanel();
-}
-
-// ---------------------------------------------------------------------------
-// get_advances_text — used by helpdata.ts to build help text
-// ---------------------------------------------------------------------------
-export function get_advances_text(tech_id: number): string {
-  return _get_advances_text(tech_id, techs);
 }
 
 // ---------------------------------------------------------------------------
