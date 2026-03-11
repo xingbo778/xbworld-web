@@ -60,7 +60,13 @@ globalEvents.on('tile:updated', () => {
 globalEvents.on('city:updated', () => {
   cityCount.value = Object.keys(store.cities).length;
 });
+globalEvents.on('city:removed', () => {
+  cityCount.value = Object.keys(store.cities).length;
+});
 globalEvents.on('unit:updated', () => {
+  unitCount.value = Object.keys(store.units).length;
+});
+globalEvents.on('unit:removed', () => {
   unitCount.value = Object.keys(store.units).length;
 });
 
