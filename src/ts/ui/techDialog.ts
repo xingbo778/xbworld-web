@@ -14,6 +14,7 @@ import { sendPlayerResearch } from '../net/commands';
 import { clientIsObserver as client_is_observer, clientState as client_state, C_S_RUNNING } from '../client/clientState';
 import type { WikiDoc } from './techLogic';
 import { refreshTechPanel, showWikiDialogPreact, showTechInfoDialogPreact } from '../components/Dialogs/TechDialog';
+import { showTechGainedDialog } from '../components/Dialogs/TechGainedDialog';
 import type { Tech } from '../data/types';
 
 // ---------------------------------------------------------------------------
@@ -53,11 +54,16 @@ export function update_tech_screen(): void {
 }
 
 // ---------------------------------------------------------------------------
-// queue_tech_gained_dialog — no-op for observer
+// queue_tech_gained_dialog — show TechGainedDialog for player mode
 // ---------------------------------------------------------------------------
 export function queue_tech_gained_dialog(tech_gained_id: number): void {
   if (client_is_observer() || C_S_RUNNING !== client_state()) return;
-  // player-only: show tech gained dialog (stubbed in observer mode)
+  const tech = store.techs[tech_gained_id];
+  const techName = tech ? (tech['name'] as string) : `Tech #${tech_gained_id}`;
+  const helptext = tech ? (tech['helptext'] as string ?? '') : '';
+  const title = `You have discovered ${techName}!`;
+  const message = helptext || `Your civilization has researched ${techName}.`;
+  showTechGainedDialog(title, message);
 }
 
 // ---------------------------------------------------------------------------
@@ -66,7 +72,6 @@ export function queue_tech_gained_dialog(tech_gained_id: number): void {
 export function send_player_research(tech_id: number): void {
   if (client_is_observer()) return;
   sendPlayerResearch(tech_id);
-  document.getElementById('tech_dialog')?.remove();
 }
 
 // ---------------------------------------------------------------------------
