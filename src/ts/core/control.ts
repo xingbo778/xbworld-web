@@ -55,6 +55,20 @@ function mount_tech_panel(): void {
   _techPanelMounted = true;
 }
 
+let _gameLogMounted = false;
+function mount_game_log(): void {
+  if (_gameLogMounted) return;
+  const tabsHel = document.getElementById('tabs-hel');
+  if (!tabsHel) return;
+  tabsHel.innerHTML = '';
+  const container = document.createElement('div');
+  container.id = 'xb-game-log';
+  container.style.height = '100%';
+  tabsHel.appendChild(container);
+  import('../components/GameLog').then(({ mountGameLog }) => { mountGameLog(container); });
+  _gameLogMounted = true;
+}
+
 let _nationOverviewMounted = false;
 function mount_nation_overview(): void {
   if (_nationOverviewMounted) { refreshNationOverview(); return; }
@@ -120,6 +134,7 @@ export function control_init(): void {
   document.getElementById('tech_tab')?.addEventListener('click', () => { set_default_mapview_inactive(); mount_tech_panel(); });
   // NationOverview (Preact) handles its own buttons (View on Map, Game Scores).
   document.getElementById('players_tab')?.addEventListener('click', () => { set_default_mapview_inactive(); mount_nation_overview(); });
+  document.getElementById('hel_tab')?.addEventListener('click', () => { set_default_mapview_inactive(); mount_game_log(); });
 
   // Overview map click
   const overviewMap = document.getElementById('overview_map');
