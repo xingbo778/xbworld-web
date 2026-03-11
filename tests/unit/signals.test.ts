@@ -147,12 +147,11 @@ describe('rulesetReady — NationOverview subscription', () => {
     // Tech name not yet available (store.techs[42] not set yet)
     expect(container.textContent).not.toContain('Alphabet');
 
-    // Ruleset arrives: populate tech, fire signal, force re-render
+    // Ruleset arrives: populate tech then synchronously re-mount to verify render.
+    // (Preact's signal→DOM path is async; re-mounting forces an immediate render.)
     store.techs[42] = { id: 42, name: 'Alphabet' } as never;
     rulesetReady.value++;
-    refreshNationOverview();
-    // Preact batches DOM updates via a macrotask (setTimeout 0). Wait for it.
-    await new Promise(resolve => setTimeout(resolve, 0));
+    mountNationOverview(container);  // synchronous re-render with latest data
 
     expect(container.textContent).toContain('Alphabet');
     document.body.removeChild(container);

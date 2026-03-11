@@ -254,6 +254,94 @@ export function buildCityListHtml(): { html: string; count: number } {
   return { html: city_list_html, count };
 }
 
+// ── JSX-friendly data-returning functions (no HTML strings) ───────────────────
+
+export interface CitySizeData {
+  population: string;
+  size: number;
+  foodStock: number;
+  granarySize: number;
+  growthText: string;
+}
+
+/** Returns city size/granary data for JSX rendering. */
+export function getCitySizeData(pcity: City): CitySizeData {
+  return {
+    population: numberWithCommas(city_population(pcity) * 1000),
+    size: pcity['size'] as number,
+    foodStock: pcity['food_stock'] as number,
+    granarySize: pcity['granary_size'] as number,
+    growthText: city_turns_to_growth_text(pcity),
+  };
+}
+
+export interface ProductionTurnsData {
+  turns: number | null; // null = not calculable (FC_INFINITY)
+  progress: string;
+}
+
+/** Returns production-turns data for JSX rendering. */
+export function getProductionTurnsData(pcity: City): ProductionTurnsData {
+  const t = get_city_production_time(pcity);
+  return { turns: t === FC_INFINITY ? null : t, progress: get_production_progress(pcity) };
+}
+
+export interface ImprovementItem {
+  id: number;
+  name: string;
+  helptext: string;
+  sprite: SpriteInfo | null;
+}
+
+/** Returns improvement items for JSX rendering. */
+export function getImprovementItems(pcity: City): ImprovementItem[] {
+  const items: ImprovementItem[] = [];
+  const numTypes = (store.rulesControl as Record<string, unknown> | null)?.['num_impr_types'] as number ?? 0;
+  for (let z = 0; z < numTypes; z++) {
+    if (pcity['improvements'] != null && (pcity['improvements'] as unknown as { isSet(bit: number): boolean }).isSet(z)) {
+      items.push({
+        id: z,
+        name: store.improvements[z]['name'] as string,
+        helptext: store.improvements[z]['helptext'] as string ?? '',
+        sprite: get_improvement_image_sprite(store.improvements[z]),
+      });
+    }
+  }
+  return items;
+}
+
+export interface UnitItem {
+  id: number;
+  sprite: SpriteInfo;
+  title: string;
+}
+
+/** Returns present-unit items for JSX rendering (skips units with missing sprites). */
+export function getPresentUnitItems(pcity: City): UnitItem[] | null {
+  const punits: Unit[] | null = tile_units(cityTile(pcity));
+  if (punits == null) return null;
+  const items: UnitItem[] = [];
+  for (const punit of punits) {
+    const sprite = get_unit_image_sprite(punit);
+    if (sprite == null) continue;
+    items.push({ id: punit['id'] as number, sprite, title: get_unit_city_info(punit) });
+  }
+  return items;
+}
+
+/** Returns supported-unit items for JSX rendering (skips units with missing sprites). */
+export function getSupportedUnitItems(pcity: City): UnitItem[] | null {
+  const sunits: Unit[] | null = get_supported_units(pcity);
+  if (sunits == null) return null;
+  const items: UnitItem[] = [];
+  for (const punit of sunits) {
+    const sprite = get_unit_image_sprite(punit);
+    if (sprite == null) continue;
+    items.push({ id: punit['id'] as number, sprite, title: get_unit_city_info(punit) });
+  }
+  return items;
+}
+
 /** Determine city state: Celebrating, Disorder, or Peace. */
 export function get_city_state(pcity: City | null): string | undefined {
   if (pcity == null) return;
