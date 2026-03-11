@@ -21,6 +21,7 @@ import {
   unit_owner, client_remove_unit, update_tile_unit, clear_tile_unit,
   unit_type, update_unit_anim_list, is_unit_visible,
 } from '../../data/unit';
+import { globalEvents } from '../../core/events';
 import { utype_can_do_action } from '../../data/unittype';
 import { mark_tile_dirty } from '../../renderer/mapviewCommon';
 import { mark_overview_dirty } from '../../core/overview';
@@ -72,6 +73,7 @@ export function handle_unit_remove(packet: UnitRemovePacket): void {
 
   clear_tile_unit(punit);
   client_remove_unit(punit);
+  globalEvents.emit('unit:removed', packet);
 }
 
 export function handle_unit_info(packet: UnitInfoPacket): void {
@@ -181,6 +183,7 @@ export function handle_unit_packet_common(packet_unit: UnitInfoPacket): void {
   }
 
   update_tile_unit(store.units[packet_unit['id']]);
+  globalEvents.emit('unit:updated', packet_unit);
 
   if (current_focus != null && current_focus.length > 0
       && current_focus[0]['id'] === packet_unit['id']) {

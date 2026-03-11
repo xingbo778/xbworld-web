@@ -75,6 +75,7 @@ export function handle_web_player_info_addition(packet: WebPlayerInfoAdditionPac
 export function handle_player_remove(packet: PlayerRemovePacket): void {
   delete store.players[packet['playerno']];
   update_player_info_pregame();
+  globalEvents.emit('player:removed', packet);
 }
 
 export function handle_player_attribute_chunk(_packet: BasePacket): void { /* no-op */ }

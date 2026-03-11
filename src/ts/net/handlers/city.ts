@@ -9,6 +9,7 @@ import { cityUnhappy, removeCity } from '../../data/city';
 import { mark_tile_dirty } from '../../renderer/mapviewCommon';
 import { mark_overview_dirty } from '../../core/overview';
 import { show_city_dialog_by_id, city_name_dialog, city_trade_routes } from '../../ui/cityDialog';
+import { globalEvents } from '../../core/events';
 import type {
   BasePacket,
   CityInfoPacket, CityShortInfoPacket, CityNationalitiesPacket,
@@ -43,6 +44,7 @@ export function handle_city_info(packet: CityInfoPacket): void {
   const pcity = store.cities[packet['id']];
   pcity['shield_stock_changed'] = false;
   pcity['production_changed'] = false;
+  globalEvents.emit('city:updated', packet);
 }
 
 export function handle_city_nationalities(packet: CityNationalitiesPacket): void {
@@ -77,6 +79,7 @@ export function handle_city_short_info(packet: CityShortInfoPacket): void {
   } else {
     Object.assign(store.cities[packet['id']], packet);
   }
+  globalEvents.emit('city:updated', packet);
 }
 
 export function handle_city_update_counters(packet: CityUpdateCountersPacket): void {

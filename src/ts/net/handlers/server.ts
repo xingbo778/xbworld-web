@@ -14,6 +14,7 @@ import { showAuthDialog, stopGameTimers } from '../../client/civClient';
 import { wait_for_text, add_chatbox_text } from '../../core/messages';
 import { update_player_info_pregame, update_game_info_pregame } from '../../core/pregame';
 import { mapInitTopology } from '../../data/map';
+import { globalEvents } from '../../core/events';
 import type {
   BasePacket,
   ServerJoinReplyPacket,
@@ -104,6 +105,7 @@ export function handle_conn_info(packet: ConnInfoPacket): void {
       set_client_state(C_S_PREPARING);
     }
   }
+  globalEvents.emit('connection:updated', packet);
 }
 
 export function handle_conn_ping(_packet: ConnPingPacket): void {

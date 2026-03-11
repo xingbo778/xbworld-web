@@ -101,7 +101,6 @@ export function removeCity(pcityId: number): void {
   if (update) {
     globalEvents.emit('city:removed', pcityId);
     globalEvents.emit('city:screenUpdate');
-    globalEvents.emit('tech:bulbsUpdate');
   }
 }
 
