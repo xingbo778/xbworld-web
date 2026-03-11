@@ -31,6 +31,28 @@ describe('MessageDialog', () => {
     showMessageDialog('Title', 'Message');
     expect(() => closeMessageDialog()).not.toThrow();
   });
+
+  it('renders title and message text when open', async () => {
+    const { MessageDialog, showMessageDialog } = await import('@/components/Dialogs/MessageDialog');
+    showMessageDialog('Server Announcement', 'Game will start soon');
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    render(h(MessageDialog, null), div);
+    expect(div.textContent).toContain('Server Announcement');
+    expect(div.textContent).toContain('Game will start soon');
+    document.body.removeChild(div);
+  });
+
+  it('renders Ok button when open', async () => {
+    const { MessageDialog, showMessageDialog } = await import('@/components/Dialogs/MessageDialog');
+    showMessageDialog('Notice', 'Something happened');
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    render(h(MessageDialog, null), div);
+    const buttons = Array.from(div.querySelectorAll('button')).map(b => b.textContent?.trim());
+    expect(buttons).toContain('Ok');
+    document.body.removeChild(div);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -83,6 +105,28 @@ describe('AuthDialog', () => {
   it('showAuthDialog opens with a message', async () => {
     const { showAuthDialog } = await import('@/components/Dialogs/AuthDialog');
     expect(() => showAuthDialog({ message: 'Enter password' })).not.toThrow();
+  });
+
+  it('renders password input and message when open', async () => {
+    const { AuthDialog, showAuthDialog } = await import('@/components/Dialogs/AuthDialog');
+    showAuthDialog({ message: 'Server is password-protected' });
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    render(h(AuthDialog, null), div);
+    expect(div.textContent).toContain('Server is password-protected');
+    expect(div.querySelector('input[type="text"]')).not.toBeNull();
+    document.body.removeChild(div);
+  });
+
+  it('renders Ok button when open', async () => {
+    const { AuthDialog, showAuthDialog } = await import('@/components/Dialogs/AuthDialog');
+    showAuthDialog({ message: 'Password required' });
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    render(h(AuthDialog, null), div);
+    const buttons = Array.from(div.querySelectorAll('button')).map(b => b.textContent?.trim());
+    expect(buttons).toContain('Ok');
+    document.body.removeChild(div);
   });
 });
 
