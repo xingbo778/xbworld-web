@@ -342,6 +342,15 @@ export function NationOverview() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <h2 style={{
+        margin: 0,
+        padding: '8px 12px',
+        fontSize: 'var(--xb-font-size-md, 14px)',
+        fontWeight: 600,
+        color: 'var(--xb-text-primary, #e6edf3)',
+        borderBottom: '1px solid var(--xb-border-default, #30363d)',
+        background: 'var(--xb-bg-secondary, #161b22)',
+      }}>Nations of the World</h2>
       <ActionBar />
       <div style={{ flex: 1, overflow: 'auto' }}>
         <Tabs

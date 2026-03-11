@@ -140,8 +140,6 @@ export function aitogglePlayer(player_name: string): void {
 // Re-exports from nationScreen.ts for backward compatibility
 // ---------------------------------------------------------------------------
 export {
-  updateNationScreen,
-  selectANation,
   selectNoNation,
   nationSelectPlayer,
   nationTableSelectPlayer,
