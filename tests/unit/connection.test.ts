@@ -481,3 +481,70 @@ describe('check_websocket_ready — retry loop guard', () => {
     // Confirm the retry fired and returned safely (no throw)
   });
 });
+
+// ---------------------------------------------------------------------------
+// connectionBanner signal — replaces imperative DOM prepend
+// ---------------------------------------------------------------------------
+
+describe('connectionBanner signal', () => {
+  beforeEach(async () => {
+    vi.useFakeTimers();
+    _resetReconnectStateForTests();
+    (window as any).civserverport = '6001';
+    (window as any).ws = null;
+    // Reset banner
+    const { connectionBanner } = await import('@/data/signals');
+    connectionBanner.value = null;
+  });
+
+  afterEach(() => {
+    _resetReconnectStateForTests();
+    (window as any).ws = null;
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
+
+  it('connectionBanner signal starts null', async () => {
+    const { connectionBanner } = await import('@/data/signals');
+    expect(connectionBanner.value).toBeNull();
+  });
+
+  it('sets showReload banner when reconnect attempts are exhausted', async () => {
+    const { connectionBanner } = await import('@/data/signals');
+
+    websocket_init();
+    // Exhaust all reconnect attempts
+    for (let i = 0; i < RECONNECT_DELAYS_MS.length; i++) {
+      const ws = (window as any).ws as MockWebSocket;
+      ws.onclose!(new CloseEvent('close', { code: 1006 }));
+      vi.advanceTimersByTime(RECONNECT_DELAYS_MS[i]);
+    }
+    // Final close — exhausted
+    const finalWs = (window as any).ws as MockWebSocket;
+    finalWs.onclose!(new CloseEvent('close', { code: 1006 }));
+
+    expect(store.connectionState).toBe('disconnected');
+    expect(connectionBanner.value).not.toBeNull();
+    expect(connectionBanner.value?.showReload).toBe(true);
+  });
+
+  it('clears connectionBanner when reconnect succeeds', async () => {
+    const { connectionBanner } = await import('@/data/signals');
+
+    websocket_init();
+    const ws1 = (window as any).ws as MockWebSocket;
+
+    // Trigger reconnect
+    ws1.onclose!(new CloseEvent('close', { code: 1006 }));
+    expect(store.connectionState).toBe('reconnecting');
+
+    // Reconnect timer fires, new ws created
+    vi.advanceTimersByTime(1000);
+    const ws2 = (window as any).ws as MockWebSocket;
+
+    // New connection opens successfully
+    ws2.onopen!(new Event('open'));
+    expect(store.connectionState).toBe('connected');
+    expect(connectionBanner.value).toBeNull();
+  });
+});
