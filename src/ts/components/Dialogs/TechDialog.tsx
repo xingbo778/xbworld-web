@@ -34,6 +34,7 @@ export function refreshTechPanel(): void { _refreshTick.value++; }
 // Auto-refresh on game events
 globalEvents.on('game:beginturn', () => { _refreshTick.value++; });
 globalEvents.on('player:research', () => { _refreshTick.value++; });
+globalEvents.on('rules:ready',     () => { _refreshTick.value++; });
 
 // ── Tech tree layout constants ────────────────────────────────────────────────
 const XSCALE = 1.2;
@@ -41,15 +42,14 @@ const BOX_W = 180;
 const BOX_H = 46;
 const PAD = 8;
 
-// Pre-compute canvas size from reqtree bounds
-let _canvasW = 0;
-let _canvasH = 0;
-for (const node of Object.values(reqtree)) {
-  _canvasW = Math.max(_canvasW, Math.floor(node.x * XSCALE) + BOX_W + PAD * 2);
-  _canvasH = Math.max(_canvasH, node.y + BOX_H + PAD * 2);
+/**
+ * Returns the active tech tree layout: the server-computed dynamic layout if
+ * available (after rules:ready fires), falling back to the hardcoded static
+ * positions from reqtree.ts.
+ */
+function getActiveLayout(): typeof reqtree {
+  return (store.computedReqtree as typeof reqtree | null) ?? reqtree;
 }
-const CANVAS_W = _canvasW;
-const CANVAS_H = _canvasH;
 
 // ── Shared content ────────────────────────────────────────────────────────────
 function ResearchList() {
@@ -109,7 +109,7 @@ function computeTechStatus(): Map<number, TechStatus> {
   const map = new Map<number, TechStatus>();
   const players = Object.values(store.players);
 
-  for (const techIdStr of Object.keys(reqtree)) {
+  for (const techIdStr of Object.keys(getActiveLayout())) {
     const techId = Number(techIdStr);
     const known: string[] = [];
     const researching: string[] = [];
@@ -132,12 +132,12 @@ function computeTechStatus(): Map<number, TechStatus> {
   return map;
 }
 
-function getPrereqs(tech: Tech): number[] {
-  const reqs = (tech['research_reqs'] as { value: number }[] | undefined) ?? [];
+function getPrereqs(tech: Tech, layout: typeof reqtree): number[] {
+  // Use the pre-processed req[] array (produced by recreate_old_tech_req)
+  const req = (tech['req'] as number[] | undefined) ?? [];
   const result: number[] = [];
-  for (let i = 0; i <= 1; i++) {
-    const id = reqs[i]?.value ?? A_NONE;
-    if (id !== A_NONE && id in reqtree) result.push(id);
+  for (const id of req) {
+    if (id !== A_NONE && String(id) in layout) result.push(id);
   }
   return result;
 }
@@ -146,20 +146,29 @@ function TechTree() {
   _refreshTick.value; // subscribe to refresh signal
 
   const techs = store.techs;
+  const layout = getActiveLayout();
   const techStatus = computeTechStatus();
+
+  // Compute canvas bounds from the active layout (dynamic or static)
+  let canvasW = 0;
+  let canvasH = 0;
+  for (const node of Object.values(layout)) {
+    canvasW = Math.max(canvasW, Math.floor(node.x * XSCALE) + BOX_W + PAD * 2);
+    canvasH = Math.max(canvasH, node.y + BOX_H + PAD * 2);
+  }
 
   // Build SVG lines for prereq connections
   const lines: { x1: number; y1: number; x2: number; y2: number; key: string }[] = [];
-  for (const [techIdStr, node] of Object.entries(reqtree)) {
+  for (const [techIdStr, node] of Object.entries(layout)) {
     const techId = Number(techIdStr);
     const tech = techs[techId] as Tech | undefined;
     if (!tech) continue;
-    const prereqs = getPrereqs(tech);
+    const prereqs = getPrereqs(tech, layout);
     const tx = Math.floor(node.x * XSCALE) + PAD;
     const ty = node.y + PAD;
 
     for (const prereqId of prereqs) {
-      const preNode = reqtree[prereqId];
+      const preNode = layout[prereqId];
       if (!preNode) continue;
       const px = Math.floor(preNode.x * XSCALE) + PAD + BOX_W;
       const py = preNode.y + PAD + BOX_H / 2;
@@ -172,12 +181,12 @@ function TechTree() {
   }
 
   return (
-    <div style={{ position: 'relative', width: CANVAS_W, height: CANVAS_H, flexShrink: 0 }}>
+    <div style={{ position: 'relative', width: canvasW, height: canvasH, flexShrink: 0 }}>
       {/* SVG connector lines */}
       <svg
         style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}
-        width={CANVAS_W}
-        height={CANVAS_H}
+        width={canvasW}
+        height={canvasH}
       >
         {lines.map(l => (
           <line
@@ -191,7 +200,7 @@ function TechTree() {
       </svg>
 
       {/* Tech boxes */}
-      {Object.entries(reqtree).map(([techIdStr, node]) => {
+      {Object.entries(layout).map(([techIdStr, node]) => {
         const techId = Number(techIdStr);
         const tech = techs[techId] as Tech | undefined;
         if (!tech) return null;

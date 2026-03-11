@@ -21,6 +21,7 @@ import type {
   Extra,
   ServerSetting,
 } from './types';
+import type { LayoutNode } from './reqtreeLayout';
 import { globalEvents } from '../core/events';
 
 export interface ClientState {
@@ -49,6 +50,11 @@ class GameStore {
   cities: Record<number, City> = {};
   players: Record<number, Player> = {};
   techs: Record<number, Tech> = {};
+  /**
+   * Dynamically built tech tree layout (from buildReqtreeLayout).
+   * Null until handle_rulesets_ready fires; falls back to static reqtree.ts.
+   */
+  computedReqtree: Record<string, LayoutNode> | null = null;
   connections: Record<number, Connection> = {};
   nations: Record<number, Nation> = {};
   governments: Record<number, Government> = {};

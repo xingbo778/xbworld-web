@@ -12,10 +12,16 @@ import { get_units_from_tech } from '../data/unittype';
 import { get_improvements_from_tech } from '../data/improvement';
 import { research_get } from '../data/player';
 import { reqtree } from '../data/reqtree';
+import type { ReqTreeNode } from '../data/reqtree';
 import type { Tech, UnitType, Improvement } from '../data/types';
 
 // These constants are duplicated here to avoid circular imports; they match techDialog.ts
 const tech_xscale = 1.2;
+
+/** Returns the active tech tree layout (dynamic if available, static fallback). */
+function getActiveLayout(): Record<string, ReqTreeNode> {
+  return (store.computedReqtree as Record<string, ReqTreeNode> | null) ?? reqtree;
+}
 const tech_item_width = 208;
 const tech_item_height = 52;
 
@@ -32,8 +38,9 @@ export function get_advances_text(
     `<span ${title ? `title='${title}'` : ''}`
     + ` data-action='tech-info' data-name='${name}' data-unit='${num(unit_id)}' data-impr='${num(impr_id)}'>${name}</span>`;
 
+  const activeLayout = getActiveLayout();
   const is_valid_and_required = (next_tech_id: string) =>
-    reqtree.hasOwnProperty(next_tech_id) && is_tech_req_for_tech(tech_id, parseInt(next_tech_id));
+    Object.prototype.hasOwnProperty.call(activeLayout, next_tech_id) && is_tech_req_for_tech(tech_id, parseInt(next_tech_id));
 
   const format_list_with_intro = (intro: string, list: (string | undefined)[]) =>
     (list = list.filter(Boolean) as string[]).length ? (intro + ' ' + list.join(', ')) : '';
@@ -109,11 +116,12 @@ export function findTechAtPosition(
   smallScreen: boolean,
   techs: Record<string, Tech>,
 ): number | null {
+  const activeLayout = getActiveLayout();
   for (const tech_id in techs) {
-    if (!(tech_id + '' in reqtree)) continue;
+    if (!(tech_id + '' in activeLayout)) continue;
 
-    let x: number = Math.floor(reqtree[tech_id + '']['x'] * tech_xscale) + 2;
-    let y: number = reqtree[tech_id + '']['y'] + 2;
+    let x: number = Math.floor(activeLayout[tech_id + '']['x'] * tech_xscale) + 2;
+    let y: number = activeLayout[tech_id + '']['y'] + 2;
 
     if (smallScreen) {
       x = x * 0.6;

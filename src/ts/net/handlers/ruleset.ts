@@ -9,6 +9,7 @@ import { isExtraCausedBy } from '../../data/extra';
 import { BitVector } from '../../utils/bitvector';
 import { stringUnqualify } from '../../utils/helpers';
 import { improvements_init } from '../../data/improvement';
+import { buildReqtreeLayout } from '../../data/reqtreeLayout';
 import { C_S_PREPARING } from '../../client/clientState';
 import { setClientState as set_client_state } from '../../client/clientMain';
 import type {
@@ -194,6 +195,8 @@ export function handle_ruleset_trade(packet: BasePacket): void {
 }
 
 export function handle_rulesets_ready(_packet: BasePacket): void {
+  store.computedReqtree = buildReqtreeLayout(store.techs);
+  console.log(`[xbw] reqtree: built dynamic layout for ${Object.keys(store.computedReqtree).length} techs`);
   globalEvents.emit('rules:ready');
 }
 
@@ -388,6 +391,7 @@ export function handle_ruleset_control(packet: RulesetControlPacket): void {
   store.nations = {};
   store.specialists = {};
   store.techs = {};
+  store.computedReqtree = null;
   store.governments = {};
   terrain_control = {};
   store.terrainControl = {};
