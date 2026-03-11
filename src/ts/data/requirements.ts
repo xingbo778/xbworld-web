@@ -93,6 +93,10 @@ import {
   REQ_RANGE_WORLD,
   REQ_RANGE_COUNT,
   RPT_POSSIBLE,
+  CITYT_CENTER,
+  CITYT_WORKER,
+  US_TRANSPORTED,
+  US_HAS_HOME_CITY,
 } from './fcTypes';
 import { playerInventionState, TECH_KNOWN } from './tech';
 import { store } from './store';
@@ -400,28 +404,141 @@ export function isReqActive(
       break;
     }
 
+    // ── Implemented: player nation ────────────────────────────────────────────
+    // Checks targetPlayer.nation matches the required nation id.
+    case VUT_NATION: {
+      if (targetPlayer == null) { result = TRI_MAYBE; break; }
+      result = (targetPlayer as Player).nation === req['value'] ? TRI_YES : TRI_NO;
+      break;
+    }
+
+    // ── Implemented: unit activity ────────────────────────────────────────────
+    // VUT_ACTIVITY checks unit.activity (ACTIVITY_IDLE, ACTIVITY_FORTIFIED, etc.).
+    // Only unit INSTANCES have 'activity'; unit types have no such field → TRI_MAYBE.
+    case VUT_ACTIVITY: {
+      if (targetUnittype == null) { result = TRI_MAYBE; break; }
+      const actVal = (targetUnittype as Record<string, unknown>)['activity'];
+      if (actVal == null) { result = TRI_MAYBE; break; }
+      result = (actVal as number) === req['value'] ? TRI_YES : TRI_NO;
+      break;
+    }
+
+    // ── Implemented: unit state ───────────────────────────────────────────────
+    // VUT_UNITSTATE checks logical unit state (transported, has home city, etc.).
+    // US_TRANSPORTED (0) and US_HAS_HOME_CITY (4) are checkable from packet data.
+    // All other unit-state values require server-side context → TRI_MAYBE.
+    case VUT_UNITSTATE: {
+      if (targetUnittype == null) { result = TRI_MAYBE; break; }
+      const uRec = targetUnittype as Record<string, unknown>;
+      switch (req['value']) {
+        case US_TRANSPORTED: {
+          const tb = uRec['transported_by'] as number | undefined;
+          result = (tb != null && tb !== -1) ? TRI_YES : TRI_NO;
+          break;
+        }
+        case US_HAS_HOME_CITY: {
+          const hc = uRec['homecity'] as number | undefined;
+          result = (hc != null && hc !== 0) ? TRI_YES : TRI_NO;
+          break;
+        }
+        default:
+          result = TRI_MAYBE;
+      }
+      break;
+    }
+
+    // ── Implemented: diplomatic relation ─────────────────────────────────────
+    // Checks whether targetPlayer has the given diplstate with any other player.
+    // Only DS_* values 0-6 are evaluated; derived/compound relation values → TRI_MAYBE.
+    // REQ_RANGE_LOCAL (between two specific actors) → TRI_MAYBE: actor unknown.
+    case VUT_DIPLREL: {
+      if (targetPlayer == null) { result = TRI_MAYBE; break; }
+      if (req['value'] < 0 || req['value'] >= 7) { result = TRI_MAYBE; break; }
+      if (req['range'] === REQ_RANGE_LOCAL) { result = TRI_MAYBE; break; }
+      const ds = (targetPlayer as Record<string, unknown>)['diplstates'];
+      if (ds == null) { result = TRI_MAYBE; break; }
+      const dsRec = ds as Record<number, { state: number }>;
+      let dsFound = false;
+      for (const otherId in dsRec) {
+        const entry = dsRec[Number(otherId)];
+        if (entry != null && entry.state === req['value']) { dsFound = true; break; }
+      }
+      result = dsFound ? TRI_YES : TRI_NO;
+      break;
+    }
+
+    // ── Implemented: city tile type ───────────────────────────────────────────
+    // CITYT_CENTER (0): tile.index === city.tile (city center tile).
+    // CITYT_WORKER (1): tile.worked != 0 (some city is working this tile).
+    // CITYT_CLAIMED (2): TRI_MAYBE — client has no city-radius data.
+    case VUT_CITYTILE: {
+      if (targetTile == null) { result = TRI_MAYBE; break; }
+      const ctRec = targetTile as Record<string, unknown>;
+      switch (req['value']) {
+        case CITYT_CENTER: {
+          if (targetCity == null) { result = TRI_MAYBE; break; }
+          const cTileIdx = (targetCity as Record<string, unknown>)['tile'];
+          result = (ctRec['index'] != null && ctRec['index'] === cTileIdx) ? TRI_YES : TRI_NO;
+          break;
+        }
+        case CITYT_WORKER: {
+          const worked = ctRec['worked'] as number | undefined;
+          result = (worked != null && worked !== 0) ? TRI_YES : TRI_NO;
+          break;
+        }
+        default:
+          result = TRI_MAYBE;
+      }
+      break;
+    }
+
+    // ── Implemented: minimum culture ─────────────────────────────────────────
+    // REQ_RANGE_CITY: checks city.culture; REQ_RANGE_PLAYER: checks player.culture.
+    // Falls back to TRI_MAYBE when the culture field is absent from the packet.
+    case VUT_MINCULTURE: {
+      let cultureVal: number | null = null;
+      if (req['range'] === REQ_RANGE_CITY) {
+        if (targetCity == null) { result = TRI_MAYBE; break; }
+        cultureVal = ((targetCity as Record<string, unknown>)['culture'] as number | undefined) ?? null;
+      } else if (req['range'] === REQ_RANGE_PLAYER) {
+        if (targetPlayer == null) { result = TRI_MAYBE; break; }
+        cultureVal = ((targetPlayer as Record<string, unknown>)['culture'] as number | undefined) ?? null;
+      }
+      if (cultureVal == null) { result = TRI_MAYBE; break; }
+      result = cultureVal >= req['value'] ? TRI_YES : TRI_NO;
+      break;
+    }
+
+    // ── Implemented: terrain class ────────────────────────────────────────────
+    // Reads terrain.tclass (TC_LAND=0, TC_OCEAN=1) from the ruleset terrain packet.
+    // Falls back to TRI_MAYBE if the server does not send the tclass field.
+    case VUT_TERRAINCLASS: {
+      if (targetTile == null) { result = TRI_MAYBE; break; }
+      const tcTerrainId = (targetTile as Record<string, unknown>)['terrain'];
+      if (tcTerrainId == null) { result = TRI_MAYBE; break; }
+      const tcTerrain = store.terrains[tcTerrainId as number];
+      if (tcTerrain == null) { result = TRI_MAYBE; break; }
+      const tclass = (tcTerrain as Record<string, unknown>)['tclass'];
+      if (tclass == null) { result = TRI_MAYBE; break; }
+      result = (tclass as number) === req['value'] ? TRI_YES : TRI_NO;
+      break;
+    }
+
     case VUT_OTYPE:
     case VUT_SPECIALIST:
     case VUT_AI_LEVEL:
-    case VUT_TERRAINCLASS:
     case VUT_TERRAINALTER:
-    case VUT_CITYTILE:
     case VUT_GOOD:
     case VUT_NATIONALITY:
     case VUT_ROADFLAG:
     case VUT_TECHFLAG:
     case VUT_ACHIEVEMENT:
-    case VUT_DIPLREL:
     case VUT_MAXTILEUNITS:
     case VUT_STYLE:
-    case VUT_MINCULTURE:
-    case VUT_UNITSTATE:
     case VUT_AGE:
     case VUT_MINCALFRAG:
     case VUT_SERVERSETTING:
-    case VUT_NATION:
     // New Freeciv 3.4 types
-    case VUT_ACTIVITY:
     case VUT_CITYSTATUS:
     case VUT_COUNTER:
     case VUT_DIPLREL_TILE:

@@ -402,5 +402,25 @@ export const CAPITAL_NOT = 0;
 export const CAPITAL_SECONDARY = 1;
 export const CAPITAL_PRIMARY = 2;
 
+// VUT_CITYTILE values
+export const CITYT_CENTER = 0;   // tile is the city center
+export const CITYT_WORKER = 1;   // tile is currently worked by a city
+export const CITYT_CLAIMED = 2;  // tile is within city radius but not worked
+
+// VUT_TERRAINCLASS values (TC_*)
+export const TC_LAND = 0;
+export const TC_OCEAN = 1;
+export const TC_LAST = 2;
+
+// VUT_UNITSTATE values (US_*)
+export const US_TRANSPORTED = 0;    // unit is being transported
+export const US_LIVABLE_TILE = 1;   // unit is on a livable tile
+export const US_DOMESTIC_TILE = 2;  // tile is owned by our player
+export const US_TRANSPORTING = 3;   // unit is transporting others
+export const US_HAS_HOME_CITY = 4;  // unit has a home city assigned
+export const US_NATIVE_TILE = 5;    // unit is on its native tile type
+export const US_NATIVE_EXTRA = 6;   // tile has a native extra for this unit
+export const US_ONLY_NATIVE_TILE = 7; // only native activity possible
+
 // Legacy window exposure of _allConstants removed — all consumers now use TS imports.
 
