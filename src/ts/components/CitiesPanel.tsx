@@ -122,19 +122,15 @@ function CitiesPanel() {
   );
 }
 
-// ── Mount helper ──────────────────────────────────────────────────────────────
+// ── Mount helper ───────────────────────────────────────────────────────────────
 
 let _mounted = false;
 
 export function mountCitiesPanel(): void {
   if (_mounted) return;
-  const tabsCities = document.getElementById('tabs-cities');
-  if (!tabsCities) return;
-  // Clear legacy "Your Cities" heading and empty cities_list DOM
-  tabsCities.innerHTML = '';
-  const container = document.createElement('div');
-  container.id = 'xb-cities-panel';
-  tabsCities.appendChild(container);
+  const container = document.getElementById('tabs-cities');
+  if (!container) return;
   render(<CitiesPanel />, container);
   _mounted = true;
 }
+

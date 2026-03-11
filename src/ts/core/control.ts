@@ -128,11 +128,12 @@ export function control_init(): void {
     if (!S.allow_right_click) e.preventDefault();
   }, false);
 
-  // Tab navigation — observer mode shows: Map, Research, Nations
+  // Tab navigation — observer mode: Map, Research, Nations, Cities, Log
   document.getElementById('map_tab')?.addEventListener('click', () => setTimeout(set_default_mapview_active, 5));
   document.getElementById('tech_tab')?.addEventListener('click', () => { set_default_mapview_inactive(); mount_tech_panel(); });
   // NationOverview (Preact) handles its own buttons (View on Map, Game Scores).
   document.getElementById('players_tab')?.addEventListener('click', () => { set_default_mapview_inactive(); mount_nation_overview(); });
+  document.getElementById('cities_tab')?.addEventListener('click', () => { set_default_mapview_inactive(); import('../components/CitiesPanel').then(({ mountCitiesPanel }) => mountCitiesPanel()); });
   document.getElementById('hel_tab')?.addEventListener('click', () => { set_default_mapview_inactive(); mount_game_log(); });
 
   // Overview map click
