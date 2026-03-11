@@ -25,10 +25,10 @@ export const cities: Record<number, City> = new Proxy({} as Record<number, City>
   ownKeys() { return Reflect.ownKeys(store.cities); },
   getOwnPropertyDescriptor(_t, p) { return Object.getOwnPropertyDescriptor(store.cities, p); },
 });
-export let city_rules: Record<number, Record<string, unknown>> = {};
-export let city_trade_routes: Record<number, Record<number, Record<string, unknown>>> = {};
+export const city_rules: Record<number, Record<string, unknown>> = {};
+export const city_trade_routes: Record<number, Record<number, Record<string, unknown>>> = {};
 
-export let goods: Record<number, Record<string, unknown>> = {};
+export const goods: Record<number, Record<string, unknown>> = {};
 
 export let active_city: City | null = null;
 export let worklist_dialog_active: boolean = false;
@@ -70,7 +70,7 @@ export const city_screen_updater: EventAggregator = new EventAggregator(_update_
                                               250, 3, 250);
 
 /* Information for mapping workable tiles of a city to local index */
-export let city_tile_map: { radius_sq: number; radius: number; base_sorted: number[][]; maps: number[][] } | null = null;
+export const city_tile_map: { radius_sq: number; radius: number; base_sorted: number[][]; maps: number[][] } | null = null;
 
 export let opt_show_unreachable_items: boolean = false;
 

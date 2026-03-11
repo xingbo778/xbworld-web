@@ -64,7 +64,7 @@ export interface RulesetNationGroupsPacket {
 }
 
 /** Extends the store Nation type so it can be assigned directly. */
-export interface RulesetNationPacket extends Nation {}
+export type RulesetNationPacket = Nation;
 
 export interface RulesetCityPacket {
   style_id: number;
@@ -72,7 +72,7 @@ export interface RulesetCityPacket {
 }
 
 /** Extends the store Government type so it can be assigned directly. */
-export interface RulesetGovernmentPacket extends Government {}
+export type RulesetGovernmentPacket = Government;
 
 export interface RulesetSummaryPacket {
   text: string;
@@ -148,7 +148,7 @@ export interface RulesetTerrainControlPacket {
 }
 
 /** Extends the store Improvement type so it can be assigned directly. */
-export interface RulesetBuildingPacket extends Improvement {}
+export type RulesetBuildingPacket = Improvement;
 
 /**
  * Raw unit-class packet. `flags` arrives as number[] and is converted to
@@ -358,7 +358,7 @@ export interface TileInfoPacket {
 }
 
 /** Extends MapInfo so it can be assigned directly to store.mapInfo. */
-export interface MapInfoPacket extends MapInfo {}
+export type MapInfoPacket = MapInfo;
 
 export interface NukeTileInfoPacket {
   tile: number;
@@ -409,7 +409,7 @@ export interface UnitRemovePacket {
  * Unit info / short info packet. Extends Unit so it can be stored directly.
  * The handler adds `anim_list` and sets `facing` before storing.
  */
-export interface UnitInfoPacket extends Unit {}
+export type UnitInfoPacket = Unit;
 
 export interface UnitCombatInfoPacket {
   attacker_unit_id: number;
@@ -476,10 +476,10 @@ export interface PlayerDiplstatePacket {
 // ---------------------------------------------------------------------------
 
 /** Extends GameInfo so it can be assigned directly to store.gameInfo. */
-export interface GameInfoPacket extends GameInfo {}
+export type GameInfoPacket = GameInfo;
 
 /** Extends CalendarInfo so it can be assigned directly to store.calendarInfo. */
-export interface CalendarInfoPacket extends CalendarInfo {}
+export type CalendarInfoPacket = CalendarInfo;
 
 export interface NewYearPacket {
   year: number;

@@ -585,7 +585,8 @@ export function isReqActive(
     case VUT_STYLE:
     case VUT_MINCALFRAG:
     case VUT_SERVERSETTING:
-    // New Freeciv 3.4 types
+    // New Freeciv 3.4 types — falls through
+    // falls through
     case VUT_CITYSTATUS:
     case VUT_COUNTER:
     case VUT_DIPLREL_TILE:

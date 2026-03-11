@@ -41,13 +41,13 @@ export { mouse_x, mouse_y };
 export let touch_start_x: number;
 export let touch_start_y: number;
 
-export let map_select_setting_enabled: boolean = true;
+export const map_select_setting_enabled: boolean = true;
 export let map_select_check: boolean = false;
 export let map_select_check_started: number = 0;
 export let map_select_active: boolean = false;
 export let map_select_x: number;
 export let map_select_y: number;
-export let mouse_touch_started_on_unit: boolean = false;
+export const mouse_touch_started_on_unit: boolean = false;
 
 // Setters for mutable state (needed by external modules)
 export function setMapSelectActive(v: boolean): void { map_select_active = v; }
@@ -225,7 +225,7 @@ export function mapview_touch_move(e: TouchEvent): void {
 
   /* Request preview goto path */
   // goto_preview_active is only used locally, just set a local flag
-  let _goto_preview_active = true;
+  const _goto_preview_active = true;
   if (goto_active && current_focus.length > 0) {
     const ptile = canvas_pos_to_tile(mouse_x, mouse_y);
     if (ptile != null) {

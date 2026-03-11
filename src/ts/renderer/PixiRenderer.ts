@@ -632,23 +632,23 @@ export class PixiRenderer {
     globalEvents.on('tile:updated', (data: unknown) => {
       const d = data as Record<string, unknown> | null;
       const idx = d?.['tileIndex'] ?? (d?.['tile'] as Record<string, unknown> | undefined)?.['index'];
-      typeof idx === 'number' ? this.markDirty(idx) : this.markAllDirty();
+      if (typeof idx === 'number') this.markDirty(idx); else this.markAllDirty();
     });
     globalEvents.on('unit:updated', (data: unknown) => {
       const tileIdx = (data as Record<string, unknown> | null)?.['tile'];
-      typeof tileIdx === 'number' ? this.markDirty(tileIdx) : this.markAllDirty();
+      if (typeof tileIdx === 'number') this.markDirty(tileIdx); else this.markAllDirty();
     });
     globalEvents.on('unit:removed', (data: unknown) => {
       const tileIdx = (data as Record<string, unknown> | null)?.['tile'];
-      typeof tileIdx === 'number' ? this.markDirty(tileIdx) : this.markAllDirty();
+      if (typeof tileIdx === 'number') this.markDirty(tileIdx); else this.markAllDirty();
     });
     globalEvents.on('city:updated', (data: unknown) => {
       const tileIdx = (data as Record<string, unknown> | null)?.['tile'];
-      typeof tileIdx === 'number' ? this.markDirty(tileIdx) : this.markAllDirty();
+      if (typeof tileIdx === 'number') this.markDirty(tileIdx); else this.markAllDirty();
     });
     globalEvents.on('city:removed', (data: unknown) => {
       const tileIdx = (data as Record<string, unknown> | null)?.['tile'];
-      typeof tileIdx === 'number' ? this.markDirty(tileIdx) : this.markAllDirty();
+      if (typeof tileIdx === 'number') this.markDirty(tileIdx); else this.markAllDirty();
     });
     globalEvents.on('map:allocated', () => {
       this.clearTextureCache();

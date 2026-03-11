@@ -27,13 +27,13 @@ const DIR8_SOUTH = 6;
 const DIR8_WEST = 3;
 
 let tileset_images: HTMLImageElement[] = [];
-let sprites: { [key: string]: HTMLCanvasElement | ImageBitmap } = {};
+const sprites: { [key: string]: HTMLCanvasElement | ImageBitmap } = {};
 let loaded_images: number = 0;
 let sprites_loading: boolean = false;
 
 export let sprites_init: boolean = false;
 
-let fullfog: string[] = [];
+const fullfog: string[] = [];
 
 const GOTO_DIR_DX: number[] = [0, 1, 2, -1, 1, -2, -1, 0];
 const GOTO_DIR_DY: number[] = [-2, -1, 0, -1, 1, 0, 1, 2];

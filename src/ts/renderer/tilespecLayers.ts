@@ -24,8 +24,8 @@ const DIR8_SOUTHWEST = 5;
 const DIR8_SOUTH = 6;
 const DIR8_SOUTHEAST = 7;
 
-let num_cardinal_tileset_dirs: number = 4;
-let cardinal_tileset_dirs: number[] = [DIR8_NORTH, DIR8_EAST, DIR8_SOUTH, DIR8_WEST];
+const num_cardinal_tileset_dirs: number = 4;
+const cardinal_tileset_dirs: number[] = [DIR8_NORTH, DIR8_EAST, DIR8_SOUTH, DIR8_WEST];
 
 // All 8 directions used for road/rail connectivity checks
 const all8_tileset_dirs: number[] = [

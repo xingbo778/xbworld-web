@@ -25,7 +25,7 @@ const sounds_enabled_get = (): boolean => store.soundsEnabled;
 const soundset_get = (): Record<string, string> => (typeof soundset !== 'undefined' ? soundset : {}) as Record<string, string>;
 const is_unit_visible = (punit: Unit): boolean => _is_unit_visible(punit);
 
-export let sound_path: string = "/sounds/";
+export const sound_path: string = "/sounds/";
 
 export function check_unit_sound_play(old_unit: Unit | null, new_unit: Unit | null): void {
   if (!sounds_enabled_get()) return;

@@ -51,10 +51,10 @@ function getPacketWorker(): Worker | null {
 
 // Module-local state (was var in clinet.js)
 console.log('[xbw] connection.ts module loaded');
-let error_shown = false;
-let syncTimerId = -1;
+const error_shown = false;
+const syncTimerId = -1;
 let clinet_last_send = 0;
-export let debug_client_speed_list: number[] = [];
+export const debug_client_speed_list: number[] = [];
 const freeciv_version = '+Freeciv.Web.Devel-3.4';
 let ws: WebSocket | null = null;
 let civserverport: string | null = null;

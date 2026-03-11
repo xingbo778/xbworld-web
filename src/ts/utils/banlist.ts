@@ -21,7 +21,7 @@
 /* This is a list of banned users of Freeciv-web.
    Note that user accounts can also be disabled by setting activated=0 in the auth DB table.
 */
-export let banned_users: string[] = [];
+export const banned_users: string[] = [];
 
 /**************************************************************************
  Returns false if the text contains a banned user.

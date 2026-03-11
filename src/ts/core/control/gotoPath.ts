@@ -117,9 +117,8 @@ export function request_goto_path(unit_id: number, dst_x: number, dst_y: number)
 export function check_request_goto_path() {
   if (S.goto_active && S.current_focus.length > 0
     && S.prev_mouse_x == S.mouse_x && S.prev_mouse_y == S.mouse_y) {
-    let ptile: Tile | null;
     clear_goto_tiles();
-    ptile = canvas_pos_to_tile(S.mouse_x, S.mouse_y);
+    const ptile = canvas_pos_to_tile(S.mouse_x, S.mouse_y);
     if (ptile != null) {
       for (let i = 0; i < S.current_focus.length; i++) {
         request_goto_path(S.current_focus[i]['id'], ptile['x'], ptile['y']);

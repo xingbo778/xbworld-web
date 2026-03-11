@@ -16,6 +16,7 @@ export class EventAggregator {
   static DP_COUNT = DP_COUNT;
   static DP_ALL = DP_ALL;
 
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
   handler: Function;
   timeout: number;
   latency: number;
@@ -29,6 +30,7 @@ export class EventAggregator {
   count = 0;
 
   constructor(
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
     handler: Function,
     timeout?: number,
     dataPolicy?: number,

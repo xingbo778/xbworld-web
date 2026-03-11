@@ -41,10 +41,10 @@ const city_owner_player_id = cityOwnerPlayerId;
 const wrap_has_flag = wrapHasFlag;
 
 export let OVERVIEW_TILE_SIZE: number = 1;
-export let overviewTimerId: number = -1;
-export let min_overview_width: number = 200;
-export let max_overview_width: number = 300;
-export let max_overview_height: number = 300;
+export const overviewTimerId: number = -1;
+export const min_overview_width: number = 200;
+export const max_overview_width: number = 300;
+export const max_overview_height: number = 300;
 
 export let OVERVIEW_REFRESH: ReturnType<typeof setInterval> | undefined;
 
@@ -65,7 +65,7 @@ export const COLOR_OVERVIEW_ENEMY_UNIT: number = 6; /* red */
 export const COLOR_OVERVIEW_VIEWRECT: number = 7; /* white */
 
 export let overview_hash: number = -1;
-export let overview_current_state: Record<string, unknown> | null = null;
+export const overview_current_state: Record<string, unknown> | null = null;
 let overview_dirty: boolean = true;        // tile data changed → rebuild color grid
 let overview_viewport_dirty: boolean = true; // viewport moved → redraw viewrect only
 

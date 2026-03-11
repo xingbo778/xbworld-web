@@ -99,7 +99,7 @@ export function get_improvement_requirements(improvementId: number): number[] {
  * Uses the module-local name→id cache for O(1) lookup.
  */
 export function improvement_id_by_name(name: string): number {
-  return improvements_name_index.hasOwnProperty(name)
+  return Object.prototype.hasOwnProperty.call(improvements_name_index, name)
     ? improvements_name_index[name]
     : -1;
 }

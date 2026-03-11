@@ -58,21 +58,21 @@ export function map_to_gui_vector(map_dx: number, map_dy: number): { gui_dx: num
   but in GUI coordinates so that pixel accuracy is preserved.
 ****************************************************************************/
 export function normalize_gui_pos(gui_x: number, gui_y: number): { gui_x: number; gui_y: number } {
-  let map_x: number, map_y: number, nat_x: number, nat_y: number, gui_x0_temp: number, gui_y0_temp: number, diff_x: number, diff_y: number;
+  let nat_x: number, nat_y: number;
 
   /* Convert the (gui_x, gui_y) into a (map_x, map_y) plus a GUI offset
    * from this tile. */
   const r = gui_to_map_pos(gui_x, gui_y);
-  map_x = r['map_x'];
-  map_y = r['map_y'];
+  let map_x = r['map_x'];
+  let map_y = r['map_y'];
 
 
   const s = map_to_gui_pos(map_x, map_y);
-  gui_x0_temp = s['gui_dx'];
-  gui_y0_temp = s['gui_dy'];
+  const gui_x0_temp = s['gui_dx'];
+  const gui_y0_temp = s['gui_dy'];
 
-  diff_x = gui_x - gui_x0_temp;
-  diff_y = gui_y - gui_y0_temp;
+  const diff_x = gui_x - gui_x0_temp;
+  const diff_y = gui_y - gui_y0_temp;
 
 
   /* Perform wrapping without any realness check.  It's important that
@@ -183,11 +183,9 @@ export function base_canvas_to_map_pos(canvas_x: number, canvas_y: number): { ma
   or NULL if the position is off the map.
 **************************************************************************/
 export function canvas_pos_to_tile(canvas_x: number, canvas_y: number): Tile | null {
-  let map_x: number, map_y: number;
-
   const r = base_canvas_to_map_pos(canvas_x, canvas_y);
-  map_x = r['map_x'];
-  map_y = r['map_y'];
+  const map_x = r['map_x'];
+  const map_y = r['map_y'];
   /*FIXME: if (normalize_map_pos(&map_x, &map_y)) {
     return map_pos_to_tile(map_x, map_y);
   } else {

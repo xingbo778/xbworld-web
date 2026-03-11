@@ -36,7 +36,7 @@ export function setClientState(newstate: number): void {
   store.civclientState = newstate;
 
   switch (newstate) {
-    case C_S_RUNNING:
+    case C_S_RUNNING: {
       try {
         clear_chatbox();
         unblockUI();
@@ -61,6 +61,7 @@ export function setClientState(newstate: number): void {
       };
       setTimeout(() => _tryCenter(3), 1000);
       break;
+    }
 
     case C_S_OVER:
       setTimeout(function () {
@@ -147,7 +148,7 @@ export function setupWindowSize(): void {
  * Shows the intro message when a new game starts.
  */
 export function showNewGameMessage(): void {
-  let message: string | null = null;
+  const message: string | null = null;
   clear_chatbox();
 
   // Always observer mode — no intro message needed

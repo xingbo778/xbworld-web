@@ -330,9 +330,7 @@ export function center_tile_mapcanvas(ptile: Tile | null) {
 }
 
 export function popit() {
-  let ptile: Tile | null;
-
-  ptile = canvas_pos_to_tile(S.mouse_x, S.mouse_y);
+  const ptile = canvas_pos_to_tile(S.mouse_x, S.mouse_y);
 
   if (ptile == null) return;
 

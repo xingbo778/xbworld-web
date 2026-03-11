@@ -30,8 +30,8 @@ const civclient_state = clientState();
 export let chatbox_active: boolean = true;
 export const message_log: EventAggregator = new EventAggregator(update_chatbox, 125,
                                       EventAggregator.DP_ALL, 1000, 0);
-export let previous_scroll: number = 0;
-export let current_message_dialog_state: string | null = null;
+export const previous_scroll: number = 0;
+export const current_message_dialog_state: string | null = null;
 export const max_chat_message_length: number = 350;
 
 /**************************************************************************

@@ -98,13 +98,13 @@ const DIR8_SOUTHEAST = 7;
 
 // Access sprites/tileset/fullfog/extraIds through the store (no more window access)
 
-let num_cardinal_tileset_dirs: number = 4;
-let cardinal_tileset_dirs: number[] = [DIR8_NORTH, DIR8_EAST, DIR8_SOUTH, DIR8_WEST];
+const num_cardinal_tileset_dirs: number = 4;
+const cardinal_tileset_dirs: number[] = [DIR8_NORTH, DIR8_EAST, DIR8_SOUTH, DIR8_WEST];
 
-let current_select_sprite: number = 0;
-let max_select_sprite: number = 4;
+const current_select_sprite: number = 0;
+const max_select_sprite: number = 4;
 
-export let explosion_anim_map: { [key: number]: number } = {};
+export const explosion_anim_map: { [key: number]: number } = {};
 
 /* Items on the mapview are drawn in layers. Each entry below represents
  * one layer. The names are basically arbitrary and just correspond to
@@ -140,7 +140,7 @@ export const CELL_WHOLE: number = 0;		/* entire tile */
 export const CELL_CORNER: number = 1;	/* corner of tile */
 
 
-let terrain_match: { [key: string]: number } = {
+const terrain_match: { [key: string]: number } = {
   "t.l0.hills1": MATCH_NONE,
   "t.l0.mountains1": MATCH_NONE,
   "t.l0.plains1": MATCH_NONE,
@@ -322,7 +322,7 @@ export function tileset_extra_id_rmactivity_graphic_tag(extra_id: number): strin
   is done differently.
 ****************************************************************************/
 export function fill_sprite_array(layer: number, ptile: Tile | null, pedge: unknown, pcorner: { tile: (Tile | null)[] } | null, punit: Unit | null, pcity: City | null, citymode: boolean): SpriteEntry[] {
-  let sprite_array: SpriteEntry[] = [];
+  const sprite_array: SpriteEntry[] = [];
 
   switch (layer) {
     case LAYER_TERRAIN1:
@@ -427,7 +427,7 @@ export function fill_sprite_array(layer: number, ptile: Tile | null, pedge: unkn
       }
       break;
 
-    case LAYER_UNIT:
+    case LAYER_UNIT: {
       const do_draw_unit = (punit != null && (draw_units || ptile == null || (draw_focus_unit
         && unit_is_in_focus(punit))));
 
@@ -448,7 +448,7 @@ export function fill_sprite_array(layer: number, ptile: Tile | null, pedge: unkn
 
       /* show explosion animation on current tile.*/
       if (ptile != null && explosion_anim_map[ptile['index']] != null) {
-        let explode_step = explosion_anim_map[ptile['index']];
+        const explode_step = explosion_anim_map[ptile['index']];
         explosion_anim_map[ptile['index']] = explode_step - 1;
         if (explode_step > 20) {
           sprite_array.push({
@@ -488,6 +488,7 @@ export function fill_sprite_array(layer: number, ptile: Tile | null, pedge: unkn
 
 
       break;
+    }
 
     case LAYER_FOG:
       sprite_array.push(...fill_fog_sprite_array(ptile, pedge, pcorner));

@@ -34,7 +34,7 @@ export {
 } from './mapCoords';
 
 
-export let mapview: {
+export const mapview: {
   width: number;
   height: number;
   gui_x0: number;
@@ -45,7 +45,7 @@ export let mapview: {
 } = { width: 0, height: 0, gui_x0: 0, gui_y0: 0, store_width: 0, store_height: 0 };
 export let mapdeco_highlight_table: Record<string, boolean> = {};
 export let mapdeco_crosshair_table: Record<string, boolean> = {};
-export let last_redraw_time: number = 0;
+export const last_redraw_time: number = 0;
 export const MAPVIEW_REFRESH_INTERVAL: number = 10;
 
 export let dirty_tiles: { [key: number]: boolean } = {};
@@ -80,7 +80,7 @@ export function clear_dirty(): void {
   dirty_all = false;
 }
 
-export let mapview_slide: {
+export const mapview_slide: {
   active: boolean;
   dx: number;
   dy: number;

@@ -21,12 +21,12 @@ const DIR8_SOUTHWEST = 5;
 const DIR8_SOUTH = 6;
 const DIR8_SOUTHEAST = 7;
 
-let num_cardinal_tileset_dirs: number = 4;
-let cardinal_tileset_dirs: number[] = [DIR8_NORTH, DIR8_EAST, DIR8_SOUTH, DIR8_WEST];
+const num_cardinal_tileset_dirs: number = 4;
+const cardinal_tileset_dirs: number[] = [DIR8_NORTH, DIR8_EAST, DIR8_SOUTH, DIR8_WEST];
 
-let NUM_CORNER_DIRS: number = 4;
+const NUM_CORNER_DIRS: number = 4;
 
-let DIR4_TO_DIR8: number[] = [DIR8_NORTH, DIR8_SOUTH, DIR8_EAST, DIR8_WEST];
+const DIR4_TO_DIR8: number[] = [DIR8_NORTH, DIR8_SOUTH, DIR8_EAST, DIR8_WEST];
 
 // Precomputed corner cell offsets for CELL_CORNER rendering (avoid per-call allocation)
 // Values set lazily from normal_tile_width / normal_tile_height (available at runtime)
