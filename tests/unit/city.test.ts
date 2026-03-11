@@ -454,22 +454,27 @@ describe('cityCanBuy', () => {
   });
 
   it('should return true when city can buy', () => {
-    const city = makeCity({ did_buy: false, turn_founded: 1, production_value: 10 });
+    const city = makeCity({ production_kind: VUT_IMPROVEMENT, did_buy: false, turn_founded: 1, production_value: 10 });
     expect(cityCanBuy(city)).toBe(true);
   });
 
   it('should return false when city already bought this turn', () => {
-    const city = makeCity({ did_buy: true, turn_founded: 1, production_value: 10 });
+    const city = makeCity({ production_kind: VUT_IMPROVEMENT, did_buy: true, turn_founded: 1, production_value: 10 });
     expect(cityCanBuy(city)).toBe(false);
   });
 
   it('should return false when city was founded this turn', () => {
-    const city = makeCity({ did_buy: false, turn_founded: 5, production_value: 10 });
+    const city = makeCity({ production_kind: VUT_IMPROVEMENT, did_buy: false, turn_founded: 5, production_value: 10 });
     expect(cityCanBuy(city)).toBe(false);
   });
 
   it('should return false when producing Coinage', () => {
-    const city = makeCity({ did_buy: false, turn_founded: 1, production_value: 11 });
+    const city = makeCity({ production_kind: VUT_IMPROVEMENT, did_buy: false, turn_founded: 1, production_value: 11 });
+    expect(cityCanBuy(city)).toBe(false);
+  });
+
+  it('should return false when producing a unit (VUT_UTYPE)', () => {
+    const city = makeCity({ production_kind: VUT_UTYPE, did_buy: false, turn_founded: 1, production_value: 10 });
     expect(cityCanBuy(city)).toBe(false);
   });
 });

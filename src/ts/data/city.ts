@@ -23,6 +23,7 @@ import {
 } from './map';
 import { universalBuildShieldCost, areReqsActive, type Requirement } from './requirements';
 import { can_player_build_unit_direct } from './unittype';
+import { playerInventionState, TECH_KNOWN } from './tech';
 import {
   get_unit_type_image_sprite,
   get_improvement_image_sprite,
@@ -346,7 +347,6 @@ export function doesCityHaveImprovement(
 
   for (let z = 0; z < (store.rulesControl as Record<string, number>).num_impr_types; z++) {
     if (
-      pcity['improvements'] != null &&
       (pcity['improvements'] as unknown as BitVector).isSet(z) &&
       store.improvements[z] != null &&
       store.improvements[z]['name'] === improvementName
@@ -357,9 +357,36 @@ export function doesCityHaveImprovement(
   return false;
 }
 
+/** Return whether given city can build given improvement, ignoring server BitVectors. */
+export function canCityBuildImprovementDirect(pcity: City, impr: Improvement): boolean {
+  // Skip if already built (improvements are unique per city)
+  if (cityHasBuilding(pcity, impr.id)) return false;
+
+  const pplayer = cityOwner(pcity);
+
+  // Tech requirement check
+  const techReq = impr['tech_req'] as number | null | undefined;
+  if (techReq != null && techReq >= 0) {
+    if (playerInventionState(pplayer, techReq) !== TECH_KNOWN) return false;
+  }
+
+  // City-level build requirements
+  const buildReqs = impr['build_reqs'] as Requirement[] | null | undefined;
+  if (buildReqs != null && buildReqs.length > 0) {
+    if (!areReqsActive(pplayer, pcity, null, null, null, impr as unknown as Improvement, null, buildReqs, RPT_POSSIBLE)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 /** Simplified check: can the city buy its current production? */
 export function cityCanBuy(pcity: City): boolean {
+  // Only improvements can be bought; buying a unit is not supported
+  if (pcity['production_kind'] !== VUT_IMPROVEMENT) return false;
   const improvement = store.improvements[pcity['production_value']];
+  if (improvement == null) return false;
   return (
     !pcity['did_buy'] &&
     pcity['turn_founded'] !== store.gameInfo?.['turn'] &&

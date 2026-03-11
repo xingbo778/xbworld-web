@@ -11,6 +11,7 @@ import {
   canCityBuildUnitNow,
   canCityBuildImprovementNow,
   canCityBuildUnitDirect,
+  canCityBuildImprovementDirect,
 } from '../data/city';
 import { get_supported_units, tile_units, get_unit_city_info } from '../data/unit';
 import { get_unit_image_sprite, get_improvement_image_sprite, get_unit_type_image_sprite } from '../renderer/tilespec';
@@ -292,10 +293,13 @@ export function buildProductionListData(pcity: City): ProductionListData {
 
   for (const id in store.improvements) {
     const impr: Improvement = store.improvements[Number(id)];
-    if (!hasData || canCityBuildImprovementNow(pcity, Number(id))) {
-      const cost = impr['name'] === 'Coinage' ? '-' : impr['build_cost'];
-      improvements.push({ impr, cost });
+    if (hasData) {
+      if (!canCityBuildImprovementNow(pcity, Number(id))) continue;
+    } else {
+      if (!canCityBuildImprovementDirect(pcity, impr)) continue;
     }
+    const cost = impr['name'] === 'Coinage' ? '-' : impr['build_cost'];
+    improvements.push({ impr, cost });
   }
 
   return { hasData, units, improvements };
