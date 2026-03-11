@@ -2,6 +2,7 @@
  * Ruleset packet handlers — pure data assignment to store.
  */
 import { store } from '../../data/store';
+import { globalEvents } from '../../core/events';
 import { VUT_ADVANCE, REQ_RANGE_PLAYER, EC_BASE, EC_ROAD } from '../../data/fcTypes';
 import { A_NONE } from '../../data/tech';
 import { isExtraCausedBy } from '../../data/extra';
@@ -154,8 +155,17 @@ export function handle_ruleset_tech(packet: RulesetTechPacket): void {
   recreate_old_tech_req(packet);
 }
 
-export function handle_ruleset_tech_class(_packet: BasePacket): void { /* TODO */ }
-export function handle_ruleset_tech_flag(_packet: BasePacket): void { /* TODO */ }
+export function handle_ruleset_tech_class(packet: BasePacket): void {
+  const s = store as unknown as Record<string, unknown>;
+  if (s['techClasses'] == null) s['techClasses'] = {};
+  (s['techClasses'] as Record<number, unknown>)[packet['id'] as number] = packet;
+}
+
+export function handle_ruleset_tech_flag(packet: BasePacket): void {
+  const s = store as unknown as Record<string, unknown>;
+  if (s['techFlags'] == null) s['techFlags'] = {};
+  (s['techFlags'] as Record<number, unknown>)[packet['id'] as number] = packet;
+}
 
 export function handle_ruleset_terrain_control(packet: RulesetTerrainControlPacket): void {
   terrain_control = packet;
@@ -173,17 +183,64 @@ export function handle_ruleset_unit_class(packet: RulesetUnitClassPacket): void 
   store.unitClasses[packet['id']] = packet;
 }
 
-export function handle_ruleset_disaster(_packet: BasePacket): void { /* TODO */ }
-export function handle_ruleset_trade(_packet: BasePacket): void { /* TODO */ }
-export function handle_rulesets_ready(_packet: BasePacket): void { /* TODO */ }
-export function handle_ruleset_choices(_packet: BasePacket): void { /* TODO */ }
-export function handle_game_load(_packet: BasePacket): void { /* TODO */ }
-export function handle_ruleset_unit_flag(_packet: BasePacket): void { /* TODO */ }
-export function handle_ruleset_unit_class_flag(_packet: BasePacket): void { /* TODO */ }
-export function handle_ruleset_unit_bonus(_packet: BasePacket): void { /* TODO */ }
-export function handle_ruleset_terrain_flag(_packet: BasePacket): void { /* TODO */ }
-export function handle_ruleset_impr_flag(_packet: BasePacket): void { /* TODO */ }
-export function handle_ruleset_government_ruler_title(_packet: BasePacket): void { /* TODO */ }
+export function handle_ruleset_disaster(packet: BasePacket): void {
+  const s = store as unknown as Record<string, unknown>;
+  if (s['disasters'] == null) s['disasters'] = {};
+  (s['disasters'] as Record<number, unknown>)[packet['id'] as number] = packet;
+}
+
+export function handle_ruleset_trade(packet: BasePacket): void {
+  (store as unknown as Record<string, unknown>)['tradeRules'] = packet;
+}
+
+export function handle_rulesets_ready(_packet: BasePacket): void {
+  globalEvents.emit('rules:ready');
+}
+
+export function handle_ruleset_choices(_packet: BasePacket): void { /* server-side only, no client action needed */ }
+export function handle_game_load(_packet: BasePacket): void { /* no client action needed */ }
+
+export function handle_ruleset_unit_flag(packet: BasePacket): void {
+  const s = store as unknown as Record<string, unknown>;
+  if (s['unitFlags'] == null) s['unitFlags'] = {};
+  (s['unitFlags'] as Record<number, unknown>)[packet['id'] as number] = packet;
+}
+
+export function handle_ruleset_unit_class_flag(packet: BasePacket): void {
+  const s = store as unknown as Record<string, unknown>;
+  if (s['unitClassFlags'] == null) s['unitClassFlags'] = {};
+  (s['unitClassFlags'] as Record<number, unknown>)[packet['id'] as number] = packet;
+}
+
+export function handle_ruleset_unit_bonus(packet: BasePacket): void {
+  const unit_type_id = packet['unit'] as number;
+  if (unit_type_id != null && store.unitTypes[unit_type_id] != null) {
+    const ut = store.unitTypes[unit_type_id] as unknown as Record<string, unknown>;
+    if (ut['bonuses'] == null) ut['bonuses'] = [];
+    (ut['bonuses'] as unknown[]).push(packet);
+  }
+}
+
+export function handle_ruleset_terrain_flag(packet: BasePacket): void {
+  const s = store as unknown as Record<string, unknown>;
+  if (s['terrainFlags'] == null) s['terrainFlags'] = {};
+  (s['terrainFlags'] as Record<number, unknown>)[packet['id'] as number] = packet;
+}
+
+export function handle_ruleset_impr_flag(packet: BasePacket): void {
+  const s = store as unknown as Record<string, unknown>;
+  if (s['imprFlags'] == null) s['imprFlags'] = {};
+  (s['imprFlags'] as Record<number, unknown>)[packet['id'] as number] = packet;
+}
+
+export function handle_ruleset_government_ruler_title(packet: BasePacket): void {
+  const gov_id = packet['gov'] as number;
+  const gov = store.governments[gov_id];
+  if (gov != null) {
+    (gov as unknown as Record<string, unknown>)['male_title'] = packet['male_title'];
+    (gov as unknown as Record<string, unknown>)['female_title'] = packet['female_title'];
+  }
+}
 
 export function handle_ruleset_base(packet: RulesetBasePacket): void {
   if (!store.rulesControl) return;
@@ -245,20 +302,79 @@ export function handle_ruleset_extra(packet: RulesetExtraPacket): void {
   else store.extraIds['EXTRA_' + packet['rule_name'].toUpperCase()] = packet['id'];
 }
 
-export function handle_ruleset_counter(_packet: BasePacket): void { /* TODO */ }
-export function handle_ruleset_extra_flag(_packet: BasePacket): void { /* TODO */ }
-export function handle_ruleset_nation_sets(_packet: BasePacket): void { /* TODO */ }
-export function handle_ruleset_style(_packet: BasePacket): void { /* TODO */ }
-export function handle_nation_availability(_packet: BasePacket): void { /* TODO */ }
-export function handle_ruleset_music(_packet: BasePacket): void { /* TODO */ }
-export function handle_ruleset_multiplier(_packet: BasePacket): void { /* TODO */ }
-export function handle_ruleset_action_auto(_packet: BasePacket): void { /* TODO */ }
-export function handle_ruleset_achievement(_packet: BasePacket): void { /* TODO */ }
-export function handle_achievement_info(_packet: BasePacket): void { /* TODO */ }
-export function handle_team_name_info(_packet: BasePacket): void { /* TODO */ }
-export function handle_popup_image(_packet: BasePacket): void { /* TODO */ }
-export function handle_worker_task(_packet: BasePacket): void { /* TODO */ }
-export function handle_play_music(_packet: BasePacket): void { /* TODO */ }
+export function handle_ruleset_counter(packet: BasePacket): void {
+  const s = store as unknown as Record<string, unknown>;
+  if (s['counters'] == null) s['counters'] = {};
+  (s['counters'] as Record<number, unknown>)[packet['id'] as number] = packet;
+}
+
+export function handle_ruleset_extra_flag(packet: BasePacket): void {
+  const s = store as unknown as Record<string, unknown>;
+  if (s['extraFlags'] == null) s['extraFlags'] = {};
+  (s['extraFlags'] as Record<number, unknown>)[packet['id'] as number] = packet;
+}
+
+export function handle_ruleset_nation_sets(packet: BasePacket): void {
+  (store as unknown as Record<string, unknown>)['nationSets'] = packet['sets'] ?? packet;
+}
+
+export function handle_ruleset_style(packet: BasePacket): void {
+  const s = store as unknown as Record<string, unknown>;
+  if (s['styles'] == null) s['styles'] = {};
+  (s['styles'] as Record<number, unknown>)[packet['id'] as number] = packet;
+}
+
+export function handle_nation_availability(packet: BasePacket): void {
+  (store as unknown as Record<string, unknown>)['nationAvailability'] = packet;
+}
+
+export function handle_ruleset_music(_packet: BasePacket): void { /* no audio support */ }
+
+export function handle_ruleset_multiplier(packet: BasePacket): void {
+  const s = store as unknown as Record<string, unknown>;
+  if (s['multipliers'] == null) s['multipliers'] = {};
+  (s['multipliers'] as Record<number, unknown>)[packet['id'] as number] = packet;
+}
+
+export function handle_ruleset_action_auto(packet: BasePacket): void {
+  const s = store as unknown as Record<string, unknown>;
+  if (s['actionAutos'] == null) s['actionAutos'] = {};
+  (s['actionAutos'] as Record<number, unknown>)[packet['id'] as number] = packet;
+}
+
+export function handle_ruleset_achievement(packet: BasePacket): void {
+  const s = store as unknown as Record<string, unknown>;
+  if (s['achievements'] == null) s['achievements'] = {};
+  (s['achievements'] as Record<number, unknown>)[packet['id'] as number] = packet;
+}
+
+export function handle_achievement_info(packet: BasePacket): void {
+  const s = store as unknown as Record<string, unknown>;
+  if (s['achievementInfo'] == null) s['achievementInfo'] = {};
+  const id = packet['id'] as number;
+  const ai = s['achievementInfo'] as Record<number, Record<number, unknown>>;
+  if (ai[id] == null) ai[id] = {};
+  ai[id][packet['player_id'] as number] = packet;
+}
+
+export function handle_team_name_info(packet: BasePacket): void {
+  const s = store as unknown as Record<string, unknown>;
+  if (s['teamNames'] == null) s['teamNames'] = {};
+  (s['teamNames'] as Record<number, string>)[packet['team_id'] as number] = packet['name'] as string;
+}
+
+export function handle_popup_image(_packet: BasePacket): void { /* no popup image support */ }
+
+export function handle_worker_task(packet: BasePacket): void {
+  const city_id = packet['city_id'] as number;
+  if (city_id != null && store.cities[city_id] != null) {
+    const city = store.cities[city_id] as unknown as Record<string, unknown>;
+    if (city['workerTasks'] == null) city['workerTasks'] = [];
+    (city['workerTasks'] as unknown[]).push(packet);
+  }
+}
+
+export function handle_play_music(_packet: BasePacket): void { /* no audio support */ }
 
 export function handle_ruleset_control(packet: RulesetControlPacket): void {
   store.rulesControl = packet;
@@ -297,4 +413,24 @@ export function handle_ruleset_control(packet: RulesetControlPacket): void {
   bases = [];
 
   store.clauseInfos = {};
+
+  // Reset supplementary ruleset data stores
+  const s = store as unknown as Record<string, unknown>;
+  s['techClasses'] = {};
+  s['techFlags'] = {};
+  s['unitFlags'] = {};
+  s['unitClassFlags'] = {};
+  s['terrainFlags'] = {};
+  s['imprFlags'] = {};
+  s['extraFlags'] = {};
+  s['disasters'] = {};
+  s['multipliers'] = {};
+  s['achievements'] = {};
+  s['achievementInfo'] = {};
+  s['counters'] = {};
+  s['styles'] = {};
+  s['actionAutos'] = {};
+  s['tradeRules'] = null;
+  s['nationSets'] = null;
+  s['nationAvailability'] = null;
 }
