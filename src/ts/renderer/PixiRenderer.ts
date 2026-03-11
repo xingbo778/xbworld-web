@@ -12,7 +12,8 @@
  *   - mapContainer offset = -mapview.gui_x0/-gui_y0 → O(1) panning
  *   - Texture cache: store.sprites[key] → Pixi Texture (on-demand)
  *   - Dirty-tile system: only rebuild changed tiles
- *   - Fog: simple diamond overlay for TILE_KNOWN_UNSEEN (corner fog = TODO)
+ *   - Fog: solid diamond overlay for TILE_KNOWN_UNSEEN interior
+ *          + corner fog sprites (t.fog_*) for smooth visibility boundaries
  */
 
 import { Application, Container, Sprite, Texture, Graphics, Text, TextStyle } from 'pixi.js';
@@ -21,16 +22,22 @@ import { globalEvents } from '../core/events';
 import { TILE_KNOWN_UNSEEN, TILE_UNKNOWN, tileGetKnown, tileCity } from '../data/tile';
 import { logNormal, logError } from '../core/log';
 import type { Tile, City } from '../data/types';
-import { fill_sprite_array, LAYER_COUNT, type SpriteEntry } from './tilespec';
+import { fill_sprite_array, fill_fog_sprite_array, LAYER_COUNT, type SpriteEntry } from './tilespec';
 import { mapview } from './mapviewCommon';
 import { map_to_gui_pos } from './mapCoords';
+import { mapstep } from '../data/map';
 import { tileset_tile_width, tileset_tile_height } from './tilesetConfig';
 import { get_drawable_unit } from '../core/control/unitFocus';
 import { draw_fog_of_war } from '../ui/options';
 import { clientState, C_S_RUNNING } from '../client/clientState';
 
-// LAYER_FOG = 8 (from tilespec.ts — skipped for corner-based rendering)
+// LAYER_FOG = 8 (from tilespec.ts)
 const LAYER_FOG_INDEX = 8;
+
+// DIR8 values used for corner fog cluster (E/S/SE neighbors of current tile)
+const DIR8_EAST = 4;
+const DIR8_SOUTH = 6;
+const DIR8_SOUTHEAST = 7;
 
 export interface RendererConfig {
   container: HTMLElement;
@@ -73,7 +80,7 @@ export class PixiRenderer {
   // Viewport-culled rebuild queue (only visible tiles are rebuilt per event)
   private rebuildQueue: Tile[] | null = null;
   private rebuildQueueIdx = 0;
-  private static readonly REBUILD_PER_FRAME = 200;
+  private static readonly REBUILD_PER_FRAME = 100;
 
   // Viewport tracking for pan-reveal (rebuild after pan stops)
   private lastViewX0 = 0;
@@ -305,6 +312,40 @@ export class PixiRenderer {
     container.addChild(g);
   }
 
+  /**
+   * Add a corner fog sprite for the SE cluster of this tile.
+   *
+   * Each tile is the NW tile of one corner cluster: {self, E, S, SE}.
+   * fill_fog_sprite_array() computes the visibility combination and returns
+   * the matching t.fog_* key from store.fullfog. The resulting sprite is
+   * drawn at (gx, gy) — the tile's GUI position. The sprite image covers
+   * only the SE quadrant of the isometric diamond, so adjacent tiles' corner
+   * sprites together provide complete smooth fog coverage.
+   *
+   * Returns without drawing if all 4 cluster tiles are known-seen (no fog).
+   */
+  private addCornerFogSprite(tile: Tile, gx: number, gy: number, layer: number): void {
+    const eN = mapstep(tile, DIR8_EAST);
+    const sN = mapstep(tile, DIR8_SOUTH);
+    const seN = mapstep(tile, DIR8_SOUTHEAST);
+    const pcorner = { tile: [tile as Tile | null, eN, sN, seN] };
+
+    const entries = fill_fog_sprite_array(null, null, pcorner);
+    if (entries.length === 0) return;
+
+    const key = entries[0].key;
+    if (!key) return;
+
+    const tex = this.getTexture(key as string);
+    if (!tex) return;
+
+    const c = this.getTileLayerContainer(tile.index, layer);
+    const sp = new Sprite(tex);
+    sp.x = gx;
+    sp.y = gy;
+    c.addChild(sp);
+  }
+
   /** Create a shared fog texture once. Reused as Sprite per fogged tile (~2µs vs ~20µs for Graphics). */
   private createFogTexture(): void {
     const tw = tileset_tile_width, th = tileset_tile_height;
@@ -368,12 +409,16 @@ export class PixiRenderer {
       this.clearTileLayer(tile.index, layer);
 
       if (layer === LAYER_FOG_INDEX) {
-        // Corner-based fog sprites require pcorner iteration (TODO Phase 1.5).
-        // For now: draw a simple overlay on fogged tiles.
+        // 1. Solid overlay for TILE_KNOWN_UNSEEN interior (keeps deeply-fogged
+        //    tiles dark even before all 4 neighboring corner sprites are built).
         if (fog) {
           const c = this.getTileLayerContainer(tile.index, layer);
           this.addFogOverlay(gx, gy, c);
         }
+        // 2. Corner fog sprite: smooth visibility transition at fog boundaries.
+        //    Each tile "owns" the SE corner cluster where it is the NW tile.
+        //    pcorner.tile = [self(NW), E(NE), S(SW), SE] → fullfog key lookup.
+        this.addCornerFogSprite(tile, gx, gy, layer);
         continue;
       }
 
@@ -392,18 +437,50 @@ export class PixiRenderer {
   // ---------------------------------------------------------------------------
 
   /**
-   * Pre-upload road/rail/river sprites to GPU on first sprite-ready frame.
-   * Without this, the first tile rebuild that encounters a road sprite triggers
-   * a synchronous GPU texture upload per sprite, causing one large frame spike.
+   * Pre-upload frequently-used sprites to GPU on first sprite-ready frame.
+   * Without this, first encounters trigger synchronous GPU texture uploads,
+   * causing large frame spikes during initial exploration.
    * Called once when store.sprites becomes available.
    */
-  private preWarmRoadTextures(): void {
+  private preWarmCommonTextures(): void {
+    // Road / rail direction sprites (9 per type × 2 types = 18)
     const dirs = ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw'];
-    const prefixes = ['road.road', 'road.rail'];
-    for (const prefix of prefixes) {
+    for (const prefix of ['road.road', 'road.rail']) {
       this.getTexture(`${prefix}_isolated`);
       for (const d of dirs) this.getTexture(`${prefix}_${d}`);
     }
+
+    // Corner fog sprites: t.fog_X_X_X_X for all 80 valid combinations.
+    // Matches the fullfog array construction in initTilesetSprites().
+    const ids = ['u', 'f', 'k'];
+    for (let i = 0; i < 80; i++) {
+      let k = i;
+      let key = 't.fog';
+      for (let j = 0; j < 4; j++) { key += '_' + ids[k % 3]; k = Math.floor(k / 3); }
+      this.getTexture(key);
+    }
+
+    // Force GPU upload of all newly-created textures now (before initial tile build).
+    // Pixi defers GPU uploads until first render — without this, the first frame
+    // that includes road/fog sprites triggers a large synchronous GPU batch upload.
+    this.forceGPUUpload();
+  }
+
+  /**
+   * Force Pixi to upload all cached textures to GPU immediately.
+   * Renders a tiny off-screen scene containing all cached sprites.
+   * Cost: one-time ~10ms during game start; prevents mid-game upload spikes.
+   */
+  private forceGPUUpload(): void {
+    const tmp = new Container();
+    tmp.x = -999999; tmp.y = -999999;
+    for (const tex of this.texCache.values()) {
+      if (tex) tmp.addChild(new Sprite(tex));
+    }
+    try {
+      this.app.renderer.render({ container: tmp });
+    } catch { /* non-fatal */ }
+    tmp.destroy({ children: true });
   }
 
   // ---------------------------------------------------------------------------
@@ -415,7 +492,7 @@ export class PixiRenderer {
     if (!this.spritesReady) {
       if (!store.sprites || Object.keys(store.sprites).length === 0) return;
       this.spritesReady = true; // cache once — sprites don't change after load
-      this.preWarmRoadTextures();
+      this.preWarmCommonTextures();
     }
 
     // O(1) panning: shift the entire map container
