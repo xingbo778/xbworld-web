@@ -251,3 +251,82 @@ describe('researchUpdated signal', () => {
     void researchUpdated; // suppress unused warning
   });
 });
+
+// ── settingsUpdated signal ─────────────────────────────────────────────────
+
+describe('settingsUpdated signal', () => {
+  it('is a number signal starting at 0', async () => {
+    const { settingsUpdated } = await import('@/data/signals');
+    expect(typeof settingsUpdated.value).toBe('number');
+  });
+
+  it('increments when settings:updated is emitted', async () => {
+    const { settingsUpdated } = await import('@/data/signals');
+    const before = settingsUpdated.value;
+    globalEvents.emit('settings:updated');
+    expect(settingsUpdated.value).toBe(before + 1);
+  });
+});
+
+// ── cityCount / city:removed ───────────────────────────────────────────────
+
+describe('cityCount signal — city:removed', () => {
+  beforeEach(() => {
+    store.cities = {};
+  });
+
+  it('decrements cityCount when city:removed fires', async () => {
+    const { cityCount } = await import('@/data/signals');
+    store.cities[1] = { id: 1 } as unknown as typeof store.cities[number];
+    store.cities[2] = { id: 2 } as unknown as typeof store.cities[number];
+    globalEvents.emit('city:updated'); // set initial count to 2
+    expect(cityCount.value).toBe(2);
+    delete store.cities[1];
+    globalEvents.emit('city:removed');
+    expect(cityCount.value).toBe(1);
+  });
+});
+
+// ── unitCount / unit:removed ───────────────────────────────────────────────
+
+describe('unitCount signal — unit:removed', () => {
+  beforeEach(() => {
+    store.units = {};
+  });
+
+  it('decrements unitCount when unit:removed fires', async () => {
+    const { unitCount } = await import('@/data/signals');
+    store.units[1] = { id: 1 } as unknown as typeof store.units[number];
+    store.units[2] = { id: 2 } as unknown as typeof store.units[number];
+    globalEvents.emit('unit:updated'); // set initial count to 2
+    expect(unitCount.value).toBe(2);
+    delete store.units[1];
+    globalEvents.emit('unit:removed');
+    expect(unitCount.value).toBe(1);
+  });
+});
+
+// ── syncFromStore — new events ─────────────────────────────────────────────
+
+describe('syncFromStore — game:newyear / player:removed / connection:updated', () => {
+  it('game:newyear triggers syncFromStore (playerCount re-syncs)', async () => {
+    const { playerCount } = await import('@/data/signals');
+    store.players = { 1: { playerno: 1 } as unknown as typeof store.players[number] };
+    globalEvents.emit('game:newyear');
+    expect(playerCount.value).toBe(1);
+  });
+
+  it('player:removed triggers syncFromStore (playerCount decreases)', async () => {
+    const { playerCount } = await import('@/data/signals');
+    store.players = {};
+    globalEvents.emit('player:removed');
+    expect(playerCount.value).toBe(0);
+  });
+
+  it('connection:updated triggers syncFromStore', async () => {
+    const { cityCount } = await import('@/data/signals');
+    store.cities = {};
+    globalEvents.emit('connection:updated');
+    expect(cityCount.value).toBe(0);
+  });
+});
