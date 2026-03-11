@@ -8,7 +8,10 @@
  * request_report) are NOT migrated — they remain in Legacy.
  */
 
-// store import removed — canPlayerGetGov simplified for observer mode
+import { store } from './store';
+import { clientPlaying } from '../client/clientState';
+import { areReqsActive, type Requirement } from './requirements';
+import { RPT_POSSIBLE } from './fcTypes';
 
 // ---------------------------------------------------------------------------
 // Functions
@@ -41,9 +44,14 @@ export function governmentMaxRate(govtId: number): number {
  * Returns true iff the player can get the specified government.
  * Uses the JavaScript implementation of the requirement system.
  */
-export function canPlayerGetGov(_govtId: number): boolean {
-  // are_reqs_active was a legacy requirement system — not available in observer mode
-  return false;
+export function canPlayerGetGov(govtId: number): boolean {
+  const pplayer = clientPlaying();
+  if (pplayer == null) return false;
+  const gov = store.governments[govtId];
+  if (gov == null) return false;
+  const reqs = (gov as unknown as Record<string, unknown>)['reqs'] as Requirement[] | null | undefined;
+  if (reqs == null || reqs.length === 0) return true;
+  return areReqsActive(pplayer, null, null, null, null, null, null, reqs, RPT_POSSIBLE);
 }
 
 // ---------------------------------------------------------------------------

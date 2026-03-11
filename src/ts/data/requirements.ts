@@ -96,7 +96,8 @@ import {
 } from './fcTypes';
 import { playerInventionState, TECH_KNOWN } from './tech';
 import { store } from './store';
-import type { Player } from './types';
+import { tileHasExtra } from './tile';
+import type { Player, Tile } from './types';
 
 export interface Requirement {
   kind: number;
@@ -353,6 +354,52 @@ export function isReqActive(
     // Returning TRI_MAYBE rather than TRI_NO: we cannot evaluate these
     // client-side, but we should not assume the requirement is unmet.
     // With RPT_POSSIBLE callers get true (assume possible); RPT_CERTAIN → false.
+    // ── Implemented: extra present on tile ───────────────────────────────────
+    // Uses tileHasExtra() which handles BitVector extras from map packets.
+    case VUT_EXTRA: {
+      if (targetTile == null) { result = TRI_MAYBE; break; }
+      result = tileHasExtra(targetTile as Tile, req['value']) ? TRI_YES : TRI_NO;
+      break;
+    }
+
+    // ── Implemented: terrain flag ─────────────────────────────────────────────
+    // Reads terrain.flags (raw number or BitVector — not converted in packet handler).
+    case VUT_TERRFLAG: {
+      if (targetTile == null) { result = TRI_MAYBE; break; }
+      const terrainId = (targetTile as Record<string, unknown>)['terrain'];
+      if (terrainId == null) { result = TRI_MAYBE; break; }
+      const terrain = store.terrains[terrainId as number];
+      if (terrain == null) { result = TRI_MAYBE; break; }
+      const tflags = (terrain as Record<string, unknown>)['flags'];
+      if (tflags == null) { result = TRI_MAYBE; break; }
+      let tfHas: boolean;
+      if (typeof (tflags as Record<string, unknown>)['isSet'] === 'function') {
+        tfHas = (tflags as { isSet(n: number): boolean }).isSet(req['value']);
+      } else if (typeof tflags === 'number') {
+        tfHas = Boolean((tflags >> req['value']) & 1);
+      } else { result = TRI_MAYBE; break; }
+      result = tfHas ? TRI_YES : TRI_NO;
+      break;
+    }
+
+    // ── Implemented: improvement flag ────────────────────────────────────────
+    // targetBuilding is canonical; falls back to targetOutput (some callers
+    // pass the improvement there instead of the dedicated slot).
+    case VUT_IMPR_FLAG: {
+      const imprTarget = targetBuilding ?? targetOutput;
+      if (imprTarget == null) { result = TRI_MAYBE; break; }
+      const iflags = (imprTarget as Record<string, unknown>)['flags'];
+      if (iflags == null) { result = TRI_MAYBE; break; }
+      let ifHas: boolean;
+      if (typeof (iflags as Record<string, unknown>)['isSet'] === 'function') {
+        ifHas = (iflags as { isSet(n: number): boolean }).isSet(req['value']);
+      } else if (typeof iflags === 'number') {
+        ifHas = Boolean((iflags >> req['value']) & 1);
+      } else { result = TRI_MAYBE; break; }
+      result = ifHas ? TRI_YES : TRI_NO;
+      break;
+    }
+
     case VUT_OTYPE:
     case VUT_SPECIALIST:
     case VUT_AI_LEVEL:
@@ -360,10 +407,8 @@ export function isReqActive(
     case VUT_TERRAINALTER:
     case VUT_CITYTILE:
     case VUT_GOOD:
-    case VUT_TERRFLAG:
     case VUT_NATIONALITY:
     case VUT_ROADFLAG:
-    case VUT_EXTRA:
     case VUT_TECHFLAG:
     case VUT_ACHIEVEMENT:
     case VUT_DIPLREL:
@@ -384,7 +429,6 @@ export function isReqActive(
     case VUT_DIPLREL_UNITANY:
     case VUT_DIPLREL_UNITANY_O:
     case VUT_FORM_AGE:
-    case VUT_IMPR_FLAG:
     case VUT_MAXLATITUDE:
     case VUT_MAX_DISTANCE_SQ:
     case VUT_MAX_REGION_TILES:

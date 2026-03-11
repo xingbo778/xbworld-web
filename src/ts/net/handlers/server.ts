@@ -196,9 +196,31 @@ export function handle_vote_new(packet: BasePacket): void {
     }
   }
 }
-export function handle_vote_update(_packet: BasePacket): void { /* TODO */ }
-export function handle_vote_remove(_packet: BasePacket): void { /* TODO */ }
-export function handle_vote_resolve(_packet: BasePacket): void { /* TODO */ }
+export function handle_vote_update(packet: BasePacket): void {
+  const p = packet as Record<string, unknown>;
+  const voteId = (p['vote_no'] ?? p['id']) as number | undefined;
+  if (voteId != null) {
+    const s = store as unknown as Record<string, unknown>;
+    if (s['votes'] == null) s['votes'] = {};
+    (s['votes'] as Record<number, unknown>)[voteId] = packet;
+  }
+}
+export function handle_vote_remove(packet: BasePacket): void {
+  const p = packet as Record<string, unknown>;
+  const voteId = (p['vote_no'] ?? p['id']) as number | undefined;
+  if (voteId != null) {
+    const votes = (store as unknown as Record<string, unknown>)['votes'] as Record<number, unknown> | undefined;
+    if (votes != null) delete votes[voteId];
+  }
+}
+export function handle_vote_resolve(packet: BasePacket): void {
+  const p = packet as Record<string, unknown>;
+  const voteId = (p['vote_no'] ?? p['id']) as number | undefined;
+  if (voteId != null) {
+    const votes = (store as unknown as Record<string, unknown>)['votes'] as Record<number, unknown> | undefined;
+    if (votes != null) delete votes[voteId];
+  }
+}
 export function handle_edit_startpos(_packet: BasePacket): void { /* no-op */ }
 export function handle_edit_startpos_full(_packet: BasePacket): void { /* no-op */ }
 export function handle_edit_object_created(_packet: BasePacket): void { /* no-op */ }
