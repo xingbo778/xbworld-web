@@ -50,3 +50,18 @@ describe('setOverviewActive', () => {
     expect(() => setOverviewActive(false)).not.toThrow();
   });
 });
+
+describe('overview:frame event listener', () => {
+  it('emitting overview:frame does not throw (calls redraw_overview)', async () => {
+    // Importing overview registers the globalEvents.on('overview:frame', ...) listener
+    await import('@/core/overview');
+    const { globalEvents } = await import('@/core/events');
+    expect(() => globalEvents.emit('overview:frame')).not.toThrow();
+  });
+
+  it('mark_overview_viewport_dirty is exported and does not throw', async () => {
+    const { mark_overview_viewport_dirty } = await import('@/core/overview');
+    expect(typeof mark_overview_viewport_dirty).toBe('function');
+    expect(() => mark_overview_viewport_dirty()).not.toThrow();
+  });
+});
