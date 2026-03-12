@@ -94,3 +94,24 @@ describe('update_client_state', () => {
     expect(() => update_client_state(3)).not.toThrow();
   });
 });
+
+describe('action_decision_handle', () => {
+  it('is exported as a function', async () => {
+    const { action_decision_handle } = await import('@/net/handlers/unit');
+    expect(typeof action_decision_handle).toBe('function');
+  });
+});
+
+describe('action_decision_maybe_auto', () => {
+  it('is exported as a function', async () => {
+    const { action_decision_maybe_auto } = await import('@/net/handlers/unit');
+    expect(typeof action_decision_maybe_auto).toBe('function');
+  });
+});
+
+describe('handle_unit_packet_common', () => {
+  it('is exported as a function', async () => {
+    const { handle_unit_packet_common } = await import('@/net/handlers/unit');
+    expect(typeof handle_unit_packet_common).toBe('function');
+  });
+});
