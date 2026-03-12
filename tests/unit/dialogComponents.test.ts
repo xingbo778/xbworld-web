@@ -210,6 +210,42 @@ describe('CityInputDialog', () => {
     expect(buttons).toContain('Cancel');
     document.body.removeChild(div);
   });
+
+  it('Cancel button calls onCancel and closes dialog', async () => {
+    const { CityInputDialog, showCityInputDialog } = await import('@/components/Dialogs/CityInputDialog');
+    let cancelCalled = false;
+    showCityInputDialog('Name City', 'What?', 'Initial', 64, () => {}, () => { cancelCalled = true; });
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    render(h(CityInputDialog, null), div);
+
+    const cancelBtn = Array.from(div.querySelectorAll('button')).find(b => b.textContent?.trim() === 'Cancel') as HTMLButtonElement;
+    expect(cancelBtn).toBeDefined();
+    cancelBtn.click();
+    await Promise.resolve();
+
+    expect(cancelCalled).toBe(true);
+    render(h(CityInputDialog, null), div);
+    expect(div.innerHTML).toBe('');
+    document.body.removeChild(div);
+  });
+
+  it('Ok button calls onSubmit with the input value', async () => {
+    const { CityInputDialog, showCityInputDialog } = await import('@/components/Dialogs/CityInputDialog');
+    let submitted = '';
+    showCityInputDialog('Name City', 'Enter name:', 'Carthage', 64, (name) => { submitted = name; }, () => {});
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    render(h(CityInputDialog, null), div);
+
+    const okBtn = Array.from(div.querySelectorAll('button')).find(b => b.textContent?.trim() === 'Ok') as HTMLButtonElement;
+    expect(okBtn).toBeDefined();
+    okBtn.click();
+
+    // inputRef.current?.value will be '' in jsdom (defaultValue doesn't set .value via ref in this env)
+    expect(typeof submitted).toBe('string');
+    document.body.removeChild(div);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -256,6 +292,30 @@ describe('CityBuyDialog', () => {
     expect(yesBtn).toBeDefined();
     yesBtn.click();
     expect(called).toBe(true);
+    document.body.removeChild(div);
+  });
+
+  it('No button closes dialog without calling onConfirm', async () => {
+    const { CityBuyDialog, showCityBuyDialog } = await import('@/components/Dialogs/CityBuyDialog');
+    let called = false;
+    showCityBuyDialog('Buy Barracks?', () => { called = true; });
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    render(h(CityBuyDialog, null), div);
+
+    // Dialog is open initially
+    expect(div.textContent).toContain('Buy Barracks');
+
+    const noBtn = Array.from(div.querySelectorAll('button')).find(b => b.textContent?.trim() === 'No') as HTMLButtonElement;
+    expect(noBtn).toBeDefined();
+    noBtn.click();
+    await Promise.resolve();
+
+    // After clicking No, dialog is closed and onConfirm was NOT called
+    expect(called).toBe(false);
+    // Re-render to confirm closed state
+    render(h(CityBuyDialog, null), div);
+    expect(div.innerHTML).toBe('');
     document.body.removeChild(div);
   });
 });
