@@ -133,3 +133,65 @@ describe('max_chat_message_length', () => {
     expect(max_chat_message_length).toBeGreaterThan(0);
   });
 });
+
+// ── wait_for_text ──────────────────────────────────────────────────────────
+
+describe('wait_for_text', () => {
+  it('is exported as a function', async () => {
+    const { wait_for_text } = await import('@/core/messages');
+    expect(typeof wait_for_text).toBe('function');
+  });
+
+  it('calls runnable immediately when text is already in the chatbox', async () => {
+    const { wait_for_text, add_chatbox_text, message_log } = await import('@/core/messages');
+    const { clipChatMessages } = await import('@/components/ChatBox');
+
+    // Seed chatbox with a known string
+    message_log.fireNow();
+    clipChatMessages(0);
+    add_chatbox_text({ message: 'target-string-xyz', event: 0, conn_id: 0, tile: -1 });
+    message_log.fireNow();
+
+    let called = false;
+    wait_for_text('target-string-xyz', () => { called = true; });
+    expect(called).toBe(true);
+  });
+
+  it('does not call runnable when text is absent (no timer advance)', async () => {
+    const { wait_for_text, message_log } = await import('@/core/messages');
+    const { clipChatMessages } = await import('@/components/ChatBox');
+    const { vi } = await import('vitest');
+
+    vi.useFakeTimers();
+    message_log.fireNow();
+    clipChatMessages(0);
+
+    let called = false;
+    wait_for_text('text-that-is-not-there', () => { called = true; });
+    expect(called).toBe(false);
+    vi.useRealTimers();
+  });
+
+  it('calls runnable after retry when text appears in chatbox', async () => {
+    const { wait_for_text, add_chatbox_text, message_log } = await import('@/core/messages');
+    const { clipChatMessages } = await import('@/components/ChatBox');
+    const { vi } = await import('vitest');
+
+    vi.useFakeTimers();
+    message_log.fireNow();
+    clipChatMessages(0);
+
+    let called = false;
+    wait_for_text('delayed-text-abc', () => { called = true; });
+    expect(called).toBe(false);
+
+    // Add text and flush synchronously before advancing timers
+    add_chatbox_text({ message: 'delayed-text-abc', event: 0, conn_id: 0, tile: -1 });
+    message_log.fireNow();
+
+    // Advance past the 100 ms retry interval
+    vi.advanceTimersByTime(150);
+    expect(called).toBe(true);
+    vi.useRealTimers();
+  });
+});
