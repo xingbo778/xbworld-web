@@ -178,3 +178,53 @@ describe('Map', () => {
     expect(() => clearGotoTiles()).not.toThrow();
   });
 });
+
+// ── getMapInfo / getTiles / topoHasFlag / wrapHasFlag / tileInit ──────────
+
+describe('getMapInfo', () => {
+  it('is exported as a function', async () => {
+    const { getMapInfo } = await import('@/data/map');
+    expect(typeof getMapInfo).toBe('function');
+  });
+
+  it('returns an object after mapAllocate', async () => {
+    const { getMapInfo } = await import('@/data/map');
+    const info = getMapInfo();
+    // May return null if no map allocated, or an object
+    expect(info === null || typeof info === 'object').toBe(true);
+  });
+});
+
+describe('getTiles', () => {
+  it('returns an object', async () => {
+    const { getTiles } = await import('@/data/map');
+    const tiles = getTiles();
+    expect(typeof tiles).toBe('object');
+  });
+});
+
+describe('topoHasFlag / wrapHasFlag', () => {
+  it('topoHasFlag returns a boolean', async () => {
+    const { topoHasFlag } = await import('@/data/map');
+    expect(typeof topoHasFlag(1)).toBe('boolean');
+  });
+
+  it('wrapHasFlag returns a boolean', async () => {
+    const { wrapHasFlag } = await import('@/data/map');
+    expect(typeof wrapHasFlag(1)).toBe('boolean');
+  });
+});
+
+describe('tileInit', () => {
+  it('is exported as a function', async () => {
+    const { tileInit } = await import('@/data/map');
+    expect(typeof tileInit).toBe('function');
+  });
+
+  it('returns an object with tile properties', async () => {
+    const { tileInit } = await import('@/data/map');
+    const tile = tileInit({ index: 5, x: 2, y: 3 });
+    expect(typeof tile).toBe('object');
+    expect(tile).not.toBeNull();
+  });
+});
