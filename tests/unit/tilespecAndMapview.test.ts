@@ -61,3 +61,37 @@ describe('mapview exports', () => {
     expect(() => set_default_mapview_inactive()).not.toThrow();
   });
 });
+
+// ── initTilesetSprites / init_sprites / preload_check / init_cache_sprites / mapview_window_resized ──
+
+describe('mapview additional exports', () => {
+  it('initTilesetSprites is exported as a function', async () => {
+    const { initTilesetSprites } = await import('@/renderer/mapview');
+    expect(typeof initTilesetSprites).toBe('function');
+  });
+
+  it('init_sprites is exported as a function', async () => {
+    const { init_sprites } = await import('@/renderer/mapview');
+    expect(typeof init_sprites).toBe('function');
+  });
+
+  it('preload_check is exported as a function', async () => {
+    const { preload_check } = await import('@/renderer/mapview');
+    expect(typeof preload_check).toBe('function');
+  });
+
+  it('init_cache_sprites is exported as a function', async () => {
+    const { init_cache_sprites } = await import('@/renderer/mapview');
+    expect(typeof init_cache_sprites).toBe('function');
+  });
+
+  it('mapview_window_resized is exported as a function', async () => {
+    const { mapview_window_resized } = await import('@/renderer/mapview');
+    expect(typeof mapview_window_resized).toBe('function');
+  });
+
+  it('mapview_window_resized does not throw in test env', async () => {
+    const { mapview_window_resized } = await import('@/renderer/mapview');
+    expect(() => mapview_window_resized()).not.toThrow();
+  });
+});
