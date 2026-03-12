@@ -220,3 +220,116 @@ describe('handle_ruleset_tech_class / handle_ruleset_tech_flag / handle_ruleset_
     expect(() => handle_ruleset_description_part({ text: 'test' } as never)).not.toThrow();
   });
 });
+
+// ── remaining ruleset handlers ─────────────────────────────────────────────
+
+describe('handle_web_ruleset_unit_addition', () => {
+  it('is exported as a function', async () => {
+    const { handle_web_ruleset_unit_addition } = await import('@/net/handlers/ruleset');
+    expect(typeof handle_web_ruleset_unit_addition).toBe('function');
+  });
+
+  it('does not throw for minimal packet', async () => {
+    const { handle_web_ruleset_unit_addition } = await import('@/net/handlers/ruleset');
+    expect(() => handle_web_ruleset_unit_addition({ id: 2, graphic_str: 'warrior', graphic_alt: '-' } as never)).not.toThrow();
+  });
+});
+
+describe('recreate_old_tech_req', () => {
+  it('is exported as a function', async () => {
+    const { recreate_old_tech_req } = await import('@/net/handlers/ruleset');
+    expect(typeof recreate_old_tech_req).toBe('function');
+  });
+
+  it('does not throw for a tech packet with req array', async () => {
+    const { recreate_old_tech_req } = await import('@/net/handlers/ruleset');
+    expect(() => recreate_old_tech_req({ id: 5, req: [1, 2] } as never)).not.toThrow();
+  });
+});
+
+describe('handle_ruleset_unit_flag', () => {
+  it('is exported as a function', async () => {
+    const { handle_ruleset_unit_flag } = await import('@/net/handlers/ruleset');
+    expect(typeof handle_ruleset_unit_flag).toBe('function');
+  });
+
+  it('does not throw', async () => {
+    const { handle_ruleset_unit_flag } = await import('@/net/handlers/ruleset');
+    expect(() => handle_ruleset_unit_flag({ id: 0, name: 'IgTer', helptxt: '' } as never)).not.toThrow();
+  });
+});
+
+describe('handle_ruleset_unit_class_flag', () => {
+  it('does not throw', async () => {
+    const { handle_ruleset_unit_class_flag } = await import('@/net/handlers/ruleset');
+    expect(() => handle_ruleset_unit_class_flag({ id: 0, name: 'TerrainSpeed', helptxt: '' } as never)).not.toThrow();
+  });
+});
+
+describe('handle_ruleset_unit_bonus', () => {
+  it('does not throw', async () => {
+    const { handle_ruleset_unit_bonus } = await import('@/net/handlers/ruleset');
+    expect(() => handle_ruleset_unit_bonus({} as never)).not.toThrow();
+  });
+});
+
+describe('handle_ruleset_terrain_flag', () => {
+  it('does not throw', async () => {
+    const { handle_ruleset_terrain_flag } = await import('@/net/handlers/ruleset');
+    expect(() => handle_ruleset_terrain_flag({ id: 0, name: 'Oceanic', helptxt: '' } as never)).not.toThrow();
+  });
+});
+
+describe('handle_ruleset_disaster', () => {
+  it('does not throw', async () => {
+    const { handle_ruleset_disaster } = await import('@/net/handlers/ruleset');
+    expect(() => handle_ruleset_disaster({ id: 0 } as never)).not.toThrow();
+  });
+});
+
+describe('handle_ruleset_trade', () => {
+  it('does not throw', async () => {
+    const { handle_ruleset_trade } = await import('@/net/handlers/ruleset');
+    expect(() => handle_ruleset_trade({} as never)).not.toThrow();
+  });
+});
+
+describe('handle_ruleset_nation', () => {
+  it('is exported as a function', async () => {
+    const { handle_ruleset_nation } = await import('@/net/handlers/ruleset');
+    expect(typeof handle_ruleset_nation).toBe('function');
+  });
+
+  it('does not throw for a minimal nation packet', async () => {
+    const { handle_ruleset_nation } = await import('@/net/handlers/ruleset');
+    expect(() => handle_ruleset_nation({ id: 0, name: 'Romans', plural: 'Romans', rule_name: 'romans',
+      groups: [], leader_name: [], leader_sex: [], init_techs: [], init_buildings: [], init_units: [],
+      style: 0, legend: '', color: { r: 255, g: 0, b: 0 }, graphic_str: 'romans' } as never)).not.toThrow();
+  });
+});
+
+describe('handle_ruleset_city', () => {
+  it('does not throw for a minimal city packet', async () => {
+    const { handle_ruleset_city } = await import('@/net/handlers/ruleset');
+    expect(() => handle_ruleset_city({ styles: [] } as never)).not.toThrow();
+  });
+});
+
+describe('handle_ruleset_summary', () => {
+  it('does not throw', async () => {
+    const { handle_ruleset_summary } = await import('@/net/handlers/ruleset');
+    expect(() => handle_ruleset_summary({ text: 'Summary of the rules' } as never)).not.toThrow();
+  });
+});
+
+describe('handle_ruleset_terrain_control', () => {
+  it('does not throw', async () => {
+    const { handle_ruleset_terrain_control } = await import('@/net/handlers/ruleset');
+    expect(() => handle_ruleset_terrain_control({ single_move_bonus: 0, move_fragments: 3,
+      min_city_size: 1, ocean_reclaim_requirement_pct: 0,
+      land_channel_requirement_pct: 0, lake_max_size: 0,
+      have_huts: true, aqueduct_size: 8, conquest_tech_pct: 0,
+      irrigate_bad_type: -1, cold_irrigate_bad_type: -1,
+      road_pittance: 0 } as never)).not.toThrow();
+  });
+});
