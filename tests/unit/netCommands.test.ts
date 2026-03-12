@@ -79,4 +79,104 @@ describe('net/commands exports', () => {
     const { sendClientInfo } = await import('@/net/commands');
     expect(typeof sendClientInfo).toBe('function');
   });
+
+  it('sendCityWorklist is a function', async () => {
+    const { sendCityWorklist } = await import('@/net/commands');
+    expect(typeof sendCityWorklist).toBe('function');
+  });
+
+  it('sendCityMakeSpecialist is a function', async () => {
+    const { sendCityMakeSpecialist } = await import('@/net/commands');
+    expect(typeof sendCityMakeSpecialist).toBe('function');
+  });
+
+  it('sendCityMakeWorker is a function', async () => {
+    const { sendCityMakeWorker } = await import('@/net/commands');
+    expect(typeof sendCityMakeWorker).toBe('function');
+  });
+
+  it('sendCityChangeSpecialist is a function', async () => {
+    const { sendCityChangeSpecialist } = await import('@/net/commands');
+    expect(typeof sendCityChangeSpecialist).toBe('function');
+  });
+
+  it('sendCityNameSuggestionReq is a function', async () => {
+    const { sendCityNameSuggestionReq } = await import('@/net/commands');
+    expect(typeof sendCityNameSuggestionReq).toBe('function');
+  });
+
+  it('sendCityRefresh is a function', async () => {
+    const { sendCityRefresh } = await import('@/net/commands');
+    expect(typeof sendCityRefresh).toBe('function');
+  });
+
+  it('sendPlayerTechGoal is a function', async () => {
+    const { sendPlayerTechGoal } = await import('@/net/commands');
+    expect(typeof sendPlayerTechGoal).toBe('function');
+  });
+
+  it('sendReportReq is a function', async () => {
+    const { sendReportReq } = await import('@/net/commands');
+    expect(typeof sendReportReq).toBe('function');
+  });
+
+  it('sendUnitSscsSet is a function', async () => {
+    const { sendUnitSscsSet } = await import('@/net/commands');
+    expect(typeof sendUnitSscsSet).toBe('function');
+  });
+
+  it('sendUnitServerSideAgentSet is a function', async () => {
+    const { sendUnitServerSideAgentSet } = await import('@/net/commands');
+    expect(typeof sendUnitServerSideAgentSet).toBe('function');
+  });
+
+  it('sendUnitGetActions is a function', async () => {
+    const { sendUnitGetActions } = await import('@/net/commands');
+    expect(typeof sendUnitGetActions).toBe('function');
+  });
+
+  it('sendUnitChangeActivity is a function', async () => {
+    const { sendUnitChangeActivity } = await import('@/net/commands');
+    expect(typeof sendUnitChangeActivity).toBe('function');
+  });
+
+  it('sendDiplomacyCancelMeeting is a function', async () => {
+    const { sendDiplomacyCancelMeeting } = await import('@/net/commands');
+    expect(typeof sendDiplomacyCancelMeeting).toBe('function');
+  });
+
+  it('sendDiplomacyCreateClause is a function', async () => {
+    const { sendDiplomacyCreateClause } = await import('@/net/commands');
+    expect(typeof sendDiplomacyCreateClause).toBe('function');
+  });
+
+  it('sendDiplomacyRemoveClause is a function', async () => {
+    const { sendDiplomacyRemoveClause } = await import('@/net/commands');
+    expect(typeof sendDiplomacyRemoveClause).toBe('function');
+  });
+
+  it('sendDiplomacyAcceptTreaty is a function', async () => {
+    const { sendDiplomacyAcceptTreaty } = await import('@/net/commands');
+    expect(typeof sendDiplomacyAcceptTreaty).toBe('function');
+  });
+
+  it('sendDiplomacyCancelPact is a function', async () => {
+    const { sendDiplomacyCancelPact } = await import('@/net/commands');
+    expect(typeof sendDiplomacyCancelPact).toBe('function');
+  });
+
+  it('sendCmaSet is a function', async () => {
+    const { sendCmaSet } = await import('@/net/commands');
+    expect(typeof sendCmaSet).toBe('function');
+  });
+
+  it('sendCmaClear is a function', async () => {
+    const { sendCmaClear } = await import('@/net/commands');
+    expect(typeof sendCmaClear).toBe('function');
+  });
+
+  it('sendInfoTextReq is a function', async () => {
+    const { sendInfoTextReq } = await import('@/net/commands');
+    expect(typeof sendInfoTextReq).toBe('function');
+  });
 });
