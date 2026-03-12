@@ -46,6 +46,18 @@ describe('StatusBar signal wiring', () => {
     expect(currentYear.value).toContain('1776');
   });
 
+  it('currentYear is empty string when gameInfo is null', async () => {
+    const { currentYear, gameInfo } = await import('@/data/signals');
+    gameInfo.value = null as never;
+    expect(currentYear.value).toBe('');
+  });
+
+  it('currentTurn is 0 when gameInfo is null', async () => {
+    const { currentTurn, gameInfo } = await import('@/data/signals');
+    gameInfo.value = null as never;
+    expect(currentTurn.value).toBe(0);
+  });
+
   it('playerCount, cityCount, unitCount all update on respective events', async () => {
     const { handle_city_info } = await import('@/net/handlers/city');
     const { handle_unit_info } = await import('@/net/handlers/unit');
