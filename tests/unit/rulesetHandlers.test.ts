@@ -181,3 +181,42 @@ describe('no-op handlers', () => {
     expect(() => handle_play_music({} as never)).not.toThrow();
   });
 });
+
+// ── additional no-op/simple handlers ─────────────────────────────────────
+
+describe('handle_ruleset_tech_class / handle_ruleset_tech_flag / handle_ruleset_action / handle_ruleset_goods / handle_ruleset_clause / handle_ruleset_effect', () => {
+  it('handle_ruleset_tech_class does not throw', async () => {
+    const { handle_ruleset_tech_class } = await import('@/net/handlers/ruleset');
+    expect(() => handle_ruleset_tech_class({} as never)).not.toThrow();
+  });
+
+  it('handle_ruleset_tech_flag does not throw', async () => {
+    const { handle_ruleset_tech_flag } = await import('@/net/handlers/ruleset');
+    expect(() => handle_ruleset_tech_flag({} as never)).not.toThrow();
+  });
+
+  it('handle_ruleset_action is exported', async () => {
+    const { handle_ruleset_action } = await import('@/net/handlers/ruleset');
+    expect(typeof handle_ruleset_action).toBe('function');
+  });
+
+  it('handle_ruleset_goods does not throw', async () => {
+    const { handle_ruleset_goods } = await import('@/net/handlers/ruleset');
+    expect(() => handle_ruleset_goods({ id: 0 } as never)).not.toThrow();
+  });
+
+  it('handle_ruleset_clause does not throw', async () => {
+    const { handle_ruleset_clause } = await import('@/net/handlers/ruleset');
+    expect(() => handle_ruleset_clause({} as never)).not.toThrow();
+  });
+
+  it('handle_ruleset_effect does not throw', async () => {
+    const { handle_ruleset_effect } = await import('@/net/handlers/ruleset');
+    expect(() => handle_ruleset_effect({} as never)).not.toThrow();
+  });
+
+  it('handle_ruleset_description_part does not throw', async () => {
+    const { handle_ruleset_description_part } = await import('@/net/handlers/ruleset');
+    expect(() => handle_ruleset_description_part({ text: 'test' } as never)).not.toThrow();
+  });
+});
