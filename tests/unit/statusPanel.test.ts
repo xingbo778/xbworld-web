@@ -172,4 +172,23 @@ describe('StatusPanelContent — observer mode rendering', () => {
     connectionBanner.value = null; // cleanup
     document.body.removeChild(container);
   });
+
+  it('renders server metamessage when in observer mode', async () => {
+    const { StatusPanelContent } = await import('@/components/StatusPanel');
+    const { gameInfo, isObserver } = await import('@/data/signals');
+
+    store.observing = true;
+    store.gameInfo = { turn: 1, year: 0 } as never;
+    store.serverSettings = { 'metamessage': { val: 'Welcome to Freeciv!' } } as never;
+    gameInfo.value = store.gameInfo;
+    isObserver.value = true;
+
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    render(h(StatusPanelContent, null), container);
+    expect(container.textContent).toContain('Welcome to Freeciv!');
+
+    store.serverSettings = {};
+    document.body.removeChild(container);
+  });
 });
