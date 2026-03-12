@@ -82,4 +82,52 @@ describe('mountGameLog', () => {
     expect(container.textContent).toContain('Second event');
     document.body.removeChild(container);
   });
+
+  it('Clear button empties the log entries', async () => {
+    const { mountGameLog, pushGameLogEntry } = await import('@/components/GameLog');
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    mountGameLog(container);
+
+    pushGameLogEntry('Event to be cleared');
+    await Promise.resolve();
+    expect(container.textContent).toContain('Event to be cleared');
+
+    const clearBtn = Array.from(container.querySelectorAll('button')).find(
+      b => b.textContent?.trim() === 'Clear',
+    ) as HTMLButtonElement;
+    expect(clearBtn).toBeDefined();
+    clearBtn.click();
+    await Promise.resolve();
+
+    expect(container.textContent).not.toContain('Event to be cleared');
+    document.body.removeChild(container);
+  });
+
+  it('shows empty-state message when no entries', async () => {
+    const { mountGameLog } = await import('@/components/GameLog');
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    mountGameLog(container);
+
+    // Clear any entries accumulated from earlier tests
+    const clearBtn = Array.from(container.querySelectorAll('button')).find(
+      b => b.textContent?.trim() === 'Clear',
+    ) as HTMLButtonElement;
+    if (clearBtn) clearBtn.click();
+    await Promise.resolve();
+
+    expect(container.textContent).toContain('Game events will appear here.');
+    document.body.removeChild(container);
+  });
+
+  it('Game Event Log header is always present', async () => {
+    const { mountGameLog } = await import('@/components/GameLog');
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    mountGameLog(container);
+    await Promise.resolve();
+    expect(container.textContent).toContain('Game Event Log');
+    document.body.removeChild(container);
+  });
 });

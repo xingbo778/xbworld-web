@@ -14,12 +14,16 @@ import { store } from '@/data/store';
 import {
   wikiDialogSignal,
   techInfoDialogSignal,
+  techDialogOpen,
   showWikiDialogPreact,
   closeWikiDialog,
   showTechInfoDialogPreact,
   closeTechInfoDialog,
+  openTechDialog,
+  closeTechDialog,
   WikiDialog,
   TechInfoDialog,
+  TechDialog,
 } from '@/components/Dialogs/TechDialog';
 import type { WikiDoc } from '@/ui/techLogic';
 import { render, h } from 'preact';
@@ -246,5 +250,57 @@ describe('TechInfoDialog component', () => {
     showTechInfoDialogPreact('Alphabet', 9, 2, DOCS);
     const container = mount(TechInfoDialog);
     expect(container.innerHTML).not.toContain('onclick=');
+  });
+});
+
+// ── techDialogOpen signal — openTechDialog / closeTechDialog ──────────────────
+
+describe('techDialogOpen signal', () => {
+  beforeEach(() => { techDialogOpen.value = false; });
+
+  it('starts false', () => {
+    expect(techDialogOpen.value).toBe(false);
+  });
+
+  it('openTechDialog sets techDialogOpen to true', () => {
+    openTechDialog();
+    expect(techDialogOpen.value).toBe(true);
+  });
+
+  it('closeTechDialog sets techDialogOpen to false', () => {
+    openTechDialog();
+    closeTechDialog();
+    expect(techDialogOpen.value).toBe(false);
+  });
+
+  it('closeTechDialog is idempotent', () => {
+    closeTechDialog();
+    closeTechDialog();
+    expect(techDialogOpen.value).toBe(false);
+  });
+});
+
+// ── TechDialog component rendering ───────────────────────────────────────────
+
+describe('TechDialog component', () => {
+  beforeEach(() => { techDialogOpen.value = false; store.reset(); });
+
+  it('renders nothing when closed', () => {
+    techDialogOpen.value = false;
+    const container = mount(TechDialog);
+    expect(container.innerHTML).toBe('');
+  });
+
+  it('renders Research Progress title when open', () => {
+    openTechDialog();
+    const container = mount(TechDialog);
+    expect(container.textContent).toContain('Research Progress');
+  });
+
+  it('renders a close button when open', () => {
+    openTechDialog();
+    const container = mount(TechDialog);
+    const closeBtn = container.querySelector('button[aria-label="Close"]');
+    expect(closeBtn).not.toBeNull();
   });
 });
