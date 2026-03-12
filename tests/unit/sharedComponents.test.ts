@@ -11,6 +11,84 @@ describe('Shared/Dialog', () => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// Dialog rendering
+// ---------------------------------------------------------------------------
+
+describe('Shared/Dialog rendering', () => {
+  beforeEach(() => { document.body.innerHTML = ''; });
+
+  it('renders nothing when open=false', async () => {
+    const { Dialog } = await import('@/components/Shared/Dialog');
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    render(h(Dialog, { title: 'Test', open: false }, 'Content'), div);
+    expect(div.innerHTML).toBe('');
+    document.body.removeChild(div);
+  });
+
+  it('renders title and children when open=true', async () => {
+    const { Dialog } = await import('@/components/Shared/Dialog');
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    render(h(Dialog, { title: 'My Dialog', open: true }, 'Hello world'), div);
+    expect(div.textContent).toContain('My Dialog');
+    expect(div.textContent).toContain('Hello world');
+    document.body.removeChild(div);
+  });
+
+  it('renders close button when onClose is provided', async () => {
+    const { Dialog } = await import('@/components/Shared/Dialog');
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    render(h(Dialog, { title: 'Close Me', open: true, onClose: () => {} }, 'Content'), div);
+    const closeBtn = div.querySelector('[aria-label="Close"]');
+    expect(closeBtn).not.toBeNull();
+    document.body.removeChild(div);
+  });
+
+  it('does not render close button when onClose is absent', async () => {
+    const { Dialog } = await import('@/components/Shared/Dialog');
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    render(h(Dialog, { title: 'No Close', open: true }, 'Content'), div);
+    const closeBtn = div.querySelector('[aria-label="Close"]');
+    expect(closeBtn).toBeNull();
+    document.body.removeChild(div);
+  });
+
+  it('calls onClose when close button is clicked', async () => {
+    const { Dialog } = await import('@/components/Shared/Dialog');
+    let closed = false;
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    render(h(Dialog, { title: 'Closable', open: true, onClose: () => { closed = true; } }, 'Content'), div);
+    const closeBtn = div.querySelector('[aria-label="Close"]') as HTMLButtonElement;
+    expect(closeBtn).not.toBeNull();
+    closeBtn.click();
+    expect(closed).toBe(true);
+    document.body.removeChild(div);
+  });
+
+  it('renders modal overlay when modal=true', async () => {
+    const { Dialog } = await import('@/components/Shared/Dialog');
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    render(h(Dialog, { title: 'Modal', open: true, modal: true }, 'Content'), div);
+    expect(div.querySelector('.xb-dialog-overlay')).not.toBeNull();
+    document.body.removeChild(div);
+  });
+
+  it('does not render modal overlay when modal=false', async () => {
+    const { Dialog } = await import('@/components/Shared/Dialog');
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    render(h(Dialog, { title: 'Non-modal', open: true, modal: false }, 'Content'), div);
+    expect(div.querySelector('.xb-dialog-overlay')).toBeNull();
+    document.body.removeChild(div);
+  });
+});
+
 describe('Shared/Button', () => {
   it('exports Button as a function', async () => {
     const { Button } = await import('@/components/Shared/Button');
