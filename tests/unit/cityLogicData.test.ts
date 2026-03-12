@@ -292,3 +292,75 @@ describe('getSupportedUnitItems', () => {
     expect(items![0].id).toBe(7);
   });
 });
+
+// ── get_city_state ────────────────────────────────────────────────────────
+
+describe('get_city_state', () => {
+  it('returns undefined for null city', async () => {
+    const { get_city_state } = await import('@/ui/cityLogic');
+    expect(get_city_state(null)).toBeUndefined();
+  });
+
+  it('returns "Celebrating" when was_happy and size >= 3', async () => {
+    const { get_city_state } = await import('@/ui/cityLogic');
+    const city = { was_happy: true, size: 4, unhappy: false };
+    expect(get_city_state(city as never)).toBe('Celebrating');
+  });
+
+  it('returns "Disorder" when unhappy', async () => {
+    const { get_city_state } = await import('@/ui/cityLogic');
+    const city = { was_happy: false, size: 5, unhappy: true };
+    expect(get_city_state(city as never)).toBe('Disorder');
+  });
+
+  it('returns "Peace" when not celebrating and not unhappy', async () => {
+    const { get_city_state } = await import('@/ui/cityLogic');
+    const city = { was_happy: false, size: 3, unhappy: false };
+    expect(get_city_state(city as never)).toBe('Peace');
+  });
+});
+
+// ── formatResourceStats ───────────────────────────────────────────────────
+
+describe('formatResourceStats', () => {
+  it('returns null when city lacks prod/surplus data', async () => {
+    const { formatResourceStats } = await import('@/ui/cityLogic');
+    expect(formatResourceStats({} as never)).toBeNull();
+  });
+
+  it('returns ResourceStats object with expected keys', async () => {
+    const { formatResourceStats } = await import('@/ui/cityLogic');
+    const city = {
+      prod: [3, 2, 4, 5, 1, 6, 0], // O_FOOD, O_SHIELD, O_TRADE, O_GOLD, O_LUXURY, O_SCIENCE, ...
+      surplus: [1, -1, 2, 0, 0, 1],
+      waste: [0, 1],
+      pollution: 0,
+      steal: 0,
+      culture: 0,
+    };
+    const result = formatResourceStats(city as never);
+    expect(result).not.toBeNull();
+    expect(result).toHaveProperty('food');
+    expect(result).toHaveProperty('prod');
+    expect(result).toHaveProperty('trade');
+    expect(result).toHaveProperty('gold');
+    expect(result).toHaveProperty('luxury');
+    expect(result).toHaveProperty('science');
+  });
+});
+
+// ── formatProductionOverview ──────────────────────────────────────────────
+
+describe('formatProductionOverview', () => {
+  it('returns a string starting with "Producing:"', async () => {
+    const { formatProductionOverview } = await import('@/ui/cityLogic');
+    const city = {
+      production_kind: 0,
+      production_value: 0,
+      improvements: [],
+    };
+    const result = formatProductionOverview(city as never);
+    expect(typeof result).toBe('string');
+    expect(result).toContain('Producing:');
+  });
+});
