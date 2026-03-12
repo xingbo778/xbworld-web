@@ -67,3 +67,20 @@ describe('keyboard exports', () => {
     expect(() => civclient_handle_key('z', 90, false, false, false, {} as never)).not.toThrow();
   });
 });
+
+describe('unitCommands — additional exports', () => {
+  it('request_unit_act_sel_vs is exported as a function', async () => {
+    const { request_unit_act_sel_vs } = await import('@/core/control/unitCommands');
+    expect(typeof request_unit_act_sel_vs).toBe('function');
+  });
+
+  it('request_unit_act_sel_vs_own_tile is exported as a function', async () => {
+    const { request_unit_act_sel_vs_own_tile } = await import('@/core/control/unitCommands');
+    expect(typeof request_unit_act_sel_vs_own_tile).toBe('function');
+  });
+
+  it('request_unit_act_sel_vs_own_tile does not throw', async () => {
+    const { request_unit_act_sel_vs_own_tile } = await import('@/core/control/unitCommands');
+    expect(() => request_unit_act_sel_vs_own_tile()).not.toThrow();
+  });
+});
