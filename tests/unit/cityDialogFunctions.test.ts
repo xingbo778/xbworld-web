@@ -172,3 +172,33 @@ describe('cityDialog stub functions', () => {
     expect(() => send_city_change(0, 0, 0)).not.toThrow();
   });
 });
+
+// ── cityDialogState setters ───────────────────────────────────────────────
+
+describe('cityDialogState setters', () => {
+  it('set_city_screen_updater_fn is exported as a function', async () => {
+    const { set_city_screen_updater_fn } = await import('@/ui/cityDialogState');
+    expect(typeof set_city_screen_updater_fn).toBe('function');
+  });
+
+  it('set_city_screen_updater_fn does not throw', async () => {
+    const { set_city_screen_updater_fn } = await import('@/ui/cityDialogState');
+    expect(() => set_city_screen_updater_fn(() => {})).not.toThrow();
+  });
+
+  it('set_citydlg_map_width is exported as a function', async () => {
+    const { set_citydlg_map_width } = await import('@/ui/cityDialogState');
+    expect(typeof set_citydlg_map_width).toBe('function');
+  });
+
+  it('set_citydlg_map_height is exported as a function', async () => {
+    const { set_citydlg_map_height } = await import('@/ui/cityDialogState');
+    expect(typeof set_citydlg_map_height).toBe('function');
+  });
+
+  it('set_citydlg_map_width and height do not throw', async () => {
+    const { set_citydlg_map_width, set_citydlg_map_height } = await import('@/ui/cityDialogState');
+    expect(() => set_citydlg_map_width(200)).not.toThrow();
+    expect(() => set_citydlg_map_height(150)).not.toThrow();
+  });
+});
