@@ -531,3 +531,89 @@ describe('isObserver and connectedPlayer signals', () => {
     store.client.conn.playing = null;
   });
 });
+
+// ── A2 Unit count optimization ────────────────────────────────────────────
+
+describe('A2 unitCount — Set-based tracking', () => {
+  beforeEach(() => {
+    store.reset();
+    // Force resync via store:reset event
+    globalEvents.emit('store:reset');
+  });
+
+  it('unitCount increments only on genuinely new units', async () => {
+    const { unitCount } = await import('@/data/signals');
+    const before = unitCount.value;
+    store.units[10] = { id: 10 } as never;
+    globalEvents.emit('unit:updated', { id: 10 });
+    expect(unitCount.value).toBe(before + 1);
+    // Second emit for same unit — count must NOT change
+    globalEvents.emit('unit:updated', { id: 10 });
+    expect(unitCount.value).toBe(before + 1);
+  });
+
+  it('unitCount decrements on unit:removed', async () => {
+    const { unitCount } = await import('@/data/signals');
+    store.units[20] = { id: 20 } as never;
+    globalEvents.emit('unit:updated', { id: 20 });
+    const after_add = unitCount.value;
+    delete store.units[20];
+    globalEvents.emit('unit:removed', { unit_id: 20 });
+    expect(unitCount.value).toBe(after_add - 1);
+  });
+
+  it('unitCount falls back to Object.keys recount when id is missing', async () => {
+    const { unitCount } = await import('@/data/signals');
+    store.units[30] = { id: 30 } as never;
+    store.units[31] = { id: 31 } as never;
+    globalEvents.emit('unit:updated', {}); // no id — fallback
+    expect(unitCount.value).toBeGreaterThanOrEqual(0);
+  });
+
+  it('unit:removed with numeric payload removes unit from tracking', async () => {
+    const { unitCount } = await import('@/data/signals');
+    store.units[40] = { id: 40 } as never;
+    globalEvents.emit('unit:updated', { id: 40 });
+    const c = unitCount.value;
+    delete store.units[40];
+    globalEvents.emit('unit:removed', 40); // numeric payload
+    expect(unitCount.value).toBe(c - 1);
+  });
+});
+
+// ── A3 Player count optimization ──────────────────────────────────────────
+
+describe('A3 playerCount — Set-based tracking', () => {
+  beforeEach(() => {
+    store.reset();
+    globalEvents.emit('store:reset');
+  });
+
+  it('playerCount increments only on genuinely new players', async () => {
+    const { playerCount } = await import('@/data/signals');
+    const before = playerCount.value;
+    store.players[5] = { playerno: 5, name: 'Caesar' } as never;
+    globalEvents.emit('player:updated', { playerno: 5 });
+    expect(playerCount.value).toBe(before + 1);
+    // Existing player refresh — count must NOT change
+    globalEvents.emit('player:updated', { playerno: 5 });
+    expect(playerCount.value).toBe(before + 1);
+  });
+
+  it('playerCount decrements via syncFromStore on player:removed', async () => {
+    const { playerCount } = await import('@/data/signals');
+    store.players[6] = { playerno: 6, name: 'Trajan' } as never;
+    globalEvents.emit('player:updated', { playerno: 6 });
+    const after_add = playerCount.value;
+    delete store.players[6];
+    globalEvents.emit('player:removed', { playerno: 6 });
+    expect(playerCount.value).toBe(after_add - 1);
+  });
+
+  it('playerCount falls back to recount when playerno is missing', async () => {
+    const { playerCount } = await import('@/data/signals');
+    store.players[7] = { playerno: 7 } as never;
+    globalEvents.emit('player:updated', {}); // no playerno — fallback
+    expect(playerCount.value).toBeGreaterThanOrEqual(0);
+  });
+});

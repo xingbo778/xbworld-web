@@ -77,16 +77,54 @@ function _resyncKnownCityIds(): void {
   _knownCityIds = new Set(Object.keys(store.cities).map(Number));
 }
 
+// ---------------------------------------------------------------------------
+// A2 Unit count optimization — mirrors A1 city tracking with Set.
+//
+// BEFORE: unit:updated/removed always called Object.keys(store.units).length
+//   (O(n)). In a 500-unit game every unit move fired 500 property enumerations
+//   and wrote the signal even if the count was unchanged.
+//
+// AFTER: track known unit IDs in a Set; only update unitCount when a new unit
+//   appears or an existing one is removed. Redundant updates for in-place unit
+//   refreshes (move, hp change, etc.) are suppressed entirely.
+// ---------------------------------------------------------------------------
+
+/** Set of unit IDs we have already accounted for in unitCount. */
+let _knownUnitIds = new Set<number>();
+
+function _resyncKnownUnitIds(): void {
+  _knownUnitIds = new Set(Object.keys(store.units).map(Number));
+}
+
+// ---------------------------------------------------------------------------
+// A3 Player count optimization — mirrors A1/A2 pattern.
+//
+// BEFORE: player:updated always called Object.keys(store.players).length (O(n))
+//   and wrote playerCount even when an existing player was merely refreshed.
+//
+// AFTER: track known player numbers in a Set; only write playerCount on actual
+//   join/leave, suppressing redundant signal writes for in-place updates.
+// ---------------------------------------------------------------------------
+
+/** Set of player numbers we have already accounted for in playerCount. */
+let _knownPlayerNos = new Set<number>();
+
+function _resyncKnownPlayerNos(): void {
+  _knownPlayerNos = new Set(Object.keys(store.players).map(Number));
+}
+
 // Sync signals from events
 function syncFromStore(): void {
   gameInfo.value = store.gameInfo;
   calendarInfo.value = store.calendarInfo;
   mapInfo.value = store.mapInfo;
-  playerCount.value = Object.keys(store.players).length;
-  // Full resync: rebuild the known-IDs set and update cityCount once.
+  // Full resync: rebuild all known-ID sets and update counts once.
+  _resyncKnownPlayerNos();
+  playerCount.value = _knownPlayerNos.size;
   _resyncKnownCityIds();
   cityCount.value = _knownCityIds.size;
-  unitCount.value = Object.keys(store.units).length;
+  _resyncKnownUnitIds();
+  unitCount.value = _knownUnitIds.size;
   isObserver.value = store.observing;
   connectedPlayer.value = clientPlaying()?.playerno ?? null;
 }
@@ -138,11 +176,29 @@ globalEvents.on('city:removed', (data: unknown) => {
     _cityDemandMetrics.cityCountUpdates++;
   }
 });
-globalEvents.on('unit:updated', () => {
-  unitCount.value = Object.keys(store.units).length;
+globalEvents.on('unit:updated', (data: unknown) => {
+  const id = (data as Record<string, unknown>)?.['id'];
+  if (typeof id === 'number') {
+    if (!_knownUnitIds.has(id)) {
+      _knownUnitIds.add(id);
+      unitCount.value = _knownUnitIds.size;
+    }
+    // else: existing unit refreshed (move/hp/etc.) — count unchanged, suppress.
+  } else {
+    _resyncKnownUnitIds();
+    unitCount.value = _knownUnitIds.size;
+  }
 });
-globalEvents.on('unit:removed', () => {
-  unitCount.value = Object.keys(store.units).length;
+globalEvents.on('unit:removed', (data: unknown) => {
+  const id = typeof data === 'number' ? data
+    : (data as Record<string, unknown>)?.['unit_id'] as number | undefined;
+  if (typeof id === 'number' && _knownUnitIds.has(id)) {
+    _knownUnitIds.delete(id);
+    unitCount.value = _knownUnitIds.size;
+  } else {
+    _resyncKnownUnitIds();
+    unitCount.value = _knownUnitIds.size;
+  }
 });
 
 /**
@@ -163,9 +219,19 @@ globalEvents.on('rules:ready', () => { rulesetReady.value++; });
  * by reading `playerUpdated.value` inside their render body.
  */
 export const playerUpdated = signal(0);
-globalEvents.on('player:updated', () => {
+globalEvents.on('player:updated', (data: unknown) => {
   playerUpdated.value++;
-  playerCount.value = Object.keys(store.players).length;
+  const no = (data as Record<string, unknown>)?.['playerno'];
+  if (typeof no === 'number') {
+    if (!_knownPlayerNos.has(no)) {
+      _knownPlayerNos.add(no);
+      playerCount.value = _knownPlayerNos.size;
+    }
+    // else: existing player refreshed — count unchanged, suppress.
+  } else {
+    _resyncKnownPlayerNos();
+    playerCount.value = _knownPlayerNos.size;
+  }
 });
 
 /**
