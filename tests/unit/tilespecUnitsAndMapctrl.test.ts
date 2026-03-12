@@ -56,3 +56,62 @@ describe('mapctrl state setters', () => {
     expect(() => setTouchStart(100, 200)).not.toThrow();
   });
 });
+
+// ── mapctrl additional functions ──────────────────────────────────────────
+
+describe('mapctrl additional exports', () => {
+  it('mapctrl_init_pixi is exported as a function', async () => {
+    const { mapctrl_init_pixi } = await import('@/renderer/mapctrl');
+    expect(typeof mapctrl_init_pixi).toBe('function');
+  });
+
+  it('mapview_mouse_click is exported as a function', async () => {
+    const { mapview_mouse_click } = await import('@/renderer/mapctrl');
+    expect(typeof mapview_mouse_click).toBe('function');
+  });
+
+  it('mapview_mouse_down is exported as a function', async () => {
+    const { mapview_mouse_down } = await import('@/renderer/mapctrl');
+    expect(typeof mapview_mouse_down).toBe('function');
+  });
+
+  it('mapview_touch_start is exported as a function', async () => {
+    const { mapview_touch_start } = await import('@/renderer/mapctrl');
+    expect(typeof mapview_touch_start).toBe('function');
+  });
+
+  it('mapview_touch_end is exported as a function', async () => {
+    const { mapview_touch_end } = await import('@/renderer/mapctrl');
+    expect(typeof mapview_touch_end).toBe('function');
+  });
+
+  it('mapview_touch_move is exported as a function', async () => {
+    const { mapview_touch_move } = await import('@/renderer/mapctrl');
+    expect(typeof mapview_touch_move).toBe('function');
+  });
+
+  it('city_mapview_mouse_click is exported as a function', async () => {
+    const { city_mapview_mouse_click } = await import('@/renderer/mapctrl');
+    expect(typeof city_mapview_mouse_click).toBe('function');
+  });
+
+  it('action_button_pressed is exported as a function', async () => {
+    const { action_button_pressed } = await import('@/renderer/mapctrl');
+    expect(typeof action_button_pressed).toBe('function');
+  });
+
+  it('city_action_button_pressed is exported as a function', async () => {
+    const { city_action_button_pressed } = await import('@/renderer/mapctrl');
+    expect(typeof city_action_button_pressed).toBe('function');
+  });
+
+  it('map_select_units is exported as a function', async () => {
+    const { map_select_units } = await import('@/renderer/mapctrl');
+    expect(typeof map_select_units).toBe('function');
+  });
+
+  it('recenter_button_pressed is exported as a function', async () => {
+    const { recenter_button_pressed } = await import('@/renderer/mapctrl');
+    expect(typeof recenter_button_pressed).toBe('function');
+  });
+});
