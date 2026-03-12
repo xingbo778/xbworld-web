@@ -85,3 +85,15 @@ describe('handle_city_update_counter (singular, stub)', () => {
     expect(() => handle_city_update_counter({} as never)).not.toThrow();
   });
 });
+
+describe('handle_city_name_suggestion_info', () => {
+  it('is exported as a function', async () => {
+    const { handle_city_name_suggestion_info } = await import('@/net/handlers/city');
+    expect(typeof handle_city_name_suggestion_info).toBe('function');
+  });
+
+  it('decodes name and calls city_name_dialog (does not throw)', async () => {
+    const { handle_city_name_suggestion_info } = await import('@/net/handlers/city');
+    expect(() => handle_city_name_suggestion_info({ name: 'Rome%20City', unit_id: 1 } as never)).not.toThrow();
+  });
+});
