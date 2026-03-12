@@ -515,4 +515,19 @@ describe('isObserver and connectedPlayer signals', () => {
     expect(connectedPlayer).toBeDefined();
     expect(connectedPlayer.value === null || typeof connectedPlayer.value === 'number').toBe(true);
   });
+
+  it('connectedPlayer is null when no playing player', async () => {
+    const { connectedPlayer } = await import('@/data/signals');
+    store.client.conn.playing = null;
+    globalEvents.emit('connection:updated');
+    expect(connectedPlayer.value).toBeNull();
+  });
+
+  it('connectedPlayer reflects playerno when player is connected', async () => {
+    const { connectedPlayer } = await import('@/data/signals');
+    store.client.conn.playing = { playerno: 3 } as never;
+    globalEvents.emit('connection:updated');
+    expect(connectedPlayer.value).toBe(3);
+    store.client.conn.playing = null;
+  });
 });
