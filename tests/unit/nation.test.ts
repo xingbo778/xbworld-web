@@ -215,3 +215,46 @@ describe('getPlayerScoresSummary', () => {
     expect(result).toContain('&lt;script&gt;');
   });
 });
+
+// ── getDiplstates ─────────────────────────────────────────────────────────
+
+describe('getDiplstates', () => {
+  it('is exported as a function', async () => {
+    const { getDiplstates } = await import('@/data/nation');
+    expect(typeof getDiplstates).toBe('function');
+  });
+
+  it('returns the diplstates record from store', async () => {
+    const { getDiplstates } = await import('@/data/nation');
+    const result = getDiplstates();
+    expect(typeof result).toBe('object');
+  });
+});
+
+// ── takePlayer ────────────────────────────────────────────────────────────
+
+describe('takePlayer', () => {
+  it('is exported as a function', async () => {
+    const { takePlayer } = await import('@/data/nation');
+    expect(typeof takePlayer).toBe('function');
+  });
+
+  it('does not throw (sends /take command, ws may be closed)', async () => {
+    const { takePlayer } = await import('@/data/nation');
+    expect(() => takePlayer('Caesar')).not.toThrow();
+  });
+});
+
+// ── aitogglePlayer ────────────────────────────────────────────────────────
+
+describe('aitogglePlayer', () => {
+  it('is exported as a function', async () => {
+    const { aitogglePlayer } = await import('@/data/nation');
+    expect(typeof aitogglePlayer).toBe('function');
+  });
+
+  it('does not throw (sends /aitoggle command, ws may be closed)', async () => {
+    const { aitogglePlayer } = await import('@/data/nation');
+    expect(() => aitogglePlayer('Caesar')).not.toThrow();
+  });
+});
