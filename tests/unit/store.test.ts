@@ -86,4 +86,13 @@ describe('GameStore', () => {
     expect(Object.keys(store.units)).toHaveLength(0);
     expect(Object.keys(store.cities)).toHaveLength(0);
   });
+
+  it('getTile returns tile by index', () => {
+    store.tiles[42] = { known: 1 } as never;
+    expect(store.getTile(42)).toEqual({ known: 1 });
+  });
+
+  it('getTile returns undefined for missing index', () => {
+    expect(store.getTile(9999)).toBeUndefined();
+  });
 });
