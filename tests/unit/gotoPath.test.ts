@@ -108,3 +108,16 @@ describe('activeUnitInfo signal — update_goto_path sets turns text', () => {
     expect(activeUnitInfo.value).toBe('previous');
   });
 });
+
+describe('activate_goto_last', () => {
+  it('is exported as a function', async () => {
+    const { activate_goto_last } = await import('@/core/control/gotoPath');
+    expect(typeof activate_goto_last).toBe('function');
+  });
+
+  it('does not throw when no units in focus', async () => {
+    const { activate_goto_last } = await import('@/core/control/gotoPath');
+    // S.current_focus is empty → deactivate_goto branch fires, no crash
+    expect(() => activate_goto_last(0, 0)).not.toThrow();
+  });
+});
