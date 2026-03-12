@@ -77,3 +77,52 @@ describe('tilesetConfig constants', () => {
     expect(normal_tile_width).toBe(tileset_tile_width);
   });
 });
+
+// ── PixiRenderer — resize listener lifecycle ───────────────────────────────
+
+describe('PixiRenderer — resize listener removed on destroy', () => {
+  it('destroy() removes the resize event listener', async () => {
+    const { PixiRenderer } = await import('@/renderer/PixiRenderer');
+
+    const added: EventListener[] = [];
+    const removed: EventListener[] = [];
+    const origAdd = window.addEventListener.bind(window);
+    const origRemove = window.removeEventListener.bind(window);
+
+    vi.spyOn(window, 'addEventListener').mockImplementation((type, fn, ...rest) => {
+      if (type === 'resize') added.push(fn as EventListener);
+      origAdd(type, fn as EventListener, ...rest);
+    });
+    vi.spyOn(window, 'removeEventListener').mockImplementation((type, fn, ...rest) => {
+      if (type === 'resize') removed.push(fn as EventListener);
+      origRemove(type, fn as EventListener, ...rest);
+    });
+
+    const container = document.createElement('div');
+    const renderer = new PixiRenderer({ container, mapCanvas: container });
+
+    // Stub app.destroy so we can call renderer.destroy() without a full Pixi init
+    const r = renderer as unknown as Record<string, unknown>;
+    r['app'] = { destroy: vi.fn(), screen: { width: 100, height: 100 } };
+    r['_onResize'] = () => {};
+
+    renderer.destroy();
+
+    expect(removed.length).toBeGreaterThanOrEqual(1);
+
+    vi.restoreAllMocks();
+  });
+
+  it('_onResize is nulled after destroy()', async () => {
+    const { PixiRenderer } = await import('@/renderer/PixiRenderer');
+    const container = document.createElement('div');
+    const renderer = new PixiRenderer({ container, mapCanvas: container });
+
+    const r = renderer as unknown as Record<string, unknown>;
+    r['app'] = { destroy: vi.fn(), screen: { width: 100, height: 100 } };
+    r['_onResize'] = () => {};
+    renderer.destroy();
+
+    expect(r['_onResize']).toBeNull();
+  });
+});

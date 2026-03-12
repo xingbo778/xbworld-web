@@ -94,6 +94,7 @@ export class PixiRenderer {
   private rafHandle: number | null = null;
   private initialized = false;
   private spritesReady = false; // cached: avoids Object.keys(store.sprites) every frame
+  private _onResize: (() => void) | null = null;
 
   constructor(private config: RendererConfig) {}
 
@@ -659,10 +660,11 @@ export class PixiRenderer {
     // Instead, only refresh tiles that were NOT yet built (incrementally reveal newly-known tiles).
     globalEvents.on('game:beginturn', () => { this.revealAll = true; });
 
-    window.addEventListener('resize', () => {
+    this._onResize = () => {
       this.app.resize();
       this.markAllDirty();
-    });
+    };
+    window.addEventListener('resize', this._onResize);
   }
 
   // ---------------------------------------------------------------------------
@@ -681,6 +683,10 @@ export class PixiRenderer {
 
   destroy(): void {
     if (this.rafHandle != null) cancelAnimationFrame(this.rafHandle);
+    if (this._onResize != null) {
+      window.removeEventListener('resize', this._onResize);
+      this._onResize = null;
+    }
     this.clearTextureCache();
     this.fogTexture?.destroy();
     this.fogTexture = null;
