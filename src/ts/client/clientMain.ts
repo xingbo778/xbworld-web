@@ -105,7 +105,11 @@ export function setupWindowSize(): void {
   _setW('nations', new_mapview_width);
   const tabs = _el('tabs');
   if (tabs) tabs.style.height = winHeight + 'px';
-  _setH('tabs-map', new_mapview_height);
+  // All tab panels get the same height so their children can use height:100%
+  // and overflow:auto correctly (prevents log/nations content escaping the panel)
+  for (const id of ['tabs-map', 'tabs-tec', 'tabs-nat', 'tabs-cities', 'tabs-hel']) {
+    _setH(id, new_mapview_height);
+  }
   _setH('city_viewport', new_mapview_height - 20);
   _show('opt_tab');
   _show('players_tab');

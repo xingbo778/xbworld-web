@@ -95,11 +95,7 @@ export function civClientInit(): void {
   // Set tab container and tab panel heights
   const tabs = document.getElementById('tabs');
   if (tabs) tabs.style.height = window.innerHeight + 'px';
-  // Set tab panel heights for non-map observer tabs
-  for (const id of ['tabs-tec', 'tabs-nat', 'tabs-hel']) {
-    const el = document.getElementById(id);
-    if (el) el.style.height = 'auto';
-  }
+  // Tab panel heights are set by setupWindowSize() called in pixi.init().then()
   // jQuery UI .button() styling no longer needed — CSS handles it
 
   const savedSounds = JSON.parse(localStorage.getItem('sndFX') ?? 'null');
