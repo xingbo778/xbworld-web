@@ -48,3 +48,28 @@ describe('buildCityTileMap', () => {
     expect(() => buildCityTileMap(9)).not.toThrow();
   });
 });
+
+// ── getCityDxyToIndex ─────────────────────────────────────────────────────
+
+describe('getCityDxyToIndex', () => {
+  it('is exported as a function', async () => {
+    const { getCityDxyToIndex } = await import('@/data/cityTileMap');
+    expect(typeof getCityDxyToIndex).toBe('function');
+  });
+});
+
+// ── buildCityTileMapWithLimits ────────────────────────────────────────────
+
+describe('buildCityTileMapWithLimits', () => {
+  it('is exported as a function', async () => {
+    const { buildCityTileMapWithLimits } = await import('@/data/cityTileMap');
+    expect(typeof buildCityTileMapWithLimits).toBe('function');
+  });
+
+  it('does not throw for typical parameters', async () => {
+    const { buildCityTileMapWithLimits, buildCityTileMap } = await import('@/data/cityTileMap');
+    // First build the base tile map
+    buildCityTileMap(9);
+    expect(() => buildCityTileMapWithLimits(-2, 2, -2, 2)).not.toThrow();
+  });
+});
