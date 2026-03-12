@@ -479,12 +479,128 @@ function sendGameInit(ws, username) {
   }
   console.log('Units sent!');
 
-  // 14. Start game phase
+  // 14. Start game phase — turn 0
   sendPackets(ws, [
     { pid: 127, year: -4000, fragments: 0, turn: 0 }, // new_year
     { pid: 126, phase: 0 }, // start_phase
     { pid: 128 }, // begin_turn
   ]);
+
+  // ── Turn simulation ─────────────────────────────────────────────────────────
+  // Advance one turn every TURN_INTERVAL_MS.  Each turn:
+  //   • end_turn + new_year + start_phase + begin_turn  (game clock)
+  //   • Updated player stats (gold/research/score climb)
+  //   • Units walk one tile toward their "home" side of the map
+  const TURN_INTERVAL_MS = 800;
+  const YEARS_PER_TURN = 40; // 40 BC/turn early game
+
+  let currentTurn = 0;
+
+  // Build a stable unit roster: [{id, owner, tile}]
+  const unitRoster = [];
+  {
+    let uid = 100;
+    for (const ai of AI_PLAYERS) {
+      for (let i = 0; i < 4; i++) {
+        const tileIdx = landTiles[Math.floor((ai.playerno * 4 + i) * landTiles.length / (AI_PLAYERS.length * 4))];
+        unitRoster.push({ id: uid++, owner: ai.playerno, tile: tileIdx, type: i === 0 ? 1 : 0 });
+      }
+    }
+  }
+
+  const turnInterval = setInterval(() => {
+    if (ws.readyState !== WebSocket.OPEN) {
+      clearInterval(turnInterval);
+      clearInterval(pingInterval);
+      return;
+    }
+
+    currentTurn++;
+    const year = -4000 + currentTurn * YEARS_PER_TURN;
+
+    // 1. End previous turn
+    sendPackets(ws, [{ pid: 129 }]); // end_turn
+
+    // 2. Update player stats (gold/research grow each turn)
+    for (const ai of AI_PLAYERS) {
+      sendPackets(ws, [{
+        pid: 51,
+        playerno: ai.playerno, name: ai.name, username: ai.name,
+        nation: ai.playerno, is_alive: true, is_connected: true,
+        team: ai.playerno, is_ready: true,
+        turns_alive: 5 + currentTurn, phase_done: true,
+        nturns_idle: 0, ai_skill_level: 5,
+        government: 0, target_government: 0,
+        real_embassy: [0], city_options: [0],
+        gold: 100 + ai.playerno * 50 + currentTurn * 8,
+        tax: 30, science: 60, luxury: 10,
+        revolution_finishes: 0,
+        culture: ai.playerno * 10 + currentTurn * 2,
+        score: currentTurn * 3 + ai.playerno * 2,
+        mood: 0, style: 0, music_style: -1, science_cost: 0,
+        love: [],
+        color_valid: true,
+        color_red: ai.color[0], color_green: ai.color[1], color_blue: ai.color[2],
+        multip: [], multip_target: [],
+        flags: [1],
+        diplstates: [], gives_shared_vision: [0],
+        wonders: [], tech_upkeep: 0,
+      }]);
+    }
+
+    // 3. Move each unit one tile (walk diagonally across the land)
+    for (const u of unitRoster) {
+      const tx = u.tile % MAP_X;
+      const ty = Math.floor(u.tile / MAP_X);
+      // Step +1 in x and +1 in y, wrapping within land bounds
+      const nx = (tx + 1) % MAP_X;
+      const ny = ty + (currentTurn % 3 === 0 ? 1 : 0);
+      const ni = Math.min(ny, MAP_Y - 1) * MAP_X + nx;
+      // Only move to land
+      const terrain = terrainMap[ni];
+      if (terrain !== 0 && terrain !== 1 && terrain !== 12 && terrain !== 13) {
+        u.tile = ni;
+      }
+      const hp = u.type === 1 ? 20 : 10;
+      sendPackets(ws, [{
+        pid: 63,
+        id: u.id, owner: u.owner, tile: u.tile,
+        homecity: 0, veteran: 0, type: u.type,
+        movesleft: u.type === 1 ? 6 : 3, hp,
+        activity: 0, activity_tgt: -1,
+        changed_from: 0, changed_from_tgt: -1,
+        ai: 1, fuel: 0, goto_tile: -1,
+        action_decision_want: 0, action_decision_tile: -1,
+        transported: false, transported_by: 0, occupy: 0,
+        battlegroup: -1, has_orders: false,
+        orders_length: 0, orders_index: 0, orders_repeat: false, orders_vigilant: false,
+        orders: [], done_moving: false, paradropped: false, facing: 6,
+      }]);
+    }
+
+    // 4. Update research progress (bulbs climb toward tech cost)
+    for (const ai of AI_PLAYERS) {
+      const cost = 50 + ai.playerno * 10;
+      sendPackets(ws, [{
+        pid: 60,
+        id: ai.playerno,
+        researching: ai.playerno,
+        researching_cost: cost,
+        bulbs_researched: Math.min(cost - 1, 20 + ai.playerno * 5 + currentTurn * 4),
+        tech_goal: -1,
+        inventions: [],
+      }]);
+    }
+
+    // 5. Advance clock
+    sendPackets(ws, [
+      { pid: 127, year, fragments: 0, turn: currentTurn }, // new_year
+      { pid: 126, phase: 0 }, // start_phase
+      { pid: 128 }, // begin_turn
+    ]);
+
+    console.log(`Turn ${currentTurn} sent (year ${year > 0 ? year + 'AD' : Math.abs(year) + 'BC'})`);
+  }, TURN_INTERVAL_MS);
 
   // 15. Periodic ping to keep connection alive
   const pingInterval = setInterval(() => {

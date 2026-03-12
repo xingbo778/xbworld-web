@@ -138,6 +138,21 @@ export class PixiRenderer {
         dirtyAll: this.dirtyAll,
         dirtyCount: this.dirtyTiles.size,
       }),
+      getGameState: () => {
+        const turn = (store.gameInfo as Record<string, unknown> | null)?.['turn'] as number ?? -1;
+        const year = (store.gameInfo as Record<string, unknown> | null)?.['year'] as number ?? 0;
+        const unitPositions: Record<string, number> = {};
+        for (const [id, u] of Object.entries(store.units)) {
+          unitPositions[id] = (u as Record<string, unknown>)['tile'] as number;
+        }
+        const playerGold: Record<string, number> = {};
+        const playerScore: Record<string, number> = {};
+        for (const [id, p] of Object.entries(store.players)) {
+          playerGold[id] = (p as Record<string, unknown>)['gold'] as number ?? 0;
+          playerScore[id] = (p as Record<string, unknown>)['score'] as number ?? 0;
+        }
+        return { turn, year, unitPositions, playerGold, playerScore };
+      },
       extractPixels: async (x: number, y: number, w: number, h: number) => {
         const pixels = await this.app.renderer.extract.pixels({ target: this.app.stage });
         // Manual crop from the full extraction
