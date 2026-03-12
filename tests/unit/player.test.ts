@@ -451,3 +451,23 @@ describe('does_player_own_city', () => {
     expect(does_player_own_city(makePlayer(), null as any)).toBe(false);
   });
 });
+
+// ── is_capital ────────────────────────────────────────────────────────────
+
+describe('is_capital', () => {
+  it('is exported as a function', async () => {
+    const { is_capital } = await import('@/data/player');
+    expect(typeof is_capital).toBe('function');
+  });
+
+  it('returns false when city has no improvements', async () => {
+    const { is_capital } = await import('@/data/player');
+    expect(is_capital({ improvements: null } as never)).toBe(false);
+  });
+
+  it('returns false when no improvements in store match genus=0 + city has it', async () => {
+    const { is_capital } = await import('@/data/player');
+    // store.improvements is empty (no genus=0 improvement)
+    expect(is_capital({ improvements: {} } as never)).toBe(false);
+  });
+});

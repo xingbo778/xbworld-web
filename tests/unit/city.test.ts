@@ -565,3 +565,52 @@ describe('deltaTileHelper', () => {
   });
 });
 
+
+// ── removeCity ────────────────────────────────────────────────────────────
+
+describe('removeCity', () => {
+  it('removes city from store.cities', async () => {
+    const { removeCity } = await import('@/data/city');
+    store.cities[99] = { id: 99, owner: 0, tile: 0 } as never;
+    removeCity(99);
+    expect(store.cities[99]).toBeUndefined();
+  });
+
+  it('does nothing for null/undefined id', async () => {
+    const { removeCity } = await import('@/data/city');
+    expect(() => removeCity(null as never)).not.toThrow();
+  });
+
+  it('does nothing for non-existent city', async () => {
+    const { removeCity } = await import('@/data/city');
+    expect(() => removeCity(88888)).not.toThrow();
+  });
+});
+
+// ── getCityProductionTypeSprite ───────────────────────────────────────────
+
+describe('getCityProductionTypeSprite', () => {
+  it('returns null for null city', async () => {
+    const { getCityProductionTypeSprite } = await import('@/data/city');
+    expect(getCityProductionTypeSprite(null)).toBeNull();
+  });
+
+  it('returns null when production_kind is not VUT_UTYPE or VUT_IMPROVEMENT', async () => {
+    const { getCityProductionTypeSprite } = await import('@/data/city');
+    expect(getCityProductionTypeSprite({ production_kind: 99, production_value: 0 } as never)).toBeNull();
+  });
+});
+
+// ── getCityProductionTime ─────────────────────────────────────────────────
+
+describe('getCityProductionTime', () => {
+  it('returns a very large number (FC_INFINITY) for null city', async () => {
+    const { getCityProductionTime } = await import('@/data/city');
+    expect(getCityProductionTime(null)).toBeGreaterThan(999999);
+  });
+
+  it('returns a very large number (FC_INFINITY) for unknown production_kind', async () => {
+    const { getCityProductionTime } = await import('@/data/city');
+    expect(getCityProductionTime({ production_kind: 99, production_value: 0 } as never)).toBeGreaterThan(999999);
+  });
+});
