@@ -118,3 +118,16 @@ describe('territoryClaimingExtra', () => {
     expect(typeof territoryClaimingExtra(extra)).toBe('boolean');
   });
 });
+
+describe('extraOwner', () => {
+  it('is exported as a function', async () => {
+    const { extraOwner } = await import('@/data/extra');
+    expect(typeof extraOwner).toBe('function');
+  });
+
+  it('returns null when tile has no extras', async () => {
+    const { extraOwner } = await import('@/data/extra');
+    const ptile = { extras: { isSet: () => false } } as never;
+    expect(extraOwner(ptile)).toBeNull();
+  });
+});

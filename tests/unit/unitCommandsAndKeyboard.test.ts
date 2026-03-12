@@ -84,3 +84,17 @@ describe('unitCommands — additional exports', () => {
     expect(() => request_unit_act_sel_vs_own_tile()).not.toThrow();
   });
 });
+
+describe('key_unit_move', () => {
+  it('is exported as a function', async () => {
+    const { key_unit_move } = await import('@/core/control/unitCommands');
+    expect(typeof key_unit_move).toBe('function');
+  });
+
+  it('does not throw for any direction', async () => {
+    const { key_unit_move } = await import('@/core/control/unitCommands');
+    for (let dir = 0; dir < 8; dir++) {
+      expect(() => key_unit_move(dir)).not.toThrow();
+    }
+  });
+});
