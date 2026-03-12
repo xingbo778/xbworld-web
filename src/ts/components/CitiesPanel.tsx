@@ -26,11 +26,11 @@ const TH_STYLE = {
   color: 'var(--xb-text-secondary, #8b949e)',
   fontWeight: 600,
   borderBottom: '2px solid var(--xb-border-default, #30363d)',
-  background: 'var(--xb-bg-secondary, #161b22)',
+  background: 'var(--xb-bg-elevated, #21262d)',
 };
 const TD_STYLE = {
   padding: '6px 10px',
-  borderBottom: '1px solid var(--xb-border-muted, #21262d)',
+  borderBottom: '1px solid var(--xb-border-default, #30363d)',
 };
 
 // ── Component ─────────────────────────────────────────────────────────────────

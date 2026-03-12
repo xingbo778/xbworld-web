@@ -50,9 +50,9 @@ const TH_STYLE = {
 const TD_STYLE = { padding: '6px 10px' };
 const THEAD_TR_STYLE = {
   borderBottom: '2px solid var(--xb-border-default, #30363d)',
-  background: 'var(--xb-bg-secondary, #161b22)',
+  background: 'var(--xb-bg-elevated, #21262d)',
 };
-const TBODY_TR_STYLE = { borderBottom: '1px solid var(--xb-border-muted, #21262d)' };
+const TBODY_TR_STYLE = { borderBottom: '1px solid var(--xb-border-default, #30363d)' };
 
 const OVERVIEW_TABS = [
   { id: 'nations', label: 'Nations' },
@@ -314,7 +314,7 @@ function ActionBar() {
       gap: 8,
       padding: '8px 12px',
       borderBottom: '1px solid var(--xb-border-default, #30363d)',
-      background: 'var(--xb-bg-secondary, #161b22)',
+      background: 'var(--xb-bg-elevated, #21262d)',
       flexShrink: 0,
       flexWrap: 'wrap',
     }}>

@@ -79,25 +79,27 @@ function ResearchList() {
         const pct = Math.min(100, Math.round((bulbs / cost) * 100));
         const nation = store.nations[(pplayer as Record<string, unknown>)['nation'] as number];
         const color: string = (nation as Record<string, unknown> | undefined)?.['color'] as string ?? 'var(--xb-accent-blue, #58a6ff)';
+        const hasResearch = researching > 0;
         return (
           <div
             key={(pplayer as Record<string, unknown>)['playerno'] as number}
             style={{
-              background: 'var(--xb-bg-secondary, #161b22)',
+              background: 'var(--xb-bg-elevated, #21262d)',
               border: '1px solid var(--xb-border-default, #30363d)',
+              borderLeft: `3px solid ${color}`,
               borderRadius: 6,
               padding: '8px 12px',
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: hasResearch ? 4 : 0 }}>
               <span style={{ fontWeight: 600, color }}>
                 {(pplayer as Record<string, unknown>)['name'] as string}
               </span>
               <span style={{ color: 'var(--xb-text-secondary, #8b949e)', fontSize: 'var(--xb-font-size-sm, 12px)' }}>
-                {techData ? `${techData['name']} (${bulbs}/${cost})` : 'None'}
+                {hasResearch ? `${techData ? techData['name'] as string : `Tech #${researching}`} (${bulbs}/${cost})` : '—'}
               </span>
             </div>
-            <ProgressBar value={pct} max={100} color={color} />
+            {hasResearch && <ProgressBar value={pct} max={100} color={color} />}
           </div>
         );
       })}
