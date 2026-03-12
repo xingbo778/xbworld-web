@@ -118,7 +118,7 @@ function PlayerRow({ id, player }: PlayerRowProps) {
   );
 }
 
-function PlayerList() {
+export function PlayerList() {
   void pregameRefresh.value;
   void playerUpdated.value;
   void rulesetReady.value;
@@ -135,6 +135,10 @@ function PlayerList() {
       ))}
     </>
   );
+}
+
+export function ScenarioInfoPanel() {
+  return <ScenarioInfo />;
 }
 
 // ── Mount helpers ─────────────────────────────────────────────────────────────

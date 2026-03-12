@@ -87,7 +87,7 @@ function ConnectionBannerEl() {
   );
 }
 
-function StatusPanelContent() {
+export function StatusPanelContent() {
   // Subscribe to every signal that can affect the display.
   void playerUpdated.value;
   void rulesetReady.value;
