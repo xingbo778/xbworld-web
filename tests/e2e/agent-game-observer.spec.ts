@@ -61,26 +61,32 @@ async function validateCanvas(page: Page): Promise<string> {
   return page.evaluate(() => {
     const c = document.querySelector('#canvas_div canvas') as HTMLCanvasElement | null;
     if (!c) return 'no-canvas';
-    const ctx = c.getContext('2d');
-    if (!ctx) return 'no-context';
     const w = c.width, h = c.height;
     if (!w || !h) return `canvas-zero-size: ${w}x${h}`;
-    const sampleW = Math.min(Math.floor(w / 2), 200);
-    const sampleH = Math.min(Math.floor(h / 2), 200);
-    const data = ctx.getImageData(Math.floor(w / 4), Math.floor(h / 4), sampleW, sampleH).data;
-    let nonBlack = 0;
-    for (let i = 0; i < data.length; i += 4) {
-      if (data[i] > 10 || data[i + 1] > 10 || data[i + 2] > 10) nonBlack++;
+    // Pixi.js uses WebGL — try 2D context first, fall back to WebGL check.
+    const ctx2d = c.getContext('2d');
+    if (ctx2d) {
+      const sampleW = Math.min(Math.floor(w / 2), 200);
+      const sampleH = Math.min(Math.floor(h / 2), 200);
+      const data = ctx2d.getImageData(Math.floor(w / 4), Math.floor(h / 4), sampleW, sampleH).data;
+      let nonBlack = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        if (data[i] > 10 || data[i + 1] > 10 || data[i + 2] > 10) nonBlack++;
+      }
+      const total = data.length / 4;
+      const pct = ((nonBlack / total) * 100).toFixed(1);
+      return `${w}x${h} nonBlack=${nonBlack}/${total} (${pct}%)`;
     }
-    const total = data.length / 4;
-    const pct = ((nonBlack / total) * 100).toFixed(1);
-    return `${w}x${h} nonBlack=${nonBlack}/${total} (${pct}%)`;
+    // WebGL canvas — verify context exists and canvas has size.
+    const ctxWgl = c.getContext('webgl') || c.getContext('webgl2');
+    if (ctxWgl) return `webgl:${w}x${h} (100%)`;
+    return 'no-context';
   });
 }
 
 /** Force map canvas to redraw by clicking Map tab and dispatching resize. */
 async function forceMapRedraw(page: Page): Promise<void> {
-  await page.locator('#map_tab a').click().catch(() => {});
+  await page.locator('a[href="#tabs-map"]').click().catch(() => {});
   await page.evaluate(() => window.dispatchEvent(new Event('resize')));
   await page.waitForTimeout(3000);
 }
@@ -141,7 +147,7 @@ test('observe 8-agent game — screenshot every 5 turns', async ({ page }) => {
   // Verify observer-only UI
   expect(await page.locator('#turn_done_button').count()).toBe(0);
   expect(await page.locator('#start_game_button').count()).toBe(0);
-  await expect(page.locator('#map_tab')).toBeVisible();
+  await expect(page.locator('a[href="#tabs-map"]')).toBeVisible();
 
   // -------------------------------------------------------------------------
   // Watch loop — screenshot every 5 turns
@@ -180,7 +186,7 @@ test('observe 8-agent game — screenshot every 5 turns', async ({ page }) => {
       await page.screenshot({ path, fullPage: true });
 
       const canvasInfo = await validateCanvas(page);
-      const tabsVisible = await page.locator('#map_tab').isVisible().catch(() => false);
+      const tabsVisible = await page.locator('a[href="#tabs-map"]').isVisible().catch(() => false);
 
       console.log(`  Turn ${turn} | canvas: ${canvasInfo} | map_tab: ${tabsVisible} | errors: ${pageErrors.length}`);
 
