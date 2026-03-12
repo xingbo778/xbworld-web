@@ -13,10 +13,16 @@ import {
   mapstep,
   getDirectionForStep,
   nativeToMapPos,
+  naturalToMapPos,
   mapToNativePos,
+  mapToNaturalPos,
   mapDistanceVector,
   mapVectorToSqDistance,
+  mapVectorToDistance,
   dirGetName,
+  dirCW,
+  dirCCW,
+  clearGotoTiles,
   Direction,
 } from '@/data/map';
 
@@ -133,5 +139,42 @@ describe('Map', () => {
     expect(dirGetName(Direction.NORTH)).toBe('N');
     expect(dirGetName(Direction.SOUTHEAST)).toBe('SE');
     expect(dirGetName(99)).toBe('[Undef]');
+  });
+
+  it('naturalToMapPos returns {map_x, map_y}', () => {
+    const result = naturalToMapPos(3, 4);
+    expect(result).toHaveProperty('map_x');
+    expect(result).toHaveProperty('map_y');
+    expect(typeof result.map_x).toBe('number');
+    expect(typeof result.map_y).toBe('number');
+  });
+
+  it('mapToNaturalPos returns {nat_x, nat_y}', () => {
+    const result = mapToNaturalPos(5, 5);
+    expect(result).toHaveProperty('nat_x');
+    expect(result).toHaveProperty('nat_y');
+    expect(typeof result.nat_x).toBe('number');
+    expect(typeof result.nat_y).toBe('number');
+  });
+
+  it('mapVectorToDistance returns correct Chebyshev distance for non-hex', () => {
+    // Non-hex topology: max(|dx|, |dy|)
+    expect(mapVectorToDistance(3, 4)).toBe(4);
+    expect(mapVectorToDistance(0, 5)).toBe(5);
+    expect(mapVectorToDistance(3, 0)).toBe(3);
+  });
+
+  it('dirCW rotates clockwise through 8 directions', () => {
+    expect(dirCW(Direction.NORTH)).toBe(Direction.NORTHEAST);
+    expect(dirCW(7)).toBe(0); // wrap around
+  });
+
+  it('dirCCW rotates counter-clockwise through 8 directions', () => {
+    expect(dirCCW(Direction.NORTHEAST)).toBe(Direction.NORTH);
+    expect(dirCCW(0)).toBe(7); // wrap around
+  });
+
+  it('clearGotoTiles does not throw', () => {
+    expect(() => clearGotoTiles()).not.toThrow();
   });
 });
