@@ -548,3 +548,43 @@ describe('connectionBanner signal', () => {
     expect(connectionBanner.value).toBeNull();
   });
 });
+
+// ── turnDoneState disabled on WebSocket close ─────────────────────────────
+
+describe('turnDoneState — disabled on WebSocket onclose', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    _resetReconnectStateForTests();
+    (window as any).civserverport = '6001';
+    (window as any).ws = null;
+  });
+
+  afterEach(() => {
+    _resetReconnectStateForTests();
+    (window as any).ws = null;
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
+
+  it('disables turnDoneState when WebSocket closes abnormally', async () => {
+    const { turnDoneState } = await import('@/data/signals');
+    turnDoneState.value = { disabled: false, text: 'Turn Done' };
+
+    websocket_init();
+    const ws = (window as any).ws as MockWebSocket;
+    ws.onclose!(new CloseEvent('close', { code: 1006, reason: 'Network drop' }));
+
+    expect(turnDoneState.value.disabled).toBe(true);
+  });
+
+  it('disables turnDoneState when WebSocket closes normally (1000)', async () => {
+    const { turnDoneState } = await import('@/data/signals');
+    turnDoneState.value = { disabled: false, text: 'Turn Done' };
+
+    websocket_init();
+    const ws = (window as any).ws as MockWebSocket;
+    ws.onclose!(new CloseEvent('close', { code: 1000, reason: 'Normal Closure' }));
+
+    expect(turnDoneState.value.disabled).toBe(true);
+  });
+});
