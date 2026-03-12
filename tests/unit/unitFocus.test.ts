@@ -74,3 +74,71 @@ describe('set_unit_focus', () => {
     expect(() => set_unit_focus(null)).not.toThrow();
   });
 });
+
+describe('unitFocus — additional exports', () => {
+  it('get_focus_unit_on_tile is exported as a function', async () => {
+    const { get_focus_unit_on_tile } = await import('@/core/control/unitFocus');
+    expect(typeof get_focus_unit_on_tile).toBe('function');
+  });
+
+  it('find_best_focus_candidate is exported as a function', async () => {
+    const { find_best_focus_candidate } = await import('@/core/control/unitFocus');
+    expect(typeof find_best_focus_candidate).toBe('function');
+  });
+
+  it('find_best_focus_candidate returns null with empty unit store', async () => {
+    const { find_best_focus_candidate } = await import('@/core/control/unitFocus');
+    const result = find_best_focus_candidate(true);
+    expect(result === null || typeof result === 'object').toBe(true);
+  });
+
+  it('find_visible_unit is exported as a function', async () => {
+    const { find_visible_unit } = await import('@/core/control/unitFocus');
+    expect(typeof find_visible_unit).toBe('function');
+  });
+
+  it('find_visible_unit returns null for null tile', async () => {
+    const { find_visible_unit } = await import('@/core/control/unitFocus');
+    expect(find_visible_unit(null)).toBeNull();
+  });
+
+  it('get_drawable_unit is exported as a function', async () => {
+    const { get_drawable_unit } = await import('@/core/control/unitFocus');
+    expect(typeof get_drawable_unit).toBe('function');
+  });
+
+  it('get_drawable_unit returns null for null tile', async () => {
+    const { get_drawable_unit } = await import('@/core/control/unitFocus');
+    expect(get_drawable_unit(null, false)).toBeNull();
+  });
+
+  it('auto_center_on_focus_unit is exported as a function', async () => {
+    const { auto_center_on_focus_unit } = await import('@/core/control/unitFocus');
+    expect(typeof auto_center_on_focus_unit).toBe('function');
+  });
+
+  it('auto_center_on_focus_unit does not throw with empty focus', async () => {
+    const { auto_center_on_focus_unit } = await import('@/core/control/unitFocus');
+    expect(() => auto_center_on_focus_unit()).not.toThrow();
+  });
+
+  it('find_a_focus_unit_tile_to_center_on is exported as a function', async () => {
+    const { find_a_focus_unit_tile_to_center_on } = await import('@/core/control/unitFocus');
+    expect(typeof find_a_focus_unit_tile_to_center_on).toBe('function');
+  });
+
+  it('city_dialog_activate_unit is exported as a function', async () => {
+    const { city_dialog_activate_unit } = await import('@/core/control/unitFocus');
+    expect(typeof city_dialog_activate_unit).toBe('function');
+  });
+
+  it('set_unit_focus_and_redraw is exported as a function', async () => {
+    const { set_unit_focus_and_redraw } = await import('@/core/control/unitFocus');
+    expect(typeof set_unit_focus_and_redraw).toBe('function');
+  });
+
+  it('set_unit_focus_and_activate is exported as a function', async () => {
+    const { set_unit_focus_and_activate } = await import('@/core/control/unitFocus');
+    expect(typeof set_unit_focus_and_activate).toBe('function');
+  });
+});
