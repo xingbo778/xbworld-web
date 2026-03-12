@@ -61,3 +61,47 @@ describe('showDebugInfo', () => {
   // Note: showDebugInfo() calls jQuery $() which is not available in the test
   // environment. Export check is sufficient here.
 });
+
+// ── requestObserveGame / sendSurrenderGame / surrenderGame ────────────────
+
+describe('requestObserveGame', () => {
+  it('is exported as a function', async () => {
+    const { requestObserveGame } = await import('@/client/clientCore');
+    expect(typeof requestObserveGame).toBe('function');
+  });
+});
+
+describe('sendSurrenderGame', () => {
+  it('is exported as a function', async () => {
+    const { sendSurrenderGame } = await import('@/client/clientCore');
+    expect(typeof sendSurrenderGame).toBe('function');
+  });
+});
+
+describe('surrenderGame', () => {
+  it('is exported as a function', async () => {
+    const { surrenderGame } = await import('@/client/clientCore');
+    expect(typeof surrenderGame).toBe('function');
+  });
+});
+
+// ── showFullscreenWindow / motdInit ───────────────────────────────────────
+
+describe('showFullscreenWindow', () => {
+  it('is exported as a function', async () => {
+    const { showFullscreenWindow } = await import('@/client/clientCore');
+    expect(typeof showFullscreenWindow).toBe('function');
+  });
+
+  it('does not throw', async () => {
+    const { showFullscreenWindow } = await import('@/client/clientCore');
+    expect(() => showFullscreenWindow()).not.toThrow();
+  });
+});
+
+describe('motdInit', () => {
+  it('is exported as a function', async () => {
+    const { motdInit } = await import('@/client/clientCore');
+    expect(typeof motdInit).toBe('function');
+  });
+});
