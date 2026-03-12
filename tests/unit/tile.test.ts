@@ -6,6 +6,9 @@ import {
   tileWorked,
   tileSetWorked,
   tileCity,
+  tileHasExtra,
+  tileResource,
+  tileHasTerritoryClaimingExtra,
   TILE_UNKNOWN,
   TILE_KNOWN_UNSEEN,
   TILE_KNOWN_SEEN,
@@ -90,5 +93,36 @@ describe('Tile', () => {
   it('should return null for tile without city', () => {
     expect(tileCity(makeTile())).toBeNull();
     expect(tileCity(null)).toBeNull();
+  });
+
+  it('tileResource returns resource from tile', () => {
+    expect(tileResource(makeTile({ resource: 5 }))).toBe(5);
+  });
+
+  it('tileResource returns null for null tile', () => {
+    expect(tileResource(null)).toBeNull();
+  });
+
+  it('tileResource returns null for tile with no resource', () => {
+    expect(tileResource(makeTile({ resource: undefined as unknown as number }))).toBeNull();
+  });
+
+  it('tileHasExtra returns false for tile with array extras (no isSet method)', () => {
+    expect(tileHasExtra(makeTile({ extras: [] as never }), 0)).toBe(false);
+  });
+
+  it('tileHasExtra returns false for tile with no extras', () => {
+    expect(tileHasExtra(makeTile({ extras: null as never }), 0)).toBe(false);
+  });
+
+  it('tileHasExtra returns true when isSet returns true', () => {
+    const tile = makeTile({ extras: { isSet: (n: number) => n === 3 } as never });
+    expect(tileHasExtra(tile, 3)).toBe(true);
+    expect(tileHasExtra(tile, 4)).toBe(false);
+  });
+
+  it('tileHasTerritoryClaimingExtra returns false when no ruleset_control', () => {
+    // window.ruleset_control is not set in jsdom test environment
+    expect(tileHasTerritoryClaimingExtra(makeTile())).toBe(false);
   });
 });
