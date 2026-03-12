@@ -362,4 +362,21 @@ describe('TechGainedDialog', () => {
     expect(buttons).toContain('Show Technology Tree');
     document.body.removeChild(div);
   });
+
+  it('Close button closes the dialog', async () => {
+    const { TechGainedDialog, showTechGainedDialog } = await import('@/components/Dialogs/TechGainedDialog');
+    showTechGainedDialog('Monarchy', 'You discovered Monarchy!');
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    render(h(TechGainedDialog, null), div);
+
+    const closeBtn = Array.from(div.querySelectorAll('button')).find(b => b.textContent?.trim() === 'Close') as HTMLButtonElement;
+    expect(closeBtn).toBeDefined();
+    closeBtn.click();
+    await Promise.resolve();
+
+    render(h(TechGainedDialog, null), div);
+    expect(div.innerHTML).toBe('');
+    document.body.removeChild(div);
+  });
 });

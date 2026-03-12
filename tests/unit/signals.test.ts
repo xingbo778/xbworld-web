@@ -447,3 +447,72 @@ describe('store:reset clears all counts via syncFromStore', () => {
     expect(playerCount.value).toBe(0);
   });
 });
+
+// ── mapInfo signal — map:allocated ─────────────────────────────────────────
+
+describe('mapInfo signal — map:allocated', () => {
+  it('is exported from signals', async () => {
+    const { mapInfo } = await import('@/data/signals');
+    expect(mapInfo).toBeDefined();
+  });
+
+  it('updates mapInfo when map:allocated fires', async () => {
+    const { mapInfo } = await import('@/data/signals');
+    store.mapInfo = { xsize: 80, ysize: 50 } as never;
+    globalEvents.emit('map:allocated');
+    expect((mapInfo.value as Record<string, unknown>)?.['xsize']).toBe(80);
+  });
+
+  it('mapInfo reflects null when store.mapInfo is null', async () => {
+    const { mapInfo } = await import('@/data/signals');
+    store.mapInfo = null as never;
+    globalEvents.emit('map:allocated');
+    expect(mapInfo.value).toBeNull();
+  });
+});
+
+// ── gameInfo signal — game:info / game:beginturn ────────────────────────────
+
+describe('gameInfo signal — game:info / game:beginturn', () => {
+  it('updates gameInfo when game:info fires', async () => {
+    const { gameInfo } = await import('@/data/signals');
+    store.gameInfo = { turn: 42 } as never;
+    globalEvents.emit('game:info');
+    expect((gameInfo.value as Record<string, unknown>)?.['turn']).toBe(42);
+  });
+
+  it('updates gameInfo when game:beginturn fires', async () => {
+    const { gameInfo } = await import('@/data/signals');
+    store.gameInfo = { turn: 7 } as never;
+    globalEvents.emit('game:beginturn');
+    expect((gameInfo.value as Record<string, unknown>)?.['turn']).toBe(7);
+  });
+
+  it('currentTurn computed reflects updated turn', async () => {
+    const { currentTurn } = await import('@/data/signals');
+    store.gameInfo = { turn: 99 } as never;
+    globalEvents.emit('game:info');
+    expect(currentTurn.value).toBe(99);
+  });
+});
+
+// ── isObserver / connectedPlayer ────────────────────────────────────────────
+
+describe('isObserver and connectedPlayer signals', () => {
+  it('isObserver reflects store.observing after syncFromStore', async () => {
+    const { isObserver } = await import('@/data/signals');
+    store.observing = true;
+    globalEvents.emit('game:info');
+    expect(isObserver.value).toBe(true);
+
+    store.observing = false;
+    globalEvents.emit('game:info');
+    expect(isObserver.value).toBe(false);
+  });
+
+  it('connectedPlayer is a signal', async () => {
+    const { connectedPlayer } = await import('@/data/signals');
+    expect(connectedPlayer).toBeDefined();
+    expect(connectedPlayer.value === null || typeof connectedPlayer.value === 'number').toBe(true);
+  });
+});
