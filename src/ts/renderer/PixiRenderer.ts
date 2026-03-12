@@ -373,6 +373,7 @@ export class PixiRenderer {
   }
 
   private parseCSSColor(color: string): number {
+    if (!color) return 0xffffff;
     const hex = color.startsWith('#') ? color.slice(1) : '';
     if (/^[0-9a-f]{6}$/i.test(hex)) return parseInt(hex, 16);
     const rgb = color.match(/\d+/g);
@@ -578,7 +579,7 @@ export class PixiRenderer {
         this.dirtyTiles.delete(idx);
         const tile = tilesMap[idx];
         if (tile) {
-          this.rebuildTile(tile);
+          try { this.rebuildTile(tile); } catch (e) { console.error('[PixiRenderer] rebuildTile error (dirty):', e); }
           this.builtSet.add(idx);
         }
         if (++count >= PixiRenderer.REBUILD_PER_FRAME) break;
@@ -590,7 +591,7 @@ export class PixiRenderer {
       const end = Math.min(this.rebuildQueueIdx + PixiRenderer.REBUILD_PER_FRAME, this.rebuildQueue.length);
       for (let i = this.rebuildQueueIdx; i < end; i++) {
         const tile = this.rebuildQueue[i];
-        this.rebuildTile(tile);
+        try { this.rebuildTile(tile); } catch (e) { console.error('[PixiRenderer] rebuildTile error (queue):', e); }
         this.builtSet.add(tile.index);
       }
       this.rebuildQueueIdx = end;
