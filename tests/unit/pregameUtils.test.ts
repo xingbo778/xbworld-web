@@ -94,3 +94,10 @@ describe('ui/controls', () => {
     expect(() => activateGoto()).not.toThrow();
   });
 });
+
+describe('initControls', () => {
+  it('does not throw', async () => {
+    const { initControls } = await import('@/ui/controls');
+    expect(() => initControls()).not.toThrow();
+  });
+});
