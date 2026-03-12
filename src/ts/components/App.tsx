@@ -1,20 +1,42 @@
 import { render } from 'preact';
+import { useRef } from 'preact/hooks';
+import type { ComponentChildren } from 'preact';
+import type { ReadonlySignal } from '@preact/signals';
 import { MessageDialog } from './Dialogs/MessageDialog';
 import { AlertDialog } from './Dialogs/AlertDialog';
 import { AuthDialog } from './Dialogs/AuthDialog';
 import { IntelDialog } from './Dialogs/IntelDialog';
 import { SwalDialog } from './Dialogs/SwalDialog';
-import { CityDialog } from './Dialogs/CityDialog';
+import { CityDialog, cityDialogSignal } from './Dialogs/CityDialog';
 import { CityBuyDialog } from './Dialogs/CityBuyDialog';
 import { CityInputDialog } from './Dialogs/CityInputDialog';
 import { TechGainedDialog } from './Dialogs/TechGainedDialog';
-import { WikiDialog, TechInfoDialog } from './Dialogs/TechDialog';
+import { WikiDialog, TechInfoDialog, wikiDialogSignal, techInfoDialogSignal } from './Dialogs/TechDialog';
 import { TaxRatesDialog } from './Dialogs/TaxRatesDialog';
 import { ChatContextDialog } from './ChatContextDialog';
 import { BlockingOverlay } from './BlockingOverlay';
 import { DisconnectOverlay } from './DisconnectOverlay';
 import { IntroDialog } from './Dialogs/IntroDialog';
 import { StatusBar } from './StatusBar';
+
+/**
+ * LazyMountOnce — defers mounting children until the controlling signal is
+ * truthy for the first time, then keeps them mounted permanently.
+ *
+ * Benefit: heavy dialogs (CityDialog, TechDialog) are not instantiated at
+ * app startup — no hooks run, no effects fire, no signal subscriptions are
+ * created — until the user actually opens them for the first time.
+ * After first activation the dialog stays in the tree (avoiding re-mount
+ * cost on subsequent opens).
+ */
+function LazyMountOnce({ signal: sig, children }: {
+  signal: ReadonlySignal<unknown>;
+  children: ComponentChildren;
+}) {
+  const ever = useRef(false);
+  if (!ever.current && sig.value) ever.current = true;
+  return ever.current ? <>{children}</> : null;
+}
 
 function App() {
   return (
@@ -24,23 +46,29 @@ function App() {
       {/* Disconnect/reconnect modal */}
       <DisconnectOverlay />
 
-      {/* Floating dialogs */}
+      {/* Floating dialogs — lightweight dialogs mount immediately */}
       <MessageDialog />
       <AlertDialog />
       <AuthDialog />
       <IntelDialog />
       <SwalDialog />
-      <CityDialog />
       <CityBuyDialog />
       <CityInputDialog />
       <TechGainedDialog />
-      <WikiDialog />
-      <TechInfoDialog />
       <TaxRatesDialog />
       <IntroDialog />
       <ChatContextDialog />
 
-      {/* HUD — mounted into dedicated containers below */}
+      {/* Heavy dialogs — deferred until first open via LazyMountOnce */}
+      <LazyMountOnce signal={cityDialogSignal}>
+        <CityDialog />
+      </LazyMountOnce>
+      <LazyMountOnce signal={wikiDialogSignal}>
+        <WikiDialog />
+      </LazyMountOnce>
+      <LazyMountOnce signal={techInfoDialogSignal}>
+        <TechInfoDialog />
+      </LazyMountOnce>
     </div>
   );
 }
