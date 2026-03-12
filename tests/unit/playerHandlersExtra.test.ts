@@ -51,3 +51,23 @@ describe('handle_player_diplstate', () => {
     expect(() => handle_player_diplstate({ plr1: 0, plr2: 1, type: 2 } as never)).not.toThrow();
   });
 });
+
+// ── Signal integration ────────────────────────────────────────────────────
+
+describe('handle_player_info → playerUpdated / playerCount signals', () => {
+  it('handle_player_info emits player:updated → playerUpdated signal increments', async () => {
+    const { handle_player_info } = await import('@/net/handlers/player');
+    const { playerUpdated } = await import('@/data/signals');
+    const before = playerUpdated.value;
+    handle_player_info({ playerno: 0, name: 'Caesar', nation: 1, is_alive: true } as never);
+    expect(playerUpdated.value).toBe(before + 1);
+  });
+
+  it('handle_player_info increments playerCount when new player added', async () => {
+    const { handle_player_info } = await import('@/net/handlers/player');
+    const { playerCount } = await import('@/data/signals');
+    store.players = {};
+    handle_player_info({ playerno: 5, name: 'New', nation: 0, is_alive: true } as never);
+    expect(playerCount.value).toBe(1);
+  });
+});

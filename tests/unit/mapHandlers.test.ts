@@ -67,6 +67,14 @@ describe('handle_map_info', () => {
     const { handle_map_info } = await import('@/net/handlers/map');
     expect(() => handle_map_info({ xsize: 80, ysize: 50, topology_id: 1, wrap_id: 1 } as never)).not.toThrow();
   });
+
+  it('handle_map_info emits map:allocated → mapInfo signal updated', async () => {
+    const { handle_map_info } = await import('@/net/handlers/map');
+    const { mapInfo } = await import('@/data/signals');
+    handle_map_info({ xsize: 120, ysize: 80, topology_id: 1, wrap_id: 1 } as never);
+    expect((mapInfo.value as Record<string, unknown>)?.['xsize']).toBe(120);
+    expect((mapInfo.value as Record<string, unknown>)?.['ysize']).toBe(80);
+  });
 });
 
 describe('handle_nuke_tile_info', () => {
