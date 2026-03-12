@@ -128,6 +128,23 @@ export class PixiRenderer {
     this.initialized = true;
     this.createFogTexture();
 
+    // Expose debug stats for e2e sprite tests
+    (window as unknown as Record<string, unknown>)['__xbwPixiDebug'] = {
+      getStats: () => ({
+        builtTiles: this.builtSet.size,
+        containerCount: this.tileLayerContainers.size,
+        textureCacheSize: this.texCache.size,
+        spritesReady: this.spritesReady,
+        dirtyAll: this.dirtyAll,
+        dirtyCount: this.dirtyTiles.size,
+      }),
+      extractPixels: async (x: number, y: number, w: number, h: number) => {
+        const pixels = await this.app.renderer.extract.pixels({ target: this.app.stage });
+        // Manual crop from the full extraction
+        return { pixels: Array.from(pixels.pixels), x, y, w, h };
+      },
+    };
+
     logNormal('PixiJS renderer initialized');
   }
 
