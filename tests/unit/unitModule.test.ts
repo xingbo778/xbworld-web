@@ -133,3 +133,85 @@ describe('get_unit_moves_left', () => {
     expect(get_unit_moves_left(null)).toBe(0);
   });
 });
+
+// ── idex_lookup_unit ─────────────────────────────────────────────────────
+
+describe('idex_lookup_unit', () => {
+  it('returns unit from store by id', async () => {
+    const { idex_lookup_unit } = await import('@/data/unit');
+    store.units[55] = { id: 55 } as never;
+    expect(idex_lookup_unit(55)?.id).toBe(55);
+    delete store.units[55];
+  });
+
+  it('returns undefined for missing id', async () => {
+    const { idex_lookup_unit } = await import('@/data/unit');
+    expect(idex_lookup_unit(9999)).toBeUndefined();
+  });
+});
+
+// ── client_remove_unit ───────────────────────────────────────────────────
+
+describe('client_remove_unit', () => {
+  it('removes unit from store.units', async () => {
+    const { client_remove_unit } = await import('@/data/unit');
+    store.units[77] = { id: 77, tile: -1 } as never;
+    client_remove_unit({ id: 77 } as never);
+    expect(store.units[77]).toBeUndefined();
+  });
+});
+
+// ── unit_can_do_action ───────────────────────────────────────────────────
+
+describe('unit_can_do_action', () => {
+  it('is exported as a function', async () => {
+    const { unit_can_do_action } = await import('@/data/unit');
+    expect(typeof unit_can_do_action).toBe('function');
+  });
+
+  it('returns a boolean', async () => {
+    const { unit_can_do_action } = await import('@/data/unit');
+    // punit has no type in store → unit_type is undefined → utype_can_do_action returns false
+    const result = unit_can_do_action({ id: 1, type: 999 } as never, 0);
+    expect(typeof result).toBe('boolean');
+  });
+});
+
+// ── unit_has_goto ────────────────────────────────────────────────────────
+
+describe('unit_has_goto', () => {
+  it('returns false when no connected player', async () => {
+    const { unit_has_goto } = await import('@/data/unit');
+    const unit = { id: 1, owner: 0, goto_tile: 5 } as never;
+    expect(unit_has_goto(unit)).toBe(false);
+  });
+});
+
+// ── update_unit_anim_list ────────────────────────────────────────────────
+
+describe('update_unit_anim_list', () => {
+  it('does not throw for null inputs', async () => {
+    const { update_unit_anim_list } = await import('@/data/unit');
+    expect(() => update_unit_anim_list(null, null)).not.toThrow();
+  });
+
+  it('does not throw when tiles are the same', async () => {
+    const { update_unit_anim_list } = await import('@/data/unit');
+    const u = { id: 1, tile: 5, anim_list: [] } as never;
+    expect(() => update_unit_anim_list(u, u)).not.toThrow();
+  });
+});
+
+// ── update_tile_unit / clear_tile_unit ───────────────────────────────────
+
+describe('update_tile_unit / clear_tile_unit', () => {
+  it('update_tile_unit does not throw for null unit', async () => {
+    const { update_tile_unit } = await import('@/data/unit');
+    expect(() => update_tile_unit(null)).not.toThrow();
+  });
+
+  it('clear_tile_unit does not throw for null unit', async () => {
+    const { clear_tile_unit } = await import('@/data/unit');
+    expect(() => clear_tile_unit(null)).not.toThrow();
+  });
+});
