@@ -69,3 +69,38 @@ describe('handle_early_chat_msg', () => {
     expect(() => handle_early_chat_msg({ message: 'early msg', conn_id: 0, event: 0, tile: -1 } as never)).not.toThrow();
   });
 });
+
+// ── add_chatbox_text → chatEntries signal integration ─────────────────────
+
+describe('add_chatbox_text → chatEntries signal', () => {
+  it('add_chatbox_text + message_log.fireNow() pushes to chatEntries signal', async () => {
+    const { add_chatbox_text, message_log } = await import('@/core/messages');
+    const { chatEntries, clipChatMessages } = await import('@/components/ChatBox');
+
+    // Reset state — flush any buffered messages first, then clip entries
+    message_log.fireNow();
+    clipChatMessages(0);
+    expect(chatEntries.value.length).toBe(0);
+
+    // Inject a valid message packet
+    add_chatbox_text({ message: 'Hello from server!', event: 0, conn_id: 0, tile: -1 });
+    // Flush the throttled aggregator synchronously
+    message_log.fireNow();
+
+    expect(chatEntries.value.length).toBe(1);
+    expect(chatEntries.value[0].html).toContain('Hello from server!');
+  });
+
+  it('add_chatbox_text ignores null message', async () => {
+    const { add_chatbox_text, message_log } = await import('@/core/messages');
+    const { chatEntries, clipChatMessages } = await import('@/components/ChatBox');
+
+    clipChatMessages(0);
+    const before = chatEntries.value.length;
+
+    add_chatbox_text({ message: null, event: 0, conn_id: 0, tile: -1 });
+    message_log.fireNow();
+
+    expect(chatEntries.value.length).toBe(before);
+  });
+});
