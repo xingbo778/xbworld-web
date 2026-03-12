@@ -119,3 +119,81 @@ describe('mapClick — do_unit_paradrop_to / do_map_click', () => {
     expect(typeof do_map_click).toBe('function');
   });
 });
+
+// ── actionSelection — logic functions ─────────────────────────────────────
+
+describe('should_ask_server_for_actions', () => {
+  it('is exported as a function', async () => {
+    const { should_ask_server_for_actions } = await import('@/core/control/actionSelection');
+    expect(typeof should_ask_server_for_actions).toBe('function');
+  });
+
+  it('returns false when action_decision_want is 0 (FC_ACT_DEC_NOTHING)', async () => {
+    const { should_ask_server_for_actions } = await import('@/core/control/actionSelection');
+    const result = should_ask_server_for_actions({ action_decision_want: 0 } as never);
+    expect(result).toBe(false);
+  });
+});
+
+describe('can_ask_server_for_actions', () => {
+  it('is exported as a function', async () => {
+    const { can_ask_server_for_actions } = await import('@/core/control/actionSelection');
+    expect(typeof can_ask_server_for_actions).toBe('function');
+  });
+
+  it('returns a boolean', async () => {
+    const { can_ask_server_for_actions } = await import('@/core/control/actionSelection');
+    expect(typeof can_ask_server_for_actions()).toBe('boolean');
+  });
+});
+
+describe('ask_server_for_actions', () => {
+  it('is exported as a function', async () => {
+    const { ask_server_for_actions } = await import('@/core/control/actionSelection');
+    expect(typeof ask_server_for_actions).toBe('function');
+  });
+
+  it('returns false when store.observing is true', async () => {
+    const { ask_server_for_actions } = await import('@/core/control/actionSelection');
+    const { store } = await import('@/data/store');
+    const prev = store.observing;
+    (store as any).observing = true;
+    const result = ask_server_for_actions({ id: 1 } as never);
+    (store as any).observing = prev;
+    expect(result).toBe(false);
+  });
+
+  it('returns false for null unit', async () => {
+    const { ask_server_for_actions } = await import('@/core/control/actionSelection');
+    const result = ask_server_for_actions(null as never);
+    expect(result).toBe(false);
+  });
+});
+
+describe('action_selection_no_longer_in_progress', () => {
+  it('does not throw', async () => {
+    const { action_selection_no_longer_in_progress } = await import('@/core/control/actionSelection');
+    expect(() => action_selection_no_longer_in_progress(0)).not.toThrow();
+  });
+});
+
+describe('action_decision_clear_want', () => {
+  it('does not throw for unknown unit id', async () => {
+    const { action_decision_clear_want } = await import('@/core/control/actionSelection');
+    expect(() => action_decision_clear_want(9999)).not.toThrow();
+  });
+});
+
+describe('action_selection_next_in_focus', () => {
+  it('does not throw with empty focus', async () => {
+    const { action_selection_next_in_focus } = await import('@/core/control/actionSelection');
+    expect(() => action_selection_next_in_focus(0)).not.toThrow();
+  });
+});
+
+describe('action_decision_request', () => {
+  it('does not throw for null unit', async () => {
+    const { action_decision_request } = await import('@/core/control/actionSelection');
+    expect(() => action_decision_request(null as never)).not.toThrow();
+  });
+});

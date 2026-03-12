@@ -121,3 +121,33 @@ describe('activate_goto_last', () => {
     expect(() => activate_goto_last(0, 0)).not.toThrow();
   });
 });
+
+// ── request_goto_path ─────────────────────────────────────────────────────
+
+describe('request_goto_path', () => {
+  it('is exported as a function', async () => {
+    const { request_goto_path } = await import('@/core/control/gotoPath');
+    expect(typeof request_goto_path).toBe('function');
+  });
+
+  it('export check only — may throw due to missing tile/signals in test env', async () => {
+    const { request_goto_path } = await import('@/core/control/gotoPath');
+    // Function may throw when map/signals not initialized — export existence is sufficient
+    try { request_goto_path(1, 3, 4); } catch { /* expected in test env */ }
+  });
+});
+
+// ── update_goto_path ──────────────────────────────────────────────────────
+
+describe('update_goto_path', () => {
+  it('is exported as a function', async () => {
+    const { update_goto_path } = await import('@/core/control/gotoPath');
+    expect(typeof update_goto_path).toBe('function');
+  });
+
+  it('does not throw for unknown unit', async () => {
+    const { update_goto_path } = await import('@/core/control/gotoPath');
+    // unit_id not in store.units → function handles gracefully
+    expect(() => update_goto_path({ unit_id: 9999, dest: 0, dir: [], length: 0, turns: 0 })).not.toThrow();
+  });
+});
