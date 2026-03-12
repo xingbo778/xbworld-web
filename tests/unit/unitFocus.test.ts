@@ -142,3 +142,43 @@ describe('unitFocus — additional exports', () => {
     expect(typeof set_unit_focus_and_activate).toBe('function');
   });
 });
+
+// ── unit_focus_urgent / control_unit_killed / advance_unit_focus ──────────
+
+describe('unit_focus_urgent', () => {
+  it('is exported as a function', async () => {
+    const { unit_focus_urgent } = await import('@/core/control/unitFocus');
+    expect(typeof unit_focus_urgent).toBe('function');
+  });
+
+  it('logs and returns for null unit', async () => {
+    const { unit_focus_urgent } = await import('@/core/control/unitFocus');
+    // null → logs "not a unit" and returns — no throw
+    expect(() => unit_focus_urgent(null as never)).not.toThrow();
+  });
+});
+
+describe('control_unit_killed', () => {
+  it('is exported as a function', async () => {
+    const { control_unit_killed } = await import('@/core/control/unitFocus');
+    expect(typeof control_unit_killed).toBe('function');
+  });
+
+  it('does not throw for a unit not in focus', async () => {
+    const { control_unit_killed } = await import('@/core/control/unitFocus');
+    const punit = { id: 9999, activity: 0 } as never;
+    expect(() => control_unit_killed(punit)).not.toThrow();
+  });
+});
+
+describe('advance_unit_focus', () => {
+  it('is exported as a function', async () => {
+    const { advance_unit_focus } = await import('@/core/control/unitFocus');
+    expect(typeof advance_unit_focus).toBe('function');
+  });
+
+  it('does not throw when no units are in focus', async () => {
+    const { advance_unit_focus } = await import('@/core/control/unitFocus');
+    expect(() => advance_unit_focus()).not.toThrow();
+  });
+});
