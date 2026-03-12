@@ -245,3 +245,61 @@ describe('blur_input_on_touchdevice', () => {
     expect(() => blur_input_on_touchdevice()).not.toThrow();
   });
 });
+
+
+// ── getUrlVar / supportsMp3 / isTouchDevice / isRightMouseSelectionSupported / civclient_benchmark ──
+
+describe('getUrlVar', () => {
+  it('is exported as a function', async () => {
+    const { getUrlVar } = await import('@/utils/helpers');
+    expect(typeof getUrlVar).toBe('function');
+  });
+
+  it('returns undefined for unknown var', async () => {
+    const { getUrlVar } = await import('@/utils/helpers');
+    expect(getUrlVar('nonexistent_var_xyz')).toBeUndefined();
+  });
+});
+
+describe('supportsMp3', () => {
+  it('is exported as a function', async () => {
+    const { supportsMp3 } = await import('@/utils/helpers');
+    expect(typeof supportsMp3).toBe('function');
+  });
+
+  it('returns a boolean', async () => {
+    const { supportsMp3 } = await import('@/utils/helpers');
+    expect(typeof supportsMp3()).toBe('boolean');
+  });
+});
+
+describe('isTouchDevice', () => {
+  it('is exported as a function', async () => {
+    const { isTouchDevice } = await import('@/utils/helpers');
+    expect(typeof isTouchDevice).toBe('function');
+  });
+
+  it('returns a boolean', async () => {
+    const { isTouchDevice } = await import('@/utils/helpers');
+    expect(typeof isTouchDevice()).toBe('boolean');
+  });
+});
+
+describe('isRightMouseSelectionSupported', () => {
+  it('is exported as a function', async () => {
+    const { isRightMouseSelectionSupported } = await import('@/utils/helpers');
+    expect(typeof isRightMouseSelectionSupported).toBe('function');
+  });
+
+  it('returns a boolean', async () => {
+    const { isRightMouseSelectionSupported } = await import('@/utils/helpers');
+    expect(typeof isRightMouseSelectionSupported()).toBe('boolean');
+  });
+});
+
+describe('civclient_benchmark', () => {
+  it('is exported as an async function', async () => {
+    const { civclient_benchmark } = await import('@/utils/helpers');
+    expect(typeof civclient_benchmark).toBe('function');
+  });
+});
