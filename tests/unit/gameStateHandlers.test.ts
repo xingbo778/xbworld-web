@@ -154,3 +154,35 @@ describe('handle_end_turn', () => {
     expect(() => handle_end_turn({} as never)).not.toThrow();
   });
 });
+
+// ── Signal integration tests ───────────────────────────────────────────────
+
+describe('handle_game_info → gameInfo signal', () => {
+  it('updating store.gameInfo via handle_game_info reflects in gameInfo signal', async () => {
+    const { handle_game_info } = await import('@/net/handlers/gameState');
+    const { gameInfo } = await import('@/data/signals');
+    handle_game_info({ turn: 55, year: -1000 } as never);
+    expect((gameInfo.value as Record<string, unknown>)?.['turn']).toBe(55);
+  });
+});
+
+describe('handle_new_year → gameInfo signal', () => {
+  it('handle_new_year emits game:newyear which triggers syncFromStore', async () => {
+    const { handle_game_info, handle_new_year } = await import('@/net/handlers/gameState');
+    const { gameInfo } = await import('@/data/signals');
+    handle_game_info({ turn: 1, year: -4000 } as never);
+    handle_new_year({ year: -3900, fragments: 0, turn: 2 } as never);
+    expect((gameInfo.value as Record<string, unknown>)?.['year']).toBe(-3900);
+  });
+});
+
+describe('handle_begin_turn → gameInfo signal', () => {
+  it('handle_begin_turn emits game:beginturn which triggers syncFromStore', async () => {
+    const { handle_game_info, handle_begin_turn } = await import('@/net/handlers/gameState');
+    const { gameInfo } = await import('@/data/signals');
+    handle_game_info({ turn: 10, year: 100 } as never);
+    store.gameInfo = { turn: 11, year: 100 } as never;
+    handle_begin_turn({} as never);
+    expect((gameInfo.value as Record<string, unknown>)?.['turn']).toBe(11);
+  });
+});
