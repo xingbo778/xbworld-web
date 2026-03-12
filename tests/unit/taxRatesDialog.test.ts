@@ -3,6 +3,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { render, h } from 'preact';
+import { store } from '@/data/store';
 
 describe('TaxRatesDialog', () => {
   it('exports showTaxRatesDialog as a function', async () => {
@@ -43,6 +44,7 @@ describe('TaxRatesDialog', () => {
 describe('TaxRatesDialog rendering', () => {
   beforeEach(async () => {
     document.body.innerHTML = '';
+    store.reset();
     const { closeTaxRatesDialog } = await import('@/components/Dialogs/TaxRatesDialog');
     closeTaxRatesDialog();
   });
@@ -86,6 +88,39 @@ describe('TaxRatesDialog rendering', () => {
     render(h(TaxRatesDialog, null), div);
     const buttons = Array.from(div.querySelectorAll('button')).map(b => b.textContent?.trim());
     expect(buttons).toContain('Close');
+    document.body.removeChild(div);
+  });
+
+  it('Close button closes the dialog', async () => {
+    const { TaxRatesDialog, showTaxRatesDialog } = await import('@/components/Dialogs/TaxRatesDialog');
+    showTaxRatesDialog();
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    render(h(TaxRatesDialog, null), div);
+
+    const closeBtn = Array.from(div.querySelectorAll('button')).find(b => b.textContent?.trim() === 'Close') as HTMLButtonElement;
+    expect(closeBtn).toBeDefined();
+    closeBtn.click();
+    await Promise.resolve();
+
+    render(h(TaxRatesDialog, null), div);
+    expect(div.innerHTML).toBe('');
+    document.body.removeChild(div);
+  });
+
+  it('renders player tax/luxury/science percentages when clientPlaying has data', async () => {
+    const { TaxRatesDialog, showTaxRatesDialog } = await import('@/components/Dialogs/TaxRatesDialog');
+    // Set up a playing player with tax rates
+    store.client.conn.playing = { playerno: 0, tax: 30, luxury: 20, science: 50 } as never;
+    showTaxRatesDialog();
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    render(h(TaxRatesDialog, null), div);
+    expect(div.textContent).toContain('30%');
+    expect(div.textContent).toContain('20%');
+    expect(div.textContent).toContain('50%');
+    expect(div.textContent).toContain('Total: 100%');
+    store.client.conn.playing = null as never;
     document.body.removeChild(div);
   });
 });
