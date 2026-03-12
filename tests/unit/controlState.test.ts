@@ -143,3 +143,83 @@ describe('check_text_input', () => {
     expect(result).toBeUndefined();
   });
 });
+
+// ── chat_context_change / chat_context_dialog_show / set_chat_direction ───
+
+describe('chat_context_change', () => {
+  it('is exported as a function', async () => {
+    const { chat_context_change } = await import('@/core/control/chat');
+    expect(typeof chat_context_change).toBe('function');
+  });
+
+  it('does not throw', async () => {
+    const { chat_context_change } = await import('@/core/control/chat');
+    expect(() => chat_context_change()).not.toThrow();
+  });
+});
+
+describe('chat_context_dialog_show', () => {
+  it('is exported as a function', async () => {
+    const { chat_context_dialog_show } = await import('@/core/control/chat');
+    expect(typeof chat_context_dialog_show).toBe('function');
+  });
+
+  it('does not throw with empty recipients', async () => {
+    const { chat_context_dialog_show } = await import('@/core/control/chat');
+    expect(() => chat_context_dialog_show([])).not.toThrow();
+  });
+});
+
+describe('handle_chat_direction_chosen', () => {
+  it('is exported as a function', async () => {
+    const { handle_chat_direction_chosen } = await import('@/core/control/chat');
+    expect(typeof handle_chat_direction_chosen).toBe('function');
+  });
+});
+
+describe('set_chat_direction', () => {
+  it('is exported as a function', async () => {
+    const { set_chat_direction } = await import('@/core/control/chat');
+    expect(typeof set_chat_direction).toBe('function');
+  });
+
+  it('does not throw when called with null', async () => {
+    const { set_chat_direction } = await import('@/core/control/chat');
+    expect(() => set_chat_direction(null)).not.toThrow();
+  });
+
+  it('does not throw when called with a player id', async () => {
+    const { set_chat_direction } = await import('@/core/control/chat');
+    expect(() => set_chat_direction(1)).not.toThrow();
+  });
+});
+
+// ── controlState additional setters ──────────────────────────────────────
+
+describe('controlState additional setters', () => {
+  it('setWaitingUnitsList round-trip', async () => {
+    const mod = await import('@/core/control/controlState');
+    mod.setWaitingUnitsList([1, 2, 3]);
+    expect(mod.waiting_units_list).toEqual([1, 2, 3]);
+  });
+
+  it('setUrgentFocusQueue round-trip', async () => {
+    const mod = await import('@/core/control/controlState');
+    mod.setUrgentFocusQueue([]);
+    expect(mod.urgent_focus_queue).toEqual([]);
+  });
+
+  it('setShowCitybar round-trip', async () => {
+    const mod = await import('@/core/control/controlState');
+    mod.setShowCitybar(true);
+    expect(mod.show_citybar).toBe(true);
+    mod.setShowCitybar(false);
+    expect(mod.show_citybar).toBe(false);
+  });
+
+  it('setMouseTouchStartedOnUnit round-trip', async () => {
+    const mod = await import('@/core/control/controlState');
+    mod.setMouseTouchStartedOnUnit(true);
+    expect(mod.mouse_touch_started_on_unit).toBe(true);
+  });
+});

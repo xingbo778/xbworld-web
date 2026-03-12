@@ -156,3 +156,62 @@ describe('handle_vote_update / handle_vote_remove / handle_vote_resolve', () => 
     expect(() => handle_vote_new({ vote_no: 5, desc: 'test' } as never)).not.toThrow();
   });
 });
+
+// ── handle_server_join_reply ─────────────────────────────────────────────────
+
+describe('handle_server_join_reply', () => {
+  it('is exported as a function', async () => {
+    const { handle_server_join_reply } = await import('@/net/handlers/server');
+    expect(typeof handle_server_join_reply).toBe('function');
+  });
+
+  it('does not throw for a join-rejected packet', async () => {
+    const { handle_server_join_reply } = await import('@/net/handlers/server');
+    // you_can_join=false path: just logs a message, no crash
+    expect(() =>
+      handle_server_join_reply({ you_can_join: false, message: 'rejected', conn_id: 0, capabilities: '' } as never)
+    ).not.toThrow();
+  });
+});
+
+// ── handle_authentication_req ─────────────────────────────────────────────────
+
+describe('handle_authentication_req', () => {
+  it('is exported as a function', async () => {
+    const { handle_authentication_req } = await import('@/net/handlers/server');
+    expect(typeof handle_authentication_req).toBe('function');
+  });
+
+  it('does not throw for AUTH_LOGINPASS type', async () => {
+    const { handle_authentication_req } = await import('@/net/handlers/server');
+    expect(() => handle_authentication_req({ type: 1, method: 1 } as never)).not.toThrow();
+  });
+});
+
+// ── handle_connect_msg ────────────────────────────────────────────────────────
+
+describe('handle_connect_msg', () => {
+  it('is exported as a function', async () => {
+    const { handle_connect_msg } = await import('@/net/handlers/server');
+    expect(typeof handle_connect_msg).toBe('function');
+  });
+
+  it('does not throw for a simple message', async () => {
+    const { handle_connect_msg } = await import('@/net/handlers/server');
+    expect(() => handle_connect_msg({ message: 'Welcome!' } as never)).not.toThrow();
+  });
+});
+
+// ── handle_conn_ping_info ─────────────────────────────────────────────────────
+
+describe('handle_conn_ping_info', () => {
+  it('is exported as a function', async () => {
+    const { handle_conn_ping_info } = await import('@/net/handlers/server');
+    expect(typeof handle_conn_ping_info).toBe('function');
+  });
+
+  it('does not throw with valid ping info', async () => {
+    const { handle_conn_ping_info } = await import('@/net/handlers/server');
+    expect(() => handle_conn_ping_info({ conn_id: 1, ping: 50, host: 'localhost' } as never)).not.toThrow();
+  });
+});
