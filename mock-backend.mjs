@@ -257,6 +257,7 @@ function sendGameInit(ws, username) {
       government: 0, target_government: 0,
       real_embassy: [0], city_options: [0],
       gold: 100 + ai.playerno * 50, tax: 30, science: 60, luxury: 10,
+      score: 0,
       revolution_finishes: 0, culture: ai.playerno * 10,
       mood: 0,
       style: 0,
@@ -672,17 +673,36 @@ function sendGameInit(ws, username) {
     }
 
     // 3. Move each unit one tile (walk diagonally across the land)
+    const isLandTile = (idx) => {
+      const t = terrainMap[idx];
+      return t !== 0 && t !== 1 && t !== 12 && t !== 13;
+    };
     for (const u of unitRoster) {
       const tx = u.tile % MAP_X;
       const ty = Math.floor(u.tile / MAP_X);
-      // Step +1 in x and +1 in y, wrapping within land bounds
-      const nx = (tx + 1) % MAP_X;
-      const ny = ty + (currentTurn % 3 === 0 ? 1 : 0);
-      const ni = Math.min(ny, MAP_Y - 1) * MAP_X + nx;
-      // Only move to land
-      const terrain = terrainMap[ni];
-      if (terrain !== 0 && terrain !== 1 && terrain !== 12 && terrain !== 13) {
-        u.tile = ni;
+      // Primary: step +1 in x, +1 in y every 3 turns
+      const dy = currentTurn % 3 === 0 ? 1 : 0;
+      const candidates = [
+        [(tx + 1) % MAP_X, Math.min(ty + dy, MAP_Y - 1)],
+        [(tx + 1) % MAP_X, ty],
+        [tx, Math.min(ty + 1, MAP_Y - 1)],
+        [(tx + MAP_X - 1) % MAP_X, ty],
+      ];
+      let moved = false;
+      for (const [cx, cy] of candidates) {
+        const ni = cy * MAP_X + cx;
+        if (isLandTile(ni)) {
+          u.tile = ni;
+          moved = true;
+          break;
+        }
+      }
+      // Last resort: pick the nearest land tile by index from current position
+      if (!moved) {
+        for (let r = 1; r < 5; r++) {
+          const ni = ((u.tile + r) % (MAP_X * MAP_Y));
+          if (isLandTile(ni)) { u.tile = ni; break; }
+        }
       }
       const hp = u.type === 1 ? 20 : 10;
       sendPackets(ws, [{

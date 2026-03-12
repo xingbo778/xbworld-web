@@ -132,7 +132,7 @@ test.describe('Sprite rendering — PixiJS map', () => {
     await page.waitForTimeout(5000);
 
     const playerColors = await page.evaluate(() => {
-      const store = (window as any).store ?? (window as any)._store;
+      const store = (window as any).__xbwStore ?? (window as any).store ?? (window as any)._store;
       if (!store) return null;
       return Object.values(store.players).map((p: any) => {
         const nation = store.nations[p.nation];
@@ -164,8 +164,7 @@ test.describe('Sprite rendering — PixiJS map', () => {
 
     const unitOwners = await page.evaluate(() => {
       const w = window as any;
-      // Try multiple access paths for store
-      const store = w.store ?? w._store;
+      const store = w.__xbwStore ?? w.store ?? w._store;
       if (!store?.units) return null;
       const owners = new Set<number>();
       for (const u of Object.values(store.units)) {
