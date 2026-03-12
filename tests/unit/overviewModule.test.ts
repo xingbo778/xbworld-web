@@ -214,3 +214,47 @@ describe('generate_overview_grid and generate_overview_hash', () => {
     expect(result.grid.length).toBe(2);
   });
 });
+
+// ── render_viewrect ───────────────────────────────────────────────────────
+
+describe('render_viewrect', () => {
+  it('is exported as a function', async () => {
+    const { render_viewrect } = await import('@/core/overview');
+    expect(typeof render_viewrect).toBe('function');
+  });
+
+  it('does nothing when client state is not C_S_RUNNING', async () => {
+    const { render_viewrect } = await import('@/core/overview');
+    // In test env, client state is not C_S_RUNNING → function returns early
+    expect(() => render_viewrect()).not.toThrow();
+  });
+});
+
+// ── overview_tile_color ───────────────────────────────────────────────────
+
+describe('overview_tile_color', () => {
+  it('is exported as a function', async () => {
+    const { overview_tile_color } = await import('@/core/overview');
+    expect(typeof overview_tile_color).toBe('function');
+  });
+
+  it('returns a number', async () => {
+    const { overview_tile_color } = await import('@/core/overview');
+    const result = overview_tile_color(0, 0);
+    expect(typeof result).toBe('number');
+  });
+});
+
+// ── overview_clicked ──────────────────────────────────────────────────────
+
+describe('overview_clicked', () => {
+  it('is exported as a function', async () => {
+    const { overview_clicked } = await import('@/core/overview');
+    expect(typeof overview_clicked).toBe('function');
+  });
+
+  it('does not throw (no active mapview in test env)', async () => {
+    const { overview_clicked } = await import('@/core/overview');
+    expect(() => overview_clicked(0, 0)).not.toThrow();
+  });
+});
