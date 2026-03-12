@@ -603,7 +603,11 @@ export class PixiRenderer {
 
   private startRenderLoop(): void {
     const loop = (): void => {
-      this.processFrame();
+      try {
+        this.processFrame();
+      } catch (e) {
+        console.error('[PixiRenderer] processFrame error:', e);
+      }
       this.rafHandle = requestAnimationFrame(loop);
     };
     this.rafHandle = requestAnimationFrame(loop);

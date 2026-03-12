@@ -73,6 +73,9 @@ export function civClientInit(): void {
     // Wire mouse/touch events to the Pixi canvas after it's created
     mapctrl_init_pixi();
     setupWindowSize();
+    // Force immediate canvas resize — don't wait for async ResizeObserver
+    pixi.resize();
+    pixi.markAllDirty();
   }).catch(e => console.error('PixiRenderer init failed:', e));
   game_init();
   // Tabs initialization (vanilla JS replacement for jQuery UI tabs)
