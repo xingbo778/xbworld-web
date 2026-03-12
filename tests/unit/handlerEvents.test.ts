@@ -275,6 +275,20 @@ describe('handle_server_setting_bool emits settings:updated', () => {
     expect(handler).toHaveBeenCalled();
     globalEvents.off('settings:updated', handler);
   });
+
+  it('settingsUpdated signal increments when handle_server_setting_bool fires', async () => {
+    const { handle_server_setting_const, handle_server_setting_bool } = await import('@/net/handlers/server');
+    const { settingsUpdated } = await import('@/data/signals');
+
+    handle_server_setting_const({
+      id: 1, name: 'autotoggle', category: 0, settable: true,
+      initial_value: 'false', default_value: 'false',
+    } as never);
+
+    const before = settingsUpdated.value;
+    handle_server_setting_bool({ id: 1, value: false, default: false } as never);
+    expect(settingsUpdated.value).toBe(before + 1);
+  });
 });
 
 // ── player:updated / researchUpdated ──────────────────────────────────────
