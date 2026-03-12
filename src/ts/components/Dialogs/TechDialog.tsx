@@ -225,8 +225,8 @@ function TechTree() {
         const allKnown = total > 0 && knownBy === total;
 
         let borderColor = 'var(--xb-border-default, #30363d)';
-        if (isResearching) borderColor = '#d4a017';
-        else if (allKnown) borderColor = '#3fb950';
+        if (isResearching) borderColor = 'var(--xb-accent-orange, #d29922)';
+        else if (allKnown) borderColor = 'var(--xb-accent-green, #3fb950)';
 
         return (
           <div
@@ -267,7 +267,7 @@ function TechTree() {
                   title="Researching"
                   style={{
                     width: 8, height: 8, borderRadius: '50%',
-                    background: c, outline: '1px solid #d4a017',
+                    background: c, outline: '1px solid var(--xb-accent-orange, #d29922)',
                     flexShrink: 0,
                   }}
                 />

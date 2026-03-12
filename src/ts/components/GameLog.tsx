@@ -35,21 +35,21 @@ function GameLog() {
   }, [entries]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#0d1117' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--xb-bg-primary, #0d1117)' }}>
       <div style={{
         padding: '8px 12px',
-        borderBottom: '1px solid #30363d',
+        borderBottom: '1px solid var(--xb-border-default, #30363d)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        background: '#161b22',
+        background: 'var(--xb-bg-secondary, #161b22)',
         flexShrink: 0,
       }}>
-        <span style={{ color: '#58a6ff', fontWeight: 'bold', fontSize: '14px' }}>📋 Game Event Log</span>
+        <span style={{ color: 'var(--xb-accent-blue, #58a6ff)', fontWeight: 'bold', fontSize: '14px' }}>Game Event Log</span>
         <button
           onClick={() => { logEntries.value = []; }}
           style={{
-            background: 'none', border: '1px solid #30363d', color: '#8b949e',
+            background: 'none', border: '1px solid var(--xb-border-default, #30363d)', color: 'var(--xb-text-secondary, #8b949e)',
             cursor: 'pointer', borderRadius: '4px', padding: '2px 8px', fontSize: '12px',
           }}
         >
@@ -64,7 +64,7 @@ function GameLog() {
         }}
       >
         {entries.length === 0 && (
-          <p style={{ color: '#484f58', fontStyle: 'italic', fontSize: '13px', textAlign: 'center', marginTop: '40px' }}>
+          <p style={{ color: 'var(--xb-text-secondary, #8b949e)', fontStyle: 'italic', fontSize: '13px', textAlign: 'center', marginTop: '40px' }}>
             Game events will appear here.
           </p>
         )}
@@ -73,9 +73,9 @@ function GameLog() {
             key={entry.id}
             style={{
               padding: '4px 0',
-              borderBottom: '1px solid #21262d',
+              borderBottom: '1px solid var(--xb-bg-elevated, #21262d)',
               fontSize: '13px',
-              color: '#c9d1d9',
+              color: 'var(--xb-text-primary, #e6edf3)',
               lineHeight: '1.5',
             }}
           >

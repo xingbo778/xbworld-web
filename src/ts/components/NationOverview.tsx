@@ -15,6 +15,8 @@ import { nationSelectPlayer, selectNoNation } from '../data/nationScreen';
 import { Tabs, TabPanel } from './Shared/Tabs';
 import { Button } from './Shared/Button';
 import { centerOnPlayer } from '../data/nationScreen';
+import { show_city_dialog } from '../ui/cityDialog';
+import type { City } from '../data/types';
 
 type OverviewTab = 'nations' | 'cities' | 'units';
 
@@ -194,7 +196,10 @@ function NationsTable() {
 }
 
 function CitiesTable() {
-  const cities = Object.values(store.cities);
+  cityCount.value;       // re-render when city list changes
+  rulesetReady.value;    // re-render when improvement/unit names load
+
+  const cities = Object.values(store.cities) as City[];
 
   if (cities.length === 0) {
     return (
@@ -204,37 +209,67 @@ function CitiesTable() {
     );
   }
 
+  const sorted = [...cities].sort((a, b) => {
+    const ownDiff = (a.owner as number) - (b.owner as number);
+    if (ownDiff !== 0) return ownDiff;
+    return String(a.name).localeCompare(String(b.name));
+  });
+
   return (
     <div style={{ overflowX: 'auto' }}>
       <table style={TABLE_STYLE}>
         <thead>
           <tr style={THEAD_TR_STYLE}>
-            {['City', 'Owner', 'Size'].map(h => (
+            {['City', 'Owner', 'Size', 'Production'].map(h => (
               <th key={h} style={TH_STYLE}>{h}</th>
             ))}
           </tr>
         </thead>
         <tbody>
-          {cities.map((city) => {
-            const owner = store.players[city.owner];
+          {sorted.map((city) => {
+            const owner = store.players[city.owner as number];
             const ownerName = (owner as Record<string, unknown> | undefined)?.['name'] as string ?? `#${city.owner}`;
             const nation = owner ? store.nations[(owner as Record<string, unknown>)['nation'] as number] : null;
             const color: string = (nation as Record<string, unknown> | undefined)?.['color'] as string ?? 'var(--xb-text-primary)';
+            const prod = city.production as Record<string, unknown> | undefined;
+            const prodKind = prod?.['kind'] as number | undefined;
+            const prodValue = prod?.['value'] as number | undefined;
+            let prodName = '—';
+            if (prodKind === 0 && prodValue !== undefined) {
+              const impr = store.improvements[prodValue];
+              if (impr) prodName = (impr as Record<string, unknown>)['name'] as string;
+            } else if (prodKind === 1 && prodValue !== undefined) {
+              const utype = store.unitTypes[prodValue];
+              if (utype) prodName = (utype as Record<string, unknown>)['name'] as string;
+            }
             return (
-              <tr key={city.id} style={TBODY_TR_STYLE}>
-                <td style={TD_STYLE}>{city.name}</td>
+              <tr
+                key={city.id}
+                onClick={() => show_city_dialog(city)}
+                style={{ ...TBODY_TR_STYLE, cursor: 'pointer' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--xb-bg-elevated, #21262d)'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; }}
+              >
+                <td style={{ ...TD_STYLE, fontWeight: 600 }}>{city.name}</td>
                 <td style={{ ...TD_STYLE, color }}>{ownerName}</td>
-                <td style={TD_STYLE}>{city.size}</td>
+                <td style={TD_STYLE}>{String(city.size ?? '—')}</td>
+                <td style={{ ...TD_STYLE, color: 'var(--xb-text-secondary, #8b949e)' }}>{prodName}</td>
               </tr>
             );
           })}
         </tbody>
       </table>
+      <div style={{ padding: '6px 10px', color: 'var(--xb-text-secondary, #8b949e)', fontSize: 'var(--xb-font-size-xs, 11px)' }}>
+        {cities.length} cities — click a row to open the city view
+      </div>
     </div>
   );
 }
 
 function UnitsTable() {
+  unitCount.value;       // re-render when unit list changes
+  rulesetReady.value;    // re-render when unit type names load
+
   const units = Object.values(store.units);
 
   if (units.length === 0) {
@@ -244,6 +279,12 @@ function UnitsTable() {
       </div>
     );
   }
+
+  const sorted = [...units].sort((a, b) => {
+    const ownDiff = a.owner - b.owner;
+    if (ownDiff !== 0) return ownDiff;
+    return a.type - b.type;
+  });
 
   return (
     <div style={{ overflowX: 'auto' }}>
@@ -256,7 +297,7 @@ function UnitsTable() {
           </tr>
         </thead>
         <tbody>
-          {units.map((unit) => {
+          {sorted.map((unit) => {
             const utype = store.unitTypes[unit.type];
             const typeName = (utype as Record<string, unknown> | undefined)?.['name'] as string ?? `#${unit.type}`;
             const owner = store.players[unit.owner];
@@ -273,6 +314,9 @@ function UnitsTable() {
           })}
         </tbody>
       </table>
+      <div style={{ padding: '6px 10px', color: 'var(--xb-text-secondary, #8b949e)', fontSize: 'var(--xb-font-size-xs, 11px)' }}>
+        {units.length} units total
+      </div>
     </div>
   );
 }
