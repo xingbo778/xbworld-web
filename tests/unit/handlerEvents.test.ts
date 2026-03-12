@@ -393,6 +393,50 @@ describe('handle_city_remove emits city:removed in observer mode', () => {
   });
 });
 
+// ── unitCount decrements on handle_unit_remove ────────────────────────────
+
+describe('unitCount signal — handle_unit_remove', () => {
+  it('unitCount decrements when handle_unit_remove fires', async () => {
+    const { handle_unit_info, handle_unit_remove } = await import('@/net/handlers/unit');
+    const { unitCount } = await import('@/data/signals');
+
+    store.units = {} as never;
+    handle_unit_info({
+      id: 55, owner: 0, tile: 1, type: 0, hp: 10,
+      veteran: 0, movesleft: 0, activity: 0,
+      transported_by: -1, homecity: 0,
+      done_moving: false, ai: false, goto_tile: -1,
+      action_decision_want: 0, action_decision_tile: -1,
+      anim_list: [],
+    } as never);
+    expect(unitCount.value).toBe(1);
+
+    handle_unit_remove({ unit_id: 55 } as never);
+    expect(unitCount.value).toBe(0);
+  });
+});
+
+// ── handle_unit_short_info increments unitCount ───────────────────────────
+
+describe('unitCount signal — handle_unit_short_info', () => {
+  it('unitCount increments when handle_unit_short_info adds a new unit', async () => {
+    const { handle_unit_short_info } = await import('@/net/handlers/unit');
+    const { unitCount } = await import('@/data/signals');
+    const before = unitCount.value;
+
+    handle_unit_short_info({
+      id: 77, owner: 0, tile: 3, type: 1, hp: 5,
+      veteran: 0, movesleft: 2, activity: 0,
+      transported_by: -1, homecity: 0,
+      done_moving: false, ai: false, goto_tile: -1,
+      action_decision_want: 0, action_decision_tile: -1,
+      anim_list: [],
+    } as never);
+
+    expect(unitCount.value).toBe(before + 1);
+  });
+});
+
 // ── playerCount decrements on handle_player_remove ────────────────────────
 
 describe('playerCount signal — handle_player_remove', () => {
