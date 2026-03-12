@@ -346,3 +346,43 @@ describe('NationOverview — ActionBar View Intel button', () => {
     expect(container.textContent).toContain('Game Scores');
   });
 });
+
+// ── researchUpdated signal → Nations tab tech column ─────────────────────────
+
+describe('NationOverview — researchUpdated signal → tech column', () => {
+  beforeEach(async () => {
+    store.reset();
+    document.body.innerHTML = '';
+    const { setNationOverviewTab } = await import('@/components/NationOverview');
+    setNationOverviewTab('nations');
+  });
+
+  it('shows tech name in Nations table when handle_research_info sets research', async () => {
+    const { mountNationOverview } = await import('@/components/NationOverview');
+    const { handle_research_info } = await import('@/net/handlers/gameState');
+
+    store.players[0] = makePlayer(0, 'Caesar') as never;
+    store.techs[5] = { id: 5, name: 'Alphabet' } as never;
+
+    handle_research_info({
+      id: 0, researching: 5, bulbs_researched: 20, researching_cost: 100, inventions: [],
+    } as never);
+
+    const container = mountFresh(mountNationOverview);
+    expect(container.textContent).toContain('Alphabet');
+  });
+
+  it('researchUpdated signal increments when handle_research_info fires', async () => {
+    const { handle_research_info } = await import('@/net/handlers/gameState');
+    const { researchUpdated } = await import('@/data/signals');
+
+    store.players[0] = makePlayer(0, 'Caesar') as never;
+    const before = researchUpdated.value;
+
+    handle_research_info({
+      id: 0, researching: 1, bulbs_researched: 10, researching_cost: 50, inventions: [],
+    } as never);
+
+    expect(researchUpdated.value).toBe(before + 1);
+  });
+});
