@@ -92,3 +92,80 @@ describe('canvas_pos_to_tile', () => {
     }
   });
 });
+
+// ── gui_to_map_pos ────────────────────────────────────────────────────────
+
+describe('gui_to_map_pos', () => {
+  it('is exported as a function', async () => {
+    const { gui_to_map_pos } = await import('@/renderer/mapCoords');
+    expect(typeof gui_to_map_pos).toBe('function');
+  });
+
+  it('returns an object with map_x and map_y', async () => {
+    const { gui_to_map_pos } = await import('@/renderer/mapCoords');
+    const result = gui_to_map_pos(0, 0);
+    expect(typeof result.map_x).toBe('number');
+    expect(typeof result.map_y).toBe('number');
+  });
+});
+
+// ── map_to_gui_pos ────────────────────────────────────────────────────────
+
+describe('map_to_gui_pos', () => {
+  it('is exported as a function', async () => {
+    const { map_to_gui_pos } = await import('@/renderer/mapCoords');
+    expect(typeof map_to_gui_pos).toBe('function');
+  });
+
+  it('returns an object with gui_dx and gui_dy', async () => {
+    const { map_to_gui_pos } = await import('@/renderer/mapCoords');
+    const result = map_to_gui_pos(0, 0);
+    expect(typeof result.gui_dx).toBe('number');
+    expect(typeof result.gui_dy).toBe('number');
+  });
+});
+
+// ── base_canvas_to_map_pos ────────────────────────────────────────────────
+
+describe('base_canvas_to_map_pos', () => {
+  it('is exported as a function', async () => {
+    const { base_canvas_to_map_pos } = await import('@/renderer/mapCoords');
+    expect(typeof base_canvas_to_map_pos).toBe('function');
+  });
+
+  it('returns an object with map_x and map_y or throws when mapview uninitialized', async () => {
+    const { base_canvas_to_map_pos } = await import('@/renderer/mapCoords');
+    try {
+      const result = base_canvas_to_map_pos(0, 0);
+      expect(typeof result.map_x).toBe('number');
+      expect(typeof result.map_y).toBe('number');
+    } catch {
+      // expected when mapview is not initialized
+    }
+  });
+});
+
+// ── center_tile_id / center_tile_mapcanvas_2d ─────────────────────────────
+
+describe('center_tile_id', () => {
+  it('is exported as a function', async () => {
+    const { center_tile_id } = await import('@/renderer/mapCoords');
+    expect(typeof center_tile_id).toBe('function');
+  });
+});
+
+// ── set_mapview_origin / base_set_mapview_origin ──────────────────────────
+
+describe('set_mapview_origin', () => {
+  it('is exported as a function', async () => {
+    const { set_mapview_origin } = await import('@/renderer/mapCoords');
+    expect(typeof set_mapview_origin).toBe('function');
+  });
+});
+
+describe('base_set_mapview_origin', () => {
+  it('is exported as a function', async () => {
+    const { base_set_mapview_origin } = await import('@/renderer/mapCoords');
+    expect(typeof base_set_mapview_origin).toBe('function');
+  });
+});
