@@ -48,6 +48,7 @@ function mount_tech_panel(): void {
   if (!tabsTec) return;
   const container = document.createElement('div');
   container.id = 'xb-tech-panel';
+  container.style.height = '100%';
   tabsTec.appendChild(container);
   import('../components/Dialogs/TechDialog').then(({ mountTechPanel }) => {
     mountTechPanel(container);

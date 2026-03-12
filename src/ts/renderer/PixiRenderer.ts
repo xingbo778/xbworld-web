@@ -660,6 +660,15 @@ export class PixiRenderer {
       this.clearTextureCache();
       this.markAllDirty();
     });
+    // player:updated — player/nation color data loaded; borders use nation colors so all
+    // border tiles must be rebuilt. Debounce to avoid one markAllDirty per player packet.
+    let _playerDirtyTimer: ReturnType<typeof setTimeout> | null = null;
+    globalEvents.on('player:updated', () => {
+      if (_playerDirtyTimer) return;
+      _playerDirtyTimer = setTimeout(() => { _playerDirtyTimer = null; this.markAllDirty(); }, 500);
+    });
+    // rules:ready — unit/tech/improvement graphics become available after ruleset loads.
+    globalEvents.on('rules:ready', () => { this.markAllDirty(); });
     // game:beginturn: individual tile/unit/city events already handle dirty marking per-packet,
     // so a full markAllDirty here would cause unnecessary expensive rebuilds every turn.
     // Instead, only refresh tiles that were NOT yet built (incrementally reveal newly-known tiles).
