@@ -168,6 +168,21 @@ describe('cityCount signal updates via handle_city_info', () => {
   });
 });
 
+describe('cityCount signal updates via handle_city_short_info', () => {
+  it('cityCount increments when handle_city_short_info adds a new city', async () => {
+    const { cityCount } = await import('@/data/signals');
+    const { handle_city_short_info } = await import('@/net/handlers/city');
+    const before = cityCount.value;
+
+    handle_city_short_info({
+      id: 301, owner: 1, tile: 8, name: 'Sparta', size: 4,
+      improvements: [],
+    } as never);
+
+    expect(cityCount.value).toBe(before + 1);
+  });
+});
+
 describe('unitCount signal updates via handle_unit_info', () => {
   it('unitCount increments when handle_unit_info is called', async () => {
     const { unitCount } = await import('@/data/signals');
