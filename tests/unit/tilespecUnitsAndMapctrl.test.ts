@@ -115,3 +115,61 @@ describe('mapctrl additional exports', () => {
     expect(typeof recenter_button_pressed).toBe('function');
   });
 });
+
+// ── tilespecUnits additional functions ────────────────────────────────────
+
+describe('tilespecUnits — additional sprite functions', () => {
+  it('get_city_shields_output_sprite returns sprite entry with key', async () => {
+    const { get_city_shields_output_sprite } = await import('@/renderer/tilespecUnits');
+    const entry = get_city_shields_output_sprite(3);
+    expect(entry).toMatchObject({ key: 'city.t_shields_3' });
+  });
+
+  it('get_city_trade_output_sprite returns sprite entry with key', async () => {
+    const { get_city_trade_output_sprite } = await import('@/renderer/tilespecUnits');
+    const entry = get_city_trade_output_sprite(2);
+    expect(entry).toMatchObject({ key: 'city.t_trade_2' });
+  });
+
+  it('get_city_invalid_worked_sprite returns grid.unavailable key', async () => {
+    const { get_city_invalid_worked_sprite } = await import('@/renderer/tilespecUnits');
+    const entry = get_city_invalid_worked_sprite();
+    expect(entry.key).toBe('grid.unavailable');
+  });
+
+  it('get_base_flag_sprite returns empty key for tile with no extras_owner', async () => {
+    const { get_base_flag_sprite } = await import('@/renderer/tilespecUnits');
+    const entry = get_base_flag_sprite({ extras_owner: undefined } as never);
+    expect(entry.key).toBe('');
+  });
+
+  it('get_city_sprite is exported as a function', async () => {
+    const { get_city_sprite } = await import('@/renderer/tilespecUnits');
+    expect(typeof get_city_sprite).toBe('function');
+  });
+
+  it('get_unit_hp_sprite is exported as a function', async () => {
+    const { get_unit_hp_sprite } = await import('@/renderer/tilespecUnits');
+    expect(typeof get_unit_hp_sprite).toBe('function');
+  });
+
+  it('get_unit_veteran_sprite is exported as a function', async () => {
+    const { get_unit_veteran_sprite } = await import('@/renderer/tilespecUnits');
+    expect(typeof get_unit_veteran_sprite).toBe('function');
+  });
+
+  it('get_unit_activity_sprite is exported as a function', async () => {
+    const { get_unit_activity_sprite } = await import('@/renderer/tilespecUnits');
+    expect(typeof get_unit_activity_sprite).toBe('function');
+  });
+
+  it('get_unit_agent_sprite is exported as a function', async () => {
+    const { get_unit_agent_sprite } = await import('@/renderer/tilespecUnits');
+    expect(typeof get_unit_agent_sprite).toBe('function');
+  });
+
+  it('get_unit_nation_flag_sprite is exported as a function', async () => {
+    const { get_unit_nation_flag_sprite } = await import('@/renderer/tilespecUnits');
+    expect(typeof get_unit_nation_flag_sprite).toBe('function');
+  });
+});

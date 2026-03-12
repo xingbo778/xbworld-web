@@ -202,3 +202,57 @@ describe('cityDialogState setters', () => {
     expect(() => set_citydlg_map_height(150)).not.toThrow();
   });
 });
+
+// ── cityDialogState remaining setters ─────────────────────────────────────
+
+describe('cityDialogState remaining setters', () => {
+  it('set_active_city / active_city round-trip', async () => {
+    const mod = await import('@/ui/cityDialogState');
+    const city = { id: 1, name: 'Rome' } as never;
+    mod.set_active_city(city);
+    expect(mod.active_city).toBe(city);
+    mod.set_active_city(null);
+    expect(mod.active_city).toBeNull();
+  });
+
+  it('set_worklist_dialog_active round-trip', async () => {
+    const mod = await import('@/ui/cityDialogState');
+    mod.set_worklist_dialog_active(true);
+    expect(mod.worklist_dialog_active).toBe(true);
+    mod.set_worklist_dialog_active(false);
+    expect(mod.worklist_dialog_active).toBe(false);
+  });
+
+  it('set_production_selection round-trip', async () => {
+    const mod = await import('@/ui/cityDialogState');
+    const sel = [{ kind: 1, value: 2 }];
+    mod.set_production_selection(sel);
+    expect(mod.production_selection).toBe(sel);
+  });
+
+  it('set_worklist_selection round-trip', async () => {
+    const mod = await import('@/ui/cityDialogState');
+    mod.set_worklist_selection([3, 4, 5]);
+    expect(mod.worklist_selection).toEqual([3, 4, 5]);
+  });
+
+  it('set_city_tab_index round-trip', async () => {
+    const mod = await import('@/ui/cityDialogState');
+    mod.set_city_tab_index(2);
+    expect(mod.city_tab_index).toBe(2);
+  });
+
+  it('set_city_prod_clicks round-trip', async () => {
+    const mod = await import('@/ui/cityDialogState');
+    mod.set_city_prod_clicks(5);
+    expect(mod.city_prod_clicks).toBe(5);
+  });
+
+  it('set_opt_show_unreachable_items round-trip', async () => {
+    const mod = await import('@/ui/cityDialogState');
+    mod.set_opt_show_unreachable_items(true);
+    expect(mod.opt_show_unreachable_items).toBe(true);
+    mod.set_opt_show_unreachable_items(false);
+    expect(mod.opt_show_unreachable_items).toBe(false);
+  });
+});

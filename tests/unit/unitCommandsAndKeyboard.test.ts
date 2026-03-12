@@ -98,3 +98,39 @@ describe('key_unit_move', () => {
     }
   });
 });
+
+describe('unitCommands — remaining no-op stubs', () => {
+  const noops = [
+    'key_unit_action_select',
+    'key_unit_airbase',
+    'key_unit_airlift',
+    'key_unit_auto_work',
+    'key_unit_build_city',
+    'key_unit_clean',
+    'key_unit_cultivate',
+    'key_unit_disband',
+    'key_unit_fortify',
+    'key_unit_fortress',
+    'key_unit_homecity',
+    'key_unit_irrigate',
+    'key_unit_mine',
+    'key_unit_nuke',
+    'key_unit_paradrop',
+    'key_unit_pillage',
+    'key_unit_plant',
+    'key_unit_road',
+    'key_unit_sentry',
+    'key_unit_show_cargo',
+    'key_unit_transform',
+    'key_unit_upgrade',
+  ] as const;
+
+  for (const name of noops) {
+    it(`${name} is a no-op function`, async () => {
+      const mod = await import('@/core/control/unitCommands');
+      const fn = mod[name] as () => void;
+      expect(typeof fn).toBe('function');
+      expect(() => fn()).not.toThrow();
+    });
+  }
+});

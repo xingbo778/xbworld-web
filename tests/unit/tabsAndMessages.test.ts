@@ -195,3 +195,32 @@ describe('wait_for_text', () => {
     vi.useRealTimers();
   });
 });
+
+describe('init_chatbox', () => {
+  it('is exported as a function', async () => {
+    const { init_chatbox } = await import('@/core/messages');
+    expect(typeof init_chatbox).toBe('function');
+  });
+
+  it('does not throw (panel elements absent in jsdom)', async () => {
+    const { init_chatbox } = await import('@/core/messages');
+    expect(() => init_chatbox()).not.toThrow();
+  });
+});
+
+describe('update_chatbox', () => {
+  it('is exported as a function', async () => {
+    const { update_chatbox } = await import('@/core/messages');
+    expect(typeof update_chatbox).toBe('function');
+  });
+
+  it('does not throw with empty array', async () => {
+    const { update_chatbox } = await import('@/core/messages');
+    expect(() => update_chatbox([])).not.toThrow();
+  });
+
+  it('does not throw with a message entry', async () => {
+    const { update_chatbox } = await import('@/core/messages');
+    expect(() => update_chatbox([{ message: 'Hello world', event: 0 }])).not.toThrow();
+  });
+});

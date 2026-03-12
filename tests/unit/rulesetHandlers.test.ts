@@ -333,3 +333,159 @@ describe('handle_ruleset_terrain_control', () => {
       road_pittance: 0 } as never)).not.toThrow();
   });
 });
+
+// ── remaining uncovered handlers ───────────────────────────────────────────
+
+describe('handle_ruleset_impr_flag', () => {
+  it('stores impr flag by id', async () => {
+    const { handle_ruleset_impr_flag } = await import('@/net/handlers/ruleset');
+    handle_ruleset_impr_flag({ id: 0, name: 'VisibleByOthers', helptxt: '' } as never);
+    const s = store as unknown as Record<string, unknown>;
+    expect(s['imprFlags']).toBeDefined();
+  });
+});
+
+describe('handle_ruleset_government_ruler_title', () => {
+  it('attaches ruler title to existing government', async () => {
+    const { handle_ruleset_government, handle_ruleset_government_ruler_title } = await import('@/net/handlers/ruleset');
+    handle_ruleset_government({ id: 2, name: 'Monarchy', helptext: '' } as never);
+    handle_ruleset_government_ruler_title({ gov: 2, male_title: 'King', female_title: 'Queen' } as never);
+    expect((store.governments[2] as unknown as Record<string, unknown>)['male_title']).toBe('King');
+  });
+
+  it('does not throw for unknown government', async () => {
+    const { handle_ruleset_government_ruler_title } = await import('@/net/handlers/ruleset');
+    expect(() => handle_ruleset_government_ruler_title({ gov: 999, male_title: 'X', female_title: 'Y' } as never)).not.toThrow();
+  });
+});
+
+describe('handle_ruleset_base', () => {
+  it('does not throw when rulesControl is null', async () => {
+    const { handle_ruleset_base } = await import('@/net/handlers/ruleset');
+    store.rulesControl = null as never;
+    expect(() => handle_ruleset_base({} as never)).not.toThrow();
+  });
+});
+
+describe('handle_ruleset_road', () => {
+  it('does not throw when rulesControl is null', async () => {
+    const { handle_ruleset_road } = await import('@/net/handlers/ruleset');
+    store.rulesControl = null as never;
+    expect(() => handle_ruleset_road({} as never)).not.toThrow();
+  });
+});
+
+describe('handle_ruleset_action_enabler', () => {
+  it('does not throw for unknown action', async () => {
+    const { handle_ruleset_action_enabler } = await import('@/net/handlers/ruleset');
+    expect(() => handle_ruleset_action_enabler({ enabled_action: 9999, action: 9999 } as never)).not.toThrow();
+  });
+});
+
+describe('handle_ruleset_counter', () => {
+  it('stores counter by id', async () => {
+    const { handle_ruleset_counter } = await import('@/net/handlers/ruleset');
+    handle_ruleset_counter({ id: 0, name: 'Cities' } as never);
+    const s = store as unknown as Record<string, unknown>;
+    expect((s['counters'] as Record<number, unknown>)?.[0]).toMatchObject({ id: 0 });
+  });
+});
+
+describe('handle_ruleset_extra_flag', () => {
+  it('stores extra flag by id', async () => {
+    const { handle_ruleset_extra_flag } = await import('@/net/handlers/ruleset');
+    handle_ruleset_extra_flag({ id: 0, name: 'NaturalDefense', helptxt: '' } as never);
+    const s = store as unknown as Record<string, unknown>;
+    expect(s['extraFlags']).toBeDefined();
+  });
+});
+
+describe('handle_ruleset_nation_sets', () => {
+  it('stores nation sets', async () => {
+    const { handle_ruleset_nation_sets } = await import('@/net/handlers/ruleset');
+    handle_ruleset_nation_sets({ sets: [{ name: 'All', rule_name: 'all' }] } as never);
+    const s = store as unknown as Record<string, unknown>;
+    expect(s['nationSets']).toBeDefined();
+  });
+});
+
+describe('handle_ruleset_style', () => {
+  it('stores style by id', async () => {
+    const { handle_ruleset_style } = await import('@/net/handlers/ruleset');
+    handle_ruleset_style({ id: 0, name: 'European' } as never);
+    const s = store as unknown as Record<string, unknown>;
+    expect((s['styles'] as Record<number, unknown>)?.[0]).toMatchObject({ id: 0 });
+  });
+});
+
+describe('handle_nation_availability', () => {
+  it('stores nation availability packet', async () => {
+    const { handle_nation_availability } = await import('@/net/handlers/ruleset');
+    const packet = { is_available: [true, false] };
+    handle_nation_availability(packet as never);
+    const s = store as unknown as Record<string, unknown>;
+    expect(s['nationAvailability']).toBe(packet);
+  });
+});
+
+describe('handle_ruleset_multiplier', () => {
+  it('stores multiplier by id', async () => {
+    const { handle_ruleset_multiplier } = await import('@/net/handlers/ruleset');
+    handle_ruleset_multiplier({ id: 0, name: 'Science' } as never);
+    const s = store as unknown as Record<string, unknown>;
+    expect((s['multipliers'] as Record<number, unknown>)?.[0]).toMatchObject({ id: 0 });
+  });
+});
+
+describe('handle_ruleset_action_auto', () => {
+  it('stores action auto by id', async () => {
+    const { handle_ruleset_action_auto } = await import('@/net/handlers/ruleset');
+    handle_ruleset_action_auto({ id: 0, actor_kind: 1 } as never);
+    const s = store as unknown as Record<string, unknown>;
+    expect((s['actionAutos'] as Record<number, unknown>)?.[0]).toBeDefined();
+  });
+});
+
+describe('handle_ruleset_achievement', () => {
+  it('stores achievement by id', async () => {
+    const { handle_ruleset_achievement } = await import('@/net/handlers/ruleset');
+    handle_ruleset_achievement({ id: 0, name: 'First City' } as never);
+    const s = store as unknown as Record<string, unknown>;
+    expect((s['achievements'] as Record<number, unknown>)?.[0]).toBeDefined();
+  });
+});
+
+describe('handle_achievement_info', () => {
+  it('stores achievement info indexed by id and player', async () => {
+    const { handle_achievement_info } = await import('@/net/handlers/ruleset');
+    handle_achievement_info({ id: 1, player_id: 0, achieved: true } as never);
+    const s = store as unknown as Record<string, unknown>;
+    const ai = s['achievementInfo'] as Record<number, Record<number, unknown>>;
+    expect(ai[1][0]).toMatchObject({ id: 1, player_id: 0 });
+  });
+});
+
+describe('handle_team_name_info', () => {
+  it('stores team name by team id', async () => {
+    const { handle_team_name_info } = await import('@/net/handlers/ruleset');
+    handle_team_name_info({ team_id: 0, name: 'Alpha' } as never);
+    const s = store as unknown as Record<string, unknown>;
+    expect((s['teamNames'] as Record<number, string>)?.[0]).toBe('Alpha');
+  });
+});
+
+describe('handle_worker_task', () => {
+  it('appends worker task to city', async () => {
+    const { handle_worker_task } = await import('@/net/handlers/ruleset');
+    store.cities[5] = { id: 5, name: 'Rome' } as never;
+    handle_worker_task({ city_id: 5, kind: 1, tgt: 0, want: 100 } as never);
+    const city = store.cities[5] as unknown as Record<string, unknown>;
+    expect(Array.isArray(city['workerTasks'])).toBe(true);
+    expect((city['workerTasks'] as unknown[]).length).toBeGreaterThan(0);
+  });
+
+  it('does not throw for unknown city', async () => {
+    const { handle_worker_task } = await import('@/net/handlers/ruleset');
+    expect(() => handle_worker_task({ city_id: 9999, kind: 1, tgt: 0 } as never)).not.toThrow();
+  });
+});

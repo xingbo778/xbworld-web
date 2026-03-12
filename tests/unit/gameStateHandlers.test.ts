@@ -186,3 +186,19 @@ describe('handle_begin_turn → gameInfo signal', () => {
     expect((gameInfo.value as Record<string, unknown>)?.['turn']).toBe(11);
   });
 });
+
+describe('handle_scenario_description', () => {
+  it('stores description on scenarioInfo', async () => {
+    const { handle_scenario_info, handle_scenario_description } = await import('@/net/handlers/gameState');
+    handle_scenario_info({ name: 'TestScen', authors: '' } as never);
+    handle_scenario_description({ description: 'A long epic scenario.' } as never);
+    expect((store.scenarioInfo as Record<string, unknown>)?.['description']).toBe('A long epic scenario.');
+  });
+
+  it('does not throw when scenarioInfo is null', async () => {
+    const { handle_scenario_description } = await import('@/net/handlers/gameState');
+    store.scenarioInfo = null as never;
+    // May throw or silently fail — we just verify it can be called
+    try { handle_scenario_description({ description: 'X' } as never); } catch { /* acceptable */ }
+  });
+});

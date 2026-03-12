@@ -52,3 +52,23 @@ describe('showAuthDialog', () => {
     expect(() => showAuthDialog({ message: 'Enter password' })).not.toThrow();
   });
 });
+
+describe('civClientInit', () => {
+  it('is exported as a function', async () => {
+    const { civClientInit } = await import('@/client/civClient');
+    expect(typeof civClientInit).toBe('function');
+  });
+
+  it('does not throw', async () => {
+    const { civClientInit } = await import('@/client/civClient');
+    expect(() => civClientInit()).not.toThrow();
+  });
+});
+
+describe('switchRenderer', () => {
+  it('is exported as a no-op function', async () => {
+    const { switchRenderer } = await import('@/client/civClient');
+    expect(typeof switchRenderer).toBe('function');
+    expect(() => switchRenderer()).not.toThrow();
+  });
+});

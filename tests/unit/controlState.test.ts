@@ -222,4 +222,109 @@ describe('controlState additional setters', () => {
     mod.setMouseTouchStartedOnUnit(true);
     expect(mod.mouse_touch_started_on_unit).toBe(true);
   });
+
+  it('setMapviewMouseMovement round-trip', async () => {
+    const mod = await import('@/core/control/controlState');
+    mod.setMapviewMouseMovement(true);
+    expect(mod.mapview_mouse_movement).toBe(true);
+    mod.setMapviewMouseMovement(false);
+    expect(mod.mapview_mouse_movement).toBe(false);
+  });
+
+  it('setRoads / setBases round-trip', async () => {
+    const mod = await import('@/core/control/controlState');
+    const r = [{ id: 1 } as never];
+    const b = [{ id: 2 } as never];
+    mod.setRoads(r);
+    mod.setBases(b);
+    expect(mod.roads).toBe(r);
+    expect(mod.bases).toBe(b);
+  });
+
+  it('setCurrentFocus round-trip', async () => {
+    const mod = await import('@/core/control/controlState');
+    const units = [{ id: 10 } as never];
+    mod.setCurrentFocus(units);
+    expect(mod.current_focus).toBe(units);
+  });
+
+  it('setGotoActive / setParadropActive / setAirliftActive / setActionTgtSelActive round-trip', async () => {
+    const mod = await import('@/core/control/controlState');
+    mod.setGotoActive(true);
+    expect(mod.goto_active).toBe(true);
+    mod.setParadropActive(true);
+    expect(mod.paradrop_active).toBe(true);
+    mod.setAirliftActive(true);
+    expect(mod.airlift_active).toBe(true);
+    mod.setActionTgtSelActive(true);
+    expect(mod.action_tgt_sel_active).toBe(true);
+  });
+
+  it('setGotoLastOrder / setGotoLastAction round-trip', async () => {
+    const mod = await import('@/core/control/controlState');
+    mod.setGotoLastOrder(5);
+    expect(mod.goto_last_order).toBe(5);
+    mod.setGotoLastAction(7);
+    expect(mod.goto_last_action).toBe(7);
+  });
+
+  it('setGotoRequestMap / setGotoTurnsRequestMap round-trip', async () => {
+    const mod = await import('@/core/control/controlState');
+    const reqMap = { 'a': true as const };
+    mod.setGotoRequestMap(reqMap);
+    expect(mod.goto_request_map).toBe(reqMap);
+    const turnsMap = { 'a': 3 };
+    mod.setGotoTurnsRequestMap(turnsMap);
+    expect(mod.goto_turns_request_map).toBe(turnsMap);
+  });
+
+  it('setCurrentGotoTurns round-trip', async () => {
+    const mod = await import('@/core/control/controlState');
+    mod.setCurrentGotoTurns(10);
+    expect(mod.current_goto_turns).toBe(10);
+  });
+
+  it('setIntroClickDescription / setResizeEnabled / setContextMenuActive round-trip', async () => {
+    const mod = await import('@/core/control/controlState');
+    mod.setIntroClickDescription(false);
+    expect(mod.intro_click_description).toBe(false);
+    mod.setResizeEnabled(false);
+    expect(mod.resize_enabled).toBe(false);
+    mod.setContextMenuActive(false);
+    expect(mod.context_menu_active).toBe(false);
+  });
+
+  it('setHasMovesleftWarningBeenShown / setGameUnitPanelState / setEndTurnInfoMessageShown round-trip', async () => {
+    const mod = await import('@/core/control/controlState');
+    mod.setHasMovesleftWarningBeenShown(true);
+    expect(mod.has_movesleft_warning_been_shown).toBe(true);
+    mod.setGameUnitPanelState('active');
+    expect(mod.game_unit_panel_state).toBe('active');
+    mod.setEndTurnInfoMessageShown(true);
+    expect(mod.end_turn_info_message_shown).toBe(true);
+  });
+
+  it('setChatSendTo round-trip', async () => {
+    const mod = await import('@/core/control/controlState');
+    mod.setChatSendTo(2);
+    expect(mod.chat_send_to).toBe(2);
+  });
+
+  it('setActionSelectionInProgressFor / setIsMoreUserInputNeeded / set_is_more_user_input_needed round-trip', async () => {
+    const mod = await import('@/core/control/controlState');
+    mod.setActionSelectionInProgressFor(99);
+    expect(mod.action_selection_in_progress_for).toBe(99);
+    mod.setIsMoreUserInputNeeded(true);
+    expect(mod.is_more_user_input_needed).toBe(true);
+    mod.set_is_more_user_input_needed(false);
+    expect(mod.is_more_user_input_needed).toBe(false);
+  });
+
+  it('setPrevMouseX / setPrevMouseY round-trip', async () => {
+    const mod = await import('@/core/control/controlState');
+    mod.setPrevMouseX(15);
+    expect(mod.prev_mouse_x).toBe(15);
+    mod.setPrevMouseY(25);
+    expect(mod.prev_mouse_y).toBe(25);
+  });
 });

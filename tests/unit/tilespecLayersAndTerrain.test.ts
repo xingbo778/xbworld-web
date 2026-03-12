@@ -148,3 +148,59 @@ describe('tileset_extra_id_rmactivity_graphic_tag', () => {
     expect(tileset_extra_id_rmactivity_graphic_tag(9999)).toBeNull();
   });
 });
+
+// ── tilespecLayers additional functions ───────────────────────────────────
+
+describe('tilespecLayers — additional sprite functions', () => {
+  it('get_city_info_text returns sprite entry with city_text key', async () => {
+    const { get_city_info_text } = await import('@/renderer/tilespecLayers');
+    const city = { id: 1, name: 'Rome' } as never;
+    const entry = get_city_info_text(city);
+    expect(entry.key).toBe('city_text');
+    expect((entry as Record<string, unknown>)['city']).toBe(city);
+  });
+
+  it('get_tile_label_text returns sprite entry with tile_label key', async () => {
+    const { get_tile_label_text } = await import('@/renderer/tilespecLayers');
+    const tile = { index: 0, x: 0, y: 0 } as never;
+    const entry = get_tile_label_text(tile);
+    expect(entry.key).toBe('tile_label');
+    expect((entry as Record<string, unknown>)['tile']).toBe(tile);
+  });
+
+  it('get_tile_river_sprite returns null for null tile', async () => {
+    const { get_tile_river_sprite } = await import('@/renderer/tilespecLayers');
+    expect(get_tile_river_sprite(null)).toBeNull();
+  });
+
+  it('fill_path_sprite_array returns empty array when roads is empty', async () => {
+    const { fill_path_sprite_array } = await import('@/renderer/tilespecLayers');
+    const result = fill_path_sprite_array({ index: 0, extras: [] } as never, null);
+    expect(Array.isArray(result)).toBe(true);
+  });
+
+  it('fill_goto_line_sprite_array is exported as a function', async () => {
+    const { fill_goto_line_sprite_array } = await import('@/renderer/tilespecLayers');
+    expect(typeof fill_goto_line_sprite_array).toBe('function');
+  });
+
+  it('get_border_line_sprites is exported as a function', async () => {
+    const { get_border_line_sprites } = await import('@/renderer/tilespecLayers');
+    expect(typeof get_border_line_sprites).toBe('function');
+  });
+
+  it('fill_layer1_sprite_array is exported as a function', async () => {
+    const { fill_layer1_sprite_array } = await import('@/renderer/tilespecLayers');
+    expect(typeof fill_layer1_sprite_array).toBe('function');
+  });
+
+  it('fill_layer2_sprite_array is exported as a function', async () => {
+    const { fill_layer2_sprite_array } = await import('@/renderer/tilespecLayers');
+    expect(typeof fill_layer2_sprite_array).toBe('function');
+  });
+
+  it('fill_layer3_sprite_array is exported as a function', async () => {
+    const { fill_layer3_sprite_array } = await import('@/renderer/tilespecLayers');
+    expect(typeof fill_layer3_sprite_array).toBe('function');
+  });
+});

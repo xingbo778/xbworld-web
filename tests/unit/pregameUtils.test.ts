@@ -101,3 +101,16 @@ describe('initControls', () => {
     expect(() => initControls()).not.toThrow();
   });
 });
+
+describe('update_player_info_pregame_real', () => {
+  it('is exported as a function', async () => {
+    const { update_player_info_pregame_real } = await import('@/core/pregame');
+    expect(typeof update_player_info_pregame_real).toBe('function');
+  });
+
+  it('does not throw when called outside C_S_PREPARING state', async () => {
+    const { update_player_info_pregame_real } = await import('@/core/pregame');
+    // In test env clientState won't be C_S_PREPARING, so it early-returns safely
+    expect(() => update_player_info_pregame_real()).not.toThrow();
+  });
+});

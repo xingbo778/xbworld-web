@@ -95,3 +95,16 @@ describe('mapview additional exports', () => {
     expect(() => mapview_window_resized()).not.toThrow();
   });
 });
+
+describe('tilespec — fill_sprite_array', () => {
+  it('is exported as a function', async () => {
+    const { fill_sprite_array } = await import('@/renderer/tilespec');
+    expect(typeof fill_sprite_array).toBe('function');
+  });
+
+  it('returns an array for null tile', async () => {
+    const { fill_sprite_array } = await import('@/renderer/tilespec');
+    const result = fill_sprite_array(0, null, null, null, null, null, false);
+    expect(Array.isArray(result)).toBe(true);
+  });
+});

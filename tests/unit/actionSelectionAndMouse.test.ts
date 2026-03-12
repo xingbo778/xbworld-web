@@ -197,3 +197,25 @@ describe('action_decision_request', () => {
     expect(() => action_decision_request(null as never)).not.toThrow();
   });
 });
+
+// ── actionSelection remaining stubs ──────────────────────────────────────
+
+describe('actionSelection — remaining stubs', () => {
+  it('action_selection_refresh does not throw', async () => {
+    const { action_selection_refresh } = await import('@/core/control/actionSelection');
+    expect(typeof action_selection_refresh).toBe('function');
+    expect(() => action_selection_refresh()).not.toThrow();
+  });
+
+  it('action_selection_target_tile returns 0', async () => {
+    const { action_selection_target_tile } = await import('@/core/control/actionSelection');
+    expect(typeof action_selection_target_tile).toBe('function');
+    expect(action_selection_target_tile()).toBe(0);
+  });
+
+  it('action_selection_target_extra returns -1', async () => {
+    const { action_selection_target_extra } = await import('@/core/control/actionSelection');
+    expect(typeof action_selection_target_extra).toBe('function');
+    expect(action_selection_target_extra()).toBe(-1);
+  });
+});

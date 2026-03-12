@@ -68,3 +68,10 @@ describe('get_treaty_agree_thumb_up', () => {
     expect(typeof get_treaty_agree_thumb_up).toBe('function');
   });
 });
+
+describe('get_treaty_disagree_thumb_down', () => {
+  it('is exported as a function', async () => {
+    const { get_treaty_disagree_thumb_down } = await import('@/renderer/spriteGetters');
+    expect(typeof get_treaty_disagree_thumb_down).toBe('function');
+  });
+});

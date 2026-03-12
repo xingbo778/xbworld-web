@@ -46,3 +46,17 @@ describe('core/control', () => {
     expect(() => control_init()).not.toThrow();
   });
 });
+
+describe('showEndgameDialog', () => {
+  it('is exported as a function', async () => {
+    const { showEndgameDialog } = await import('@/client/clientMain');
+    expect(typeof showEndgameDialog).toBe('function');
+  });
+
+  it('does not throw with empty endgamePlayerInfo', async () => {
+    const { showEndgameDialog } = await import('@/client/clientMain');
+    const { store } = await import('@/data/store');
+    store.endgamePlayerInfo = [];
+    expect(() => showEndgameDialog()).not.toThrow();
+  });
+});
