@@ -30,7 +30,18 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium-headed',
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        // Prevent RAF/timer throttling when the window is not in foreground,
+        // which causes requestAnimationFrame-based render loops to freeze.
+        launchOptions: {
+          args: [
+            '--disable-background-timer-throttling',
+            '--disable-renderer-backgrounding',
+            '--disable-backgrounding-occluded-windows',
+          ],
+        },
+      },
     },
   ],
   webServer: {

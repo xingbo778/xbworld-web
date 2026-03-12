@@ -29,7 +29,8 @@ if (!fs.existsSync(SCREENSHOTS)) fs.mkdirSync(SCREENSHOTS, { recursive: true });
 // ── helpers ──────────────────────────────────────────────────────────────────
 
 async function loadGame(page: Page): Promise<boolean> {
-  await page.goto('/webclient/index.html', { waitUntil: 'domcontentloaded' });
+  await page.bringToFront();  // ensure tab is focused so requestAnimationFrame runs at full speed
+  await page.goto('/webclient/index.html?renderer=pixi', { waitUntil: 'domcontentloaded' });
   const usernameInput = page.locator('#username_req');
   if (await usernameInput.isVisible({ timeout: 3000 }).catch(() => false)) {
     await usernameInput.fill('TurnBot');
@@ -72,6 +73,9 @@ interface GameSnapshot {
   turn: number;
   builtTiles: number;
   containerCount: number;
+  spritesReady?: boolean;
+  dirtyAll?: boolean;
+  dirtyCount?: number;
   unitPositions: Record<string, number>;
   playerGold: Record<string, number>;
   playerScore: Record<string, number>;
@@ -82,12 +86,15 @@ interface GameSnapshot {
 async function captureSnapshot(page: Page, errors: string[]): Promise<GameSnapshot> {
   return page.evaluate((errs) => {
     const debug = (window as any).__xbwPixiDebug;
-    const stats = debug?.getStats() ?? { builtTiles: 0, containerCount: 0 };
+    const stats = debug?.getStats() ?? { builtTiles: 0, containerCount: 0, spritesReady: false, dirtyAll: false, dirtyCount: 0 };
     const gs = debug?.getGameState?.() ?? { turn: -1, unitPositions: {}, playerGold: {}, playerScore: {} };
     return {
       turn: gs.turn,
       builtTiles: stats.builtTiles,
       containerCount: stats.containerCount,
+      spritesReady: stats.spritesReady,
+      dirtyAll: stats.dirtyAll,
+      dirtyCount: stats.dirtyCount,
       unitPositions: gs.unitPositions,
       playerGold: gs.playerGold,
       playerScore: gs.playerScore,
@@ -127,6 +134,13 @@ test.describe('20-turn game simulation', () => {
     // Checkpoint at every 5 turns
     for (const checkpoint of [5, 10, 15, 20]) {
       const actualTurn = await waitForTurn(page, checkpoint);
+      // Wait for renderer to finish its rebuild cycle before snapshotting.
+      // markAllDirty fires every ~800ms (player:updated debounce); builtSet
+      // is 0 for ~110ms while tiles rebuild. Polling here avoids a flaky read.
+      await page.waitForFunction(
+        () => !!(window as any).__xbwPixiDebug?.getStats().builtTiles,
+        { timeout: 5_000 },
+      ).catch(() => { /* allow capture even if tiles are still rebuilding */ });
       const snap = await captureSnapshot(page, errors);
       snapshots.push(snap);
 
@@ -138,6 +152,7 @@ test.describe('20-turn game simulation', () => {
       console.log(`\n── Turn ${checkpoint} checkpoint (actual: ${actualTurn}) ──`);
       console.log(`  builtTiles:    ${snap.builtTiles}`);
       console.log(`  containers:    ${snap.containerCount}`);
+      console.log(`  spritesReady:  ${snap.spritesReady}  dirtyAll:${snap.dirtyAll}  dirtyCount:${snap.dirtyCount}`);
       console.log(`  pixel pct:     ${snap.nonBlackPixelPct}%`);
       console.log(`  player gold:   ${JSON.stringify(snap.playerGold)}`);
       console.log(`  player score:  ${JSON.stringify(snap.playerScore)}`);

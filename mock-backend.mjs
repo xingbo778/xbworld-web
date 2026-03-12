@@ -18,6 +18,13 @@ const AI_PLAYERS = [
   { playerno: 2, name: 'Gandhi',    color: [0, 200, 0] },
 ];
 
+// City names per player (ancient world theme)
+const CITY_NAMES = [
+  ['Rome', 'Capua'],
+  ['Alexandria', 'Memphis'],
+  ['Pataliputra', 'Vaishali'],
+];
+
 // Terrain IDs matching PixiRenderer expectations
 const TERRAINS = [
   { id: 0, name: 'Coast',      graphic_str: 'coast',      graphic_alt: 'coast',      movement_cost: 1, defense_bonus: 0, output: [0, 1, 0, 0, 0, 0], color_red: 100, color_green: 140, color_blue: 180 },
@@ -479,6 +486,122 @@ function sendGameInit(ws, username) {
   }
   console.log('Units sent!');
 
+  // 13c. City definitions — 2 cities per AI player on distinct land tiles
+  //
+  // Packet 31 (city_info) fields used by the client:
+  //   id, tile, name, owner, size, food_stock, granary_size,
+  //   improvements (BitVector from number[]), city_options (BitVector),
+  //   production { kind, value }, is_capital, surplus[], prod[]
+  // Packet 256 (web_city_info_addition) merges extra fields into the city.
+  const cityRoster = [];  // [{id, owner, tile, nameIdx, size}] for turn updates
+  let cityId = 1;
+  const usedCityTiles = new Set();
+
+  /** Build a minimal city_info packet */
+  function makeCityPacket(id, owner, tile, name, size, isCapital) {
+    // improvements: BitVector encoded as [word0, word1, ...].
+    // Bit 0 = Palace (improvement id 0), bit 1 = Barracks, etc.
+    // We give capitals a Palace (bit 0 set → [1]).
+    const improvements = isCapital ? [1] : [0];
+    return {
+      pid: 31,  // city_info
+      id, tile, name: encodeURIComponent(name), owner, size,
+      is_capital: isCapital,
+      improvements,
+      city_options: [0],
+      food_stock: Math.floor(size * 2),
+      granary_size: 20,
+      granary_turns: 3,
+      // production: kind 0 = improvement, kind 1 = unit
+      production: { kind: 1, value: 0 },   // building Warriors
+      shield_stock: 4,
+      before_change_shields: 0,
+      disbanded_shields: 0,
+      caravan_shields: 0,
+      last_turns_shield_surplus: 2,
+      anarchy: 0,
+      rapture_count: 0,
+      steal: 0,
+      was_happy: size >= 3,
+      airlift: 0,
+      did_buy: false,
+      disbanded: false,
+      did_sell: false,
+      pollution: 0,
+      illness_trade_impacted: 0,
+      illness: 0,
+      prod: [4, 3, 2, 1, 0, 2],            // food, shield, trade, gold, lux, science
+      surplus: [1, 1, 0, 0, 0, 1],
+      happy: [size, 0, 0, 0, 0, 0],
+      feel: [],
+      citizen_base_happy_turns: 0,
+      units_supported: [],
+      ppl_happy: [size, 0, 0, 0, 0],
+      ppl_content: [0, 0, 0, 0, 0],
+      ppl_unhappy: [0, 0, 0, 0, 0],
+      ppl_angry: [0, 0, 0, 0, 0],
+      specialists: [0, 0, 0],
+      trade: [],
+      trade_value: [],
+      food_production: 4,
+      shield_production: 3,
+      luxury_total: 0,
+      tax_total: 1,
+      science_total: 2,
+      culture: 0,
+      history: 0,
+      wonders: [],
+      counters: [],
+      city_radius_sq: 5,
+      buy_cost: 20,
+      infra_points: 0,
+      growth_foodbox_active: false,
+    };
+  }
+
+  for (const ai of AI_PLAYERS) {
+    const names = CITY_NAMES[ai.playerno] ?? [`City${ai.playerno * 2}`, `City${ai.playerno * 2 + 1}`];
+    for (let ci = 0; ci < 2; ci++) {
+      // Pick a land tile not already used — spread them out
+      const offset = Math.floor(landTiles.length * (ai.playerno * 2 + ci) / (AI_PLAYERS.length * 2));
+      let tileIdx = landTiles[offset];
+      // Avoid collisions with other cities
+      for (let bump = 0; bump < 20; bump++) {
+        if (!usedCityTiles.has(tileIdx)) break;
+        tileIdx = landTiles[(offset + bump * 3) % landTiles.length];
+      }
+      usedCityTiles.add(tileIdx);
+      const isCapital = ci === 0;
+      const size = isCapital ? 3 : 1;
+
+      sendPackets(ws, [makeCityPacket(cityId, ai.playerno, tileIdx, names[ci], size, isCapital)]);
+
+      // pid 256 — WebCityInfoAddition: extra fields the web client merges in
+      sendPackets(ws, [{
+        pid: 256,
+        id: cityId,
+        granary_turns_to_grow: 3,
+        production_turns_to_build: 8,
+        city_production_name: 'Warriors',
+        city_production_kind: 1,
+        city_production_value: 0,
+      }]);
+
+      // Mark the tile as owned by this player (update pid 15 owner field)
+      sendPackets(ws, [{
+        pid: 15,
+        tile: tileIdx, x: tileIdx % MAP_X, y: Math.floor(tileIdx / MAP_X),
+        known: 2, terrain: terrainMap[tileIdx], extras: [0],
+        resource: -1, owner: ai.playerno, worked: cityId,
+        continent: 1, spec_sprite: '', label: '', height: 0,
+      }]);
+
+      cityRoster.push({ id: cityId, owner: ai.playerno, tile: tileIdx, name: names[ci], size, isCapital });
+      cityId++;
+    }
+  }
+  console.log(`Cities sent! (${cityRoster.length} cities for ${AI_PLAYERS.length} players)`);
+
   // 14. Start game phase — turn 0
   sendPackets(ws, [
     { pid: 127, year: -4000, fragments: 0, turn: 0 }, // new_year
@@ -589,6 +712,21 @@ function sendGameInit(ws, username) {
         bulbs_researched: Math.min(cost - 1, 20 + ai.playerno * 5 + currentTurn * 4),
         tech_goal: -1,
         inventions: [],
+      }]);
+    }
+
+    // 4b. City updates — grow size every 8 turns
+    for (const city of cityRoster) {
+      if (currentTurn % 8 === 0) city.size++;
+      sendPackets(ws, [makeCityPacket(city.id, city.owner, city.tile, city.name, city.size, city.isCapital)]);
+      sendPackets(ws, [{
+        pid: 256,
+        id: city.id,
+        granary_turns_to_grow: Math.max(1, 8 - (currentTurn % 8)),
+        production_turns_to_build: Math.max(1, 6 - (currentTurn % 6)),
+        city_production_name: 'Warriors',
+        city_production_kind: 1,
+        city_production_value: 0,
       }]);
     }
 

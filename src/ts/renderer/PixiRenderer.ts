@@ -129,6 +129,7 @@ export class PixiRenderer {
     this.createFogTexture();
 
     // Expose debug stats for e2e sprite tests
+    (window as unknown as Record<string, unknown>)['__xbwStore'] = store;
     (window as unknown as Record<string, unknown>)['__xbwPixiDebug'] = {
       getStats: () => ({
         builtTiles: this.builtSet.size,
@@ -669,7 +670,10 @@ export class PixiRenderer {
   private setupEventListeners(): void {
     globalEvents.on('tile:updated', (data: unknown) => {
       const d = data as Record<string, unknown> | null;
-      const idx = d?.['tileIndex'] ?? (d?.['tile'] as Record<string, unknown> | undefined)?.['index'];
+      // pid-15 packets carry the tile index as `tile` (a number).
+      // Older emitters may use `tileIndex` or `tile.index`.
+      const idx = d?.['tileIndex']
+        ?? (typeof d?.['tile'] === 'number' ? d['tile'] : (d?.['tile'] as Record<string, unknown> | undefined)?.['index']);
       if (typeof idx === 'number') this.markDirty(idx); else this.markAllDirty();
     });
     globalEvents.on('unit:updated', (data: unknown) => {

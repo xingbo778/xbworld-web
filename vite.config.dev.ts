@@ -70,6 +70,11 @@ export default defineConfig({
     },
     rollupOptions: {
       external: ['pixi.js'],
+      output: {
+        // Force everything into a single file (no content-hashed chunks).
+        // This keeps the bundle predictable for git tracking and the static HTML reference.
+        inlineDynamicImports: true,
+      },
     },
     target: 'es2022',
     minify: false,
