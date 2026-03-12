@@ -187,3 +187,37 @@ describe('Packet Handler', () => {
     expect(() => handlePacket({ pid: 9999 })).not.toThrow();
   });
 });
+
+// ── register*Handlers exports ─────────────────────────────────────────────
+
+describe('register*Handlers exports', () => {
+  it('registerCityHandlers is a function', async () => {
+    const { registerCityHandlers } = await import('@/net/packets/city');
+    expect(typeof registerCityHandlers).toBe('function');
+  });
+
+  it('registerUnitHandlers is a function', async () => {
+    const { registerUnitHandlers } = await import('@/net/packets/unit');
+    expect(typeof registerUnitHandlers).toBe('function');
+  });
+
+  it('registerGameHandlers is a function', async () => {
+    const { registerGameHandlers } = await import('@/net/packets/game');
+    expect(typeof registerGameHandlers).toBe('function');
+  });
+
+  it('registerConnectionHandlers is a function', async () => {
+    const { registerConnectionHandlers } = await import('@/net/packets/connection');
+    expect(typeof registerConnectionHandlers).toBe('function');
+  });
+
+  it('registerDiplomacyHandlers is a function', async () => {
+    const { registerDiplomacyHandlers } = await import('@/net/packets/diplomacy');
+    expect(typeof registerDiplomacyHandlers).toBe('function');
+  });
+
+  it('registerRulesetHandlers is a function', async () => {
+    const { registerRulesetHandlers } = await import('@/net/packets/ruleset');
+    expect(typeof registerRulesetHandlers).toBe('function');
+  });
+});

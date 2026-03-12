@@ -186,3 +186,18 @@ describe('get_units_from_tech', () => {
     expect(units[0].name).toBe('Warriors');
   });
 });
+
+// ── utype_can_do_action_result ────────────────────────────────────────────
+
+describe('utype_can_do_action_result', () => {
+  it('is exported as a function', async () => {
+    const { utype_can_do_action_result } = await import('@/data/unittype');
+    expect(typeof utype_can_do_action_result).toBe('function');
+  });
+
+  it('returns false when unit has no actions', async () => {
+    const { utype_can_do_action_result } = await import('@/data/unittype');
+    const putype = { utype_actions: { isSet: () => false } } as never;
+    expect(utype_can_do_action_result(putype, 0)).toBe(false);
+  });
+});
