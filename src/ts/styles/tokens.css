@@ -136,6 +136,13 @@
 #mapview_canvas_div {
   position: relative;
   overflow: hidden;
+  width: 100%;
+  height: 100%;
+}
+
+#canvas_div {
+  width: 100%;
+  height: 100%;
 }
 
 #game_chatbox_panel {

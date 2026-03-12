@@ -105,7 +105,7 @@ export function setupWindowSize(): void {
   _setW('nations', new_mapview_width);
   const tabs = _el('tabs');
   if (tabs) tabs.style.height = winHeight + 'px';
-  _setH('tabs-map', 'auto');
+  _setH('tabs-map', new_mapview_height);
   _setH('city_viewport', new_mapview_height - 20);
   _show('opt_tab');
   _show('players_tab');
@@ -197,8 +197,6 @@ export function setDefaultMapviewActive(): void {
 
   // Switch to map tab
   setActiveTab('#tabs', 0);
-  const tabsMap = document.getElementById('tabs-map');
-  if (tabsMap) tabsMap.style.height = 'auto';
   setTechDialogActive(false);
   setAllowRightClick(false);
   setKeyboardInput(true);
