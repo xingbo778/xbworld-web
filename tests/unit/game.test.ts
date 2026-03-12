@@ -230,3 +230,32 @@ describe('update_game_status_panel', () => {
     expect(statusPanelLayout.value).toBe(before); // unchanged
   });
 });
+
+// ── sum_width ─────────────────────────────────────────────────────────────
+
+describe('sum_width', () => {
+  it('is exported as a function', async () => {
+    const { sum_width } = await import('@/data/game');
+    expect(typeof sum_width).toBe('function');
+  });
+
+  it('returns 0 when tabs_menu element is absent', async () => {
+    const { sum_width } = await import('@/data/game');
+    // jsdom has no #tabs_menu element → sum = 0
+    expect(sum_width()).toBe(0);
+  });
+});
+
+// ── game_init ─────────────────────────────────────────────────────────────
+
+describe('game_init', () => {
+  it('is exported as a function', async () => {
+    const { game_init } = await import('@/data/game');
+    expect(typeof game_init).toBe('function');
+  });
+
+  it('does not throw', async () => {
+    const { game_init } = await import('@/data/game');
+    expect(() => game_init()).not.toThrow();
+  });
+});
