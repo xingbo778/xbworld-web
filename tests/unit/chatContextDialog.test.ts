@@ -128,4 +128,21 @@ describe('ChatContextDialog rendering', () => {
     expect(closeBtn).toBeDefined();
     document.body.removeChild(div);
   });
+
+  it('clicking × button closes the dialog', async () => {
+    const { ChatContextDialog, showChatContextDialog } = await import('@/components/ChatContextDialog');
+    showChatContextDialog([{ id: null, flag: null, description: 'All' }], null);
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    render(h(ChatContextDialog, null), div);
+
+    const closeBtn = Array.from(div.querySelectorAll('button')).find(b => b.textContent?.includes('×')) as HTMLButtonElement;
+    expect(closeBtn).toBeDefined();
+    closeBtn.click();
+    await Promise.resolve();
+
+    render(h(ChatContextDialog, null), div);
+    expect(div.innerHTML).toBe('');
+    document.body.removeChild(div);
+  });
 });

@@ -98,4 +98,21 @@ describe('AlertDialog rendering', () => {
     expect(buttons).toContain('Ok');
     document.body.removeChild(div);
   });
+
+  it('Ok button closes the dialog', async () => {
+    const { AlertDialog, showAlertDialog } = await import('@/components/Dialogs/AlertDialog');
+    showAlertDialog('Error', 'Something went wrong', 'error');
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    render(h(AlertDialog, null), div);
+
+    const okBtn = Array.from(div.querySelectorAll('button')).find(b => b.textContent?.trim() === 'Ok') as HTMLButtonElement;
+    expect(okBtn).toBeDefined();
+    okBtn.click();
+    await Promise.resolve();
+
+    render(h(AlertDialog, null), div);
+    expect(div.innerHTML).toBe('');
+    document.body.removeChild(div);
+  });
 });
