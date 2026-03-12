@@ -98,3 +98,48 @@ describe('chat_context_get_recipients', () => {
     expect(Array.isArray(chat_context_get_recipients())).toBe(true);
   });
 });
+
+describe('chat_context_set_next', () => {
+  it('is exported as a function', async () => {
+    const { chat_context_set_next } = await import('@/core/control/chat');
+    expect(typeof chat_context_set_next).toBe('function');
+  });
+
+  it('does not throw with a two-element recipients array (wraps around)', async () => {
+    const { chat_context_set_next } = await import('@/core/control/chat');
+    // Requires at least one recipient; function cycles through the list
+    const recipients = [
+      { id: null, label: 'Everybody' },
+      { id: null, label: 'Allies' },
+    ];
+    expect(() => chat_context_set_next(recipients as never)).not.toThrow();
+  });
+
+  it('does not throw with a single recipient', async () => {
+    const { chat_context_set_next } = await import('@/core/control/chat');
+    expect(() => chat_context_set_next([{ id: null, label: 'Everybody' }] as never)).not.toThrow();
+  });
+});
+
+describe('check_text_input', () => {
+  it('is exported as a function', async () => {
+    const { check_text_input } = await import('@/core/control/chat');
+    expect(typeof check_text_input).toBe('function');
+  });
+
+  it('does nothing (undefined) when key is not Enter', async () => {
+    const { check_text_input } = await import('@/core/control/chat');
+    const event = { keyCode: 65, shiftKey: false } as KeyboardEvent;
+    const input = { value: 'hello' } as HTMLInputElement;
+    const result = check_text_input(event, input);
+    expect(result).toBeUndefined();
+  });
+
+  it('does nothing (undefined) when Enter+Shift is pressed', async () => {
+    const { check_text_input } = await import('@/core/control/chat');
+    const event = { keyCode: 13, shiftKey: true } as KeyboardEvent;
+    const input = { value: 'hello' } as HTMLInputElement;
+    const result = check_text_input(event, input);
+    expect(result).toBeUndefined();
+  });
+});
