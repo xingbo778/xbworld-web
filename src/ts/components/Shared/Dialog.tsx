@@ -70,6 +70,10 @@ export function Dialog({
     zIndex: 10000,
     width,
     height,
+    borderRadius: 'var(--xb-dialog-radius, 6px)',
+    boxShadow: 'var(--xb-dialog-shadow, 0 8px 32px rgba(0,0,0,0.6))',
+    border: '1px solid var(--xb-dialog-border-color, var(--xb-border-default, #30363d))',
+    overflow: 'hidden',
     ...(pos.x >= 0 ? { left: pos.x, top: pos.y } : {}),
   };
 
@@ -106,10 +110,10 @@ export function Dialog({
             color: 'var(--xb-dialog-titlebar-color)',
             cursor: draggable ? 'move' : 'default',
             userSelect: 'none',
-            borderRadius: 'var(--xb-dialog-titlebar-radius)',
+            borderBottom: '2px solid var(--xb-dialog-titlebar-accent, var(--xb-accent-blue, #58a6ff))',
           }}
         >
-          <span style={{ fontWeight: 'bold', fontSize: 'var(--xb-dialog-titlebar-font-size)' }}>{title}</span>
+          <span style={{ fontWeight: 600, fontSize: 'var(--xb-dialog-titlebar-font-size)' }}>{title}</span>
           {onClose && (
             <button
               onClick={onClose}
@@ -118,16 +122,18 @@ export function Dialog({
                 background: 'none',
                 border: 'none',
                 color: 'var(--xb-dialog-titlebar-close-color)',
-                fontSize: '22px',
+                fontSize: '20px',
                 cursor: 'pointer',
-                padding: '2px 8px',
+                padding: '2px 6px',
                 lineHeight: 1,
                 touchAction: 'manipulation',
-                minWidth: '32px',
-                minHeight: '32px',
+                minWidth: '28px',
+                minHeight: '28px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
+                borderRadius: 'var(--xb-radius-sm, 3px)',
+                transition: 'background var(--xb-transition-fast, 100ms ease)',
               }}
               aria-label="Close"
             >
@@ -141,9 +147,6 @@ export function Dialog({
             background: 'var(--xb-dialog-content-bg)',
             color: 'var(--xb-dialog-content-color)',
             padding: 'var(--xb-dialog-content-padding)',
-            borderRadius: '0 0 var(--xb-radius-md) var(--xb-radius-md)',
-            border: '1px solid var(--xb-dialog-content-border-color)',
-            borderTop: 'none',
             maxHeight: '80vh',
             overflow: 'auto',
           }}

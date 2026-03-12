@@ -109,10 +109,12 @@ function NationsTable() {
             const p = pplayer as Record<string, unknown>;
             const nation = store.nations[p['nation'] as number];
             const color: string = (nation as Record<string, unknown> | undefined)?.['color'] as string ?? 'var(--xb-text-primary)';
-            const pr = research_get(pplayer);
-            const techData = pr ? store.techs[pr['researching'] as number] : null;
-            const bulbs: number = (pr?.['bulbs_researched'] as number) ?? 0;
-            const cost: number = ((pr?.['researching_cost'] as number) ?? 1) || 1;
+            // Fall back to research fields merged onto player object if research_data entry absent
+            const pr = research_get(pplayer) ?? (p as Record<string, unknown>);
+            const researchingId = (pr['researching'] as number) ?? 0;
+            const techData = researchingId ? store.techs[researchingId] : null;
+            const bulbs: number = (pr['bulbs_researched'] as number) ?? 0;
+            const cost: number = ((pr['researching_cost'] as number) ?? 1) || 1;
             const pct = Math.min(100, Math.round((bulbs / cost) * 100));
             const isAI = pplayer.flags?.isSet(PlayerFlag.PLRF_AI) ?? false;
 
@@ -171,7 +173,7 @@ function NationsTable() {
                   {techData ? techData['name'] as string : '—'}
                 </td>
                 <td style={{ ...TD_STYLE, minWidth: 80 }}>
-                  {pr && (
+                  {researchingId > 0 && (
                     <div title={`${bulbs}/${cost} bulbs (${pct}%)`}>
                       <div style={{ background: 'var(--xb-bg-elevated, #21262d)', borderRadius: 3, height: 6, overflow: 'hidden' }}>
                         <div style={{ background: color, height: '100%', width: `${pct}%`, borderRadius: 3, transition: 'width 0.3s' }} />

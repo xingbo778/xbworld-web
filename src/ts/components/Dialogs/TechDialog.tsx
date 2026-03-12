@@ -70,9 +70,9 @@ function ResearchList() {
         </div>
       )}
       {players.map((pplayer) => {
-        const pr = research_get(pplayer);
-        if (!pr) return null;
-        const researching: number = pr['researching'] as number;
+        // Prefer research_data entry; fall back to research fields merged onto player object
+        const pr = research_get(pplayer) ?? (pplayer as Record<string, unknown>);
+        const researching: number = (pr['researching'] as number) ?? 0;
         const techData = store.techs[researching];
         const bulbs: number = (pr['bulbs_researched'] as number) ?? 0;
         const cost: number = ((pr['researching_cost'] as number) ?? 1) || 1;
