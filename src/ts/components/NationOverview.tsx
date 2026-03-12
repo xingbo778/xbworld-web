@@ -81,6 +81,19 @@ function NationsTable() {
     );
   }
 
+  // Pre-compute per-player counts in a single O(C + U) pass instead of
+  // O(P×C + P×U) repeated filters inside the player loop.
+  const cityCountByPlayer = new Map<number, number>();
+  for (const city of Object.values(store.cities)) {
+    const owner = (city as Record<string, unknown>)['owner'] as number;
+    cityCountByPlayer.set(owner, (cityCountByPlayer.get(owner) ?? 0) + 1);
+  }
+  const unitCountByPlayer = new Map<number, number>();
+  for (const unit of Object.values(store.units)) {
+    const owner = (unit as Record<string, unknown>)['owner'] as number;
+    unitCountByPlayer.set(owner, (unitCountByPlayer.get(owner) ?? 0) + 1);
+  }
+
   return (
     <div style={{ overflowX: 'auto' }}>
       <table style={TABLE_STYLE}>
@@ -103,12 +116,9 @@ function NationsTable() {
             const pct = Math.min(100, Math.round((bulbs / cost) * 100));
             const isAI = pplayer.flags?.isSet(PlayerFlag.PLRF_AI) ?? false;
 
-            const myCities = Object.values(store.cities).filter(
-              c => (c as Record<string, unknown>)['owner'] === p['playerno']
-            ).length;
-            const myUnits = Object.values(store.units).filter(
-              u => (u as Record<string, unknown>)['owner'] === p['playerno']
-            ).length;
+            const playerno = p['playerno'] as number;
+            const myCities = cityCountByPlayer.get(playerno) ?? 0;
+            const myUnits = unitCountByPlayer.get(playerno) ?? 0;
 
             let stateText = '';
             let stateColor = 'var(--xb-text-secondary, #8b949e)';
@@ -128,7 +138,6 @@ function NationsTable() {
               stateColor = 'var(--xb-accent-blue, #58a6ff)';
             }
 
-            const playerno = p['playerno'] as number;
             const isSelected = playerno === selectedNo;
             return (
               <tr

@@ -386,3 +386,71 @@ describe('NationOverview — researchUpdated signal → tech column', () => {
     expect(researchUpdated.value).toBe(before + 1);
   });
 });
+
+// ── NationsTable per-player count pre-computation (perf optimization) ──────
+
+describe('NationsTable — per-player city/unit count pre-computation', () => {
+  beforeEach(() => { store.reset(); });
+
+  it('renders correct city count per player without O(P×C) filter', async () => {
+    const { mountNationOverview } = await import('@/components/NationOverview');
+    store.nations[1] = { name: 'Romans', adjective: 'Roman', graphic_str: 'romans', color: '#f00' } as never;
+    store.players[0] = { playerno: 0, name: 'Caesar', nation: 1, is_alive: true, score: 10 } as never;
+    store.players[1] = { playerno: 1, name: 'Augustus', nation: 1, is_alive: true, score: 5 } as never;
+    // 3 cities for player 0, 1 city for player 1
+    store.cities[10] = { id: 10, name: 'Rome', owner: 0, size: 5 } as never;
+    store.cities[11] = { id: 11, name: 'Milan', owner: 0, size: 3 } as never;
+    store.cities[12] = { id: 12, name: 'Naples', owner: 0, size: 2 } as never;
+    store.cities[20] = { id: 20, name: 'Carthage', owner: 1, size: 4 } as never;
+
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    mountNationOverview(container);
+
+    // Player 0 should show 3 cities, player 1 should show 1 city
+    const cells = container.querySelectorAll('td');
+    const text = Array.from(cells).map(c => c.textContent);
+    // Caesar row: name, score, cities(3), units, gold, ...
+    expect(text.some(t => t === '3')).toBe(true);
+    expect(text.some(t => t === '1')).toBe(true);
+
+    document.body.removeChild(container);
+  });
+
+  it('renders correct unit count per player', async () => {
+    const { mountNationOverview } = await import('@/components/NationOverview');
+    store.nations[1] = { name: 'Romans', adjective: 'Roman', graphic_str: 'romans', color: '#f00' } as never;
+    store.players[0] = { playerno: 0, name: 'Caesar', nation: 1, is_alive: true, score: 10 } as never;
+    store.units[1] = { id: 1, owner: 0, type: 0, hp: 10 } as never;
+    store.units[2] = { id: 2, owner: 0, type: 0, hp: 10 } as never;
+
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    mountNationOverview(container);
+
+    const cells = container.querySelectorAll('td');
+    const text = Array.from(cells).map(c => c.textContent);
+    // Units column should show 2
+    expect(text.some(t => t === '2')).toBe(true);
+
+    document.body.removeChild(container);
+  });
+
+  it('shows 0 cities and 0 units for player with none', async () => {
+    const { mountNationOverview } = await import('@/components/NationOverview');
+    store.nations[1] = { name: 'Romans', adjective: 'Roman', graphic_str: 'romans', color: '#f00' } as never;
+    store.players[0] = { playerno: 0, name: 'Caesar', nation: 1, is_alive: true, score: 0 } as never;
+    // No cities or units for player 0
+
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    mountNationOverview(container);
+
+    const cells = container.querySelectorAll('td');
+    const text = Array.from(cells).map(c => c.textContent);
+    // Cities and Units columns should both be 0
+    expect(text.filter(t => t === '0').length).toBeGreaterThanOrEqual(2);
+
+    document.body.removeChild(container);
+  });
+});
