@@ -239,3 +239,25 @@ describe('techIdByName', () => {
     expect(techIdByName('NonExistent')).toBeNull();
   });
 });
+
+// ── getCurrentBulbsOutput ─────────────────────────────────────────────────
+
+describe('getCurrentBulbsOutput', () => {
+  it('is exported as a function', async () => {
+    const { getCurrentBulbsOutput } = await import('@/data/tech');
+    expect(typeof getCurrentBulbsOutput).toBe('function');
+  });
+
+  it('returns object with all expected keys when not playing', async () => {
+    // In test env, client is observer → returns zeros
+    const { getCurrentBulbsOutput } = await import('@/data/tech');
+    const result = getCurrentBulbsOutput();
+    expect(result).toHaveProperty('self_bulbs');
+    expect(result).toHaveProperty('self_upkeep');
+    expect(result).toHaveProperty('pooled');
+    expect(result).toHaveProperty('team_bulbs');
+    expect(result).toHaveProperty('team_upkeep');
+    expect(typeof result.self_bulbs).toBe('number');
+    expect(typeof result.pooled).toBe('boolean');
+  });
+});
