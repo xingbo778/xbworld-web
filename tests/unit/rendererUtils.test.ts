@@ -99,7 +99,7 @@ describe('PixiRenderer — resize listener removed on destroy', () => {
     });
 
     const container = document.createElement('div');
-    const renderer = new PixiRenderer({ container, mapCanvas: container });
+    const renderer = new PixiRenderer({ container });
 
     // Stub app.destroy so we can call renderer.destroy() without a full Pixi init
     const r = renderer as unknown as Record<string, unknown>;
@@ -116,7 +116,7 @@ describe('PixiRenderer — resize listener removed on destroy', () => {
   it('_onResize is nulled after destroy()', async () => {
     const { PixiRenderer } = await import('@/renderer/PixiRenderer');
     const container = document.createElement('div');
-    const renderer = new PixiRenderer({ container, mapCanvas: container });
+    const renderer = new PixiRenderer({ container });
 
     const r = renderer as unknown as Record<string, unknown>;
     r['app'] = { destroy: vi.fn(), screen: { width: 100, height: 100 } };
