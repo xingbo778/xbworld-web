@@ -373,3 +373,33 @@ describe('show_intelligence_report_hearsay', () => {
     document.body.removeChild(container);
   });
 });
+
+// ── show_intelligence_report_dialog ──────────────────────────────────────
+
+describe('show_intelligence_report_dialog', () => {
+  it('is exported as a function', async () => {
+    const { show_intelligence_report_dialog } = await import('@/ui/intelDialog');
+    expect(typeof show_intelligence_report_dialog).toBe('function');
+  });
+
+  it('does nothing when selectedPlayer is -1', async () => {
+    const { show_intelligence_report_dialog } = await import('@/ui/intelDialog');
+    mockStore.selectedPlayer = -1;
+    // Should return early without throwing
+    expect(() => show_intelligence_report_dialog()).not.toThrow();
+  });
+});
+
+// ── show_intelligence_report_embassy ─────────────────────────────────────
+
+describe('show_intelligence_report_embassy', () => {
+  it('is exported as a function', async () => {
+    const { show_intelligence_report_embassy } = await import('@/ui/intelDialog');
+    expect(typeof show_intelligence_report_embassy).toBe('function');
+  });
+
+  it('does not throw for a minimal player', async () => {
+    const { show_intelligence_report_embassy } = await import('@/ui/intelDialog');
+    expect(() => show_intelligence_report_embassy(makePlayer() as never)).not.toThrow();
+  });
+});
