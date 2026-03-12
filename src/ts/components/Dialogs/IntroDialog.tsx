@@ -74,16 +74,17 @@ export function IntroDialog() {
             style={{
               padding: '4px 8px',
               fontSize: '14px',
-              background: '#2a2a3e',
-              color: '#e0e0e0',
-              border: '1px solid #555',
-              borderRadius: '3px',
+              background: 'var(--xb-bg-elevated, #21262d)',
+              color: 'var(--xb-text-primary, #e6edf3)',
+              border: '1px solid var(--xb-border-default, #30363d)',
+              borderRadius: 'var(--xb-radius-sm, 3px)',
               width: '200px',
+              outline: 'none',
             }}
           />
         </label>
         {error && (
-          <div style={{ color: '#ff6b6b', marginTop: '4px', fontSize: '13px' }}>{error}</div>
+          <div style={{ color: 'var(--xb-accent-red, #f85149)', marginTop: '4px', fontSize: '13px' }}>{error}</div>
         )}
       </div>
       <div style={{ marginTop: '12px', textAlign: 'right' }}>

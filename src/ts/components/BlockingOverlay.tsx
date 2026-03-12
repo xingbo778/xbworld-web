@@ -31,7 +31,7 @@ export function BlockingOverlay() {
     }}>
       <div class="xb-block-message" style={{
         background: 'var(--xb-bg-primary, #0d1117)',
-        border: '1px solid var(--xb-border, #30363d)',
+        border: '1px solid var(--xb-border-default, #30363d)',
         borderRadius: '8px',
         padding: '24px 32px',
         color: 'var(--xb-text-primary, #e6edf3)',

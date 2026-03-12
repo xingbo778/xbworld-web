@@ -37,7 +37,7 @@ export function DisconnectOverlay() {
 
   const boxStyle = {
     background: 'var(--xb-bg-primary, #0d1117)',
-    border: '1px solid var(--xb-border, #30363d)',
+    border: '1px solid var(--xb-border-default, #30363d)',
     borderRadius: '10px',
     padding: '32px 40px',
     color: 'var(--xb-text-primary, #e6edf3)',
@@ -65,7 +65,7 @@ export function DisconnectOverlay() {
               onClick={() => location.reload()}
               style={{
                 background: 'none',
-                border: '1px solid var(--xb-border, #30363d)',
+                border: '1px solid var(--xb-border-default, #30363d)',
                 color: 'var(--xb-text-secondary, #8b949e)',
                 borderRadius: '6px',
                 padding: '6px 16px',
@@ -98,7 +98,7 @@ export function DisconnectOverlay() {
             onClick={() => location.reload()}
             style={{
               background: 'none',
-              border: '1px solid var(--xb-border, #30363d)',
+              border: '1px solid var(--xb-border-default, #30363d)',
               color: 'var(--xb-text-secondary, #8b949e)',
               borderRadius: '6px',
               padding: '6px 16px',
