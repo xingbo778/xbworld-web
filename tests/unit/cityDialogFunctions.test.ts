@@ -135,3 +135,40 @@ describe('city:updated event — auto-refresh open dialog', () => {
     expect(current?.['size']).toBe(8);
   });
 });
+
+describe('cityDialog stub functions', () => {
+  it('rename_city does not throw', async () => {
+    const { rename_city } = await import('@/ui/cityDialog');
+    expect(() => rename_city()).not.toThrow();
+  });
+
+  it('city_keyboard_listener does not throw', async () => {
+    const { city_keyboard_listener } = await import('@/ui/cityDialog');
+    expect(() => city_keyboard_listener({} as KeyboardEvent)).not.toThrow();
+  });
+
+  it('set_citydlg_dimensions does not throw', async () => {
+    const { set_citydlg_dimensions } = await import('@/ui/cityDialog');
+    expect(() => set_citydlg_dimensions({} as never)).not.toThrow();
+  });
+
+  it('do_city_map_click does not throw', async () => {
+    const { do_city_map_click } = await import('@/ui/cityDialog');
+    expect(() => do_city_map_click(null)).not.toThrow();
+  });
+
+  it('city_sell_improvement does not throw', async () => {
+    const { city_sell_improvement } = await import('@/ui/cityDialog');
+    expect(() => city_sell_improvement(0)).not.toThrow();
+  });
+
+  it('city_change_specialist does not throw', async () => {
+    const { city_change_specialist } = await import('@/ui/cityDialog');
+    expect(() => city_change_specialist(0, 0)).not.toThrow();
+  });
+
+  it('send_city_change does not throw', async () => {
+    const { send_city_change } = await import('@/ui/cityDialog');
+    expect(() => send_city_change(0, 0, 0)).not.toThrow();
+  });
+});
