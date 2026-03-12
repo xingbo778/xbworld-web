@@ -46,6 +46,14 @@ export function setClientState(newstate: number): void {
       }
       set_client_page(PAGE_GAME);
       setupWindowSize();
+      // Force Pixi canvas to fill the now-visible game page.
+      // Must run AFTER set_client_page() (makes #game_page visible) and
+      // setupWindowSize() (sets #tabs-map height), so clientHeight is non-zero.
+      {
+        const _pr = (store as unknown as Record<string, unknown>)['pixiRenderer'] as { resize(): void; markAllDirty(): void } | undefined;
+        _pr?.resize();
+        _pr?.markAllDirty();
+      }
       // Initialize overview panel (sets default size if no map data yet)
       init_overview();
       // remove context menu from pregame
