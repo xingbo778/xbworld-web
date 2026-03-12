@@ -65,6 +65,32 @@ describe('turnDoneState signal', () => {
   });
 });
 
+// ── turnDoneState — send_end_turn ─────────────────────────────────────────
+
+describe('turnDoneState — send_end_turn integration', () => {
+  it('send_end_turn disables turnDoneState when gameInfo is set', async () => {
+    const { turnDoneState } = await import('@/data/signals');
+    const { send_end_turn } = await import('@/core/control/gotoPath');
+    store.gameInfo = { turn: 3 } as never;
+    turnDoneState.value = { disabled: false, text: 'Turn Done' };
+
+    send_end_turn();
+
+    expect(turnDoneState.value.disabled).toBe(true);
+  });
+
+  it('send_end_turn does not change turnDoneState when gameInfo is null', async () => {
+    const { turnDoneState } = await import('@/data/signals');
+    const { send_end_turn } = await import('@/core/control/gotoPath');
+    store.gameInfo = null as never;
+    turnDoneState.value = { disabled: false, text: 'Turn Done' };
+
+    send_end_turn();
+
+    expect(turnDoneState.value.disabled).toBe(false);
+  });
+});
+
 // ── unitTextDetails ───────────────────────────────────────────────────────
 
 describe('unitTextDetails signal', () => {
