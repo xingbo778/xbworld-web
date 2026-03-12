@@ -72,3 +72,79 @@ describe('fill_terrain_sprite_layer', () => {
     expect(Array.isArray(result)).toBe(true);
   });
 });
+
+// ── tilespec graphic tag helpers ──────────────────────────────────────────
+
+describe('tileset_ruleset_entity_tag_str_or_alt', () => {
+  it('is exported as a function', async () => {
+    const { tileset_ruleset_entity_tag_str_or_alt } = await import('@/renderer/tilespec');
+    expect(typeof tileset_ruleset_entity_tag_str_or_alt).toBe('function');
+  });
+
+  it('returns null for null entity', async () => {
+    const { tileset_ruleset_entity_tag_str_or_alt } = await import('@/renderer/tilespec');
+    expect(tileset_ruleset_entity_tag_str_or_alt(null, 'unit')).toBeNull();
+  });
+});
+
+describe('tileset_unit_type_graphic_tag', () => {
+  it('is exported as a function', async () => {
+    const { tileset_unit_type_graphic_tag } = await import('@/renderer/tilespec');
+    expect(typeof tileset_unit_type_graphic_tag).toBe('function');
+  });
+});
+
+describe('tileset_unit_graphic_tag', () => {
+  it('is exported as a function', async () => {
+    const { tileset_unit_graphic_tag } = await import('@/renderer/tilespec');
+    expect(typeof tileset_unit_graphic_tag).toBe('function');
+  });
+});
+
+describe('tileset_building_graphic_tag', () => {
+  it('is exported as a function', async () => {
+    const { tileset_building_graphic_tag } = await import('@/renderer/tilespec');
+    expect(typeof tileset_building_graphic_tag).toBe('function');
+  });
+
+  it('returns null for null improvement', async () => {
+    const { tileset_building_graphic_tag } = await import('@/renderer/tilespec');
+    expect(tileset_building_graphic_tag(null)).toBeNull();
+  });
+});
+
+describe('tileset_tech_graphic_tag', () => {
+  it('is exported as a function', async () => {
+    const { tileset_tech_graphic_tag } = await import('@/renderer/tilespec');
+    expect(typeof tileset_tech_graphic_tag).toBe('function');
+  });
+
+  it('returns null for null tech', async () => {
+    const { tileset_tech_graphic_tag } = await import('@/renderer/tilespec');
+    expect(tileset_tech_graphic_tag(null)).toBeNull();
+  });
+});
+
+describe('tileset_extra_id_activity_graphic_tag', () => {
+  it('is exported as a function', async () => {
+    const { tileset_extra_id_activity_graphic_tag } = await import('@/renderer/tilespec');
+    expect(typeof tileset_extra_id_activity_graphic_tag).toBe('function');
+  });
+
+  it('returns null for unknown extra_id', async () => {
+    const { tileset_extra_id_activity_graphic_tag } = await import('@/renderer/tilespec');
+    expect(tileset_extra_id_activity_graphic_tag(9999)).toBeNull();
+  });
+});
+
+describe('tileset_extra_id_rmactivity_graphic_tag', () => {
+  it('is exported as a function', async () => {
+    const { tileset_extra_id_rmactivity_graphic_tag } = await import('@/renderer/tilespec');
+    expect(typeof tileset_extra_id_rmactivity_graphic_tag).toBe('function');
+  });
+
+  it('returns null for unknown extra_id', async () => {
+    const { tileset_extra_id_rmactivity_graphic_tag } = await import('@/renderer/tilespec');
+    expect(tileset_extra_id_rmactivity_graphic_tag(9999)).toBeNull();
+  });
+});
