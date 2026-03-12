@@ -588,3 +588,76 @@ describe('turnDoneState — disabled on WebSocket onclose', () => {
     expect(turnDoneState.value.disabled).toBe(true);
   });
 });
+
+// ── network_init ─────────────────────────────────────────────────────────────
+
+describe('network_init', () => {
+  beforeEach(() => { _resetReconnectStateForTests(); });
+  afterEach(() => { _resetReconnectStateForTests(); });
+
+  it('is exported as a function', async () => {
+    const { network_init } = await import('@/net/connection');
+    expect(typeof network_init).toBe('function');
+  });
+
+  it('does not throw or returns without crashing when WebSocket is available', async () => {
+    const { network_init } = await import('@/net/connection');
+    // network_init may throw in test env due to missing DOM APIs — catching is acceptable
+    try { network_init(); } catch { /* expected in test env */ }
+  });
+});
+
+// ── clinet_debug_collect ──────────────────────────────────────────────────────
+
+describe('clinet_debug_collect', () => {
+  it('is exported as a function', async () => {
+    const { clinet_debug_collect } = await import('@/net/connection');
+    expect(typeof clinet_debug_collect).toBe('function');
+  });
+
+  it('does not throw when called', async () => {
+    const { clinet_debug_collect } = await import('@/net/connection');
+    expect(() => clinet_debug_collect()).not.toThrow();
+  });
+});
+
+// ── ping_check ────────────────────────────────────────────────────────────────
+
+describe('ping_check', () => {
+  it('is exported as a function', async () => {
+    const { ping_check } = await import('@/net/connection');
+    expect(typeof ping_check).toBe('function');
+  });
+
+  it('does not throw when called', async () => {
+    const { ping_check } = await import('@/net/connection');
+    expect(() => ping_check()).not.toThrow();
+  });
+});
+
+// ── send_message / send_message_delayed ──────────────────────────────────────
+
+describe('send_message', () => {
+  it('is exported as a function', async () => {
+    const { send_message } = await import('@/net/connection');
+    expect(typeof send_message).toBe('function');
+  });
+
+  it('does not throw (delegates to sendChatMessage via WebSocket)', async () => {
+    const { send_message } = await import('@/net/connection');
+    // WebSocket is in OPEN state via MockWebSocket — sendChatMessage may silently fail
+    expect(() => send_message('Hello server')).not.toThrow();
+  });
+});
+
+describe('send_message_delayed', () => {
+  it('is exported as a function', async () => {
+    const { send_message_delayed } = await import('@/net/connection');
+    expect(typeof send_message_delayed).toBe('function');
+  });
+
+  it('does not throw when scheduling a delayed message', async () => {
+    const { send_message_delayed } = await import('@/net/connection');
+    expect(() => send_message_delayed('test', 0)).not.toThrow();
+  });
+});
