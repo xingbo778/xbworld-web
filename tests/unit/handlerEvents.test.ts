@@ -378,3 +378,24 @@ describe('handle_city_remove emits city:removed in observer mode', () => {
     expect(cityCount.value).toBe(1);
   });
 });
+
+// ── playerCount decrements on handle_player_remove ────────────────────────
+
+describe('playerCount signal — handle_player_remove', () => {
+  it('playerCount decrements when handle_player_remove fires', async () => {
+    const { handle_player_info, handle_player_remove } = await import('@/net/handlers/player');
+    const { playerCount } = await import('@/data/signals');
+
+    store.players = {};
+    handle_player_info({
+      playerno: 10, name: 'Hannibal', username: 'hannibal',
+      nation: 5, is_alive: true, is_ready: false,
+      ai_skill_level: 0, gold: 0, tax: 0, luxury: 0, science: 100,
+      expected_income: 0, team: 0, embassy_txt: '',
+    } as never);
+    expect(playerCount.value).toBe(1);
+
+    handle_player_remove({ playerno: 10 } as never);
+    expect(playerCount.value).toBe(0);
+  });
+});
