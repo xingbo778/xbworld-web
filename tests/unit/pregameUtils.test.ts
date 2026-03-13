@@ -1,5 +1,5 @@
 /**
- * Unit tests for core/pregame.ts and ui/dialogs.ts and ui/controls.ts
+ * Unit tests for core/pregame.ts and ui/dialogs.ts
  */
 import { describe, it, expect } from 'vitest';
 
@@ -81,26 +81,6 @@ describe('ui/dialogs', () => {
   });
 });
 
-// ── controls ──────────────────────────────────────────────────────────────
-
-describe('ui/controls', () => {
-  it('getFocusedUnitId returns null (stub)', async () => {
-    const { getFocusedUnitId } = await import('@/ui/controls');
-    expect(getFocusedUnitId()).toBeNull();
-  });
-
-  it('activateGoto does not throw (no-op stub)', async () => {
-    const { activateGoto } = await import('@/ui/controls');
-    expect(() => activateGoto()).not.toThrow();
-  });
-});
-
-describe('initControls', () => {
-  it('does not throw', async () => {
-    const { initControls } = await import('@/ui/controls');
-    expect(() => initControls()).not.toThrow();
-  });
-});
 
 describe('update_player_info_pregame_real', () => {
   it('is exported as a function', async () => {

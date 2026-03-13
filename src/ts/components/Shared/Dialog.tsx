@@ -41,6 +41,16 @@ export function Dialog({
     }
   }, [open]);
 
+  // Close on Escape key when open
+  useEffect(() => {
+    if (!open || !onClose) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [open, onClose]);
+
   const onPointerDown = useCallback((e: JSX.TargetedPointerEvent<HTMLDivElement>) => {
     if (!draggable) return;
     dragging.current = true;

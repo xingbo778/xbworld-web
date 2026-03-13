@@ -114,7 +114,6 @@ import './audio/sounds';
 
 // UI layer (observer-only subset)
 import './ui/tabs';
-import './ui/controls';
 import './ui/cityDialog';
 import './ui/techDialog';
 import './ui/intelDialog';
@@ -181,7 +180,6 @@ function syncStoreWithWindow(): void {
 // ---------------------------------------------------------------------------
 // Step 5: Initialize.
 // ---------------------------------------------------------------------------
-import { initControls } from './ui/controls';
 import { mountPreactApp } from './components/App';
 import { registerAction } from './utils/eventDelegation';
 import { show_city_dialog_by_id } from './ui/cityDialog';
@@ -227,7 +225,6 @@ function init(): void {
     configurable: true,
   });
 
-  initControls();
   logNormal('[TS] Controls initialized');
 
   mountPreactApp();

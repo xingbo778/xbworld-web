@@ -3055,6 +3055,14 @@ function Dialog({
       });
     }
   }, [open2]);
+  y$2(() => {
+    if (!open2 || !onClose) return;
+    const handler = (e2) => {
+      if (e2.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [open2, onClose]);
   const onPointerDown = q$1((e2) => {
     if (!draggable) return;
     dragging.current = true;
@@ -7135,9 +7143,6 @@ function set_client_page(page) {
 }
 function get_client_page() {
   return old_page;
-}
-function on(el, event, handler, options) {
-  el?.addEventListener(event, handler, options);
 }
 function blockUI(message) {
   Promise.resolve().then(() => BlockingOverlay$1).then(({ showBlockingOverlay: showBlockingOverlay2 }) => showBlockingOverlay2(message)).catch(() => {
@@ -12596,13 +12601,6 @@ function sum_width() {
   }
   return sum;
 }
-function initControls() {
-  on(document, "keydown", handleKeyDown);
-}
-function handleKeyDown(e2) {
-  if (e2.target instanceof HTMLInputElement || e2.target instanceof HTMLTextAreaElement) return;
-  if (e2.key === "Escape") close_city_dialog();
-}
 const state$2 = c({
   open: false,
   title: "",
@@ -13051,7 +13049,7 @@ function IntroDialog() {
     localStorage.setItem("username", name);
     closeIntroDialog();
   };
-  const handleKeyDown2 = (e2) => {
+  const handleKeyDown = (e2) => {
     if (e2.key === "Enter") submit();
   };
   return /* @__PURE__ */ u(
@@ -13074,7 +13072,7 @@ function IntroDialog() {
                 ref: inputRef,
                 type: "text",
                 maxLength: 32,
-                onKeyDown: handleKeyDown2,
+                onKeyDown: handleKeyDown,
                 style: {
                   padding: "4px 8px",
                   fontSize: "14px",
@@ -13344,7 +13342,6 @@ function init() {
     get: () => mapview$1,
     configurable: true
   });
-  initControls();
   logNormal("[TS] Controls initialized");
   mountPreactApp();
   logNormal("[TS] Preact UI mounted");
