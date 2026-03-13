@@ -1,24 +1,7 @@
-/**********************************************************************
-    Freeciv-web - the web version of Freeciv. https://www.freeciv.org/
-    Copyright (C) 2009-2015  The Freeciv-web project
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Affero General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-**********************************************************************/
-
-import { store } from '../data/store';
-import { audio, music_list, supports_mp3 } from '../audio/audioState';
+/**
+ * Game render option flags — imported by renderer and control modules.
+ * These are set at startup or updated via server settings (setDrawFogOfWar).
+ */
 
 export const auto_center_on_unit: boolean = true;
 export const popup_actor_arrival: boolean = true;
@@ -27,41 +10,3 @@ export let draw_fog_of_war: boolean = true;
 export function setDrawFogOfWar(val: boolean): void { draw_fog_of_war = val; }
 export const draw_units: boolean = true;
 export const draw_focus_unit: boolean = false;
-
-export function init_options_dialog(): void {
-  if (audio != null && !(audio.source as { src?: string })?.src) {
-    if (!supports_mp3()) {
-      audio.load("/music/" + music_list[Math.floor(Math.random() * music_list.length)] + ".ogg");
-    } else {
-      audio.load("/music/" + music_list[Math.floor(Math.random() * music_list.length)] + ".mp3");
-    }
-  }
-
-  const soundsCheckbox = document.getElementById('play_sounds_setting') as HTMLInputElement | null;
-  if (soundsCheckbox) {
-    soundsCheckbox.checked = store.soundsEnabled;
-    soundsCheckbox.addEventListener('change', function() {
-      store.soundsEnabled = this.checked;
-      localStorage.setItem('sndFX', JSON.stringify(store.soundsEnabled));
-    });
-  }
-}
-
-import { loadSavedTheme } from '../utils/theme';
-import { mountThemeSelector } from '../components/ThemeSelector';
-
-// Load saved theme on startup
-loadSavedTheme();
-
-/** Mount the Preact ThemeSelector into the options panel (idempotent). */
-export function init_theme_selector(): void {
-  const container = document.getElementById('opt_tab') ?? document.getElementById('tabs-opt');
-  if (!container) return;
-  let mount = document.getElementById('xb-theme-selector');
-  if (!mount) {
-    mount = document.createElement('div');
-    mount.id = 'xb-theme-selector';
-    container.insertBefore(mount, container.firstChild);
-  }
-  mountThemeSelector(mount);
-}

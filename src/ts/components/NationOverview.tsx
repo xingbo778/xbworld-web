@@ -16,6 +16,7 @@ import { Tabs, TabPanel } from './Shared/Tabs';
 import { Button } from './Shared/Button';
 import { centerOnPlayer } from '../data/nationScreen';
 import { show_city_dialog } from '../ui/cityDialog';
+import { showGameScoresDialog } from './Dialogs/GameScoresDialog';
 import type { City } from '../data/types';
 
 type OverviewTab = 'nations' | 'cities' | 'units';
@@ -344,12 +345,7 @@ function ActionBar() {
   }
 
   function handleGameScores() {
-    import('../data/nation').then(({ getPlayerScoresSummary }) => {
-      const text = getPlayerScoresSummary();
-      import('../client/civClient').then(({ showDialogMessage }) =>
-        showDialogMessage('Game Scores', text),
-      );
-    });
+    showGameScoresDialog();
   }
 
   return (

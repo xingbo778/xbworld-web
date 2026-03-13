@@ -4221,54 +4221,6 @@ globalEvents.on("city:updated", () => {
   const fresh = cities[open2["id"]];
   if (fresh) cityDialogSignal.value = fresh;
 });
-let music_list = [
-  "battle-epic",
-  "battle2",
-  "battle3",
-  "battle4",
-  "battle5",
-  "battle6",
-  "battle7",
-  "battle8"
-];
-let audio = null;
-function setAudio(value) {
-  audio = value;
-}
-function supports_mp3() {
-  try {
-    const a2 = document.createElement("audio");
-    return !!(a2.canPlayType && a2.canPlayType("audio/mpeg"));
-  } catch {
-    return false;
-  }
-}
-const STORAGE_KEY = "xbw-theme";
-function setTheme(name) {
-  document.documentElement.dataset["theme"] = name;
-  try {
-    localStorage.setItem(STORAGE_KEY, name);
-  } catch {
-  }
-}
-function getTheme() {
-  return document.documentElement.dataset["theme"] ?? "dark";
-}
-function loadSavedTheme() {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved && ["dark", "light", "fantasy"].includes(saved)) {
-      setTheme(saved);
-      return;
-    }
-    if (window.matchMedia?.("(prefers-color-scheme: light)").matches) {
-      setTheme("light");
-    }
-  } catch {
-  }
-}
-window["setTheme"] = setTheme;
-window["getTheme"] = getTheme;
 const auto_center_on_unit = true;
 const popup_actor_arrival = true;
 let draw_fog_of_war = true;
@@ -4276,7 +4228,6 @@ function setDrawFogOfWar(val) {
   draw_fog_of_war = val;
 }
 const draw_units = true;
-loadSavedTheme();
 function request_unit_do_action(action_id, actor_id, target_id, sub_tgt_id = 0, name = "") {
   sendUnitDoAction(action_id, actor_id, target_id, sub_tgt_id || 0, name || "");
   action_decision_clear_want(actor_id);
@@ -5379,8 +5330,8 @@ function ResearchList() {
       const bulbs = pr["bulbs_researched"] ?? 0;
       const cost = (pr["researching_cost"] ?? 1) || 1;
       const pct = Math.min(100, Math.round(bulbs / cost * 100));
-      const nation2 = store.nations[pplayer["nation"]];
-      const color = nation2?.["color"] ?? "var(--xb-accent-blue, #58a6ff)";
+      const nation = store.nations[pplayer["nation"]];
+      const color = nation?.["color"] ?? "var(--xb-accent-blue, #58a6ff)";
       const hasResearch = researching > 0;
       return /* @__PURE__ */ u(
         "div",
@@ -5415,8 +5366,8 @@ function computeTechStatus() {
     for (const pplayer of players) {
       const pr = research_get(pplayer);
       if (!pr) continue;
-      const nation2 = store.nations[pplayer["nation"]];
-      const color = nation2?.["color"] ?? "#58a6ff";
+      const nation = store.nations[pplayer["nation"]];
+      const color = nation?.["color"] ?? "#58a6ff";
       const techArr = pr["techs"];
       if (techArr && techArr[techId] === TECH_KNOWN) {
         known.push(color);
@@ -7026,12 +6977,12 @@ function chat_context_get_recipients() {
     if (pplayer["flags"].isSet(FC_PLRF_AI)) continue;
     if (!pplayer["is_alive"]) continue;
     if (isLongturn() && pplayer["name"].indexOf("New Available Player") != -1) continue;
-    const nation2 = store.nations[pplayer["nation"]];
-    if (nation2 == null) continue;
+    const nation = store.nations[pplayer["nation"]];
+    if (nation == null) continue;
     pm.push({
       id: player_id,
-      description: pplayer["name"] + " of the " + nation2["adjective"],
-      flag: store.sprites["f." + nation2["graphic_str"]]
+      description: pplayer["name"] + " of the " + nation["adjective"],
+      flag: store.sprites["f." + nation["graphic_str"]]
     });
   }
   pm.sort(function(a2, b2) {
@@ -7572,6 +7523,15 @@ function clearBlendCache() {
   }
 }
 const LAYER_FOG_INDEX = 8;
+function extractTileIndex(data) {
+  const d2 = data;
+  const idx = d2?.["tileIndex"] ?? (typeof d2?.["tile"] === "number" ? d2["tile"] : d2?.["tile"]?.["index"]);
+  return typeof idx === "number" ? idx : null;
+}
+function extractSimpleIndex(data) {
+  const idx = data?.["tile"];
+  return typeof idx === "number" ? idx : null;
+}
 const DIR8_EAST$2 = 4;
 const DIR8_SOUTH$2 = 6;
 const DIR8_SOUTHEAST$2 = 7;
@@ -7614,6 +7574,11 @@ class PixiRenderer {
   static FRAME_BUDGET_MS = 8;
   static BURST_BUDGET_MS = 12;
   firstRebuildDone = false;
+  // Performance telemetry (exposed via getStats for dev/e2e inspection)
+  lastRebuildMs = 0;
+  // ms spent rebuilding tiles in the most recent frame
+  rebuildFrameCount = 0;
+  // frames consumed by the current rebuild queue
   // Viewport tracking for pan-reveal (rebuild after pan stops)
   lastViewX0 = 0;
   lastViewY0 = 0;
@@ -7658,7 +7623,9 @@ class PixiRenderer {
         textureCacheSize: this.texCache.size,
         spritesReady: this.spritesReady,
         dirtyAll: this.dirtyAll,
-        dirtyCount: this.dirtyTiles.size
+        dirtyCount: this.dirtyTiles.size,
+        lastRebuildMs: Math.round(this.lastRebuildMs * 100) / 100,
+        rebuildFrameCount: this.rebuildFrameCount
       }),
       getGameState: () => {
         const turn = store.gameInfo?.["turn"] ?? -1;
@@ -7700,6 +7667,26 @@ class PixiRenderer {
       logError("PixiRenderer: texture creation failed for", key, e2);
       this.texCache.set(key, null);
       return null;
+    }
+  }
+  /**
+   * Pre-compute GUI positions for all tiles immediately after map allocation.
+   *
+   * Without this, the first processFrame viewport scan calls map_to_gui_pos()
+   * for every tile (O(n) expensive calls).  After pre-fill, scans are O(1)
+   * Map lookups for the lifetime of the session.
+   *
+   * map_to_gui_pos depends only on tile.x/y and the tileset config, both of
+   * which are stable for the duration of a game session, so the cache stays
+   * valid after panning or zooming.
+   */
+  preFillTilePosCache() {
+    if (!store.tiles) return;
+    this.tilePosCache.clear();
+    for (const tile of Object.values(store.tiles)) {
+      if (!tile) continue;
+      const pos = map_to_gui_pos$1(tile.x, tile.y);
+      this.tilePosCache.set(tile.index, [pos["gui_dx"], pos["gui_dy"]]);
     }
   }
   /** Must be called when store.sprites is replaced (new game / reload). */
@@ -8070,6 +8057,7 @@ class PixiRenderer {
       }
     }
     if (this.rebuildQueue) {
+      if (this.rebuildQueueIdx === 0) this.rebuildFrameCount++;
       store.tiles;
       while (this.rebuildQueueIdx < this.rebuildQueue.length) {
         const tile = this.rebuildQueue[this.rebuildQueueIdx++];
@@ -8085,8 +8073,10 @@ class PixiRenderer {
         this.rebuildQueue = null;
         this.rebuildQueueIdx = 0;
         this.firstRebuildDone = true;
+        this.rebuildFrameCount = 0;
       }
     }
+    this.lastRebuildMs = performance.now() - frameStart;
   }
   startRenderLoop() {
     const loop = () => {
@@ -8116,33 +8106,33 @@ class PixiRenderer {
   // ---------------------------------------------------------------------------
   setupEventListeners() {
     globalEvents.on("tile:updated", (data) => {
-      const d2 = data;
-      const idx = d2?.["tileIndex"] ?? (typeof d2?.["tile"] === "number" ? d2["tile"] : d2?.["tile"]?.["index"]);
-      if (typeof idx === "number") this.markDirty(idx);
+      const idx = extractTileIndex(data);
+      if (idx !== null) this.markDirty(idx);
       else this.markAllDirty();
     });
     globalEvents.on("unit:updated", (data) => {
-      const tileIdx = data?.["tile"];
-      if (typeof tileIdx === "number") this.markDirty(tileIdx);
+      const idx = extractSimpleIndex(data);
+      if (idx !== null) this.markDirty(idx);
       else this.markAllDirty();
     });
     globalEvents.on("unit:removed", (data) => {
-      const tileIdx = data?.["tile"];
-      if (typeof tileIdx === "number") this.markDirty(tileIdx);
+      const idx = extractSimpleIndex(data);
+      if (idx !== null) this.markDirty(idx);
       else this.markAllDirty();
     });
     globalEvents.on("city:updated", (data) => {
-      const tileIdx = data?.["tile"];
-      if (typeof tileIdx === "number") this.markDirty(tileIdx);
+      const idx = extractSimpleIndex(data);
+      if (idx !== null) this.markDirty(idx);
       else this.markAllDirty();
     });
     globalEvents.on("city:removed", (data) => {
-      const tileIdx = data?.["tile"];
-      if (typeof tileIdx === "number") this.markDirty(tileIdx);
+      const idx = extractSimpleIndex(data);
+      if (idx !== null) this.markDirty(idx);
       else this.markAllDirty();
     });
     globalEvents.on("map:allocated", () => {
       this.clearTextureCache();
+      this.preFillTilePosCache();
       this.markAllDirty();
     });
     let _playerDirtyTimer = null;
@@ -8256,6 +8246,28 @@ function AuthDialog() {
     }
   );
 }
+let music_list = [
+  "battle-epic",
+  "battle2",
+  "battle3",
+  "battle4",
+  "battle5",
+  "battle6",
+  "battle7",
+  "battle8"
+];
+let audio = null;
+function setAudio(value) {
+  audio = value;
+}
+function supports_mp3() {
+  try {
+    const a2 = document.createElement("audio");
+    return !!(a2.canPlayType && a2.canPlayType("audio/mpeg"));
+  } catch {
+    return false;
+  }
+}
 store.renderer = RENDERER_PIXI;
 function civClientInit() {
   store.observing = true;
@@ -8361,14 +8373,6 @@ if (!globalThis.__VITEST__) {
     }
   }
 }
-const civClient = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
-  __proto__: null,
-  civClientInit,
-  initCommonIntroDialog,
-  showAuthDialog,
-  showDialogMessage,
-  stopGameTimers
-}, Symbol.toStringTag, { value: "Module" }));
 function handle_processing_started(_packet) {
   store.frozen = true;
 }
@@ -9271,9 +9275,9 @@ function handle_city_name_suggestion_info(packet) {
 function handle_city_sabotage_list(_packet) {
 }
 function assign_nation_color(nation_id) {
-  const nation2 = store.nations[nation_id];
-  if (nation2 == null || nation2["color"] != null) return;
-  const flag_key = "f." + nation2["graphic_str"];
+  const nation = store.nations[nation_id];
+  if (nation == null || nation["color"] != null) return;
+  const flag_key = "f." + nation["graphic_str"];
   const flag_sprite = store.sprites[flag_key];
   if (flag_sprite == null) return;
   const c2 = flag_sprite.getContext("2d");
@@ -9298,7 +9302,7 @@ function assign_nation_color(nation_id) {
       max_color = current_color;
     }
   }
-  nation2["color"] = max_color;
+  nation["color"] = max_color;
 }
 function color_rbg_to_list(pcolor) {
   if (pcolor == null) return null;
@@ -10467,6 +10471,61 @@ function centerOnPlayer() {
     }
   }
 }
+const open$1 = c(false);
+function showGameScoresDialog() {
+  open$1.value = true;
+}
+function closeGameScoresDialog() {
+  open$1.value = false;
+}
+function GameScoresDialog() {
+  if (!open$1.value) return null;
+  const players = Object.values(store.players);
+  const sorted = [...players].sort(
+    (a2, b2) => (b2["score"] ?? 0) - (a2["score"] ?? 0)
+  );
+  return /* @__PURE__ */ u(
+    Dialog,
+    {
+      title: "Game Scores",
+      open: true,
+      onClose: closeGameScoresDialog,
+      width: 480,
+      modal: false,
+      children: [
+        /* @__PURE__ */ u("div", { style: { maxHeight: "420px", overflow: "auto" }, children: players.length === 0 ? /* @__PURE__ */ u("p", { style: { color: "var(--xb-text-secondary, #8b949e)", margin: "8px 0" }, children: "No score data available yet." }) : /* @__PURE__ */ u("table", { style: { width: "100%", borderCollapse: "collapse" }, children: [
+          /* @__PURE__ */ u("thead", { children: /* @__PURE__ */ u("tr", { style: { borderBottom: "1px solid var(--xb-border-default, #30363d)" }, children: [
+            /* @__PURE__ */ u("th", { style: { padding: "4px 8px", textAlign: "left" }, children: "Rank" }),
+            /* @__PURE__ */ u("th", { style: { padding: "4px 8px", textAlign: "left" }, children: "Player" }),
+            /* @__PURE__ */ u("th", { style: { padding: "4px 8px", textAlign: "left" }, children: "Nation" }),
+            /* @__PURE__ */ u("th", { style: { padding: "4px 8px", textAlign: "right" }, children: "Score" }),
+            /* @__PURE__ */ u("th", { style: { padding: "4px 8px", textAlign: "right" }, children: "Cities" })
+          ] }) }),
+          /* @__PURE__ */ u("tbody", { children: sorted.map((p2, i2) => {
+            const nation = store.nations[p2["nation"]];
+            const adj = String(nation?.["adjective"] ?? "?");
+            const score = p2["score"] ?? "?";
+            const cities2 = p2["cities"] ?? 0;
+            return /* @__PURE__ */ u("tr", { children: [
+              /* @__PURE__ */ u("td", { style: { padding: "4px 8px", fontWeight: "bold" }, children: [
+                "#",
+                i2 + 1
+              ] }),
+              /* @__PURE__ */ u("td", { style: { padding: "4px 8px" }, children: String(p2["name"]) }),
+              /* @__PURE__ */ u("td", { style: { padding: "4px 8px", color: "var(--xb-text-secondary, #8b949e)" }, children: adj }),
+              /* @__PURE__ */ u("td", { style: { padding: "4px 8px", textAlign: "right", fontWeight: "bold", color: "var(--xb-accent-blue, #58a6ff)" }, children: score }),
+              /* @__PURE__ */ u("td", { style: { padding: "4px 8px", textAlign: "right" }, children: [
+                cities2,
+                " cities"
+              ] })
+            ] }, p2["playerno"]);
+          }) })
+        ] }) }),
+        /* @__PURE__ */ u("div", { style: { marginTop: "12px", textAlign: "right" }, children: /* @__PURE__ */ u(Button, { onClick: closeGameScoresDialog, children: "Close" }) })
+      ]
+    }
+  );
+}
 const _tick = c(0);
 const _selectedPlayerno = c(-1);
 const _activeTab = c("nations");
@@ -10525,8 +10584,8 @@ function NationsTable() {
     /* @__PURE__ */ u("thead", { children: /* @__PURE__ */ u("tr", { style: THEAD_TR_STYLE, children: ["Nation", "Score", "Cities", "Units", "Gold", "Researching", "Progress", "State"].map((h2) => /* @__PURE__ */ u("th", { style: TH_STYLE$1, children: h2 }, h2)) }) }),
     /* @__PURE__ */ u("tbody", { children: players.map((pplayer) => {
       const p2 = pplayer;
-      const nation2 = store.nations[p2["nation"]];
-      const color = nation2?.["color"] ?? "var(--xb-text-primary)";
+      const nation = store.nations[p2["nation"]];
+      const color = nation?.["color"] ?? "var(--xb-text-primary)";
       const pr = research_get(pplayer) ?? p2;
       const researchingId = pr["researching"] ?? 0;
       const techData = researchingId ? store.techs[researchingId] : null;
@@ -10609,8 +10668,8 @@ function CitiesTable() {
       /* @__PURE__ */ u("tbody", { children: sorted.map((city) => {
         const owner = store.players[city.owner];
         const ownerName = owner?.["name"] ?? `#${city.owner}`;
-        const nation2 = owner ? store.nations[owner["nation"]] : null;
-        const color = nation2?.["color"] ?? "var(--xb-text-primary)";
+        const nation = owner ? store.nations[owner["nation"]] : null;
+        const color = nation?.["color"] ?? "var(--xb-text-primary)";
         const prod = city.production;
         const prodKind = prod?.["kind"];
         const prodValue = prod?.["value"];
@@ -10670,8 +10729,8 @@ function UnitsTable() {
         const typeName = utype?.["name"] ?? `#${unit.type}`;
         const owner = store.players[unit.owner];
         const ownerName = owner?.["name"] ?? `#${unit.owner}`;
-        const nation2 = owner ? store.nations[owner["nation"]] : null;
-        const color = nation2?.["color"] ?? "var(--xb-text-primary)";
+        const nation = owner ? store.nations[owner["nation"]] : null;
+        const color = nation?.["color"] ?? "var(--xb-text-primary)";
         return /* @__PURE__ */ u("tr", { style: TBODY_TR_STYLE, children: [
           /* @__PURE__ */ u("td", { style: TD_STYLE$1, children: typeName }),
           /* @__PURE__ */ u("td", { style: { ...TD_STYLE$1, color }, children: ownerName }),
@@ -10701,12 +10760,7 @@ function ActionBar() {
     });
   }
   function handleGameScores() {
-    Promise.resolve().then(() => nation).then(({ getPlayerScoresSummary: getPlayerScoresSummary2 }) => {
-      const text = getPlayerScoresSummary2();
-      Promise.resolve().then(() => civClient).then(
-        ({ showDialogMessage: showDialogMessage2 }) => showDialogMessage2("Game Scores", text)
-      );
-    });
+    showGameScoresDialog();
   }
   return /* @__PURE__ */ u("div", { style: {
     display: "flex",
@@ -11364,10 +11418,10 @@ function get_base_flag_sprite(ptile) {
   if (owner == null) return { "key": "" };
   const nation_id = owner["nation"];
   if (nation_id == null) return { "key": "" };
-  const nation2 = store.nations[nation_id];
-  if (nation2 == null) return { "key": "" };
+  const nation = store.nations[nation_id];
+  if (nation == null) return { "key": "" };
   return {
-    "key": "f." + nation2["graphic_str"],
+    "key": "f." + nation["graphic_str"],
     "offset_x": city_flag_offset_x,
     "offset_y": -9
   };
@@ -11407,10 +11461,10 @@ function get_unit_nation_flag_sprite(punit) {
   } else {
     const owner = store.players[owner_id];
     const nation_id = owner["nation"];
-    const nation2 = store.nations[nation_id];
+    const nation = store.nations[nation_id];
     const unit_offset = get_unit_anim_offset(punit);
     return {
-      "key": "f.shield." + nation2["graphic_str"],
+      "key": "f.shield." + nation["graphic_str"],
       "offset_x": unit_flag_offset_x + unit_offset["x"],
       "offset_y": -16 + unit_offset["y"]
     };
@@ -12542,42 +12596,6 @@ function sum_width() {
   }
   return sum;
 }
-function getPlayerScoresSummary() {
-  const players = Object.values(store.players);
-  if (players.length === 0) return "<p>No score data available yet.</p>";
-  const sorted = [...players].sort((a2, b2) => (b2["score"] ?? 0) - (a2["score"] ?? 0));
-  const rows = sorted.map((p2, i2) => {
-    const nation2 = store.nations[p2["nation"]];
-    const adj = nation2?.["adjective"] ?? "?";
-    const score = p2["score"] ?? "?";
-    const cities2 = p2["cities"] ?? 0;
-    p2["units"] ?? 0;
-    return `<tr>
-      <td style="padding:4px 8px;font-weight:bold">#${i2 + 1}</td>
-      <td style="padding:4px 8px">${escapeHtml(String(p2["name"]))}</td>
-      <td style="padding:4px 8px;color:#8b949e">${escapeHtml(String(adj))}</td>
-      <td style="padding:4px 8px;text-align:right;font-weight:bold;color:#58a6ff">${score}</td>
-      <td style="padding:4px 8px;text-align:right">${cities2} cities</td>
-    </tr>`;
-  }).join("");
-  return `<table style="width:100%;border-collapse:collapse">
-    <thead><tr style="border-bottom:1px solid #444">
-      <th style="padding:4px 8px;text-align:left">Rank</th>
-      <th style="padding:4px 8px;text-align:left">Player</th>
-      <th style="padding:4px 8px;text-align:left">Nation</th>
-      <th style="padding:4px 8px;text-align:right">Score</th>
-      <th style="padding:4px 8px;text-align:right">Cities</th>
-    </tr></thead><tbody>${rows}</tbody>
-  </table>`;
-}
-const nation = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
-  __proto__: null,
-  centerOnPlayer,
-  getPlayerScoresSummary,
-  nationSelectPlayer,
-  nationTableSelectPlayer,
-  selectNoNation
-}, Symbol.toStringTag, { value: "Module" }));
 function initControls() {
   on(document, "keydown", handleKeyDown);
 }
@@ -13077,6 +13095,19 @@ function IntroDialog() {
     }
   );
 }
+const STORAGE_KEY = "xbw-theme";
+function setTheme(name) {
+  document.documentElement.dataset["theme"] = name;
+  try {
+    localStorage.setItem(STORAGE_KEY, name);
+  } catch {
+  }
+}
+function getTheme() {
+  return document.documentElement.dataset["theme"] ?? "dark";
+}
+window["setTheme"] = setTheme;
+window["getTheme"] = getTheme;
 function ThemeSelect() {
   const [current, setCurrent] = d$1(getTheme);
   function handleChange(e2) {
@@ -13176,6 +13207,7 @@ function App() {
     /* @__PURE__ */ u(CityInputDialog, {}),
     /* @__PURE__ */ u(TechGainedDialog, {}),
     /* @__PURE__ */ u(TaxRatesDialog, {}),
+    /* @__PURE__ */ u(GameScoresDialog, {}),
     /* @__PURE__ */ u(IntroDialog, {}),
     /* @__PURE__ */ u(ChatContextDialog, {}),
     /* @__PURE__ */ u(LazyMountOnce, { signal: cityDialogSignal, children: /* @__PURE__ */ u(CityDialog, {}) }),
@@ -13460,9 +13492,9 @@ function PlayerRow({ id, player }) {
   const name = String(player["name"] ?? "");
   const isAI = name.indexOf("AI") !== -1;
   const isReady = player["is_ready"] === true;
-  const nation2 = store.nations[player["nation"]];
-  const nationAdj = nation2 ? String(nation2["adjective"] || "") : "";
-  const sprite = nation2 ? store.sprites["f." + nation2["graphic_str"]] ?? null : null;
+  const nation = store.nations[player["nation"]];
+  const nationAdj = nation ? String(nation["adjective"] || "") : "";
+  const sprite = nation ? store.sprites["f." + nation["graphic_str"]] ?? null : null;
   let titleText;
   if (isReady) {
     titleText = "Player ready" + (nationAdj ? " - " + nationAdj : "");
@@ -13481,7 +13513,7 @@ function PlayerRow({ id, player }) {
       "data-player-id": String(player["playerno"]),
       children: [
         sprite != null && /* @__PURE__ */ u(FlagCanvas, { sprite }),
-        !sprite && nation2 == null && /* @__PURE__ */ u("div", { id: isAI ? "pregame_ai_icon" : "pregame_player_icon" }),
+        !sprite && nation == null && /* @__PURE__ */ u("div", { id: isAI ? "pregame_ai_icon" : "pregame_player_icon" }),
         /* @__PURE__ */ u("b", { children: name })
       ]
     }
@@ -13559,8 +13591,8 @@ function CitiesPanel() {
       /* @__PURE__ */ u("tbody", { children: sorted.map((city) => {
         const owner = store.players[city.owner];
         const ownerName = owner?.["name"] ?? `#${city.owner}`;
-        const nation2 = owner ? store.nations[owner["nation"]] : null;
-        const color = nation2?.["color"] ?? "var(--xb-text-primary)";
+        const nation = owner ? store.nations[owner["nation"]] : null;
+        const color = nation?.["color"] ?? "var(--xb-text-primary)";
         const prod = city.production;
         const prodKind = prod?.["kind"];
         const prodValue = prod?.["value"];

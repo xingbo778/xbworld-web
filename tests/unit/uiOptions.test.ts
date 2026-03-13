@@ -38,26 +38,3 @@ describe('setDrawFogOfWar', () => {
   });
 });
 
-describe('init_options_dialog', () => {
-  it('is exported as a function', async () => {
-    const { init_options_dialog } = await import('@/ui/options');
-    expect(typeof init_options_dialog).toBe('function');
-  });
-
-  it('does not throw when audio is null and DOM elements are absent', async () => {
-    const { init_options_dialog } = await import('@/ui/options');
-    expect(() => init_options_dialog()).not.toThrow();
-  });
-});
-
-describe('init_theme_selector', () => {
-  it('is exported as a function', async () => {
-    const { init_theme_selector } = await import('@/ui/options');
-    expect(typeof init_theme_selector).toBe('function');
-  });
-
-  it('does not throw when container is absent', async () => {
-    const { init_theme_selector } = await import('@/ui/options');
-    expect(() => init_theme_selector()).not.toThrow();
-  });
-});

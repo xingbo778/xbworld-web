@@ -35,6 +35,40 @@ import { clientState, C_S_RUNNING } from '../client/clientState';
 // LAYER_FOG = 8 (from tilespec.ts)
 const LAYER_FOG_INDEX = 8;
 
+// ---------------------------------------------------------------------------
+// Pure helpers (exported for unit testing)
+// ---------------------------------------------------------------------------
+
+/**
+ * Extract a tile index from a `tile:updated` event payload.
+ *
+ * Supports three formats emitted by different code paths:
+ *  1. { tileIndex: 42 }           — legacy TS emitters
+ *  2. { tile: 42 }                — pid-15 packet handler (number)
+ *  3. { tile: { index: 42 } }     — old object-style emitters
+ *
+ * Returns null when no valid index can be found (caller should markAllDirty).
+ */
+export function extractTileIndex(data: unknown): number | null {
+  const d = data as Record<string, unknown> | null;
+  const idx = d?.['tileIndex']
+    ?? (typeof d?.['tile'] === 'number'
+      ? d['tile']
+      : (d?.['tile'] as Record<string, unknown> | undefined)?.['index']);
+  return typeof idx === 'number' ? idx : null;
+}
+
+/**
+ * Extract a tile index from unit/city event payloads, which carry the index
+ * directly as the `tile` field (always a number, never an object).
+ *
+ * Returns null when the field is absent or non-numeric.
+ */
+export function extractSimpleIndex(data: unknown): number | null {
+  const idx = (data as Record<string, unknown> | null)?.['tile'];
+  return typeof idx === 'number' ? idx : null;
+}
+
 // DIR8 values used for corner fog cluster (E/S/SE neighbors of current tile)
 const DIR8_EAST = 4;
 const DIR8_SOUTH = 6;
@@ -89,6 +123,10 @@ export class PixiRenderer {
   private static readonly FRAME_BUDGET_MS = 8;
   private static readonly BURST_BUDGET_MS = 12;
   private firstRebuildDone = false;
+
+  // Performance telemetry (exposed via getStats for dev/e2e inspection)
+  private lastRebuildMs = 0;     // ms spent rebuilding tiles in the most recent frame
+  private rebuildFrameCount = 0; // frames consumed by the current rebuild queue
 
   // Viewport tracking for pan-reveal (rebuild after pan stops)
   private lastViewX0 = 0;
@@ -145,6 +183,8 @@ export class PixiRenderer {
         spritesReady: this.spritesReady,
         dirtyAll: this.dirtyAll,
         dirtyCount: this.dirtyTiles.size,
+        lastRebuildMs: Math.round(this.lastRebuildMs * 100) / 100,
+        rebuildFrameCount: this.rebuildFrameCount,
       }),
       getGameState: () => {
         const turn = (store.gameInfo as Record<string, unknown> | null)?.['turn'] as number ?? -1;
@@ -193,6 +233,27 @@ export class PixiRenderer {
       logError('PixiRenderer: texture creation failed for', key, e);
       this.texCache.set(key, null);
       return null;
+    }
+  }
+
+  /**
+   * Pre-compute GUI positions for all tiles immediately after map allocation.
+   *
+   * Without this, the first processFrame viewport scan calls map_to_gui_pos()
+   * for every tile (O(n) expensive calls).  After pre-fill, scans are O(1)
+   * Map lookups for the lifetime of the session.
+   *
+   * map_to_gui_pos depends only on tile.x/y and the tileset config, both of
+   * which are stable for the duration of a game session, so the cache stays
+   * valid after panning or zooming.
+   */
+  private preFillTilePosCache(): void {
+    if (!store.tiles) return;
+    this.tilePosCache.clear();
+    for (const tile of Object.values(store.tiles as Record<number, { x: number; y: number; index: number }>)) {
+      if (!tile) continue;
+      const pos = map_to_gui_pos(tile.x, tile.y);
+      this.tilePosCache.set(tile.index, [pos['gui_dx'] as number, pos['gui_dy'] as number]);
     }
   }
 
@@ -634,6 +695,7 @@ export class PixiRenderer {
 
     // Drain the viewport-culled rebuild queue within the remaining time budget.
     if (this.rebuildQueue) {
+      if (this.rebuildQueueIdx === 0) this.rebuildFrameCount++;
       const tilesMap = store.tiles as Record<number, Tile>;
       while (this.rebuildQueueIdx < this.rebuildQueue.length) {
         const tile = this.rebuildQueue[this.rebuildQueueIdx++];
@@ -645,8 +707,11 @@ export class PixiRenderer {
         this.rebuildQueue = null;
         this.rebuildQueueIdx = 0;
         this.firstRebuildDone = true;
+        this.rebuildFrameCount = 0;
       }
     }
+
+    this.lastRebuildMs = performance.now() - frameStart;
   }
 
   private startRenderLoop(): void {
@@ -683,31 +748,28 @@ export class PixiRenderer {
 
   private setupEventListeners(): void {
     globalEvents.on('tile:updated', (data: unknown) => {
-      const d = data as Record<string, unknown> | null;
-      // pid-15 packets carry the tile index as `tile` (a number).
-      // Older emitters may use `tileIndex` or `tile.index`.
-      const idx = d?.['tileIndex']
-        ?? (typeof d?.['tile'] === 'number' ? d['tile'] : (d?.['tile'] as Record<string, unknown> | undefined)?.['index']);
-      if (typeof idx === 'number') this.markDirty(idx); else this.markAllDirty();
+      const idx = extractTileIndex(data);
+      if (idx !== null) this.markDirty(idx); else this.markAllDirty();
     });
     globalEvents.on('unit:updated', (data: unknown) => {
-      const tileIdx = (data as Record<string, unknown> | null)?.['tile'];
-      if (typeof tileIdx === 'number') this.markDirty(tileIdx); else this.markAllDirty();
+      const idx = extractSimpleIndex(data);
+      if (idx !== null) this.markDirty(idx); else this.markAllDirty();
     });
     globalEvents.on('unit:removed', (data: unknown) => {
-      const tileIdx = (data as Record<string, unknown> | null)?.['tile'];
-      if (typeof tileIdx === 'number') this.markDirty(tileIdx); else this.markAllDirty();
+      const idx = extractSimpleIndex(data);
+      if (idx !== null) this.markDirty(idx); else this.markAllDirty();
     });
     globalEvents.on('city:updated', (data: unknown) => {
-      const tileIdx = (data as Record<string, unknown> | null)?.['tile'];
-      if (typeof tileIdx === 'number') this.markDirty(tileIdx); else this.markAllDirty();
+      const idx = extractSimpleIndex(data);
+      if (idx !== null) this.markDirty(idx); else this.markAllDirty();
     });
     globalEvents.on('city:removed', (data: unknown) => {
-      const tileIdx = (data as Record<string, unknown> | null)?.['tile'];
-      if (typeof tileIdx === 'number') this.markDirty(tileIdx); else this.markAllDirty();
+      const idx = extractSimpleIndex(data);
+      if (idx !== null) this.markDirty(idx); else this.markAllDirty();
     });
     globalEvents.on('map:allocated', () => {
       this.clearTextureCache();
+      this.preFillTilePosCache();
       this.markAllDirty();
     });
     // player:updated — player/nation color data loaded; borders use nation colors so all

@@ -13,7 +13,6 @@ import type { Player } from './types';
 import { PlayerFlag } from './player';
 import { clientIsObserver, clientPlaying } from '../client/clientState';
 import { send_message } from '../net/connection';
-import { escapeHtml } from '../utils/safeHtml';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -94,37 +93,6 @@ export function colLove(pplayer: Player): string {
 export function takePlayer(player_name: string): void {
   send_message('/take ' + player_name);
   store.observing = false;
-}
-
-/** Returns HTML table of sorted player scores for the Game Scores dialog. */
-export function getPlayerScoresSummary(): string {
-  const players = Object.values(store.players) as Player[];
-  if (players.length === 0) return '<p>No score data available yet.</p>';
-
-  const sorted = [...players].sort((a, b) => ((b['score'] as number) ?? 0) - ((a['score'] as number) ?? 0));
-  const rows = sorted.map((p, i) => {
-    const nation = store.nations[p['nation'] as number];
-    const adj = nation?.['adjective'] ?? '?';
-    const score = (p['score'] as number) ?? '?';
-    const cities = (p['cities'] as number) ?? 0;
-    const units = (p['units'] as number) ?? 0;
-    return `<tr>
-      <td style="padding:4px 8px;font-weight:bold">#${i + 1}</td>
-      <td style="padding:4px 8px">${escapeHtml(String(p['name']))}</td>
-      <td style="padding:4px 8px;color:#8b949e">${escapeHtml(String(adj))}</td>
-      <td style="padding:4px 8px;text-align:right;font-weight:bold;color:#58a6ff">${score}</td>
-      <td style="padding:4px 8px;text-align:right">${cities} cities</td>
-    </tr>`;
-  }).join('');
-  return `<table style="width:100%;border-collapse:collapse">
-    <thead><tr style="border-bottom:1px solid #444">
-      <th style="padding:4px 8px;text-align:left">Rank</th>
-      <th style="padding:4px 8px;text-align:left">Player</th>
-      <th style="padding:4px 8px;text-align:left">Nation</th>
-      <th style="padding:4px 8px;text-align:right">Score</th>
-      <th style="padding:4px 8px;text-align:right">Cities</th>
-    </tr></thead><tbody>${rows}</tbody>
-  </table>`;
 }
 
 /**

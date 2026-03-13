@@ -52,26 +52,6 @@ describe('theme utility', () => {
   });
 });
 
-describe('options.ts init_theme_selector', () => {
-  it('init_theme_selector is a function', async () => {
-    const { init_theme_selector } = await import('@/ui/options');
-    expect(typeof init_theme_selector).toBe('function');
-  });
-
-  it('init_theme_selector does not throw when opt_tab is absent', async () => {
-    const { init_theme_selector } = await import('@/ui/options');
-    expect(() => init_theme_selector()).not.toThrow();
-  });
-
-  it('init_theme_selector mounts into #opt_tab when present', async () => {
-    const { init_theme_selector } = await import('@/ui/options');
-    const el = document.createElement('div');
-    el.id = 'opt_tab';
-    document.body.appendChild(el);
-    expect(() => init_theme_selector()).not.toThrow();
-    document.body.removeChild(el);
-  });
-});
 
 describe('ThemeSelector rendering', () => {
   beforeEach(() => { document.body.innerHTML = ''; });
