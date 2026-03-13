@@ -31,11 +31,11 @@ import { mouse_x, mouse_y, setMouseX, setMouseY, setMapviewMouseMovement, setCon
 import { player_by_full_username, get_player_connection_status } from '../data/player';
 import { clientIsObserver as client_is_observer, clientPlaying, canClientChangeView as can_client_change_view } from '../client/clientState';
 import { isTouchDevice as is_touch_device, isRightMouseSelectionSupported as is_right_mouse_selection_supported } from '../utils/helpers';
-import { showDialogMessage as show_dialog_message } from '../client/civClient';
 import { do_city_map_click } from '../ui/cityDialog';
 import { IDENTITY_NUMBER_ZERO } from '../core/constants';
 import { center_tile_mapcanvas } from '../core/control';
-import { escapeHtml } from '../utils/safeHtml';
+import { showTileInfoDialog } from '../components/Dialogs/TileInfoDialog';
+import type { TileInfoLine } from '../components/Dialogs/TileInfoDialog';
 
 export { mouse_x, mouse_y };
 export let touch_start_x: number;
@@ -371,53 +371,40 @@ export function recenter_button_pressed(canvas_x: number, canvas_y: number): voi
   Received tile info text.
 **************************************************************************/
 export function handle_web_info_text_message(packet: { message: string; [key: string]: unknown }): void {
-  let message = decodeURIComponent(packet['message']);
-  const lines = message.split('\n');
+  const message = decodeURIComponent(packet['message']);
+  const rawLines = message.split('\n');
 
-  /* When a line starts with the key, the regex value is used to break it
-   * in four elements:
-   * - text before the player's name
-   * - player's name
-   * - text after the player's name and before the status insertion point
-   * - text after the status insertion point
-  **/
+  /* When a line starts with the key, the regex extracts four capture groups:
+   * 1. text before the player's name
+   * 2. the player's name
+   * 3. text after the player's name and before the status insertion point
+   * 4. text after the status insertion point
+   */
   const matcher: { [key: string]: RegExp } = {
     'Terri': /^(Territory of )([^(]*)(\s+\([^,]*)(.*)/,
     'City:': /^(City:[^|]*\|\s+)([^(]*)(\s+\([^,]*)(.*)/,
-    'Unit:': /^(Unit:[^|]*\|\s+)([^(]*)(\s+\([^,]*)(.*)/
+    'Unit:': /^(Unit:[^|]*\|\s+)([^(]*)(\s+\([^,]*)(.*)/,
   };
 
-  for (let i = 0; i < lines.length; i++) {
-    const re = matcher[lines[i].substr(0, 5)];
+  const lines: TileInfoLine[] = rawLines.map((raw) => {
+    const re = matcher[raw.substring(0, 5)];
     if (re !== undefined) {
-      let pplayer: Player | null = null;
-      const split_txt = lines[i].match(re);
+      const split_txt = raw.match(re);
       if (split_txt != null && split_txt.length > 4) {
-        pplayer = player_by_full_username(split_txt[2]);
+        const pplayer: Player | null = player_by_full_username(split_txt[2]);
+        if (pplayer != null && (clientPlaying() == null || pplayer !== clientPlaying())) {
+          return {
+            prefix: split_txt[1],
+            playerName: split_txt[2],
+            playerNo: pplayer['playerno'] as number,
+            suffix: split_txt[3] + ', ' + get_player_connection_status(pplayer) + split_txt[4],
+          };
+        }
       }
-      if (pplayer != null && split_txt != null &&
-          (clientPlaying() == null || pplayer != clientPlaying())) {
-        lines[i] = escapeHtml(split_txt[1])
-                 + "<a href='#' data-action='select-player' data-playerno='"
-                 + pplayer['playerno']
-                 + "' style='color: black;'>"
-                 + escapeHtml(split_txt[2])
-                 + "</a>"
-                 + escapeHtml(split_txt[3])
-                 + ", "
-                 + escapeHtml(get_player_connection_status(pplayer))
-                 + escapeHtml(split_txt[4]);
-      } else {
-        // No player match — escape the whole line as plain text
-        lines[i] = escapeHtml(lines[i]);
-      }
-    } else {
-      // No special pattern — plain text from server, escape it
-      lines[i] = escapeHtml(lines[i]);
     }
-  }
-  message = lines.join("<br>\n");
+    return { text: raw };
+  });
 
-  show_dialog_message("Tile Information", message);
+  showTileInfoDialog(lines);
 }
 

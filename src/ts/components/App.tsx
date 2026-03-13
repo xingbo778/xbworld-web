@@ -14,6 +14,7 @@ import { TechGainedDialog } from './Dialogs/TechGainedDialog';
 import { WikiDialog, TechInfoDialog, wikiDialogSignal, techInfoDialogSignal } from './Dialogs/TechDialog';
 import { TaxRatesDialog } from './Dialogs/TaxRatesDialog';
 import { GameScoresDialog } from './Dialogs/GameScoresDialog';
+import { TileInfoDialog } from './Dialogs/TileInfoDialog';
 import { ChatContextDialog } from './ChatContextDialog';
 import { BlockingOverlay } from './BlockingOverlay';
 import { DisconnectOverlay } from './DisconnectOverlay';
@@ -58,6 +59,7 @@ function App() {
       <TechGainedDialog />
       <TaxRatesDialog />
       <GameScoresDialog />
+      <TileInfoDialog />
       <IntroDialog />
       <ChatContextDialog />
 

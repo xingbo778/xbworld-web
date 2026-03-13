@@ -3228,7 +3228,7 @@ function Button({
     }
   );
 }
-const state$7 = c({
+const state$8 = c({
   open: false,
   title: "",
   text: "",
@@ -3238,10 +3238,10 @@ const state$7 = c({
   onConfirm: null
 });
 function closeSwal() {
-  state$7.value = { ...state$7.value, open: false };
+  state$8.value = { ...state$8.value, open: false };
 }
 function confirm() {
-  const cb = state$7.value.onConfirm;
+  const cb = state$8.value.onConfirm;
   closeSwal();
   if (cb) cb();
 }
@@ -3255,7 +3255,7 @@ function swal(titleOrOpts, textOrCb, type) {
   if (typeof titleOrOpts === "object") {
     const opts = titleOrOpts;
     const cb = typeof textOrCb === "function" ? textOrCb : null;
-    state$7.value = {
+    state$8.value = {
       open: true,
       title: opts.title || "",
       text: opts.text || "",
@@ -3265,7 +3265,7 @@ function swal(titleOrOpts, textOrCb, type) {
       onConfirm: cb
     };
   } else {
-    state$7.value = {
+    state$8.value = {
       open: true,
       title: titleOrOpts,
       text: typeof textOrCb === "string" ? textOrCb : "",
@@ -3277,7 +3277,7 @@ function swal(titleOrOpts, textOrCb, type) {
   }
 }
 function SwalDialog() {
-  const { open: open2, title, text, type, showCancelButton, confirmButtonText } = state$7.value;
+  const { open: open2, title, text, type, showCancelButton, confirmButtonText } = state$8.value;
   const icon = TYPE_ICONS[type] || "";
   return /* @__PURE__ */ u(
     Dialog,
@@ -4137,7 +4137,7 @@ function CityDialog() {
     ] }) })
   ] }) });
 }
-const state$6 = c({
+const state$7 = c({
   open: false,
   title: "",
   prompt: "",
@@ -4149,13 +4149,13 @@ const state$6 = c({
   }
 });
 function showCityInputDialog(title, prompt, initialValue, maxLength, onSubmit, onCancel) {
-  state$6.value = { open: true, title, prompt, initialValue, maxLength, onSubmit, onCancel };
+  state$7.value = { open: true, title, prompt, initialValue, maxLength, onSubmit, onCancel };
 }
 function closeCityInputDialog() {
-  state$6.value = { ...state$6.value, open: false };
+  state$7.value = { ...state$7.value, open: false };
 }
 function CityInputDialog() {
-  const { open: open2, title, prompt, initialValue, maxLength, onSubmit, onCancel } = state$6.value;
+  const { open: open2, title, prompt, initialValue, maxLength, onSubmit, onCancel } = state$7.value;
   const inputRef = A(null);
   function handleSubmit() {
     const name = inputRef.current?.value ?? "";
@@ -4805,232 +4805,474 @@ let _setDirtyAll = () => {
 function _setDirtyAllSetter(fn) {
   _setDirtyAll = fn;
 }
-const map_pos_to_tile$1 = mapPosToTile;
-let touch_start_x;
-let touch_start_y;
-let map_select_check = false;
-let map_select_check_started = 0;
-let map_select_active = false;
-let map_select_x;
-let map_select_y;
-function setMapSelectActive(v2) {
-  map_select_active = v2;
+const chatContextSignal = c({
+  open: false,
+  recipients: [],
+  currentId: null
+});
+function showChatContextDialog(recipients, currentId) {
+  chatContextSignal.value = { open: true, recipients, currentId };
 }
-function setTouchStart(x2, y2) {
-  touch_start_x = x2;
-  touch_start_y = y2;
+function closeChatContextDialog() {
+  chatContextSignal.value = { ...chatContextSignal.value, open: false };
 }
-function mapctrl_init_pixi() {
-  const container = document.getElementById("canvas_div");
-  if (!container) {
-    console.warn("mapctrl_init_pixi: #canvas_div not found");
-    return;
-  }
-  const canvas = container.querySelector("canvas");
-  if (!canvas) {
-    console.warn("mapctrl_init_pixi: no <canvas> found inside #canvas_div");
-    return;
-  }
-  canvas.addEventListener("mouseup", mapview_mouse_click);
-  canvas.addEventListener("mousedown", mapview_mouse_down);
-  window.addEventListener("mousemove", mouse_moved_cb);
-  window.addEventListener("mouseup", mapview_window_mouse_up);
-  if (isTouchDevice()) {
-    canvas.addEventListener("touchstart", mapview_touch_start);
-    canvas.addEventListener("touchend", mapview_touch_end);
-    canvas.addEventListener("touchmove", mapview_touch_move);
-  }
-}
-function mapview_mouse_click(e2) {
-  let rightclick = false;
-  let middleclick = false;
-  if (e2.which) {
-    rightclick = e2.which == 3;
-    middleclick = e2.which == 2;
-  } else if (e2.button) {
-    rightclick = e2.button == 2;
-    middleclick = e2.button == 1 || e2.button == 4;
-  }
-  if (rightclick) {
-    if (!map_select_active || false) {
-      store.contextMenuActive = true;
-      recenter_button_pressed(mouse_x, mouse_y);
-    } else {
-      store.contextMenuActive = false;
-      map_select_units(mouse_x, mouse_y);
+function FlagCanvas$1({ flag, iconText }) {
+  const ref = A(null);
+  y$2(() => {
+    const canvas = ref.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.clearRect(0, 0, 29, 20);
+    if (flag != null) {
+      ctx.drawImage(flag, 0, 0);
+    } else if (iconText) {
+      ctx.font = "18px FontAwesome";
+      ctx.fillStyle = "rgba(32,32,32,1)";
+      ctx.fillText(iconText, 5, 15);
     }
-    map_select_active = false;
-    map_select_check = false;
-  } else if (!middleclick) {
-    action_button_pressed(mouse_x, mouse_y, SELECT_POPUP);
-    setMapviewMouseMovement(false);
-    store.mapviewMouseMovement = false;
-    update_mouse_cursor();
+  }, [flag, iconText]);
+  return /* @__PURE__ */ u("canvas", { ref, width: 29, height: 20, style: { verticalAlign: "middle" } });
+}
+function ChatContextDialog() {
+  const { open: open2, recipients, currentId } = chatContextSignal.value;
+  if (!open2) return null;
+  function handleRowClick(id) {
+    closeChatContextDialog();
+    document.dispatchEvent(
+      new CustomEvent("chat:directionChosen", { detail: { id } })
+    );
   }
-  setKeyboardInput(true);
-  store.keyboardInput = true;
-}
-function mapview_mouse_down(e2) {
-  let rightclick = false;
-  let middleclick = false;
-  if (e2.which) {
-    rightclick = e2.which == 3;
-    middleclick = e2.which == 2;
-  } else if (e2.button) {
-    rightclick = e2.button == 2;
-    middleclick = e2.button == 1 || e2.button == 4;
-  }
-  if (!rightclick && !middleclick) {
-    if (goto_active) return;
-    set_mouse_touch_started_on_unit(canvas_pos_to_tile(mouse_x, mouse_y));
-    check_mouse_drag_unit(canvas_pos_to_tile(mouse_x, mouse_y));
-    setMapviewMouseMovement(true);
-    touch_start_x = mouse_x;
-    touch_start_y = mouse_y;
-  } else if (middleclick || e2["altKey"]) {
-    popit();
-    return false;
-  } else if (rightclick && !map_select_active && isRightMouseSelectionSupported()) {
-    map_select_check = true;
-    map_select_x = mouse_x;
-    map_select_y = mouse_y;
-    map_select_check_started = (/* @__PURE__ */ new Date()).getTime();
-    store.contextMenuActive = false;
-  }
-}
-function mapview_window_mouse_up() {
-  setMapviewMouseMovement(false);
-  store.mapviewMouseMovement = false;
-}
-function mapview_touch_start(e2) {
-  e2.preventDefault();
-  const canvasEl = document.getElementById("canvas");
-  const rect = canvasEl.getBoundingClientRect();
-  touch_start_x = e2.touches[0].pageX - (rect.left + window.scrollX);
-  touch_start_y = e2.touches[0].pageY - (rect.top + window.scrollY);
-  const ptile = canvas_pos_to_tile(touch_start_x, touch_start_y);
-  set_mouse_touch_started_on_unit(ptile);
-}
-function mapview_touch_end(e2) {
-  action_button_pressed(touch_start_x, touch_start_y, SELECT_POPUP);
-}
-function mapview_touch_move(e2) {
-  const canvasEl = document.getElementById("canvas");
-  const rect = canvasEl.getBoundingClientRect();
-  setMouseX(e2.touches[0].pageX - (rect.left + window.scrollX));
-  setMouseY(e2.touches[0].pageY - (rect.top + window.scrollY));
-  const diff_x = (touch_start_x - mouse_x) * 2;
-  const diff_y = (touch_start_y - mouse_y) * 2;
-  touch_start_x = mouse_x;
-  touch_start_y = mouse_y;
-  if (!goto_active) {
-    check_mouse_drag_unit(canvas_pos_to_tile(mouse_x, mouse_y));
-    mapview$1["gui_x0"] = (mapview$1["gui_x0"] ?? 0) + diff_x;
-    mapview$1["gui_y0"] = (mapview$1["gui_y0"] ?? 0) + diff_y;
-    mark_all_dirty();
-  }
-  if (clientPlaying() == null) return;
-  if (goto_active && current_focus.length > 0) {
-    const ptile = canvas_pos_to_tile(mouse_x, mouse_y);
-    if (ptile != null) {
-      for (let i2 = 0; i2 < current_focus.length; i2++) {
-        if (i2 >= 20) return;
-        if (goto_request_map[current_focus[i2]["id"] + "," + ptile["x"] + "," + ptile["y"]] == null) {
-          request_goto_path(current_focus[i2]["id"], ptile["x"], ptile["y"]);
-        }
-      }
+  return /* @__PURE__ */ u(
+    "div",
+    {
+      id: "chat_context_dialog",
+      style: {
+        position: "absolute",
+        zIndex: 5e3,
+        background: "var(--xb-bg-elevated,#21262d)",
+        border: "1px solid var(--xb-border-default,#30363d)",
+        borderRadius: 6,
+        padding: 8,
+        maxHeight: Math.floor(0.9 * window.innerHeight) + "px",
+        overflowY: "auto",
+        minWidth: 200
+      },
+      children: [
+        /* @__PURE__ */ u("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }, children: [
+          /* @__PURE__ */ u("span", { style: { color: "var(--xb-text-secondary,#8b949e)", fontSize: 12 }, children: "Choose recipient" }),
+          /* @__PURE__ */ u(
+            "button",
+            {
+              onClick: closeChatContextDialog,
+              style: { background: "none", border: "none", color: "var(--xb-text-primary,#e6edf3)", cursor: "pointer", fontSize: 16, lineHeight: 1 },
+              children: "×"
+            }
+          )
+        ] }),
+        /* @__PURE__ */ u("table", { style: { borderCollapse: "collapse", width: "100%" }, children: /* @__PURE__ */ u("tbody", { children: recipients.filter((r2) => r2.id !== currentId).map((r2, i2) => /* @__PURE__ */ u(
+          "tr",
+          {
+            onClick: () => handleRowClick(r2.id),
+            style: {
+              cursor: "pointer",
+              borderBottom: "1px solid var(--xb-border-muted,#21262d)"
+            },
+            onMouseEnter: (e2) => {
+              e2.currentTarget.style.background = "var(--xb-bg-secondary,#161b22)";
+            },
+            onMouseLeave: (e2) => {
+              e2.currentTarget.style.background = "";
+            },
+            children: [
+              /* @__PURE__ */ u("td", { style: { padding: "4px 8px 4px 4px" }, children: /* @__PURE__ */ u(FlagCanvas$1, { flag: r2.flag, iconText: r2.iconText }) }),
+              /* @__PURE__ */ u("td", { style: { padding: "4px 8px 4px 0", color: "var(--xb-text-primary,#e6edf3)", fontSize: 13 }, children: r2.description })
+            ]
+          },
+          i2
+        )) }) })
+      ]
     }
+  );
+}
+const FC_PLRF_AI = PlayerFlag.PLRF_AI;
+document.addEventListener("chat:directionChosen", (ev) => {
+  const id = ev.detail.id;
+  set_chat_direction(id);
+});
+function chat_context_change() {
+  const recipients = chat_context_get_recipients();
+  if (recipients.length < 4) {
+    chat_context_set_next(recipients);
+  } else {
+    chat_context_dialog_show(recipients);
   }
 }
-function action_button_pressed(canvas_x, canvas_y, qtype) {
-  const ptile = canvas_pos_to_tile(canvas_x, canvas_y);
-  if (canClientChangeView() && ptile != null) {
-    do_map_click(ptile, qtype, true);
+function chat_context_get_recipients() {
+  const pm = [];
+  pm.push({ id: null, flag: null, description: "Everybody" });
+  let self = -1;
+  if (clientPlaying() != null) {
+    self = clientPlaying()["playerno"];
   }
+  for (const player_id_str in store.players) {
+    const player_id = parseInt(player_id_str);
+    if (player_id == self) continue;
+    const pplayer = store.players[player_id];
+    if (pplayer["flags"].isSet(FC_PLRF_AI)) continue;
+    if (!pplayer["is_alive"]) continue;
+    if (isLongturn() && pplayer["name"].indexOf("New Available Player") != -1) continue;
+    const nation = store.nations[pplayer["nation"]];
+    if (nation == null) continue;
+    pm.push({
+      id: player_id,
+      description: pplayer["name"] + " of the " + nation["adjective"],
+      flag: store.sprites["f." + nation["graphic_str"]]
+    });
+  }
+  pm.sort(function(a2, b2) {
+    if (a2.id == null) return -1;
+    if (b2.id == null) return 1;
+    if (a2.id == self) return -1;
+    if (b2.id == self) return 1;
+    if (a2.description < b2.description) return -1;
+    if (a2.description > b2.description) return 1;
+    return 0;
+  });
+  return pm;
 }
-function map_select_units(canvas_x, canvas_y) {
-  const selected_tiles = {};
-  const selected_units = [];
-  if (clientIsObserver()) return;
-  const start_x = map_select_x < canvas_x ? map_select_x : canvas_x;
-  const start_y = map_select_y < canvas_y ? map_select_y : canvas_y;
-  const end_x = map_select_x < canvas_x ? canvas_x : map_select_x;
-  const end_y = map_select_y < canvas_y ? canvas_y : map_select_y;
-  for (let x2 = start_x; x2 < end_x; x2 += 15) {
-    for (let y2 = start_y; y2 < end_y; y2 += 15) {
-      const ptile = canvas_pos_to_tile(x2, y2);
-      if (ptile != null) {
-        selected_tiles[ptile["index"]] = ptile;
-      }
-    }
+function chat_context_set_next(recipients) {
+  let next = 0;
+  while (next < recipients.length && recipients[next].id != chat_send_to) {
+    next++;
   }
-  for (const tile_id in selected_tiles) {
-    const ptile = selected_tiles[tile_id];
-    const cunits = tile_units(ptile);
-    if (cunits == null) continue;
-    for (let i2 = 0; i2 < cunits.length; i2++) {
-      const aunit = cunits[i2];
-      if (aunit["owner"] == clientPlaying().playerno) {
-        selected_units.push(aunit);
-      }
-    }
+  next++;
+  if (next >= recipients.length) {
+    next = 0;
   }
-  setCurrentFocus(selected_units);
-  store.currentFocus = selected_units;
-  action_selection_next_in_focus(IDENTITY_NUMBER_ZERO);
+  set_chat_direction(recipients[next].id);
 }
-function recenter_button_pressed(canvas_x, canvas_y) {
-  const map_scroll_border = 8;
-  const big_map_size = 24;
-  let ptile = canvas_pos_to_tile(canvas_x, canvas_y);
-  const orig_tile = ptile;
-  if (ptile != null && ptile["y"] > store.mapInfo.ysize - map_scroll_border && store.mapInfo.xsize > big_map_size && store.mapInfo.ysize > big_map_size) {
-    ptile = map_pos_to_tile$1(ptile["x"], store.mapInfo.ysize - map_scroll_border);
-  }
-  if (ptile != null && ptile["y"] < map_scroll_border && store.mapInfo.xsize > big_map_size && store.mapInfo.ysize > big_map_size) {
-    ptile = map_pos_to_tile$1(ptile["x"], map_scroll_border);
-  }
-  if (canClientChangeView() && ptile != null && orig_tile != null) {
-    const sunit = find_visible_unit(orig_tile);
-    if (!clientIsObserver() && sunit != null && sunit["owner"] == clientPlaying().playerno) {
-      if (current_focus.length <= 1) set_unit_focus(sunit);
-      const canvasEl = document.getElementById("canvas");
-      canvasEl.contextMenu?.(true);
-      canvasEl.dispatchEvent(new Event("contextmenu"));
-    } else {
-      const canvasEl = document.getElementById("canvas");
-      canvasEl.contextMenu?.(false);
-      center_tile_mapcanvas(ptile);
+function chat_context_dialog_show(recipients) {
+  const self = clientPlaying()?.["playerno"] ?? -1;
+  const mapped = recipients.map((r2) => ({
+    ...r2,
+    iconText: r2.id == null ? CHAT_ICON_EVERYBODY : r2.id === self ? CHAT_ICON_ALLIES : void 0
+  }));
+  showChatContextDialog(mapped, chat_send_to);
+}
+function set_chat_direction(player_id) {
+  if (player_id == chat_send_to) return;
+  let player_name;
+  const iconEl = document.getElementById("chat_direction");
+  if (!iconEl) return;
+  const ctx = iconEl.getContext("2d");
+  if (!ctx) return;
+  if (player_id == null || player_id < 0) {
+    player_id = null;
+    ctx.clearRect(0, 0, 29, 20);
+    ctx.font = "18px FontAwesome";
+    ctx.fillStyle = "rgba(192, 192, 192, 1)";
+    ctx.fillText(CHAT_ICON_EVERYBODY, 7, 15);
+    player_name = "everybody";
+  } else if (clientPlaying() != null && player_id == clientPlaying()["playerno"]) {
+    ctx.clearRect(0, 0, 29, 20);
+    ctx.font = "18px FontAwesome";
+    ctx.fillStyle = "rgba(192, 192, 192, 1)";
+    ctx.fillText(CHAT_ICON_ALLIES, 10, 16);
+    player_name = "allies";
+  } else {
+    const pplayer = store.players[player_id];
+    if (pplayer == null) return;
+    player_name = pplayer["name"] + " of the " + (store.nations[pplayer["nation"]]?.["adjective"] || pplayer["name"]);
+    ctx.clearRect(0, 0, 29, 20);
+    const flag = store.sprites["f." + store.nations[pplayer["nation"]]["graphic_str"]];
+    if (flag != null) {
+      ctx.drawImage(flag, 0, 0);
     }
   }
+  iconEl.title = "Sending messages to " + player_name;
+  setChatSendTo(player_id);
+  const textInput = document.getElementById("game_text_input");
+  if (textInput) textInput.focus();
 }
-function handle_web_info_text_message(packet) {
-  let message = decodeURIComponent(packet["message"]);
-  const lines = message.split("\n");
-  const matcher = {
-    "Terri": /^(Territory of )([^(]*)(\s+\([^,]*)(.*)/,
-    "City:": /^(City:[^|]*\|\s+)([^(]*)(\s+\([^,]*)(.*)/,
-    "Unit:": /^(Unit:[^|]*\|\s+)([^(]*)(\s+\([^,]*)(.*)/
-  };
-  for (let i2 = 0; i2 < lines.length; i2++) {
-    const re = matcher[lines[i2].substr(0, 5)];
-    if (re !== void 0) {
-      let pplayer = null;
-      const split_txt = lines[i2].match(re);
-      if (split_txt != null && split_txt.length > 4) {
-        pplayer = player_by_full_username(split_txt[2]);
-      }
-      if (pplayer != null && split_txt != null && (clientPlaying() == null || pplayer != clientPlaying())) {
-        lines[i2] = escapeHtml(split_txt[1]) + "<a href='#' data-action='select-player' data-playerno='" + pplayer["playerno"] + "' style='color: black;'>" + escapeHtml(split_txt[2]) + "</a>" + escapeHtml(split_txt[3]) + ", " + escapeHtml(get_player_connection_status(pplayer)) + escapeHtml(split_txt[4]);
+function encode_message_text(message) {
+  message = message.replace(/^\s+|\s+$/g, "");
+  message = message.replace(/&/g, "&amp;");
+  message = message.replace(/'/g, "&apos;");
+  message = message.replace(/"/g, "&quot;");
+  message = message.replace(/</g, "&lt;");
+  message = message.replace(/>/g, "&gt;");
+  return encodeURIComponent(message);
+}
+function is_unprefixed_message(message) {
+  if (message === null) return false;
+  if (message.length === 0) return true;
+  const first = message.charAt(0);
+  if (first === "/" || first === "." || first === ":") return false;
+  let quoted_pos = -1;
+  if (first === '"' || first === "'") {
+    quoted_pos = message.indexOf(first, 1);
+  }
+  const private_mark = message.indexOf(":", quoted_pos);
+  if (private_mark < 0) return true;
+  const space_pos = message.indexOf(" ", quoted_pos);
+  return space_pos !== -1 && space_pos < private_mark;
+}
+function check_text_input(event, chatboxtextarea) {
+  if (event.keyCode == 13 && !event.shiftKey) {
+    let message = chatboxtextarea.value;
+    if (chat_send_to != null && chat_send_to >= 0 && is_unprefixed_message(message)) {
+      if (clientPlaying() != null && chat_send_to == clientPlaying()["playerno"]) {
+        message = ". " + encode_message_text(message);
       } else {
-        lines[i2] = escapeHtml(lines[i2]);
+        const pplayer = store.players[chat_send_to];
+        if (pplayer == null) {
+          set_chat_direction(null);
+          return;
+        }
+        let player_name = pplayer["name"];
+        const badchars = [" ", '"', "'"];
+        for (const c2 of badchars) {
+          const i2 = player_name.indexOf(c2);
+          if (i2 > 0) {
+            player_name = player_name.substring(0, i2);
+          }
+        }
+        message = player_name + encode_message_text(": " + message);
       }
     } else {
-      lines[i2] = escapeHtml(lines[i2]);
+      message = encode_message_text(message);
     }
+    chatboxtextarea.value = "";
+    if (!isTouchDevice()) chatboxtextarea.focus();
+    setKeyboardInput(true);
+    if (message.length >= 4 && message === message.toUpperCase()) {
+      return;
+    }
+    if (isLongturn() && C_S_RUNNING == clientState() && message != null && message.indexOf(encode_message_text("/set")) != -1) {
+      return;
+    }
+    if (message.length >= max_chat_message_length) {
+      message_log.update({
+        event: E_LOG_ERROR,
+        message: "Error! The message is too long. Limit: " + max_chat_message_length
+      });
+      return;
+    }
+    send_message(message);
+    return false;
   }
-  message = lines.join("<br>\n");
-  showDialogMessage("Tile Information", message);
+}
+const PAGE_MAIN = 0;
+const PAGE_START = 1;
+const PAGE_NETWORK = 4;
+const PAGE_GAME = 6;
+let old_page = -1;
+function set_client_page(page) {
+  if (old_page === page) return;
+  if (page === PAGE_GAME) {
+    document.getElementById("pregame_page")?.remove();
+    const gamePage = document.getElementById("game_page");
+    if (gamePage) gamePage.style.display = "";
+    set_chat_direction(null);
+  }
+  old_page = page;
+}
+function get_client_page() {
+  return old_page;
+}
+function orientation_changed() {
+}
+function blockUI(message) {
+  Promise.resolve().then(() => BlockingOverlay$1).then(({ showBlockingOverlay: showBlockingOverlay2 }) => showBlockingOverlay2(message)).catch(() => {
+  });
+}
+function unblockUI() {
+  Promise.resolve().then(() => BlockingOverlay$1).then(({ hideBlockingOverlay: hideBlockingOverlay2 }) => hideBlockingOverlay2()).catch(() => {
+  });
+}
+let tileset_images = [];
+const sprites = {};
+let loaded_images = 0;
+let sprites_loading = false;
+let sprites_init = false;
+const fullfog = [];
+function initTilesetSprites() {
+  mapview$1["gui_x0"] = 0;
+  mapview$1["gui_y0"] = 0;
+  let i2;
+  for (i2 = 0; i2 < 81; i2++) {
+    const ids = ["u", "f", "k"];
+    let buf = "t.fog";
+    const values = [];
+    let j2, k2 = i2;
+    for (j2 = 0; j2 < 4; j2++) {
+      values[j2] = k2 % 3;
+      k2 = Math.floor(k2 / 3);
+      buf += "_" + ids[values[j2]];
+    }
+    fullfog[i2] = buf;
+  }
+  store.fullfog = fullfog;
+  fetch("/javascript/2dcanvas/tileset_spec_amplio2.json").then((r2) => {
+    if (!r2.ok) throw new Error("HTTP " + r2.status);
+    return r2.json();
+  }).then((data) => {
+    window["tileset"] = data;
+    init_sprites();
+  }).catch((err) => {
+    console.error("Failed to load tileset spec:", err);
+  });
+}
+function is_small_screen() {
+  return window.innerWidth <= 640 || window.innerHeight <= 590;
+}
+function init_sprites() {
+  blockUI("<h1>Freeciv-web is loading. Please wait...<br><center><img src='/images/loading.gif'></center></h1>");
+  if (loaded_images != tileset_image_count) {
+    for (let i2 = 0; i2 < tileset_image_count; i2++) {
+      const tileset_image = new Image();
+      tileset_image.onload = preload_check;
+      tileset_image.src = "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i2 + getTilesetFileExtension() + "?ts=" + (window["ts"] ?? "");
+      tileset_images[i2] = tileset_image;
+    }
+  } else {
+    unblockUI();
+  }
+}
+function preload_check() {
+  loaded_images += 1;
+  if (loaded_images == tileset_image_count) {
+    init_cache_sprites();
+  }
+}
+function init_cache_sprites() {
+  if (loaded_images < tileset_image_count) return;
+  if (sprites_loading || sprites_init) return;
+  sprites_loading = true;
+  if (typeof tileset === "undefined") {
+    swal("Tileset error", "Tileset not generated correctly. Run sync.sh in freeciv-img-extract and recompile.", "error");
+    sprites_loading = false;
+    return;
+  }
+  if (typeof createImageBitmap === "function") {
+    const images = Array.from({ length: tileset_image_count }, (_2, idx) => tileset_images[idx]);
+    Promise.all(images.map((img) => createImageBitmap(img))).then((fullBitmaps) => {
+      const BATCH = 200;
+      const entries = Object.keys(tileset);
+      const total = entries.length;
+      const processBatch = (offset) => {
+        const chunk = entries.slice(offset, offset + BATCH);
+        const batchPromises = chunk.map((tile_tag) => {
+          const [x2, y2, w2, h2, i2] = tileset[tile_tag];
+          return createImageBitmap(fullBitmaps[i2], x2, y2, w2, h2).then((bmp) => {
+            sprites[tile_tag] = bmp;
+          }).catch(() => {
+          });
+        });
+        return Promise.all(batchPromises).then(() => {
+          if (offset + BATCH < total) {
+            return new Promise((res) => setTimeout(() => processBatch(offset + BATCH).then(res), 0));
+          }
+        });
+      };
+      return processBatch(0);
+    }).then(() => {
+      sprites_init = true;
+      sprites_loading = false;
+      store.sprites = sprites;
+      if (tileset) store.tileset = tileset;
+      tileset_images = null;
+      unblockUI();
+      console.log("[xbw] sprites loaded: " + Object.keys(sprites).length);
+      mark_all_dirty();
+    }).catch((err) => {
+      console.error("createImageBitmap failed, falling back to canvas:", err);
+      sprites_loading = false;
+      init_cache_sprites_canvas();
+    });
+  } else {
+    init_cache_sprites_canvas();
+  }
+}
+function init_cache_sprites_canvas() {
+  try {
+    for (const tile_tag in tileset) {
+      const x2 = tileset[tile_tag][0];
+      const y2 = tileset[tile_tag][1];
+      const w2 = tileset[tile_tag][2];
+      const h2 = tileset[tile_tag][3];
+      const i2 = tileset[tile_tag][4];
+      const newCanvas = document.createElement("canvas");
+      newCanvas.height = h2;
+      newCanvas.width = w2;
+      const newCtx = newCanvas.getContext("2d");
+      if (newCtx) {
+        newCtx.drawImage(tileset_images[i2], x2, y2, w2, h2, 0, 0, w2, h2);
+        sprites[tile_tag] = newCanvas;
+      }
+    }
+    sprites_init = true;
+    sprites_loading = false;
+    store.sprites = sprites;
+    if (tileset) store.tileset = tileset;
+    tileset_images = null;
+    console.log("[xbw] sprites loaded (canvas fallback): " + Object.keys(sprites).length);
+    mark_all_dirty();
+  } catch (e2) {
+    console.log("Problem caching sprite: " + (e2 instanceof Error ? e2.message : e2));
+    sprites_loading = false;
+  }
+  unblockUI();
+}
+function mapview_window_resized() {
+  if (active_city != null || !resize_enabled) return;
+  setupWindowSize();
+  const pr = store["pixiRenderer"];
+  pr?.resize();
+  pr?.markAllDirty();
+}
+const state$6 = c({
+  open: false,
+  title: "",
+  message: ""
+});
+let autoCloseTimer = null;
+function showMessageDialog(title, message) {
+  if (autoCloseTimer) {
+    clearTimeout(autoCloseTimer);
+    autoCloseTimer = null;
+  }
+  state$6.value = { open: true, title, message };
+  autoCloseTimer = setTimeout(() => {
+    closeMessageDialog();
+  }, 24e3);
+}
+function closeMessageDialog() {
+  if (autoCloseTimer) {
+    clearTimeout(autoCloseTimer);
+    autoCloseTimer = null;
+  }
+  state$6.value = { ...state$6.value, open: false };
+  const input = document.getElementById("game_text_input");
+  if (input) input.blur();
+}
+function MessageDialog() {
+  const { open: open2, title, message } = state$6.value;
+  return /* @__PURE__ */ u(
+    Dialog,
+    {
+      title,
+      open: open2,
+      onClose: closeMessageDialog,
+      width: window.innerWidth <= 600 ? "90%" : "50%",
+      modal: false,
+      children: [
+        /* @__PURE__ */ u("div", { style: { maxHeight: "450px", overflow: "auto" }, children: parseGameHtml(message) }),
+        /* @__PURE__ */ u("div", { style: { marginTop: "12px", textAlign: "right" }, children: /* @__PURE__ */ u(Button, { onClick: closeMessageDialog, children: "Ok" }) })
+      ]
+    }
+  );
 }
 const reqtree = {
   "2": { "x": 0, "y": 0 },
@@ -5759,6 +6001,443 @@ const techDialog = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.definePr
   update_tech_screen,
   wikipedia_url
 }, Symbol.toStringTag, { value: "Module" }));
+function setClientState(newstate) {
+  console.log("[xbw] setClientState " + store.civclientState + " → " + newstate);
+  if (store.civclientState === newstate) return;
+  store.civclientState = newstate;
+  switch (newstate) {
+    case C_S_RUNNING: {
+      try {
+        clear_chatbox();
+        unblockUI();
+        showNewGameMessage();
+      } catch (e2) {
+        console.error("[set_client_state] Error in pre-page setup:", e2);
+      }
+      set_client_page(PAGE_GAME);
+      setupWindowSize();
+      {
+        const _pr = store["pixiRenderer"];
+        _pr?.resize();
+        _pr?.markAllDirty();
+      }
+      init_overview();
+      document.querySelectorAll(".context-menu-root").forEach((el) => el.remove());
+      center_on_any_city();
+      advance_unit_focus();
+      const _tryCenter = (attempts) => {
+        if (mapview$1.gui_x0 !== 0 || mapview$1.gui_y0 !== 0) return;
+        center_on_any_city();
+        if (attempts > 0) setTimeout(() => _tryCenter(attempts - 1), 2e3);
+      };
+      setTimeout(() => _tryCenter(3), 1e3);
+      break;
+    }
+    case C_S_OVER:
+      setTimeout(function() {
+        showEndgameDialog();
+      }, 500);
+      break;
+  }
+}
+function setupWindowSize() {
+  const winWidth = window.innerWidth;
+  const winHeight = window.innerHeight;
+  const new_mapview_width = winWidth - store.widthOffset;
+  const new_mapview_height = winHeight - store.heightOffset;
+  mapview$1["width"] = new_mapview_width;
+  mapview$1["height"] = new_mapview_height;
+  mapview$1["store_width"] = new_mapview_width;
+  mapview$1["store_height"] = new_mapview_height;
+  const _el = (id) => document.getElementById(id);
+  const _setH = (id, h2) => {
+    const el = _el(id);
+    if (el) el.style.height = typeof h2 === "number" ? h2 + "px" : h2;
+  };
+  const _setW = (id, w2) => {
+    const el = _el(id);
+    if (el) el.style.width = typeof w2 === "number" ? w2 + "px" : w2;
+  };
+  const _show = (id) => {
+    const el = _el(id);
+    if (el) el.style.display = "";
+  };
+  const _hide = (id) => {
+    const el = _el(id);
+    if (el) el.style.display = "none";
+  };
+  _setH("nations", new_mapview_height - 100);
+  _setW("nations", new_mapview_width);
+  const tabs2 = _el("tabs");
+  if (tabs2) tabs2.style.height = winHeight + "px";
+  for (const id of ["tabs-map", "tabs-tec", "tabs-nat", "tabs-cities", "tabs-hel"]) {
+    _setH(id, new_mapview_height);
+  }
+  _setH("city_viewport", new_mapview_height - 20);
+  _show("opt_tab");
+  _show("players_tab");
+  _show("freeciv_logo");
+  _hide("tabs-hel");
+  if (is_small_screen()) {
+    const setTabIcon = (id, emoji) => {
+      const el = _el(id);
+      if (el) {
+        const a2 = el.querySelector("a");
+        if (a2) a2.textContent = emoji;
+      }
+    };
+    setTabIcon("map_tab", "🌍");
+    setTabIcon("opt_tab", "⚙️");
+    setTabIcon("players_tab", "🏴");
+    setTabIcon("tech_tab", "🧪");
+    setTabIcon("hel_tab", "❓");
+    document.querySelectorAll(".ui-tabs-anchor").forEach((el) => el.style.padding = "7px");
+    document.querySelectorAll(".overview_dialog").forEach((el) => el.style.display = "none");
+    document.querySelectorAll(".ui-dialog-titlebar").forEach((el) => el.style.display = "none");
+    _hide("freeciv_logo");
+    setOverviewActive(false);
+    _el("game_unit_orders_default")?.remove();
+    _el("game_unit_orders_settlers")?.remove();
+    const statusBottom = _el("game_status_panel_bottom");
+    if (statusBottom) statusBottom.style.fontSize = "0.8em";
+  }
+  if (overview_active) init_overview();
+}
+function showNewGameMessage() {
+  clear_chatbox();
+}
+function showEndgameDialog() {
+  const title = "Final Report: The Greatest Civilizations in the world!";
+  let message = "";
+  for (let i2 = 0; i2 < store.endgamePlayerInfo.length; i2++) {
+    const info = store.endgamePlayerInfo[i2];
+    const pplayer = store.players[info["player_id"]];
+    const nation_adj = store.nations[pplayer["nation"]]?.["adjective"] ?? "Unknown";
+    message += i2 + 1 + ": The " + escapeHtml(String(nation_adj)) + " ruler " + escapeHtml(String(pplayer["name"])) + " scored " + info["score"] + " points<br>";
+  }
+  showMessageDialog(title, message);
+}
+function setDefaultMapviewActive() {
+  const active_tab = getActiveTab("#tabs");
+  if (active_tab === 4) return;
+  if (chatbox_active) {
+    const chatPanel = document.getElementById("game_chatbox_panel");
+    if (chatPanel?.parentElement) chatPanel.parentElement.style.display = "";
+  }
+  setActiveTab("#tabs", 0);
+  setTechDialogActive(false);
+  setAllowRightClick(false);
+  setKeyboardInput(true);
+  const scrollDiv = document.getElementById("freeciv_custom_scrollbar_div");
+  if (scrollDiv) scrollDiv.scrollTop = scrollDiv.scrollHeight;
+  if (!is_small_screen()) {
+    const overviewPanel = document.getElementById("game_overview_panel");
+    if (overviewPanel?.parentElement) overviewPanel.parentElement.style.display = "";
+  }
+  mark_all_dirty();
+}
+function getSelectedPlayer() {
+  return store.selectedPlayer;
+}
+function setSelectedPlayer(v2) {
+  store.selectedPlayer = v2;
+}
+function selectNoNation() {
+  setSelectedPlayer(-1);
+}
+function nationSelectPlayer(player_no) {
+  setSelectedPlayer(player_no);
+}
+function nationTableSelectPlayer(player_no) {
+  const playersTabLink = document.querySelector("#players_tab a");
+  if (playersTabLink) playersTabLink.click();
+  nationSelectPlayer(player_no);
+}
+function centerOnPlayer() {
+  if (getSelectedPlayer() === -1) return;
+  for (const city_id in store.cities) {
+    const pcity = store.cities[city_id];
+    if (cityOwnerPlayerId(pcity) === getSelectedPlayer()) {
+      center_tile_mapcanvas(cityTile(pcity));
+      setDefaultMapviewActive();
+      return;
+    }
+  }
+}
+const state$4 = c({ open: false, lines: [] });
+function showTileInfoDialog(lines) {
+  state$4.value = { open: true, lines };
+}
+function closeTileInfoDialog() {
+  state$4.value = { ...state$4.value, open: false };
+}
+function TileInfoDialog() {
+  const { open: open2, lines } = state$4.value;
+  if (!open2) return null;
+  return /* @__PURE__ */ u(
+    Dialog,
+    {
+      title: "Tile Information",
+      open: true,
+      onClose: closeTileInfoDialog,
+      width: 440,
+      modal: false,
+      children: [
+        /* @__PURE__ */ u("div", { style: { maxHeight: "360px", overflow: "auto", lineHeight: 1.6 }, children: lines.map((line, i2) => /* @__PURE__ */ u("div", { children: line.playerNo != null ? /* @__PURE__ */ u(k$1, { children: [
+          line.prefix,
+          /* @__PURE__ */ u(
+            "button",
+            {
+              onClick: () => {
+                nationTableSelectPlayer(line.playerNo);
+                closeTileInfoDialog();
+              },
+              style: {
+                background: "none",
+                border: "none",
+                padding: 0,
+                color: "var(--xb-accent-blue, #58a6ff)",
+                cursor: "pointer",
+                textDecoration: "underline",
+                font: "inherit"
+              },
+              children: line.playerName
+            }
+          ),
+          line.suffix
+        ] }) : line.text ?? "" }, i2)) }),
+        /* @__PURE__ */ u("div", { style: { marginTop: "12px", textAlign: "right" }, children: /* @__PURE__ */ u(Button, { onClick: closeTileInfoDialog, children: "Close" }) })
+      ]
+    }
+  );
+}
+const map_pos_to_tile$1 = mapPosToTile;
+let touch_start_x;
+let touch_start_y;
+let map_select_check = false;
+let map_select_check_started = 0;
+let map_select_active = false;
+let map_select_x;
+let map_select_y;
+function setMapSelectActive(v2) {
+  map_select_active = v2;
+}
+function setTouchStart(x2, y2) {
+  touch_start_x = x2;
+  touch_start_y = y2;
+}
+function mapctrl_init_pixi() {
+  const container = document.getElementById("canvas_div");
+  if (!container) {
+    console.warn("mapctrl_init_pixi: #canvas_div not found");
+    return;
+  }
+  const canvas = container.querySelector("canvas");
+  if (!canvas) {
+    console.warn("mapctrl_init_pixi: no <canvas> found inside #canvas_div");
+    return;
+  }
+  canvas.addEventListener("mouseup", mapview_mouse_click);
+  canvas.addEventListener("mousedown", mapview_mouse_down);
+  window.addEventListener("mousemove", mouse_moved_cb);
+  window.addEventListener("mouseup", mapview_window_mouse_up);
+  if (isTouchDevice()) {
+    canvas.addEventListener("touchstart", mapview_touch_start);
+    canvas.addEventListener("touchend", mapview_touch_end);
+    canvas.addEventListener("touchmove", mapview_touch_move);
+  }
+}
+function mapview_mouse_click(e2) {
+  let rightclick = false;
+  let middleclick = false;
+  if (e2.which) {
+    rightclick = e2.which == 3;
+    middleclick = e2.which == 2;
+  } else if (e2.button) {
+    rightclick = e2.button == 2;
+    middleclick = e2.button == 1 || e2.button == 4;
+  }
+  if (rightclick) {
+    if (!map_select_active || false) {
+      store.contextMenuActive = true;
+      recenter_button_pressed(mouse_x, mouse_y);
+    } else {
+      store.contextMenuActive = false;
+      map_select_units(mouse_x, mouse_y);
+    }
+    map_select_active = false;
+    map_select_check = false;
+  } else if (!middleclick) {
+    action_button_pressed(mouse_x, mouse_y, SELECT_POPUP);
+    setMapviewMouseMovement(false);
+    store.mapviewMouseMovement = false;
+    update_mouse_cursor();
+  }
+  setKeyboardInput(true);
+  store.keyboardInput = true;
+}
+function mapview_mouse_down(e2) {
+  let rightclick = false;
+  let middleclick = false;
+  if (e2.which) {
+    rightclick = e2.which == 3;
+    middleclick = e2.which == 2;
+  } else if (e2.button) {
+    rightclick = e2.button == 2;
+    middleclick = e2.button == 1 || e2.button == 4;
+  }
+  if (!rightclick && !middleclick) {
+    if (goto_active) return;
+    set_mouse_touch_started_on_unit(canvas_pos_to_tile(mouse_x, mouse_y));
+    check_mouse_drag_unit(canvas_pos_to_tile(mouse_x, mouse_y));
+    setMapviewMouseMovement(true);
+    touch_start_x = mouse_x;
+    touch_start_y = mouse_y;
+  } else if (middleclick || e2["altKey"]) {
+    popit();
+    return false;
+  } else if (rightclick && !map_select_active && isRightMouseSelectionSupported()) {
+    map_select_check = true;
+    map_select_x = mouse_x;
+    map_select_y = mouse_y;
+    map_select_check_started = (/* @__PURE__ */ new Date()).getTime();
+    store.contextMenuActive = false;
+  }
+}
+function mapview_window_mouse_up() {
+  setMapviewMouseMovement(false);
+  store.mapviewMouseMovement = false;
+}
+function mapview_touch_start(e2) {
+  e2.preventDefault();
+  const canvasEl = document.getElementById("canvas");
+  const rect = canvasEl.getBoundingClientRect();
+  touch_start_x = e2.touches[0].pageX - (rect.left + window.scrollX);
+  touch_start_y = e2.touches[0].pageY - (rect.top + window.scrollY);
+  const ptile = canvas_pos_to_tile(touch_start_x, touch_start_y);
+  set_mouse_touch_started_on_unit(ptile);
+}
+function mapview_touch_end(e2) {
+  action_button_pressed(touch_start_x, touch_start_y, SELECT_POPUP);
+}
+function mapview_touch_move(e2) {
+  const canvasEl = document.getElementById("canvas");
+  const rect = canvasEl.getBoundingClientRect();
+  setMouseX(e2.touches[0].pageX - (rect.left + window.scrollX));
+  setMouseY(e2.touches[0].pageY - (rect.top + window.scrollY));
+  const diff_x = (touch_start_x - mouse_x) * 2;
+  const diff_y = (touch_start_y - mouse_y) * 2;
+  touch_start_x = mouse_x;
+  touch_start_y = mouse_y;
+  if (!goto_active) {
+    check_mouse_drag_unit(canvas_pos_to_tile(mouse_x, mouse_y));
+    mapview$1["gui_x0"] = (mapview$1["gui_x0"] ?? 0) + diff_x;
+    mapview$1["gui_y0"] = (mapview$1["gui_y0"] ?? 0) + diff_y;
+    mark_all_dirty();
+  }
+  if (clientPlaying() == null) return;
+  if (goto_active && current_focus.length > 0) {
+    const ptile = canvas_pos_to_tile(mouse_x, mouse_y);
+    if (ptile != null) {
+      for (let i2 = 0; i2 < current_focus.length; i2++) {
+        if (i2 >= 20) return;
+        if (goto_request_map[current_focus[i2]["id"] + "," + ptile["x"] + "," + ptile["y"]] == null) {
+          request_goto_path(current_focus[i2]["id"], ptile["x"], ptile["y"]);
+        }
+      }
+    }
+  }
+}
+function action_button_pressed(canvas_x, canvas_y, qtype) {
+  const ptile = canvas_pos_to_tile(canvas_x, canvas_y);
+  if (canClientChangeView() && ptile != null) {
+    do_map_click(ptile, qtype, true);
+  }
+}
+function map_select_units(canvas_x, canvas_y) {
+  const selected_tiles = {};
+  const selected_units = [];
+  if (clientIsObserver()) return;
+  const start_x = map_select_x < canvas_x ? map_select_x : canvas_x;
+  const start_y = map_select_y < canvas_y ? map_select_y : canvas_y;
+  const end_x = map_select_x < canvas_x ? canvas_x : map_select_x;
+  const end_y = map_select_y < canvas_y ? canvas_y : map_select_y;
+  for (let x2 = start_x; x2 < end_x; x2 += 15) {
+    for (let y2 = start_y; y2 < end_y; y2 += 15) {
+      const ptile = canvas_pos_to_tile(x2, y2);
+      if (ptile != null) {
+        selected_tiles[ptile["index"]] = ptile;
+      }
+    }
+  }
+  for (const tile_id in selected_tiles) {
+    const ptile = selected_tiles[tile_id];
+    const cunits = tile_units(ptile);
+    if (cunits == null) continue;
+    for (let i2 = 0; i2 < cunits.length; i2++) {
+      const aunit = cunits[i2];
+      if (aunit["owner"] == clientPlaying().playerno) {
+        selected_units.push(aunit);
+      }
+    }
+  }
+  setCurrentFocus(selected_units);
+  store.currentFocus = selected_units;
+  action_selection_next_in_focus(IDENTITY_NUMBER_ZERO);
+}
+function recenter_button_pressed(canvas_x, canvas_y) {
+  const map_scroll_border = 8;
+  const big_map_size = 24;
+  let ptile = canvas_pos_to_tile(canvas_x, canvas_y);
+  const orig_tile = ptile;
+  if (ptile != null && ptile["y"] > store.mapInfo.ysize - map_scroll_border && store.mapInfo.xsize > big_map_size && store.mapInfo.ysize > big_map_size) {
+    ptile = map_pos_to_tile$1(ptile["x"], store.mapInfo.ysize - map_scroll_border);
+  }
+  if (ptile != null && ptile["y"] < map_scroll_border && store.mapInfo.xsize > big_map_size && store.mapInfo.ysize > big_map_size) {
+    ptile = map_pos_to_tile$1(ptile["x"], map_scroll_border);
+  }
+  if (canClientChangeView() && ptile != null && orig_tile != null) {
+    const sunit = find_visible_unit(orig_tile);
+    if (!clientIsObserver() && sunit != null && sunit["owner"] == clientPlaying().playerno) {
+      if (current_focus.length <= 1) set_unit_focus(sunit);
+      const canvasEl = document.getElementById("canvas");
+      canvasEl.contextMenu?.(true);
+      canvasEl.dispatchEvent(new Event("contextmenu"));
+    } else {
+      const canvasEl = document.getElementById("canvas");
+      canvasEl.contextMenu?.(false);
+      center_tile_mapcanvas(ptile);
+    }
+  }
+}
+function handle_web_info_text_message(packet) {
+  const message = decodeURIComponent(packet["message"]);
+  const rawLines = message.split("\n");
+  const matcher = {
+    "Terri": /^(Territory of )([^(]*)(\s+\([^,]*)(.*)/,
+    "City:": /^(City:[^|]*\|\s+)([^(]*)(\s+\([^,]*)(.*)/,
+    "Unit:": /^(Unit:[^|]*\|\s+)([^(]*)(\s+\([^,]*)(.*)/
+  };
+  const lines = rawLines.map((raw) => {
+    const re = matcher[raw.substring(0, 5)];
+    if (re !== void 0) {
+      const split_txt = raw.match(re);
+      if (split_txt != null && split_txt.length > 4) {
+        const pplayer = player_by_full_username(split_txt[2]);
+        if (pplayer != null && (clientPlaying() == null || pplayer !== clientPlaying())) {
+          return {
+            prefix: split_txt[1],
+            playerName: split_txt[2],
+            playerNo: pplayer["playerno"],
+            suffix: split_txt[3] + ", " + get_player_connection_status(pplayer) + split_txt[4]
+          };
+        }
+      }
+    }
+    return { text: raw };
+  });
+  showTileInfoDialog(lines);
+}
 function mouse_moved_cb(e2) {
   setMouseX(0);
   setMouseY(0);
@@ -6866,610 +7545,6 @@ const overview = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProp
   render_viewrect,
   setOverviewActive
 }, Symbol.toStringTag, { value: "Module" }));
-function orientation_changed() {
-}
-const chatContextSignal = c({
-  open: false,
-  recipients: [],
-  currentId: null
-});
-function showChatContextDialog(recipients, currentId) {
-  chatContextSignal.value = { open: true, recipients, currentId };
-}
-function closeChatContextDialog() {
-  chatContextSignal.value = { ...chatContextSignal.value, open: false };
-}
-function FlagCanvas$1({ flag, iconText }) {
-  const ref = A(null);
-  y$2(() => {
-    const canvas = ref.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.clearRect(0, 0, 29, 20);
-    if (flag != null) {
-      ctx.drawImage(flag, 0, 0);
-    } else if (iconText) {
-      ctx.font = "18px FontAwesome";
-      ctx.fillStyle = "rgba(32,32,32,1)";
-      ctx.fillText(iconText, 5, 15);
-    }
-  }, [flag, iconText]);
-  return /* @__PURE__ */ u("canvas", { ref, width: 29, height: 20, style: { verticalAlign: "middle" } });
-}
-function ChatContextDialog() {
-  const { open: open2, recipients, currentId } = chatContextSignal.value;
-  if (!open2) return null;
-  function handleRowClick(id) {
-    closeChatContextDialog();
-    document.dispatchEvent(
-      new CustomEvent("chat:directionChosen", { detail: { id } })
-    );
-  }
-  return /* @__PURE__ */ u(
-    "div",
-    {
-      id: "chat_context_dialog",
-      style: {
-        position: "absolute",
-        zIndex: 5e3,
-        background: "var(--xb-bg-elevated,#21262d)",
-        border: "1px solid var(--xb-border-default,#30363d)",
-        borderRadius: 6,
-        padding: 8,
-        maxHeight: Math.floor(0.9 * window.innerHeight) + "px",
-        overflowY: "auto",
-        minWidth: 200
-      },
-      children: [
-        /* @__PURE__ */ u("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }, children: [
-          /* @__PURE__ */ u("span", { style: { color: "var(--xb-text-secondary,#8b949e)", fontSize: 12 }, children: "Choose recipient" }),
-          /* @__PURE__ */ u(
-            "button",
-            {
-              onClick: closeChatContextDialog,
-              style: { background: "none", border: "none", color: "var(--xb-text-primary,#e6edf3)", cursor: "pointer", fontSize: 16, lineHeight: 1 },
-              children: "×"
-            }
-          )
-        ] }),
-        /* @__PURE__ */ u("table", { style: { borderCollapse: "collapse", width: "100%" }, children: /* @__PURE__ */ u("tbody", { children: recipients.filter((r2) => r2.id !== currentId).map((r2, i2) => /* @__PURE__ */ u(
-          "tr",
-          {
-            onClick: () => handleRowClick(r2.id),
-            style: {
-              cursor: "pointer",
-              borderBottom: "1px solid var(--xb-border-muted,#21262d)"
-            },
-            onMouseEnter: (e2) => {
-              e2.currentTarget.style.background = "var(--xb-bg-secondary,#161b22)";
-            },
-            onMouseLeave: (e2) => {
-              e2.currentTarget.style.background = "";
-            },
-            children: [
-              /* @__PURE__ */ u("td", { style: { padding: "4px 8px 4px 4px" }, children: /* @__PURE__ */ u(FlagCanvas$1, { flag: r2.flag, iconText: r2.iconText }) }),
-              /* @__PURE__ */ u("td", { style: { padding: "4px 8px 4px 0", color: "var(--xb-text-primary,#e6edf3)", fontSize: 13 }, children: r2.description })
-            ]
-          },
-          i2
-        )) }) })
-      ]
-    }
-  );
-}
-const FC_PLRF_AI = PlayerFlag.PLRF_AI;
-document.addEventListener("chat:directionChosen", (ev) => {
-  const id = ev.detail.id;
-  set_chat_direction(id);
-});
-function chat_context_change() {
-  const recipients = chat_context_get_recipients();
-  if (recipients.length < 4) {
-    chat_context_set_next(recipients);
-  } else {
-    chat_context_dialog_show(recipients);
-  }
-}
-function chat_context_get_recipients() {
-  const pm = [];
-  pm.push({ id: null, flag: null, description: "Everybody" });
-  let self = -1;
-  if (clientPlaying() != null) {
-    self = clientPlaying()["playerno"];
-  }
-  for (const player_id_str in store.players) {
-    const player_id = parseInt(player_id_str);
-    if (player_id == self) continue;
-    const pplayer = store.players[player_id];
-    if (pplayer["flags"].isSet(FC_PLRF_AI)) continue;
-    if (!pplayer["is_alive"]) continue;
-    if (isLongturn() && pplayer["name"].indexOf("New Available Player") != -1) continue;
-    const nation = store.nations[pplayer["nation"]];
-    if (nation == null) continue;
-    pm.push({
-      id: player_id,
-      description: pplayer["name"] + " of the " + nation["adjective"],
-      flag: store.sprites["f." + nation["graphic_str"]]
-    });
-  }
-  pm.sort(function(a2, b2) {
-    if (a2.id == null) return -1;
-    if (b2.id == null) return 1;
-    if (a2.id == self) return -1;
-    if (b2.id == self) return 1;
-    if (a2.description < b2.description) return -1;
-    if (a2.description > b2.description) return 1;
-    return 0;
-  });
-  return pm;
-}
-function chat_context_set_next(recipients) {
-  let next = 0;
-  while (next < recipients.length && recipients[next].id != chat_send_to) {
-    next++;
-  }
-  next++;
-  if (next >= recipients.length) {
-    next = 0;
-  }
-  set_chat_direction(recipients[next].id);
-}
-function chat_context_dialog_show(recipients) {
-  const self = clientPlaying()?.["playerno"] ?? -1;
-  const mapped = recipients.map((r2) => ({
-    ...r2,
-    iconText: r2.id == null ? CHAT_ICON_EVERYBODY : r2.id === self ? CHAT_ICON_ALLIES : void 0
-  }));
-  showChatContextDialog(mapped, chat_send_to);
-}
-function set_chat_direction(player_id) {
-  if (player_id == chat_send_to) return;
-  let player_name;
-  const iconEl = document.getElementById("chat_direction");
-  if (!iconEl) return;
-  const ctx = iconEl.getContext("2d");
-  if (!ctx) return;
-  if (player_id == null || player_id < 0) {
-    player_id = null;
-    ctx.clearRect(0, 0, 29, 20);
-    ctx.font = "18px FontAwesome";
-    ctx.fillStyle = "rgba(192, 192, 192, 1)";
-    ctx.fillText(CHAT_ICON_EVERYBODY, 7, 15);
-    player_name = "everybody";
-  } else if (clientPlaying() != null && player_id == clientPlaying()["playerno"]) {
-    ctx.clearRect(0, 0, 29, 20);
-    ctx.font = "18px FontAwesome";
-    ctx.fillStyle = "rgba(192, 192, 192, 1)";
-    ctx.fillText(CHAT_ICON_ALLIES, 10, 16);
-    player_name = "allies";
-  } else {
-    const pplayer = store.players[player_id];
-    if (pplayer == null) return;
-    player_name = pplayer["name"] + " of the " + (store.nations[pplayer["nation"]]?.["adjective"] || pplayer["name"]);
-    ctx.clearRect(0, 0, 29, 20);
-    const flag = store.sprites["f." + store.nations[pplayer["nation"]]["graphic_str"]];
-    if (flag != null) {
-      ctx.drawImage(flag, 0, 0);
-    }
-  }
-  iconEl.title = "Sending messages to " + player_name;
-  setChatSendTo(player_id);
-  const textInput = document.getElementById("game_text_input");
-  if (textInput) textInput.focus();
-}
-function encode_message_text(message) {
-  message = message.replace(/^\s+|\s+$/g, "");
-  message = message.replace(/&/g, "&amp;");
-  message = message.replace(/'/g, "&apos;");
-  message = message.replace(/"/g, "&quot;");
-  message = message.replace(/</g, "&lt;");
-  message = message.replace(/>/g, "&gt;");
-  return encodeURIComponent(message);
-}
-function is_unprefixed_message(message) {
-  if (message === null) return false;
-  if (message.length === 0) return true;
-  const first = message.charAt(0);
-  if (first === "/" || first === "." || first === ":") return false;
-  let quoted_pos = -1;
-  if (first === '"' || first === "'") {
-    quoted_pos = message.indexOf(first, 1);
-  }
-  const private_mark = message.indexOf(":", quoted_pos);
-  if (private_mark < 0) return true;
-  const space_pos = message.indexOf(" ", quoted_pos);
-  return space_pos !== -1 && space_pos < private_mark;
-}
-function check_text_input(event, chatboxtextarea) {
-  if (event.keyCode == 13 && !event.shiftKey) {
-    let message = chatboxtextarea.value;
-    if (chat_send_to != null && chat_send_to >= 0 && is_unprefixed_message(message)) {
-      if (clientPlaying() != null && chat_send_to == clientPlaying()["playerno"]) {
-        message = ". " + encode_message_text(message);
-      } else {
-        const pplayer = store.players[chat_send_to];
-        if (pplayer == null) {
-          set_chat_direction(null);
-          return;
-        }
-        let player_name = pplayer["name"];
-        const badchars = [" ", '"', "'"];
-        for (const c2 of badchars) {
-          const i2 = player_name.indexOf(c2);
-          if (i2 > 0) {
-            player_name = player_name.substring(0, i2);
-          }
-        }
-        message = player_name + encode_message_text(": " + message);
-      }
-    } else {
-      message = encode_message_text(message);
-    }
-    chatboxtextarea.value = "";
-    if (!isTouchDevice()) chatboxtextarea.focus();
-    setKeyboardInput(true);
-    if (message.length >= 4 && message === message.toUpperCase()) {
-      return;
-    }
-    if (isLongturn() && C_S_RUNNING == clientState() && message != null && message.indexOf(encode_message_text("/set")) != -1) {
-      return;
-    }
-    if (message.length >= max_chat_message_length) {
-      message_log.update({
-        event: E_LOG_ERROR,
-        message: "Error! The message is too long. Limit: " + max_chat_message_length
-      });
-      return;
-    }
-    send_message(message);
-    return false;
-  }
-}
-const PAGE_MAIN = 0;
-const PAGE_START = 1;
-const PAGE_NETWORK = 4;
-const PAGE_GAME = 6;
-let old_page = -1;
-function set_client_page(page) {
-  if (old_page === page) return;
-  if (page === PAGE_GAME) {
-    document.getElementById("pregame_page")?.remove();
-    const gamePage = document.getElementById("game_page");
-    if (gamePage) gamePage.style.display = "";
-    set_chat_direction(null);
-  }
-  old_page = page;
-}
-function get_client_page() {
-  return old_page;
-}
-function blockUI(message) {
-  Promise.resolve().then(() => BlockingOverlay$1).then(({ showBlockingOverlay: showBlockingOverlay2 }) => showBlockingOverlay2(message)).catch(() => {
-  });
-}
-function unblockUI() {
-  Promise.resolve().then(() => BlockingOverlay$1).then(({ hideBlockingOverlay: hideBlockingOverlay2 }) => hideBlockingOverlay2()).catch(() => {
-  });
-}
-const state$4 = c({
-  open: false,
-  title: "",
-  message: ""
-});
-let autoCloseTimer = null;
-function showMessageDialog(title, message) {
-  if (autoCloseTimer) {
-    clearTimeout(autoCloseTimer);
-    autoCloseTimer = null;
-  }
-  state$4.value = { open: true, title, message };
-  autoCloseTimer = setTimeout(() => {
-    closeMessageDialog();
-  }, 24e3);
-}
-function closeMessageDialog() {
-  if (autoCloseTimer) {
-    clearTimeout(autoCloseTimer);
-    autoCloseTimer = null;
-  }
-  state$4.value = { ...state$4.value, open: false };
-  const input = document.getElementById("game_text_input");
-  if (input) input.blur();
-}
-function MessageDialog() {
-  const { open: open2, title, message } = state$4.value;
-  return /* @__PURE__ */ u(
-    Dialog,
-    {
-      title,
-      open: open2,
-      onClose: closeMessageDialog,
-      width: window.innerWidth <= 600 ? "90%" : "50%",
-      modal: false,
-      children: [
-        /* @__PURE__ */ u("div", { style: { maxHeight: "450px", overflow: "auto" }, children: parseGameHtml(message) }),
-        /* @__PURE__ */ u("div", { style: { marginTop: "12px", textAlign: "right" }, children: /* @__PURE__ */ u(Button, { onClick: closeMessageDialog, children: "Ok" }) })
-      ]
-    }
-  );
-}
-function setClientState(newstate) {
-  console.log("[xbw] setClientState " + store.civclientState + " → " + newstate);
-  if (store.civclientState === newstate) return;
-  store.civclientState = newstate;
-  switch (newstate) {
-    case C_S_RUNNING: {
-      try {
-        clear_chatbox();
-        unblockUI();
-        showNewGameMessage();
-      } catch (e2) {
-        console.error("[set_client_state] Error in pre-page setup:", e2);
-      }
-      set_client_page(PAGE_GAME);
-      setupWindowSize();
-      {
-        const _pr = store["pixiRenderer"];
-        _pr?.resize();
-        _pr?.markAllDirty();
-      }
-      init_overview();
-      document.querySelectorAll(".context-menu-root").forEach((el) => el.remove());
-      center_on_any_city();
-      advance_unit_focus();
-      const _tryCenter = (attempts) => {
-        if (mapview$1.gui_x0 !== 0 || mapview$1.gui_y0 !== 0) return;
-        center_on_any_city();
-        if (attempts > 0) setTimeout(() => _tryCenter(attempts - 1), 2e3);
-      };
-      setTimeout(() => _tryCenter(3), 1e3);
-      break;
-    }
-    case C_S_OVER:
-      setTimeout(function() {
-        showEndgameDialog();
-      }, 500);
-      break;
-  }
-}
-function setupWindowSize() {
-  const winWidth = window.innerWidth;
-  const winHeight = window.innerHeight;
-  const new_mapview_width = winWidth - store.widthOffset;
-  const new_mapview_height = winHeight - store.heightOffset;
-  mapview$1["width"] = new_mapview_width;
-  mapview$1["height"] = new_mapview_height;
-  mapview$1["store_width"] = new_mapview_width;
-  mapview$1["store_height"] = new_mapview_height;
-  const _el = (id) => document.getElementById(id);
-  const _setH = (id, h2) => {
-    const el = _el(id);
-    if (el) el.style.height = typeof h2 === "number" ? h2 + "px" : h2;
-  };
-  const _setW = (id, w2) => {
-    const el = _el(id);
-    if (el) el.style.width = typeof w2 === "number" ? w2 + "px" : w2;
-  };
-  const _show = (id) => {
-    const el = _el(id);
-    if (el) el.style.display = "";
-  };
-  const _hide = (id) => {
-    const el = _el(id);
-    if (el) el.style.display = "none";
-  };
-  _setH("nations", new_mapview_height - 100);
-  _setW("nations", new_mapview_width);
-  const tabs2 = _el("tabs");
-  if (tabs2) tabs2.style.height = winHeight + "px";
-  for (const id of ["tabs-map", "tabs-tec", "tabs-nat", "tabs-cities", "tabs-hel"]) {
-    _setH(id, new_mapview_height);
-  }
-  _setH("city_viewport", new_mapview_height - 20);
-  _show("opt_tab");
-  _show("players_tab");
-  _show("freeciv_logo");
-  _hide("tabs-hel");
-  if (is_small_screen()) {
-    const setTabIcon = (id, emoji) => {
-      const el = _el(id);
-      if (el) {
-        const a2 = el.querySelector("a");
-        if (a2) a2.textContent = emoji;
-      }
-    };
-    setTabIcon("map_tab", "🌍");
-    setTabIcon("opt_tab", "⚙️");
-    setTabIcon("players_tab", "🏴");
-    setTabIcon("tech_tab", "🧪");
-    setTabIcon("hel_tab", "❓");
-    document.querySelectorAll(".ui-tabs-anchor").forEach((el) => el.style.padding = "7px");
-    document.querySelectorAll(".overview_dialog").forEach((el) => el.style.display = "none");
-    document.querySelectorAll(".ui-dialog-titlebar").forEach((el) => el.style.display = "none");
-    _hide("freeciv_logo");
-    setOverviewActive(false);
-    _el("game_unit_orders_default")?.remove();
-    _el("game_unit_orders_settlers")?.remove();
-    const statusBottom = _el("game_status_panel_bottom");
-    if (statusBottom) statusBottom.style.fontSize = "0.8em";
-  }
-  if (overview_active) init_overview();
-}
-function showNewGameMessage() {
-  clear_chatbox();
-}
-function showEndgameDialog() {
-  const title = "Final Report: The Greatest Civilizations in the world!";
-  let message = "";
-  for (let i2 = 0; i2 < store.endgamePlayerInfo.length; i2++) {
-    const info = store.endgamePlayerInfo[i2];
-    const pplayer = store.players[info["player_id"]];
-    const nation_adj = store.nations[pplayer["nation"]]?.["adjective"] ?? "Unknown";
-    message += i2 + 1 + ": The " + escapeHtml(String(nation_adj)) + " ruler " + escapeHtml(String(pplayer["name"])) + " scored " + info["score"] + " points<br>";
-  }
-  showMessageDialog(title, message);
-}
-function setDefaultMapviewActive() {
-  const active_tab = getActiveTab("#tabs");
-  if (active_tab === 4) return;
-  if (chatbox_active) {
-    const chatPanel = document.getElementById("game_chatbox_panel");
-    if (chatPanel?.parentElement) chatPanel.parentElement.style.display = "";
-  }
-  setActiveTab("#tabs", 0);
-  setTechDialogActive(false);
-  setAllowRightClick(false);
-  setKeyboardInput(true);
-  const scrollDiv = document.getElementById("freeciv_custom_scrollbar_div");
-  if (scrollDiv) scrollDiv.scrollTop = scrollDiv.scrollHeight;
-  if (!is_small_screen()) {
-    const overviewPanel = document.getElementById("game_overview_panel");
-    if (overviewPanel?.parentElement) overviewPanel.parentElement.style.display = "";
-  }
-  mark_all_dirty();
-}
-let tileset_images = [];
-const sprites = {};
-let loaded_images = 0;
-let sprites_loading = false;
-let sprites_init = false;
-const fullfog = [];
-function initTilesetSprites() {
-  mapview$1["gui_x0"] = 0;
-  mapview$1["gui_y0"] = 0;
-  let i2;
-  for (i2 = 0; i2 < 81; i2++) {
-    const ids = ["u", "f", "k"];
-    let buf = "t.fog";
-    const values = [];
-    let j2, k2 = i2;
-    for (j2 = 0; j2 < 4; j2++) {
-      values[j2] = k2 % 3;
-      k2 = Math.floor(k2 / 3);
-      buf += "_" + ids[values[j2]];
-    }
-    fullfog[i2] = buf;
-  }
-  store.fullfog = fullfog;
-  fetch("/javascript/2dcanvas/tileset_spec_amplio2.json").then((r2) => {
-    if (!r2.ok) throw new Error("HTTP " + r2.status);
-    return r2.json();
-  }).then((data) => {
-    window["tileset"] = data;
-    init_sprites();
-  }).catch((err) => {
-    console.error("Failed to load tileset spec:", err);
-  });
-}
-function is_small_screen() {
-  return window.innerWidth <= 640 || window.innerHeight <= 590;
-}
-function init_sprites() {
-  blockUI("<h1>Freeciv-web is loading. Please wait...<br><center><img src='/images/loading.gif'></center></h1>");
-  if (loaded_images != tileset_image_count) {
-    for (let i2 = 0; i2 < tileset_image_count; i2++) {
-      const tileset_image = new Image();
-      tileset_image.onload = preload_check;
-      tileset_image.src = "/tileset/freeciv-web-tileset-" + tileset_name + "-" + i2 + getTilesetFileExtension() + "?ts=" + (window["ts"] ?? "");
-      tileset_images[i2] = tileset_image;
-    }
-  } else {
-    unblockUI();
-  }
-}
-function preload_check() {
-  loaded_images += 1;
-  if (loaded_images == tileset_image_count) {
-    init_cache_sprites();
-  }
-}
-function init_cache_sprites() {
-  if (loaded_images < tileset_image_count) return;
-  if (sprites_loading || sprites_init) return;
-  sprites_loading = true;
-  if (typeof tileset === "undefined") {
-    swal("Tileset error", "Tileset not generated correctly. Run sync.sh in freeciv-img-extract and recompile.", "error");
-    sprites_loading = false;
-    return;
-  }
-  if (typeof createImageBitmap === "function") {
-    const images = Array.from({ length: tileset_image_count }, (_2, idx) => tileset_images[idx]);
-    Promise.all(images.map((img) => createImageBitmap(img))).then((fullBitmaps) => {
-      const BATCH = 200;
-      const entries = Object.keys(tileset);
-      const total = entries.length;
-      const processBatch = (offset) => {
-        const chunk = entries.slice(offset, offset + BATCH);
-        const batchPromises = chunk.map((tile_tag) => {
-          const [x2, y2, w2, h2, i2] = tileset[tile_tag];
-          return createImageBitmap(fullBitmaps[i2], x2, y2, w2, h2).then((bmp) => {
-            sprites[tile_tag] = bmp;
-          }).catch(() => {
-          });
-        });
-        return Promise.all(batchPromises).then(() => {
-          if (offset + BATCH < total) {
-            return new Promise((res) => setTimeout(() => processBatch(offset + BATCH).then(res), 0));
-          }
-        });
-      };
-      return processBatch(0);
-    }).then(() => {
-      sprites_init = true;
-      sprites_loading = false;
-      store.sprites = sprites;
-      if (tileset) store.tileset = tileset;
-      tileset_images = null;
-      unblockUI();
-      console.log("[xbw] sprites loaded: " + Object.keys(sprites).length);
-      mark_all_dirty();
-    }).catch((err) => {
-      console.error("createImageBitmap failed, falling back to canvas:", err);
-      sprites_loading = false;
-      init_cache_sprites_canvas();
-    });
-  } else {
-    init_cache_sprites_canvas();
-  }
-}
-function init_cache_sprites_canvas() {
-  try {
-    for (const tile_tag in tileset) {
-      const x2 = tileset[tile_tag][0];
-      const y2 = tileset[tile_tag][1];
-      const w2 = tileset[tile_tag][2];
-      const h2 = tileset[tile_tag][3];
-      const i2 = tileset[tile_tag][4];
-      const newCanvas = document.createElement("canvas");
-      newCanvas.height = h2;
-      newCanvas.width = w2;
-      const newCtx = newCanvas.getContext("2d");
-      if (newCtx) {
-        newCtx.drawImage(tileset_images[i2], x2, y2, w2, h2, 0, 0, w2, h2);
-        sprites[tile_tag] = newCanvas;
-      }
-    }
-    sprites_init = true;
-    sprites_loading = false;
-    store.sprites = sprites;
-    if (tileset) store.tileset = tileset;
-    tileset_images = null;
-    console.log("[xbw] sprites loaded (canvas fallback): " + Object.keys(sprites).length);
-    mark_all_dirty();
-  } catch (e2) {
-    console.log("Problem caching sprite: " + (e2 instanceof Error ? e2.message : e2));
-    sprites_loading = false;
-  }
-  unblockUI();
-}
-function mapview_window_resized() {
-  if (active_city != null || !resize_enabled) return;
-  setupWindowSize();
-  const pr = store["pixiRenderer"];
-  pr?.resize();
-  pr?.markAllDirty();
-}
 const GRAD_DIRS = [
   [0.5, 0, 0.5, 1],
   // i=0 North:  top-edge → opaque at top,    fade to bottom
@@ -10448,34 +10523,6 @@ function civclient_handle_key(keyboard_key, key_code, ctrl, alt, _shift, _the_ev
     canvasDivEl?.contextMenu?.(true);
   }
 }
-function getSelectedPlayer() {
-  return store.selectedPlayer;
-}
-function setSelectedPlayer(v2) {
-  store.selectedPlayer = v2;
-}
-function selectNoNation() {
-  setSelectedPlayer(-1);
-}
-function nationSelectPlayer(player_no) {
-  setSelectedPlayer(player_no);
-}
-function nationTableSelectPlayer(player_no) {
-  const playersTabLink = document.querySelector("#players_tab a");
-  if (playersTabLink) playersTabLink.click();
-  nationSelectPlayer(player_no);
-}
-function centerOnPlayer() {
-  if (getSelectedPlayer() === -1) return;
-  for (const city_id in store.cities) {
-    const pcity = store.cities[city_id];
-    if (cityOwnerPlayerId(pcity) === getSelectedPlayer()) {
-      center_tile_mapcanvas(cityTile(pcity));
-      setDefaultMapviewActive();
-      return;
-    }
-  }
-}
 const open$1 = c(false);
 function showGameScoresDialog() {
   open$1.value = true;
@@ -13206,6 +13253,7 @@ function App() {
     /* @__PURE__ */ u(TechGainedDialog, {}),
     /* @__PURE__ */ u(TaxRatesDialog, {}),
     /* @__PURE__ */ u(GameScoresDialog, {}),
+    /* @__PURE__ */ u(TileInfoDialog, {}),
     /* @__PURE__ */ u(IntroDialog, {}),
     /* @__PURE__ */ u(ChatContextDialog, {}),
     /* @__PURE__ */ u(LazyMountOnce, { signal: cityDialogSignal, children: /* @__PURE__ */ u(CityDialog, {}) }),
