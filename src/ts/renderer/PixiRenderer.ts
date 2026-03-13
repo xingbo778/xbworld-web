@@ -81,7 +81,14 @@ export class PixiRenderer {
   // Viewport-culled rebuild queue (only visible tiles are rebuilt per event)
   private rebuildQueue: Tile[] | null = null;
   private rebuildQueueIdx = 0;
-  private static readonly REBUILD_PER_FRAME = 100;
+
+  // Frame time budget for tile rebuilding.
+  // NORMAL: up to 8ms per frame for incremental dirty/pan-reveal updates.
+  // BURST:  up to 12ms on the first full rebuild so the initial map appears faster.
+  // Both leave headroom for Pixi's own render pass (~4ms).
+  private static readonly FRAME_BUDGET_MS = 8;
+  private static readonly BURST_BUDGET_MS = 12;
+  private firstRebuildDone = false;
 
   // Viewport tracking for pan-reveal (rebuild after pan stops)
   private lastViewX0 = 0;
@@ -604,10 +611,16 @@ export class PixiRenderer {
       }
     }
 
-    // Drain dirty tiles in chunks (prevents long tasks if many tiles dirtied by pan-reveal).
+    // Choose frame budget: larger for the first full rebuild (faster initial map appear),
+    // normal for subsequent incremental dirty/pan-reveal updates.
+    const budget = (!this.firstRebuildDone && this.rebuildQueue !== null)
+      ? PixiRenderer.BURST_BUDGET_MS
+      : PixiRenderer.FRAME_BUDGET_MS;
+    const frameStart = performance.now();
+
+    // Drain dirty tiles within the time budget (incremental per-event updates).
     if (!this.rebuildQueue && this.dirtyTiles.size > 0) {
       const tilesMap = store.tiles as Record<number, Tile>;
-      let count = 0;
       for (const idx of this.dirtyTiles) {
         this.dirtyTiles.delete(idx);
         const tile = tilesMap[idx];
@@ -615,22 +628,23 @@ export class PixiRenderer {
           try { this.rebuildTile(tile); } catch (e) { console.error('[PixiRenderer] rebuildTile error (dirty):', e); }
           this.builtSet.add(idx);
         }
-        if (++count >= PixiRenderer.REBUILD_PER_FRAME) break;
+        if (performance.now() - frameStart >= budget) break;
       }
     }
 
-    // Process a chunk of the viewport-culled rebuild queue
+    // Drain the viewport-culled rebuild queue within the remaining time budget.
     if (this.rebuildQueue) {
-      const end = Math.min(this.rebuildQueueIdx + PixiRenderer.REBUILD_PER_FRAME, this.rebuildQueue.length);
-      for (let i = this.rebuildQueueIdx; i < end; i++) {
-        const tile = this.rebuildQueue[i];
+      const tilesMap = store.tiles as Record<number, Tile>;
+      while (this.rebuildQueueIdx < this.rebuildQueue.length) {
+        const tile = this.rebuildQueue[this.rebuildQueueIdx++];
         try { this.rebuildTile(tile); } catch (e) { console.error('[PixiRenderer] rebuildTile error (queue):', e); }
         this.builtSet.add(tile.index);
+        if (performance.now() - frameStart >= budget) break;
       }
-      this.rebuildQueueIdx = end;
       if (this.rebuildQueueIdx >= this.rebuildQueue.length) {
         this.rebuildQueue = null;
         this.rebuildQueueIdx = 0;
+        this.firstRebuildDone = true;
       }
     }
   }

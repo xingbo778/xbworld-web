@@ -7607,7 +7607,13 @@ class PixiRenderer {
   // Viewport-culled rebuild queue (only visible tiles are rebuilt per event)
   rebuildQueue = null;
   rebuildQueueIdx = 0;
-  static REBUILD_PER_FRAME = 100;
+  // Frame time budget for tile rebuilding.
+  // NORMAL: up to 8ms per frame for incremental dirty/pan-reveal updates.
+  // BURST:  up to 12ms on the first full rebuild so the initial map appears faster.
+  // Both leave headroom for Pixi's own render pass (~4ms).
+  static FRAME_BUDGET_MS = 8;
+  static BURST_BUDGET_MS = 12;
+  firstRebuildDone = false;
   // Viewport tracking for pan-reveal (rebuild after pan stops)
   lastViewX0 = 0;
   lastViewY0 = 0;
@@ -8045,9 +8051,10 @@ class PixiRenderer {
         }, PixiRenderer.PAN_REVEAL_DELAY_MS);
       }
     }
+    const budget = !this.firstRebuildDone && this.rebuildQueue !== null ? PixiRenderer.BURST_BUDGET_MS : PixiRenderer.FRAME_BUDGET_MS;
+    const frameStart = performance.now();
     if (!this.rebuildQueue && this.dirtyTiles.size > 0) {
       const tilesMap = store.tiles;
-      let count = 0;
       for (const idx of this.dirtyTiles) {
         this.dirtyTiles.delete(idx);
         const tile = tilesMap[idx];
@@ -8059,24 +8066,25 @@ class PixiRenderer {
           }
           this.builtSet.add(idx);
         }
-        if (++count >= PixiRenderer.REBUILD_PER_FRAME) break;
+        if (performance.now() - frameStart >= budget) break;
       }
     }
     if (this.rebuildQueue) {
-      const end = Math.min(this.rebuildQueueIdx + PixiRenderer.REBUILD_PER_FRAME, this.rebuildQueue.length);
-      for (let i2 = this.rebuildQueueIdx; i2 < end; i2++) {
-        const tile = this.rebuildQueue[i2];
+      store.tiles;
+      while (this.rebuildQueueIdx < this.rebuildQueue.length) {
+        const tile = this.rebuildQueue[this.rebuildQueueIdx++];
         try {
           this.rebuildTile(tile);
         } catch (e2) {
           console.error("[PixiRenderer] rebuildTile error (queue):", e2);
         }
         this.builtSet.add(tile.index);
+        if (performance.now() - frameStart >= budget) break;
       }
-      this.rebuildQueueIdx = end;
       if (this.rebuildQueueIdx >= this.rebuildQueue.length) {
         this.rebuildQueue = null;
         this.rebuildQueueIdx = 0;
+        this.firstRebuildDone = true;
       }
     }
   }
