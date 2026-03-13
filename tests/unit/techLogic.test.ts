@@ -2,16 +2,13 @@
  * Unit tests for src/ts/ui/techLogic.ts
  *
  * Covers the pure data-extraction functions: buildWikiDialogData,
- * buildTechInfoDialogData, and findTechAtPosition.
- * (get_advances_text was removed — its HTML-string output has been superseded
- * by the structured TechInfoDialogData returned by buildTechInfoDialogData.)
+ * buildTechInfoDialogData.
  */
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { store } from '@/data/store';
 import {
   buildWikiDialogData,
   buildTechInfoDialogData,
-  findTechAtPosition,
 } from '@/ui/techLogic';
 import type { WikiDoc } from '@/ui/techLogic';
 
@@ -148,34 +145,3 @@ describe('buildTechInfoDialogData — wiki field', () => {
   });
 });
 
-// ── findTechAtPosition ────────────────────────────────────────────────────────
-
-describe('findTechAtPosition', () => {
-  beforeEach(() => {
-    (store as unknown as Record<string, unknown>).techs = {
-      1: { id: 1, name: 'Alphabet' },
-    };
-    // XSCALE=1.2, so tech at x=0,y=0 renders at pixel x≈2, y=2
-    // tech_item_width=208, tech_item_height=52
-    (store as unknown as Record<string, unknown>).computedReqtree = { '1': { x: 0, y: 0 } };
-  });
-
-  afterEach(() => {
-    delete (store as unknown as Record<string, unknown>).techs;
-    delete (store as unknown as Record<string, unknown>).computedReqtree;
-  });
-
-  it('returns tech id when click is inside the tech box', () => {
-    // x=50, y=20 should be inside the box (offset 2, width 208, height 52)
-    expect(findTechAtPosition(50, 20, false, store.techs as never)).toBe(1);
-  });
-
-  it('returns null when click is outside all tech boxes', () => {
-    expect(findTechAtPosition(5000, 5000, false, store.techs as never)).toBeNull();
-  });
-
-  it('applies 0.6 scale in small screen mode', () => {
-    // at small screen: x = floor(0 * 1.2) * 0.6 + ... check a point that works
-    expect(findTechAtPosition(50, 20, true, store.techs as never)).toBe(1);
-  });
-});

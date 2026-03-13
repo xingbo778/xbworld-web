@@ -5,50 +5,7 @@
 
 import { store } from '../data/store';
 import { move_points_text } from '../data/unit';
-import { reqtree } from '../data/reqtree';
-import type { ReqTreeNode } from '../data/reqtree';
 import type { Tech } from '../data/types';
-
-// These constants are duplicated here to avoid circular imports; they match techDialog.ts
-const tech_xscale = 1.2;
-
-/** Returns the active tech tree layout (dynamic if available, static fallback). */
-function getActiveLayout(): Record<string, ReqTreeNode> {
-  return (store.computedReqtree as Record<string, ReqTreeNode> | null) ?? reqtree;
-}
-const tech_item_width = 208;
-const tech_item_height = 52;
-
-/**
- * Find the tech_id at given mouse coordinates in the tech tree canvas.
- * Returns the tech_id (as number) or null if nothing was hit.
- * Pure hit-test logic - no DOM access.
- */
-export function findTechAtPosition(
-  mouseX: number,
-  mouseY: number,
-  smallScreen: boolean,
-  techs: Record<string, Tech>,
-): number | null {
-  const activeLayout = getActiveLayout();
-  for (const tech_id in techs) {
-    if (!(tech_id + '' in activeLayout)) continue;
-
-    let x: number = Math.floor(activeLayout[tech_id + '']['x'] * tech_xscale) + 2;
-    let y: number = activeLayout[tech_id + '']['y'] + 2;
-
-    if (smallScreen) {
-      x = x * 0.6;
-      y = y * 0.6;
-    }
-
-    if (mouseX > x && mouseX < x + tech_item_width
-      && mouseY > y && mouseY < y + tech_item_height) {
-      return techs[tech_id]['id'];
-    }
-  }
-  return null;
-}
 
 // ── Structured data types for Preact dialog components ────────────────────────
 
