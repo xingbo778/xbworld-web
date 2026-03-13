@@ -5,13 +5,13 @@ export interface TabsProps {
   tabs: { id: string; label: string }[];
   activeTab: string;
   onTabChange: (id: string) => void;
-  children: ComponentChildren;
+  children?: ComponentChildren;
 }
 
 export interface TabPanelProps {
   id: string;
   activeTab: string;
-  children: ComponentChildren;
+  children?: ComponentChildren;
 }
 
 export function Tabs({ tabs, activeTab, onTabChange, children }: TabsProps) {

@@ -119,7 +119,7 @@ export function init_overview(): void {
   if (overviewMap) {
     overviewMap.style.width = new_width + 'px';
     overviewMap.style.height = new_height + 'px';
-    overviewMap.ondragstart = (e) => e.preventDefault();
+    overviewMap.addEventListener('dragstart', (e) => e.preventDefault());
   }
 }
 

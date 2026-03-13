@@ -292,88 +292,6 @@ describe('IntelDialog — signal API', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// SIR: show_intelligence_report_hearsay — JSX migration (no HTML strings)
-// ---------------------------------------------------------------------------
-
-describe('show_intelligence_report_hearsay', () => {
-  beforeEach(() => {
-    mockStore.governments = {};
-    mockStore.nations = { 2: { adjective: 'Roman' } };
-    mockStore.techs = {};
-    mockStore.players = { 1: makePlayer() };
-  });
-
-  it('SIR-1: calls showIntelDialog with typed data (no HTML building)', async () => {
-    const { show_intelligence_report_hearsay } = await import('@/ui/intelDialog');
-    const { showIntelDialog } = await import('@/components/Dialogs/IntelDialog');
-    // showIntelDialog opens the signal; close it afterwards
-    expect(() => show_intelligence_report_hearsay(makePlayer() as never)).not.toThrow();
-    const { closeIntelDialog } = await import('@/components/Dialogs/IntelDialog');
-    closeIntelDialog();
-    void showIntelDialog; // suppress unused
-  });
-
-  it('SIR-2: ruler name comes from player name', async () => {
-    const { show_intelligence_report_hearsay } = await import('@/ui/intelDialog');
-    const { IntelDialog, closeIntelDialog } = await import('@/components/Dialogs/IntelDialog');
-    const { render, h } = await import('preact');
-
-    show_intelligence_report_hearsay(makePlayer({ name: 'Cleopatra' }) as never);
-    const container = document.createElement('div');
-    document.body.appendChild(container);
-    render(h(IntelDialog, null), container);
-    expect(container.textContent).toContain('Cleopatra');
-    closeIntelDialog();
-    document.body.removeChild(container);
-  });
-
-  it('SIR-3: government is (Unknown) when not in store', async () => {
-    mockStore.governments = {};
-    const { show_intelligence_report_hearsay } = await import('@/ui/intelDialog');
-    const { IntelDialog, closeIntelDialog } = await import('@/components/Dialogs/IntelDialog');
-    const { render, h } = await import('preact');
-
-    show_intelligence_report_hearsay(makePlayer({ government: 99 }) as never);
-    const container = document.createElement('div');
-    document.body.appendChild(container);
-    render(h(IntelDialog, null), container);
-    expect(container.textContent).toContain('(Unknown)');
-    closeIntelDialog();
-    document.body.removeChild(container);
-  });
-
-  it('SIR-4: researching tech name shown when known', async () => {
-    mockStore.techs = { 42: { name: 'Alphabet' } };
-    const { show_intelligence_report_hearsay } = await import('@/ui/intelDialog');
-    const { IntelDialog, closeIntelDialog } = await import('@/components/Dialogs/IntelDialog');
-    const { render, h } = await import('preact');
-
-    show_intelligence_report_hearsay(makePlayer({ researching: 42 }) as never);
-    const container = document.createElement('div');
-    document.body.appendChild(container);
-    render(h(IntelDialog, null), container);
-    expect(container.textContent).toContain('Alphabet');
-    closeIntelDialog();
-    document.body.removeChild(container);
-  });
-
-  it('SIR-5: dialog title uses nation adjective', async () => {
-    mockStore.nations = { 2: { adjective: 'Carthaginian' } };
-    const { show_intelligence_report_hearsay } = await import('@/ui/intelDialog');
-    const { IntelDialog, closeIntelDialog } = await import('@/components/Dialogs/IntelDialog');
-    const { render, h } = await import('preact');
-
-    show_intelligence_report_hearsay(makePlayer({ nation: 2 }) as never);
-    const container = document.createElement('div');
-    document.body.appendChild(container);
-    render(h(IntelDialog, null), container);
-    expect(container.textContent).toContain('Carthaginian');
-    closeIntelDialog();
-    document.body.removeChild(container);
-  });
-});
-
 // ── show_intelligence_report_dialog ──────────────────────────────────────
 
 describe('show_intelligence_report_dialog', () => {
@@ -390,16 +308,3 @@ describe('show_intelligence_report_dialog', () => {
   });
 });
 
-// ── show_intelligence_report_embassy ─────────────────────────────────────
-
-describe('show_intelligence_report_embassy', () => {
-  it('is exported as a function', async () => {
-    const { show_intelligence_report_embassy } = await import('@/ui/intelDialog');
-    expect(typeof show_intelligence_report_embassy).toBe('function');
-  });
-
-  it('does not throw for a minimal player', async () => {
-    const { show_intelligence_report_embassy } = await import('@/ui/intelDialog');
-    expect(() => show_intelligence_report_embassy(makePlayer() as never)).not.toThrow();
-  });
-});

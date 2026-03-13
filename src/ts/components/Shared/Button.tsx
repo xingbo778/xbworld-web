@@ -5,7 +5,7 @@ export interface ButtonProps {
   disabled?: boolean;
   variant?: 'primary' | 'secondary' | 'danger';
   className?: string;
-  children: ComponentChildren;
+  children?: ComponentChildren;
 }
 
 const VARIANT_STYLES: Record<string, Record<string, string>> = {

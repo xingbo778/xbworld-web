@@ -11,7 +11,7 @@ export interface DialogProps {
   draggable?: boolean;
   resizable?: boolean;
   className?: string;
-  children: ComponentChildren;
+  children?: ComponentChildren;
 }
 
 export function Dialog({

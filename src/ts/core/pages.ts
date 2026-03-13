@@ -21,10 +21,7 @@ import { set_chat_direction } from './control/chat';
 
 export const PAGE_MAIN: number = 0;
 export const PAGE_START: number = 1;
-export const PAGE_SCENARIO: number = 2;
-export const PAGE_LOAD: number = 3;
 export const PAGE_NETWORK: number = 4;
-export const PAGE_NATION: number = 5;
 export const PAGE_GAME: number = 6;
 
 let old_page: number = -1;

@@ -38,7 +38,7 @@ export function show_intelligence_report_dialog(): void {
   }
 }
 
-export function show_intelligence_report_hearsay(pplayer: Player): void {
+function show_intelligence_report_hearsay(pplayer: Player): void {
   const gov = (pplayer['government'] as number) > 0
     ? String(store.governments[pplayer['government'] as number]?.['name'] ?? '(Unknown)')
     : '(Unknown)';
@@ -116,7 +116,7 @@ export function buildIntelData(pplayer: Player): IntelData {
   };
 }
 
-export function show_intelligence_report_embassy(pplayer: Player): void {
+function show_intelligence_report_embassy(pplayer: Player): void {
   const data = buildIntelData(pplayer);
   const nationAdj = (store.nations[pplayer['nation'] as number]?.['adjective'] as string) || (pplayer['name'] as string);
   showIntelDialog(`Foreign Intelligence: ${nationAdj} Empire`, data);

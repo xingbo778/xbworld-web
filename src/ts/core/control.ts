@@ -119,7 +119,7 @@ export function control_init(): void {
   });
 
   // Disable text-selection during map interaction
-  document.onselectstart = () => false;
+  document.addEventListener('selectstart', () => false);
 
   // Disable right-clicks (except specific elements)
   window.addEventListener('contextmenu', (e: MouseEvent) => {

@@ -8,15 +8,12 @@ import { describe, it, expect } from 'vitest';
 describe('pages constants', () => {
   it('exports page constants with correct values', async () => {
     const {
-      PAGE_MAIN, PAGE_START, PAGE_SCENARIO, PAGE_LOAD,
-      PAGE_NETWORK, PAGE_NATION, PAGE_GAME,
+      PAGE_MAIN, PAGE_START,
+      PAGE_NETWORK, PAGE_GAME,
     } = await import('@/core/pages');
     expect(PAGE_MAIN).toBe(0);
     expect(PAGE_START).toBe(1);
-    expect(PAGE_SCENARIO).toBe(2);
-    expect(PAGE_LOAD).toBe(3);
     expect(PAGE_NETWORK).toBe(4);
-    expect(PAGE_NATION).toBe(5);
     expect(PAGE_GAME).toBe(6);
   });
 });
@@ -28,15 +25,15 @@ describe('set_client_page / get_client_page', () => {
     expect(typeof get_client_page()).toBe('number');
   });
 
-  it('set_client_page does not throw for PAGE_NATION', async () => {
-    const { set_client_page, PAGE_NATION } = await import('@/core/pages');
-    expect(() => set_client_page(PAGE_NATION)).not.toThrow();
+  it('set_client_page does not throw for a numeric page value', async () => {
+    const { set_client_page } = await import('@/core/pages');
+    expect(() => set_client_page(5)).not.toThrow();
   });
 
   it('get_client_page returns the last set page', async () => {
-    const { set_client_page, get_client_page, PAGE_LOAD } = await import('@/core/pages');
-    set_client_page(PAGE_LOAD);
-    expect(get_client_page()).toBe(PAGE_LOAD);
+    const { set_client_page, get_client_page } = await import('@/core/pages');
+    set_client_page(3);
+    expect(get_client_page()).toBe(3);
   });
 
   it('set_client_page is idempotent (calling twice with same page is fine)', async () => {
@@ -46,9 +43,9 @@ describe('set_client_page / get_client_page', () => {
   });
 
   it('set_client_page PAGE_GAME does not throw when DOM elements are absent', async () => {
-    const { set_client_page, PAGE_GAME, PAGE_NATION } = await import('@/core/pages');
+    const { set_client_page, PAGE_GAME } = await import('@/core/pages');
     // Reset to a different page first so PAGE_GAME actually runs
-    set_client_page(PAGE_NATION);
+    set_client_page(5);
     expect(() => set_client_page(PAGE_GAME)).not.toThrow();
   });
 });
