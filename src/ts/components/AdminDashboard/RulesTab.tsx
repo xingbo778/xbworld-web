@@ -1,7 +1,7 @@
 import { h } from 'preact';
 import { signal } from '@preact/signals';
 import { useEffect } from 'preact/hooks';
-import { AdminApi } from './AdminApi';
+import { AdminApi, AdminConfig } from './AdminApi';
 import { configSignal } from './index';
 
 const errorsSignal = signal<string[]>([]);
@@ -29,7 +29,7 @@ export function RulesTab() {
   const localValues = signal<Record<string, number>>({});
 
   async function handleSave(key: string, value: number) {
-    const result = await AdminApi.patchConfig({ [key]: value } as Partial<typeof cfg>);
+    const result = await AdminApi.patchConfig({ [key]: value } as Partial<AdminConfig>);
     if (result.errors?.length) {
       errorsSignal.value = result.errors;
     } else {
@@ -51,7 +51,7 @@ export function RulesTab() {
         <thead><tr><th>Setting</th><th>Value</th><th></th></tr></thead>
         <tbody>
           {RULES.map(rule => {
-            const current = (cfg as Record<string, unknown>)[rule.key] as number ?? 0;
+            const current = (cfg as unknown as Record<string, unknown>)[rule.key] as number ?? 0;
             const localVal = localValues.value[rule.key] ?? current;
             return (
               <tr key={rule.key}>

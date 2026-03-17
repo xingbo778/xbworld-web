@@ -37,14 +37,7 @@ function ActionBar() {
     });
   }
 
-  function handleGameScores() {
-    import('../data/nation').then(({ getPlayerScoresSummary }) => {
-      const text = getPlayerScoresSummary();
-      import('../client/civClient').then(({ showDialogMessage }) =>
-        showDialogMessage('Game Scores', text),
-      );
-    });
-  }
+  function handleGameScores() { /* game scores dialog not available in this build */ }
 
   return (
     <div class="xb-action-bar">

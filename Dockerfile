@@ -23,6 +23,7 @@ WORKDIR /build
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY src/ts/ ./src/ts/
+COPY src/styles/ ./src/styles/
 COPY vite.config.ts tsconfig.json ./
 RUN mkdir -p src/main/webapp/javascript/ts-bundle && \
     npx vite build

@@ -1,3 +1,5 @@
+/// <reference types="vite/client" />
+
 // Admin API base URL - configurable via env var
 const ADMIN_BASE = (typeof window !== 'undefined' && (window as any).ADMIN_BASE_URL)
   ? (window as any).ADMIN_BASE_URL
