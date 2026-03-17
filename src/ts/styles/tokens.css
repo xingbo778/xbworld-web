@@ -553,3 +553,76 @@
   font-size: 1.2rem;
   color: var(--xb-accent-blue, #58a6ff);
 }
+
+/* ── Pregame page modernization ── */
+#pregame_page {
+  background: var(--xb-bg-primary, #0d1117) !important;
+  color: var(--xb-text-primary, #e6edf3);
+  font-family: var(--xb-font-sans);
+  padding: 0;
+}
+
+#pregame_options {
+  background: var(--xb-bg-secondary, #161b22) !important;
+  background-image: none !important;
+  border-bottom: 1px solid var(--xb-border-default, #30363d);
+  min-height: 48px;
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+}
+
+#pregame_player_list {
+  background: transparent;
+  color: var(--xb-text-primary, #e6edf3);
+}
+
+.pregame_player_name {
+  background: var(--xb-bg-elevated, #21262d) !important;
+  background-image: none !important;
+  color: var(--xb-text-primary, #e6edf3) !important;
+  border: 1px solid var(--xb-border-default, #30363d) !important;
+  border-radius: 4px;
+  margin: 3px;
+  padding: 6px 8px;
+}
+
+#pregame_game_info:not(:empty) {
+  background: var(--xb-bg-elevated, #21262d) !important;
+  background-image: none !important;
+  color: var(--xb-text-primary, #e6edf3) !important;
+  border: 1px solid var(--xb-border-default, #30363d) !important;
+  border-radius: 4px;
+}
+
+#pregame_message_area {
+  background: var(--xb-bg-surface, #1a1a2e) !important;
+  background-image: none !important;
+  color: var(--xb-text-primary, #e6edf3) !important;
+  border: 1px solid var(--xb-border-muted, #21262d) !important;
+  border-radius: 4px;
+}
+
+#pregame_text_input {
+  background: var(--xb-bg-elevated, #21262d) !important;
+  color: var(--xb-text-primary, #e6edf3) !important;
+  border: 1px solid var(--xb-border-default, #30363d) !important;
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 14px;
+  outline: none;
+}
+
+#pregame_text_input:focus {
+  border-color: var(--xb-accent-blue, #58a6ff) !important;
+  box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.2);
+}
+
+/* Override jQuery UI widget-header orange in pregame */
+#pregame_options.ui-widget-header,
+#pregame_options .ui-widget-header {
+  background: var(--xb-bg-secondary, #161b22) !important;
+  background-image: none !important;
+  border: none !important;
+  color: var(--xb-text-primary, #e6edf3) !important;
+}

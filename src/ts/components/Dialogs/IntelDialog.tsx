@@ -58,7 +58,7 @@ export function IntelDialog() {
       width={window.innerWidth <= 600 ? '90%' : 'auto'}
       modal={true}
     >
-      <div class="xb-dialog-body-scroll" style={{ maxHeight: '70vh', fontSize: '13px' }}>
+      <div class="xb-dialog-body-scroll xb-intel-body">
         {data && (
           <>
             {/* Basic info table */}
@@ -90,7 +90,7 @@ export function IntelDialog() {
                 <ul class="xb-intel-dipl-list">
                   {data.diplomacy.map((entry, i) => (
                     <li key={i} class="xb-intel-dipl-item">
-                      <span style={{ fontWeight: 600 }}>{entry.nation}</span>: {entry.state}
+                      <span class="xb-intel-value">{entry.nation}</span>: {entry.state}
                     </li>
                   ))}
                 </ul>

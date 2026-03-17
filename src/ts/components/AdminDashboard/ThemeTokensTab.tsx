@@ -70,15 +70,15 @@ export function ThemeTokensTab() {
                 const currentVal = overrides[name] ?? tok.value;
                 return (
                   <tr key={name}>
-                    <td><code style={{ fontSize: '11px' }}>{name}</code></td>
+                    <td><code class="xb-admin-token-name">{name}</code></td>
                     <td class="xb-stat-label">{tok.value}</td>
                     <td>
                       {isColor ? (
-                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                        <div class="xb-admin-gap">
                           <input type="color" value={currentVal}
                             onInput={(e) => handleChange(name, (e.target as HTMLInputElement).value)}
-                            style={{ width: '32px', height: '24px', border: 'none', cursor: 'pointer', background: 'none' }} />
-                          <span class="xb-stat-label" style={{ fontSize: '11px' }}>{currentVal}</span>
+                            class="xb-admin-color-swatch" />
+                          <span class="xb-stat-label">{currentVal}</span>
                         </div>
                       ) : (
                         <input type="text" value={currentVal} class="xb-form-input"

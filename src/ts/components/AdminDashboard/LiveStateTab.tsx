@@ -62,7 +62,7 @@ export function LiveStateTab() {
                     <tr key={(c['id'] ?? c['name']) as string | number}>
                       <td>{(c['name'] ?? `City ${c['id']}`) as string}</td>
                       <td class="xb-col-right">{(c['size'] ?? '-') as string | number}</td>
-                      <td class="xb-stat-label" style={{ fontSize: '11px' }}>{(c['production_name'] ?? c['production'] ?? '-') as string}</td>
+                      <td class="xb-stat-label">{(c['production_name'] ?? c['production'] ?? '-') as string}</td>
                     </tr>
                   ))}
                 </tbody>

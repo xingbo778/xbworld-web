@@ -1462,6 +1462,109 @@
 }
 
 /* ============================================================
+   GameScoresDialog
+   ============================================================ */
+.xb-scores-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.xb-scores-th {
+  padding: 6px 10px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--xb-text-secondary);
+  border-bottom: 1px solid var(--xb-border-default);
+  background: var(--xb-bg-elevated);
+}
+.xb-scores-td {
+  padding: 5px 10px;
+  font-size: 12px;
+  color: var(--xb-text-primary);
+  border-bottom: 1px solid var(--xb-border-muted);
+}
+.xb-scores-td-right { text-align: right; }
+.xb-scores-name { font-weight: 600; }
+.xb-scores-rank {
+  text-align: center;
+  color: var(--xb-text-secondary);
+  font-size: 11px;
+}
+
+/* ============================================================
+   IntelDialog
+   ============================================================ */
+.xb-intel-body {
+  max-height: 70vh;
+  overflow-y: auto;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.xb-intel-section {
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--xb-border-muted);
+}
+.xb-intel-section:last-child { border-bottom: none; }
+
+/* ============================================================
+   Admin dashboard utility spacing
+   ============================================================ */
+.xb-admin-mb { margin-bottom: 8px; }
+.xb-admin-mb-lg { margin-bottom: 16px; }
+.xb-admin-mt { margin-top: 8px; }
+.xb-admin-mt-lg { margin-top: 16px; }
+.xb-admin-gap { display: flex; gap: 8px; align-items: center; }
+.xb-admin-textarea {
+  width: 100%;
+  min-height: 120px;
+  background: var(--xb-bg-primary);
+  color: var(--xb-text-primary);
+  border: 1px solid var(--xb-border-default);
+  border-radius: var(--xb-radius-md);
+  padding: 8px 10px;
+  font-size: 13px;
+  font-family: var(--xb-font-mono);
+  resize: vertical;
+  box-sizing: border-box;
+}
+.xb-admin-textarea:focus {
+  border-color: var(--xb-accent-blue);
+  outline: none;
+}
+.xb-admin-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.xb-admin-color-swatch {
+  width: 32px;
+  height: 24px;
+  border: 1px solid var(--xb-border-default);
+  border-radius: 3px;
+  cursor: pointer;
+  padding: 0;
+}
+.xb-admin-token-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--xb-border-muted);
+}
+.xb-admin-token-name {
+  font-family: var(--xb-font-mono);
+  font-size: 11px;
+  color: var(--xb-text-secondary);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ============================================================
    Legacy CSS isolation comment
    ============================================================ */
 

@@ -57,12 +57,12 @@ export function AgentStrategyTab() {
 
   return (
     <div class="xb-admin-tab-body">
-      {savedSignal.value && <div class="xb-badge xb-badge-green" style={{ marginBottom: '12px' }}>{savedSignal.value}</div>}
+      {savedSignal.value && <div class="xb-badge xb-badge-green xb-admin-mb-lg">{savedSignal.value}</div>}
 
       <div class="xb-admin-section-title">Decision Engine</div>
       <div class="xb-admin-form-row">
         {(['llm', 'rule_based'] as const).map(type => (
-          <label key={type} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', marginRight: '16px' }}>
+          <label key={type} class="xb-admin-gap" style={{ cursor: 'pointer', marginRight: '16px' }}>
             <input type="radio" name="engine" value={type}
               checked={cfg?.engine_type === type}
               onChange={() => saveEngine(type)} />
@@ -71,21 +71,21 @@ export function AgentStrategyTab() {
         ))}
       </div>
 
-      <div class="xb-admin-section-title" style={{ marginTop: '20px' }}>System Prompt</div>
+      <div class="xb-admin-section-title xb-admin-mt-lg">System Prompt</div>
       <textarea
-        class="xb-form-input xb-form-input-full"
-        style={{ height: '200px', resize: 'vertical', fontSize: '12px', fontFamily: 'monospace' }}
+        class="xb-admin-textarea"
+        style={{ height: '200px' }}
         value={promptSignal.value}
         onInput={(e) => { promptSignal.value = (e.target as HTMLTextAreaElement).value; }}
       />
-      <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
+      <div class="xb-admin-input-row xb-admin-mt">
         <button class="xb-btn xb-btn-primary" onClick={savePrompt}>Save Prompt</button>
       </div>
 
-      <div class="xb-admin-section-title" style={{ marginTop: '20px' }}>Research Priority Techs</div>
-      <div style={{ marginBottom: '8px' }}>
+      <div class="xb-admin-section-title xb-admin-mt-lg">Research Priority Techs</div>
+      <div class="xb-admin-mb">
         {techsSignal.value.map((tech, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 0' }}>
+          <div key={i} class="xb-admin-input-row">
             <span class="xb-stat-label" style={{ width: '24px', textAlign: 'right' }}>{i + 1}.</span>
             <span style={{ flex: 1, fontSize: '13px' }}>{tech}</span>
             <button class="xb-btn xb-btn-secondary" style={{ padding: '2px 8px' }} onClick={() => moveTech(i, -1)}>&#8593;</button>
@@ -94,7 +94,7 @@ export function AgentStrategyTab() {
           </div>
         ))}
       </div>
-      <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+      <div class="xb-admin-input-row xb-admin-mt">
         <input type="text" class="xb-form-input" placeholder="Add tech..." value={newTechSignal.value}
           style={{ flex: 1 }}
           onInput={(e) => { newTechSignal.value = (e.target as HTMLInputElement).value; }}

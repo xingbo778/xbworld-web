@@ -21,7 +21,7 @@ function EditableCell({ value, name, stat, type }: { value: number; name: string
   const [local, setLocal] = useState(value);
   const changed = local !== value;
   return (
-    <td style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+    <td class="xb-admin-gap">
       <input type="number" class="xb-form-input" style={{ width: '64px', padding: '2px 6px' }}
         value={local} onInput={(e) => setLocal(Number((e.target as HTMLInputElement).value))} />
       {changed && (
@@ -44,12 +44,12 @@ export function RulesetValuesTab() {
         &#9888; Ruleset changes require a game server restart to take effect.
       </div>
       {statusMsg.value && (
-        <div class={`xb-badge ${statusMsg.value.ok ? 'xb-badge-green' : 'xb-badge-red'}`} style={{ margin: '8px 0' }}>
+        <div class={`xb-badge ${statusMsg.value.ok ? 'xb-badge-green' : 'xb-badge-red'} xb-admin-mb`}>
           {statusMsg.value.text}
         </div>
       )}
 
-      <div class="xb-admin-tabs" style={{ marginBottom: '16px' }}>
+      <div class="xb-admin-tabs xb-admin-mb-lg">
         {(['units', 'buildings'] as const).map(t => (
           <button key={t} class={`xb-admin-tab${activeSubTab.value === t ? ' xb-admin-tab-active' : ''}`}
             onClick={() => { activeSubTab.value = t; }}>

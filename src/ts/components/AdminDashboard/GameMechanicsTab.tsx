@@ -66,7 +66,7 @@ export function GameMechanicsTab() {
             const val = parseServKey(content, key);
             return (
               <tr key={key}>
-                <td><code style={{ fontSize: '11px' }}>{key}</code></td>
+                <td><code class="xb-admin-token-name">{key}</code></td>
                 <td>
                   <input type="text" class="xb-form-input" style={{ width: '100px' }}
                     value={val}
@@ -81,22 +81,22 @@ export function GameMechanicsTab() {
       </table>
 
       <div class="xb-admin-section-title">Server Script Editor</div>
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', alignItems: 'center' }}>
+      <div class="xb-admin-input-row xb-admin-mb">
         <select class="xb-theme-select" onChange={(e) => loadScript((e.target as HTMLSelectElement).value)}>
           {scriptsSignal.value.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
         </select>
         {statusMsg.value && <span class="xb-stat-label">{statusMsg.value}</span>}
       </div>
-      <textarea class="xb-form-input xb-form-input-full"
-        style={{ height: '240px', resize: 'vertical', fontSize: '12px', fontFamily: 'monospace' }}
+      <textarea class="xb-admin-textarea"
+        style={{ height: '240px' }}
         value={content}
         onInput={(e) => { scriptContent.value = (e.target as HTMLTextAreaElement).value; }} />
-      <button class="xb-btn xb-btn-primary" style={{ marginTop: '8px' }} onClick={saveScript}>
+      <button class="xb-btn xb-btn-primary xb-admin-mt" onClick={saveScript}>
         Save Script
       </button>
 
-      <div class="xb-admin-section-title" style={{ marginTop: '24px' }}>Send Server Command</div>
-      <div style={{ display: 'flex', gap: '8px' }}>
+      <div class="xb-admin-section-title xb-admin-mt-lg">Send Server Command</div>
+      <div class="xb-admin-input-row">
         <input type="text" class="xb-form-input" style={{ flex: 1 }}
           placeholder="/set timeout 90"
           value={commandInput.value}
@@ -104,7 +104,7 @@ export function GameMechanicsTab() {
           onKeyDown={(e) => { if (e.key === 'Enter') sendCommand(); }} />
         <button class="xb-btn xb-btn-secondary" onClick={sendCommand}>Send</button>
       </div>
-      {commandResult.value && <div class="xb-stat-label" style={{ marginTop: '6px' }}>{commandResult.value}</div>}
+      {commandResult.value && <div class="xb-stat-label xb-admin-mt">{commandResult.value}</div>}
     </div>
   );
 }

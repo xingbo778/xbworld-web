@@ -37,18 +37,18 @@ export function GameScoresDialog() {
     >
       <div style={{ maxHeight: '420px', overflow: 'auto' }}>
         {players.length === 0 ? (
-          <p style={{ color: 'var(--xb-text-secondary, #8b949e)', margin: '8px 0' }}>
+          <p class="xb-stat-label" style={{ margin: '8px 0' }}>
             No score data available yet.
           </p>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <table class="xb-scores-table">
             <thead>
-              <tr style={{ borderBottom: '1px solid var(--xb-border-default, #30363d)' }}>
-                <th style={{ padding: '4px 8px', textAlign: 'left' }}>Rank</th>
-                <th style={{ padding: '4px 8px', textAlign: 'left' }}>Player</th>
-                <th style={{ padding: '4px 8px', textAlign: 'left' }}>Nation</th>
-                <th style={{ padding: '4px 8px', textAlign: 'right' }}>Score</th>
-                <th style={{ padding: '4px 8px', textAlign: 'right' }}>Cities</th>
+              <tr>
+                <th class="xb-scores-th">Rank</th>
+                <th class="xb-scores-th">Player</th>
+                <th class="xb-scores-th">Nation</th>
+                <th class="xb-scores-th xb-scores-td-right">Score</th>
+                <th class="xb-scores-th xb-scores-td-right">Cities</th>
               </tr>
             </thead>
             <tbody>
@@ -59,11 +59,11 @@ export function GameScoresDialog() {
                 const cities = (p['cities'] as number) ?? 0;
                 return (
                   <tr key={p['playerno'] as number}>
-                    <td style={{ padding: '4px 8px', fontWeight: 'bold' }}>#{i + 1}</td>
-                    <td style={{ padding: '4px 8px' }}>{String(p['name'])}</td>
-                    <td style={{ padding: '4px 8px', color: 'var(--xb-text-secondary, #8b949e)' }}>{adj}</td>
-                    <td style={{ padding: '4px 8px', textAlign: 'right', fontWeight: 'bold', color: 'var(--xb-accent-blue, #58a6ff)' }}>{score}</td>
-                    <td style={{ padding: '4px 8px', textAlign: 'right' }}>{cities} cities</td>
+                    <td class="xb-scores-td xb-scores-rank">#{i + 1}</td>
+                    <td class="xb-scores-td xb-scores-name">{String(p['name'])}</td>
+                    <td class="xb-scores-td">{adj}</td>
+                    <td class="xb-scores-td xb-scores-td-right" style={{ color: 'var(--xb-accent-blue, #58a6ff)', fontWeight: 'bold' }}>{score}</td>
+                    <td class="xb-scores-td xb-scores-td-right">{cities} cities</td>
                   </tr>
                 );
               })}
@@ -71,7 +71,7 @@ export function GameScoresDialog() {
           </table>
         )}
       </div>
-      <div style={{ marginTop: '12px', textAlign: 'right' }}>
+      <div class="xb-dialog-footer-right">
         <Button onClick={closeGameScoresDialog}>Close</Button>
       </div>
     </Dialog>
