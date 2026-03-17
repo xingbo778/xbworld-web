@@ -34,8 +34,7 @@ function FlagCanvas({ sprite }: FlagCanvasProps) {
       ref={ref}
       width={29}
       height={20}
-      class="pregame_flags"
-      style={{ verticalAlign: 'middle', marginRight: 4 }}
+      class="pregame_flags xb-flag-canvas"
     />
   );
 }

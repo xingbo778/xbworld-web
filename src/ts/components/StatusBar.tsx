@@ -19,16 +19,7 @@ function ThemeSelect() {
       value={current}
       onChange={handleChange}
       title="UI Theme"
-      style={{
-        marginLeft: 'auto',
-        background: 'var(--xb-bg-elevated, #21262d)',
-        color: 'var(--xb-text-secondary, #8b949e)',
-        border: '1px solid var(--xb-border-default, #30363d)',
-        borderRadius: '3px',
-        padding: '1px 4px',
-        fontSize: 'var(--xb-font-size-xs, 11px)',
-        cursor: 'pointer',
-      }}
+      class="xb-theme-select"
     >
       <option value="dark">Dark</option>
       <option value="light">Light</option>
@@ -48,22 +39,9 @@ export function StatusBar() {
   if (turn === 0 && !observer) return null;
 
   return (
-    <div
-      id="xb-status-bar"
-      style={{
-        display: 'flex',
-        gap: 16,
-        alignItems: 'center',
-        padding: '2px 10px',
-        background: 'var(--xb-bg-secondary, #161b22)',
-        borderTop: '1px solid var(--xb-border-default, #30363d)',
-        fontSize: 'var(--xb-font-size-xs, 11px)',
-        color: 'var(--xb-text-secondary, #8b949e)',
-        userSelect: 'none',
-      }}
-    >
+    <div id="xb-status-bar" class="xb-status-bar">
       {observer && (
-        <span style={{ color: 'var(--xb-accent-blue, #58a6ff)', fontWeight: 600 }}>OBSERVER</span>
+        <span class="xb-status-bar-observer">OBSERVER</span>
       )}
       {year && <span>Year: {year}</span>}
       {turn > 0 && <span>Turn: {turn}</span>}
@@ -71,6 +49,13 @@ export function StatusBar() {
       <span>{cities} cities</span>
       <span>{units} units</span>
       <ThemeSelect />
+      <button
+        class="xb-status-bar-admin-btn"
+        title="Open Admin Dashboard"
+        onClick={() => window.open('http://localhost:8081/admin/', '_blank', 'width=1400,height=900')}
+      >
+        &#9881;
+      </button>
     </div>
   );
 }

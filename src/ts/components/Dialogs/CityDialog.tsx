@@ -44,16 +44,16 @@ export function mountCityDialog(container: HTMLElement): void {
 
 // ── Sprite div helper ─────────────────────────────────────────────────────────
 function SpriteDiv({ sprite, title, className }: { sprite: SpriteInfo; title?: string; className?: string }) {
+  // Sprite positions/sizes are data-driven — must remain inline
   return (
     <div
-      class={className}
+      class={`xb-sprite-div${className ? ` ${className}` : ''}`}
       title={title}
       style={{
         background: `transparent url(${sprite['image-src']})`,
         backgroundPosition: `-${sprite['tileset-x']}px -${sprite['tileset-y']}px`,
         width: sprite['width'] as number,
         height: sprite['height'] as number,
-        flexShrink: 0,
       }}
     />
   );
@@ -94,48 +94,43 @@ export function CityDialog() {
   const supportedItems = getSupportedUnitItems(pcity);
   const prodList = activeTab === 'production' ? buildProductionListData(pcity) : null;
 
-  const secondaryStyle = { color: 'var(--xb-text-secondary, #8b949e)', fontSize: 'var(--xb-font-size-sm, 12px)' } as const;
-  const rowStyle = { fontSize: 'var(--xb-font-size-sm, 12px)', lineHeight: '1.6', color: 'var(--xb-text-primary, #e6edf3)' } as const;
-
   return (
     <Dialog title={title} open onClose={onClose} width={560} modal={false}>
       <Tabs tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab}>
 
         {/* ── Overview tab ─────────────────────────────────────────────────── */}
         <TabPanel id="overview" activeTab={activeTab}>
-          <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+          <div class="xb-city-overview-layout">
             {/* Left: size + production */}
-            <div style={{ minWidth: 180 }}>
-              <div style={rowStyle}>
+            <div class="xb-city-overview-left">
+              <div class="xb-city-overview-row">
                 <div>Population: {sizeData.population}</div>
                 <div>Size: {sizeData.size}</div>
                 <div>Granary: {sizeData.foodStock}/{sizeData.granarySize}</div>
                 <div>Change in: {sizeData.growthText}</div>
               </div>
-              <div style={{ marginTop: 8, ...secondaryStyle }}>
+              <div class="xb-city-secondary" style={{ marginTop: 8 }}>
                 {productionOverview}
               </div>
-              <div style={secondaryStyle}>
+              <div class="xb-city-secondary">
                 {prodTurns.turns !== null
                   ? `${prodTurns.turns} turns  (${prodTurns.progress})`
                   : '—'}
               </div>
-              <div style={{
-                marginTop: 4,
-                fontSize: 'var(--xb-font-size-sm, 12px)',
-                color: cityState === 'Disorder'
-                  ? 'var(--xb-status-error, #f85149)'
+              <div class={
+                cityState === 'Disorder'
+                  ? 'xb-city-state-disorder'
                   : cityState === 'Celebrating'
-                    ? 'var(--xb-accent-green, #3fb950)'
-                    : 'var(--xb-text-secondary, #8b949e)',
-              }}>
+                    ? 'xb-city-state-celebrating'
+                    : 'xb-city-state-normal'
+              }>
                 State: {cityState}
               </div>
             </div>
 
             {/* Right: resource table */}
             {stats && (
-              <table style={{ fontSize: 'var(--xb-font-size-sm, 12px)', borderCollapse: 'collapse', color: 'var(--xb-text-primary, #e6edf3)' }}>
+              <table class="xb-city-resource-table">
                 <tbody>
                   {([
                     ['Food', stats.food],
@@ -150,7 +145,7 @@ export function CityDialog() {
                     ['Culture', stats.culture],
                   ] as [string, string][]).map(([label, val]) => (
                     <tr key={label}>
-                      <td style={{ paddingRight: 8, color: 'var(--xb-text-secondary, #8b949e)' }}>{label}:</td>
+                      <td class="xb-city-resource-label">{label}:</td>
                       <td>{val}</td>
                     </tr>
                   ))}
@@ -163,39 +158,39 @@ export function CityDialog() {
         {/* ── Buildings tab ─────────────────────────────────────────────────── */}
         <TabPanel id="buildings" activeTab={activeTab}>
           {improvementItems.length > 0 ? (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, fontSize: 'var(--xb-font-size-sm, 12px)' }}>
+            <div class="xb-city-buildings-wrap">
               {improvementItems.map(item => (
-                <div key={item.id} title={item.helptext} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <div key={item.id} title={item.helptext} class="xb-city-building-item">
                   {item.sprite && <SpriteDiv sprite={item.sprite} />}
                   {item.name}
                 </div>
               ))}
             </div>
           ) : (
-            <div style={secondaryStyle}>No buildings</div>
+            <div class="xb-city-secondary">No buildings</div>
           )}
         </TabPanel>
 
         {/* ── Units tab ─────────────────────────────────────────────────────── */}
         <TabPanel id="units" activeTab={activeTab}>
-          <div style={secondaryStyle}>Present:</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 2, marginBottom: 12 }}>
+          <div class="xb-city-secondary">Present:</div>
+          <div class="xb-city-units-section">
             {presentItems && presentItems.length > 0 ? (
               presentItems.map(item => (
                 <SpriteDiv key={item.id} sprite={item.sprite} title={item.title} className="game_unit_list_item" />
               ))
             ) : (
-              <span style={{ color: 'var(--xb-text-secondary)' }}>None</span>
+              <span class="xb-city-secondary">None</span>
             )}
           </div>
-          <div style={secondaryStyle}>Supported:</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+          <div class="xb-city-secondary">Supported:</div>
+          <div class="xb-city-units-section" style={{ marginBottom: 0 }}>
             {supportedItems && supportedItems.length > 0 ? (
               supportedItems.map(item => (
                 <SpriteDiv key={item.id} sprite={item.sprite} title={item.title} className="game_unit_list_item" />
               ))
             ) : (
-              <span style={{ color: 'var(--xb-text-secondary)' }}>None</span>
+              <span class="xb-city-secondary">None</span>
             )}
           </div>
         </TabPanel>
@@ -203,23 +198,23 @@ export function CityDialog() {
         {/* ── Can Build tab ─────────────────────────────────────────────────── */}
         <TabPanel id="production" activeTab={activeTab}>
           {prodList == null ? null : !prodList.hasData ? (
-            <div style={secondaryStyle}>
+            <div class="xb-city-secondary">
               Build data not available (requires live server).
             </div>
           ) : (
-            <div style={{ fontSize: 'var(--xb-font-size-sm, 12px)', maxHeight: 360, overflowY: 'auto' }}>
+            <div class="xb-city-can-build-scroll">
               {prodList.units.length > 0 && (
                 <>
-                  <div style={{ ...secondaryStyle, marginBottom: 4 }}>Units ({prodList.units.length}):</div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 12 }}>
+                  <div class="xb-city-section-header" style={{ marginBottom: 4 }}>Units ({prodList.units.length}):</div>
+                  <div class="xb-city-can-build-group">
                     {prodList.units.map(({ type, cost }) => {
                       const sprite = get_unit_type_image_sprite(type);
                       return (
                         <div key={type['id']} title={`${type['name']} — Cost: ${cost}`}
-                          style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--xb-bg-tertiary, #21262d)', borderRadius: 3, padding: '2px 6px', cursor: 'default' }}>
+                          class="xb-city-can-build-item">
                           {sprite && <SpriteDiv sprite={sprite} />}
                           <span>{type['name']}</span>
-                          <span style={{ color: 'var(--xb-text-secondary, #8b949e)' }}>{cost}</span>
+                          <span class="xb-city-can-build-cost">{cost}</span>
                         </div>
                       );
                     })}
@@ -228,16 +223,16 @@ export function CityDialog() {
               )}
               {prodList.improvements.length > 0 && (
                 <>
-                  <div style={{ ...secondaryStyle, marginBottom: 4 }}>Improvements ({prodList.improvements.length}):</div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                  <div class="xb-city-section-header" style={{ marginBottom: 4 }}>Improvements ({prodList.improvements.length}):</div>
+                  <div class="xb-city-can-build-group" style={{ marginBottom: 0 }}>
                     {prodList.improvements.map(({ impr, cost }) => {
                       const sprite = get_improvement_image_sprite(impr);
                       return (
                         <div key={impr['id']} title={`${impr['name']} — Cost: ${cost}`}
-                          style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--xb-bg-tertiary, #21262d)', borderRadius: 3, padding: '2px 6px', cursor: 'default' }}>
+                          class="xb-city-can-build-item">
                           {sprite && <SpriteDiv sprite={sprite} />}
                           <span>{impr['name']}</span>
-                          <span style={{ color: 'var(--xb-text-secondary, #8b949e)' }}>{cost}</span>
+                          <span class="xb-city-can-build-cost">{cost}</span>
                         </div>
                       );
                     })}
@@ -245,7 +240,7 @@ export function CityDialog() {
                 </>
               )}
               {prodList.units.length === 0 && prodList.improvements.length === 0 && (
-                <div style={secondaryStyle}>Nothing buildable.</div>
+                <div class="xb-city-secondary">Nothing buildable.</div>
               )}
             </div>
           )}

@@ -22,48 +22,18 @@ export function Tabs({ tabs, activeTab, onTabChange, children }: TabsProps) {
 
   return (
     <div class="xb-tabs">
-      <div
-        class="xb-tabs-bar"
-        style={{
-          display: 'flex',
-          gap: '2px',
-          borderBottom: '1px solid var(--xb-border-default, #30363d)',
-          background: 'var(--xb-bg-secondary, #161b22)',
-        }}
-      >
+      <div class="xb-tabs-bar">
         {tabs.map((t) => (
           <button
             key={t.id}
             onClick={handleClick(t.id)}
-            class="xb-tab"
-            style={{
-              padding: '6px 14px',
-              fontSize: 'var(--xb-font-size-sm, 12px)',
-              fontWeight: t.id === activeTab ? 'bold' : 'normal',
-              color: t.id === activeTab ? 'var(--xb-text-primary, #e6edf3)' : 'var(--xb-text-secondary, #8b949e)',
-              background: t.id === activeTab
-                ? 'var(--xb-bg-surface, #1a1a2e)'
-                : 'transparent',
-              border: 'none',
-              borderBottom: t.id === activeTab
-                ? '2px solid var(--xb-accent-blue, #58a6ff)'
-                : '2px solid transparent',
-              cursor: 'pointer',
-              transition: 'color var(--xb-transition-fast, 100ms ease)',
-            }}
+            class={`xb-tab ${t.id === activeTab ? 'xb-tab-active' : 'xb-tab-inactive'}`}
           >
             {t.label}
           </button>
         ))}
       </div>
-      <div
-        class="xb-tabs-content"
-        style={{
-          background: 'var(--xb-bg-surface, #1a1a2e)',
-          color: 'var(--xb-text-primary, #e6edf3)',
-          padding: 'var(--xb-space-md, 12px)',
-        }}
-      >
+      <div class="xb-tabs-content">
         {children}
       </div>
     </div>

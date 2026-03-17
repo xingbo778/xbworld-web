@@ -17,6 +17,8 @@
 
   --xb-border-default: #30363d;
   --xb-border-muted: #21262d;
+  --xb-border-subtle: rgba(48, 54, 61, 0.8);
+  --xb-border-focus: #58a6ff;
 
   /* Accent colors */
   --xb-accent-blue: #58a6ff;
@@ -24,6 +26,15 @@
   --xb-accent-red: #f85149;
   --xb-accent-yellow: #d29922;
   --xb-accent-purple: #bc8cff;
+  --xb-accent-orange: #d29922;
+
+  /* Status semantic aliases */
+  --xb-status-error: var(--xb-accent-red, #f85149);
+  --xb-status-success: var(--xb-accent-green, #3fb950);
+  --xb-status-warning: var(--xb-accent-yellow, #d29922);
+
+  /* Background tertiary (one step above elevated) */
+  --xb-bg-tertiary: #21262d;
 
   /* Player colors */
   --xb-player-0: #ff4444;
@@ -51,6 +62,12 @@
   --xb-font-size-md: 14px;
   --xb-font-size-lg: 16px;
   --xb-font-size-xl: 20px;
+
+  /* Font-size shorthand aliases */
+  --xb-text-xs: var(--xb-font-size-xs);
+  --xb-text-sm: var(--xb-font-size-sm);
+  --xb-text-md: var(--xb-font-size-md);
+  --xb-text-lg: var(--xb-font-size-lg);
 
   /* Borders */
   --xb-radius-sm: 3px;
@@ -155,8 +172,8 @@
   left: 0;
   right: 0;
   z-index: 200;
-  background: #1a1f2b;
-  border-top: 3px solid #58a6ff;
+  background: var(--xb-bg-surface, #1a1a2e);
+  border-top: 3px solid var(--xb-accent-blue, #58a6ff);
   overflow: visible;
   min-height: 70px;
 }
@@ -167,7 +184,7 @@
 }
 
 #game_message_area {
-  color: #c9d1d9;
+  color: var(--xb-text-primary, #e6edf3);
   font-size: 13px;
   list-style: none;
   padding: 6px 10px;
@@ -179,7 +196,7 @@
 
 #game_message_area:empty::before {
   content: '💬 No messages yet — type below to chat';
-  color: #8b949e;
+  color: var(--xb-text-secondary, #8b949e);
   font-style: italic;
   font-size: 12px;
   display: block;
@@ -194,9 +211,9 @@
   width: 100%;
   height: auto;
   min-height: 32px;
-  background: #0d1117;
-  color: #e6edf3;
-  border: 2px solid #30363d;
+  background: var(--xb-bg-primary, #0d1117);
+  color: var(--xb-text-primary, #e6edf3);
+  border: 2px solid var(--xb-border-default, #30363d);
   border-radius: 6px;
   padding: 6px 12px;
   font-size: 14px;
@@ -206,12 +223,12 @@
 }
 
 #game_text_input:focus {
-  border-color: #58a6ff;
+  border-color: var(--xb-border-focus, #58a6ff);
   box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.3);
 }
 
 #game_text_input::placeholder {
-  color: #8b949e;
+  color: var(--xb-text-secondary, #8b949e);
   font-size: 14px;
 }
 
@@ -223,7 +240,7 @@
 }
 
 #overview_map {
-  border: 1px solid #555;
+  border: 1px solid var(--xb-border-default, #30363d);
   border-radius: 2px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
 }
@@ -238,7 +255,7 @@
   bottom: 40px;
   right: 4px;
   z-index: var(--xb-z-ui);
-  color: #e0e0e0;
+  color: var(--xb-text-primary, #e6edf3);
   font-size: 11px;
   background: rgba(0, 0, 0, 0.5);
   padding: 2px 6px;
@@ -452,11 +469,11 @@
 }
 
 .xb-block-message {
-  background: #1a1a2e;
-  border: 1px solid #444;
+  background: var(--xb-bg-surface, #1a1a2e);
+  border: 1px solid var(--xb-border-default, #30363d);
   border-radius: 8px;
   padding: 24px 32px;
-  color: #e0e0e0;
+  color: var(--xb-text-primary, #e6edf3);
   text-align: center;
   max-width: 80%;
 }
@@ -465,5 +482,5 @@
 .xb-block-message h2 {
   margin: 0 0 8px;
   font-size: 1.2rem;
-  color: #58a6ff;
+  color: var(--xb-accent-blue, #58a6ff);
 }

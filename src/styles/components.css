@@ -1,0 +1,1403 @@
+/* XBWorld Component Classes
+   Extracted from inline styles across components.
+   Import after tokens.css so all var() references resolve correctly.
+*/
+
+:root {
+  --xb-border-subtle: rgba(48, 54, 61, 0.8);
+  --xb-border-focus: var(--xb-accent-blue, #58a6ff);
+
+  /* Font-size shorthand aliases (match tokens.css --xb-font-size-* names) */
+  --xb-text-xs: var(--xb-font-size-xs, 11px);
+  --xb-text-sm: var(--xb-font-size-sm, 12px);
+  --xb-text-md: var(--xb-font-size-md, 14px);
+}
+
+/* ============================================================
+   Tables
+   ============================================================ */
+
+.xb-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.xb-table th {
+  background: var(--xb-bg-elevated);
+  color: var(--xb-text-secondary);
+  font-size: var(--xb-text-xs);
+  font-weight: 600;
+  padding: var(--xb-space-sm) var(--xb-space-md);
+  text-align: left;
+  border-bottom: 1px solid var(--xb-border-subtle, rgba(48, 54, 61, 0.8));
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.xb-table td {
+  padding: var(--xb-space-sm) var(--xb-space-md);
+  font-size: var(--xb-text-xs);
+  color: var(--xb-text-primary);
+  border-bottom: 1px solid var(--xb-border-subtle, rgba(48, 54, 61, 0.4));
+}
+
+.xb-table tr:hover td {
+  background: var(--xb-bg-elevated);
+}
+
+.xb-table .xb-col-right {
+  text-align: right;
+}
+
+.xb-table .xb-col-center {
+  text-align: center;
+}
+
+/* Row modifier for thead rows that need a heavier separator */
+.xb-table thead tr {
+  border-bottom: 2px solid var(--xb-border-default, #30363d);
+  background: var(--xb-bg-elevated, #21262d);
+}
+
+/* tbody row borders */
+.xb-table tbody tr {
+  border-bottom: 1px solid var(--xb-border-default, #30363d);
+}
+
+/* Selected row highlight */
+.xb-table tbody tr.xb-row-selected td {
+  background: var(--xb-bg-elevated, #21262d);
+}
+
+/* Clickable rows */
+.xb-table tbody tr.xb-row-clickable {
+  cursor: pointer;
+}
+
+/* Footer/hint line below table */
+.xb-table-hint {
+  padding: 6px var(--xb-space-md);
+  color: var(--xb-text-secondary);
+  font-size: var(--xb-text-xs);
+}
+
+/* ============================================================
+   Status / info rows
+   ============================================================ */
+
+.xb-stat-row {
+  display: flex;
+  align-items: center;
+  gap: var(--xb-space-sm);
+  padding: var(--xb-space-xs) var(--xb-space-sm);
+}
+
+.xb-stat-label {
+  color: var(--xb-text-secondary);
+  font-size: var(--xb-text-xs);
+}
+
+.xb-stat-value {
+  color: var(--xb-text-primary);
+  font-size: var(--xb-text-xs);
+  font-weight: 600;
+}
+
+/* ============================================================
+   Scrollable containers
+   ============================================================ */
+
+.xb-scroll-y {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.xb-scroll-y::-webkit-scrollbar {
+  width: 6px;
+}
+
+.xb-scroll-y::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.xb-scroll-y::-webkit-scrollbar-thumb {
+  background: var(--xb-border-subtle, rgba(48, 54, 61, 0.8));
+  border-radius: var(--xb-radius-full);
+}
+
+/* ============================================================
+   Panel / section containers
+   ============================================================ */
+
+.xb-panel {
+  background: var(--xb-bg-secondary);
+  border: 1px solid var(--xb-border-subtle, rgba(48, 54, 61, 0.8));
+  border-radius: var(--xb-radius-md);
+}
+
+.xb-panel-header {
+  padding: var(--xb-space-md) var(--xb-space-lg);
+  border-bottom: 1px solid var(--xb-border-subtle, rgba(48, 54, 61, 0.8));
+  font-size: var(--xb-text-sm);
+  font-weight: 600;
+  color: var(--xb-text-primary);
+}
+
+.xb-panel-body {
+  padding: var(--xb-space-md);
+}
+
+/* ============================================================
+   Overlays / loading
+   ============================================================ */
+
+.xb-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--xb-z-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.xb-overlay-backdrop {
+  background: rgba(0, 0, 0, 0.85);
+}
+
+.xb-overlay-content {
+  background: var(--xb-bg-secondary);
+  border: 1px solid var(--xb-border-subtle, rgba(48, 54, 61, 0.8));
+  border-radius: var(--xb-radius-lg);
+  padding: var(--xb-space-xl);
+  max-width: 480px;
+  width: 90%;
+  text-align: center;
+}
+
+/* ============================================================
+   Chat
+   ============================================================ */
+
+.xb-chat-panel {
+  background: var(--xb-bg-secondary);
+  border: 1px solid var(--xb-accent-blue);
+  border-radius: var(--xb-radius-md);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.xb-chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--xb-space-sm);
+}
+
+.xb-chat-entry {
+  font-size: var(--xb-text-xs);
+  color: var(--xb-text-primary);
+  padding: 2px 0;
+  line-height: 1.4;
+}
+
+/* ============================================================
+   Player color dots
+   ============================================================ */
+
+.xb-player-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--xb-radius-full);
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   Badges / tags
+   ============================================================ */
+
+.xb-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border-radius: var(--xb-radius-sm);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.xb-badge-green {
+  background: rgba(63, 185, 80, 0.15);
+  color: var(--xb-accent-green);
+}
+
+.xb-badge-red {
+  background: rgba(248, 81, 73, 0.15);
+  color: var(--xb-accent-red);
+}
+
+.xb-badge-blue {
+  background: rgba(88, 166, 255, 0.15);
+  color: var(--xb-accent-blue);
+}
+
+.xb-badge-yellow {
+  background: rgba(210, 153, 34, 0.15);
+  color: var(--xb-accent-yellow);
+}
+
+.xb-badge-purple {
+  background: rgba(188, 140, 255, 0.15);
+  color: var(--xb-accent-purple);
+}
+
+.xb-badge-muted {
+  background: var(--xb-bg-elevated);
+  color: var(--xb-text-secondary);
+}
+
+/* ============================================================
+   NationOverview layout
+   ============================================================ */
+
+.xb-nation-overview {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.xb-nation-overview-title {
+  margin: 0;
+  padding: var(--xb-space-sm) var(--xb-space-md);
+  font-size: var(--xb-text-md);
+  font-weight: 600;
+  color: var(--xb-text-primary);
+  border-bottom: 1px solid var(--xb-border-default, #30363d);
+  background: var(--xb-bg-secondary, #161b22);
+}
+
+.xb-nation-overview-body {
+  flex: 1;
+  overflow: auto;
+}
+
+.xb-action-bar {
+  display: flex;
+  gap: var(--xb-space-sm);
+  padding: var(--xb-space-sm) var(--xb-space-md);
+  border-bottom: 1px solid var(--xb-border-default, #30363d);
+  background: var(--xb-bg-elevated, #21262d);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.xb-table-scroll-wrap {
+  overflow-x: auto;
+}
+
+.xb-empty-state {
+  padding: 16px;
+  color: var(--xb-text-secondary);
+  font-size: var(--xb-text-sm);
+}
+
+/* ============================================================
+   StatusBar
+   ============================================================ */
+
+.xb-status-bar {
+  display: flex;
+  gap: var(--xb-space-lg);
+  align-items: center;
+  padding: 2px 10px;
+  background: var(--xb-bg-secondary, #161b22);
+  border-top: 1px solid var(--xb-border-default, #30363d);
+  font-size: var(--xb-text-xs);
+  color: var(--xb-text-secondary);
+  user-select: none;
+}
+
+.xb-status-bar-observer {
+  color: var(--xb-accent-blue);
+  font-weight: 600;
+}
+
+.xb-theme-select {
+  margin-left: auto;
+  background: var(--xb-bg-elevated, #21262d);
+  color: var(--xb-text-secondary, #8b949e);
+  border: 1px solid var(--xb-border-default, #30363d);
+  border-radius: 3px;
+  padding: 1px 4px;
+  font-size: var(--xb-text-xs);
+  cursor: pointer;
+}
+
+/* ============================================================
+   GameLog
+   ============================================================ */
+
+.xb-log-root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--xb-bg-primary, #0d1117);
+}
+
+.xb-log-header {
+  padding: var(--xb-space-sm) var(--xb-space-md);
+  border-bottom: 1px solid var(--xb-border-default, #30363d);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--xb-bg-secondary, #161b22);
+  flex-shrink: 0;
+}
+
+.xb-log-header-title {
+  color: var(--xb-accent-blue);
+  font-weight: bold;
+  font-size: var(--xb-text-md);
+}
+
+.xb-log-clear-btn {
+  background: none;
+  border: 1px solid var(--xb-border-default, #30363d);
+  color: var(--xb-text-secondary);
+  cursor: pointer;
+  border-radius: var(--xb-radius-sm);
+  padding: 2px 8px;
+  font-size: var(--xb-text-sm);
+}
+
+.xb-log-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--xb-space-sm) var(--xb-space-md);
+}
+
+.xb-log-empty {
+  color: var(--xb-text-secondary);
+  font-style: italic;
+  font-size: 13px;
+  text-align: center;
+  margin-top: 40px;
+}
+
+.xb-log-entry {
+  padding: 4px 0;
+  border-bottom: 1px solid var(--xb-bg-elevated, #21262d);
+  font-size: 13px;
+  color: var(--xb-text-primary);
+  line-height: 1.5;
+}
+
+/* ============================================================
+   Progress bar (used in NationOverview research column)
+   ============================================================ */
+
+.xb-progress-track {
+  background: var(--xb-bg-elevated, #21262d);
+  border-radius: 3px;
+  height: 6px;
+  overflow: hidden;
+}
+
+/* .xb-progress-fill is defined once in the ProgressBar section below — shared */
+
+/* ============================================================
+   ChatBox
+   ============================================================ */
+
+.xb-chat-list {
+  margin: 0;
+  padding: 0 0 4px 0;
+  list-style: none;
+}
+
+.xb-chat-sentinel {
+  height: 0;
+  margin: 0;
+  padding: 0;
+}
+
+/* ============================================================
+   StatusPanel — connection banner
+   ============================================================ */
+
+.xb-connection-banner {
+  margin-right: 12px;
+  color: var(--xb-accent-orange, #d29922);
+  font-weight: 600;
+}
+
+.xb-connection-banner-reload {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  font: inherit;
+}
+
+.xb-status-panel-taxrates {
+  cursor: pointer;
+}
+
+/* ============================================================
+   PregameLobby — flag canvas
+   ============================================================ */
+
+.xb-flag-canvas {
+  vertical-align: middle;
+  margin-right: 4px;
+}
+
+/* ============================================================
+   Shared/Dialog
+   ============================================================ */
+
+.xb-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--xb-dialog-backdrop-bg);
+  z-index: 9999;
+}
+
+.xb-dialog {
+  position: fixed;
+  z-index: 10000;
+  border-radius: var(--xb-dialog-radius, 6px);
+  box-shadow: var(--xb-dialog-shadow, 0 8px 32px rgba(0,0,0,0.6));
+  border: 1px solid var(--xb-dialog-border-color, var(--xb-border-default, #30363d));
+  overflow: hidden;
+}
+
+.xb-dialog-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--xb-dialog-titlebar-padding);
+  background: var(--xb-dialog-titlebar-bg);
+  color: var(--xb-dialog-titlebar-color);
+  user-select: none;
+  border-bottom: 2px solid var(--xb-dialog-titlebar-accent, var(--xb-accent-blue, #58a6ff));
+}
+
+.xb-dialog-titlebar-draggable {
+  cursor: move;
+}
+
+.xb-dialog-title {
+  font-weight: 600;
+  font-size: var(--xb-dialog-titlebar-font-size);
+}
+
+.xb-dialog-close-btn {
+  background: none;
+  border: none;
+  color: var(--xb-dialog-titlebar-close-color);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 2px 6px;
+  line-height: 1;
+  touch-action: manipulation;
+  min-width: 28px;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--xb-radius-sm, 3px);
+  transition: background var(--xb-transition-fast, 100ms ease);
+}
+
+.xb-dialog-close-btn:hover {
+  background: rgba(128, 128, 128, 0.2);
+}
+
+.xb-dialog-content {
+  background: var(--xb-dialog-content-bg);
+  color: var(--xb-dialog-content-color);
+  padding: var(--xb-dialog-content-padding);
+  max-height: 80vh;
+  overflow: auto;
+}
+
+/* ============================================================
+   Shared/Button
+   ============================================================ */
+
+.xb-btn {
+  padding: var(--xb-btn-padding);
+  border-radius: var(--xb-btn-radius);
+  font-size: var(--xb-btn-font-size);
+  font-weight: bold;
+  transition: opacity var(--xb-transition-fast);
+}
+
+.xb-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.xb-btn:not(:disabled) {
+  cursor: pointer;
+}
+
+.xb-btn-primary {
+  background: var(--xb-btn-primary-bg);
+  color: var(--xb-btn-primary-color);
+  border: 1px solid var(--xb-btn-primary-border-color);
+}
+
+.xb-btn-secondary {
+  background: var(--xb-btn-secondary-bg);
+  color: var(--xb-btn-secondary-color);
+  border: 1px solid var(--xb-btn-secondary-border-color);
+}
+
+.xb-btn-danger {
+  background: var(--xb-btn-danger-bg);
+  color: var(--xb-btn-danger-color);
+  border: 1px solid var(--xb-btn-danger-border-color);
+}
+
+/* ============================================================
+   Shared/Tabs
+   ============================================================ */
+
+.xb-tabs {
+  /* container */
+}
+
+.xb-tabs-bar {
+  display: flex;
+  gap: 2px;
+  border-bottom: 1px solid var(--xb-border-default, #30363d);
+  background: var(--xb-bg-secondary, #161b22);
+}
+
+.xb-tab {
+  padding: 6px 14px;
+  font-size: var(--xb-font-size-sm, 12px);
+  border: none;
+  cursor: pointer;
+  transition: color var(--xb-transition-fast, 100ms ease);
+}
+
+.xb-tab-inactive {
+  font-weight: normal;
+  color: var(--xb-text-secondary, #8b949e);
+  background: transparent;
+  border-bottom: 2px solid transparent;
+}
+
+.xb-tab-active {
+  font-weight: bold;
+  color: var(--xb-text-primary, #e6edf3);
+  background: var(--xb-bg-surface, #1a1a2e);
+  border-bottom: 2px solid var(--xb-accent-blue, #58a6ff);
+}
+
+.xb-tabs-content {
+  background: var(--xb-bg-surface, #1a1a2e);
+  color: var(--xb-text-primary, #e6edf3);
+  padding: var(--xb-space-md, 12px);
+}
+
+/* ============================================================
+   Shared/ProgressBar
+   ============================================================ */
+
+.xb-progress {
+  position: relative;
+  width: 100%;
+  background: var(--xb-bg-secondary, #161b22);
+  border-radius: var(--xb-radius-sm, 3px);
+  border: 1px solid var(--xb-border-default, #30363d);
+  overflow: hidden;
+}
+
+.xb-progress-fill {
+  height: 100%;
+  border-radius: var(--xb-radius-sm, 3px);
+  transition: width var(--xb-transition-normal, 200ms ease);
+}
+
+.xb-progress-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--xb-font-size-xs, 11px);
+  color: var(--xb-text-primary, #e6edf3);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+  pointer-events: none;
+}
+
+/* ============================================================
+   DisconnectOverlay
+   ============================================================ */
+
+.xb-disconnect-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.82);
+}
+
+.xb-disconnect-box {
+  background: var(--xb-bg-primary, #0d1117);
+  border: 1px solid var(--xb-border-default, #30363d);
+  border-radius: 10px;
+  padding: 32px 40px;
+  color: var(--xb-text-primary, #e6edf3);
+  text-align: center;
+  max-width: 440px;
+  width: 90%;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+}
+
+.xb-disconnect-icon {
+  font-size: 40px;
+  margin-bottom: 12px;
+}
+
+.xb-disconnect-title {
+  margin: 0 0 8px;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.xb-disconnect-title-error {
+  color: var(--xb-accent-red, #f85149);
+}
+
+.xb-disconnect-message {
+  margin: 0 0 20px;
+  color: var(--xb-text-secondary, #8b949e);
+  font-size: 14px;
+}
+
+.xb-disconnect-countdown {
+  color: var(--xb-text-primary, #e6edf3);
+}
+
+.xb-disconnect-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.xb-disconnect-reload-btn {
+  background: none;
+  border: 1px solid var(--xb-border-default, #30363d);
+  color: var(--xb-text-secondary, #8b949e);
+  border-radius: 6px;
+  padding: 6px 16px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+/* ============================================================
+   ChatContextDialog
+   ============================================================ */
+
+.xb-chat-context-dialog {
+  position: absolute;
+  z-index: 5000;
+  background: var(--xb-bg-elevated, #21262d);
+  border: 1px solid var(--xb-border-default, #30363d);
+  border-radius: 6px;
+  padding: 8px;
+  overflow-y: auto;
+  min-width: 200px;
+}
+
+.xb-chat-context-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.xb-chat-context-label {
+  color: var(--xb-text-secondary, #8b949e);
+  font-size: 12px;
+}
+
+.xb-chat-context-close {
+  background: none;
+  border: none;
+  color: var(--xb-text-primary, #e6edf3);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.xb-chat-context-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.xb-chat-context-row {
+  cursor: pointer;
+  border-bottom: 1px solid var(--xb-border-muted, #21262d);
+}
+
+.xb-chat-context-row:hover {
+  background: var(--xb-bg-secondary, #161b22);
+}
+
+.xb-chat-context-flag-cell {
+  padding: 4px 8px 4px 4px;
+}
+
+.xb-chat-context-name-cell {
+  padding: 4px 8px 4px 0;
+  color: var(--xb-text-primary, #e6edf3);
+  font-size: 13px;
+}
+
+.xb-flag-canvas-inline {
+  vertical-align: middle;
+}
+
+/* ============================================================
+   Dialogs — common helpers
+   ============================================================ */
+
+.xb-dialog-body-scroll {
+  overflow: auto;
+}
+
+.xb-dialog-footer {
+  margin-top: 12px;
+}
+
+.xb-dialog-footer-right {
+  margin-top: 12px;
+  text-align: right;
+}
+
+.xb-dialog-footer-flex {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.xb-dialog-footer-flex-end {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.xb-dialog-row {
+  margin-bottom: 8px;
+}
+
+.xb-dialog-row-mt {
+  margin-top: 12px;
+}
+
+/* ============================================================
+   Dialogs — SwalDialog
+   ============================================================ */
+
+.xb-swal-text {
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+/* ============================================================
+   Dialogs — AlertDialog
+   ============================================================ */
+
+.xb-alert-text {
+  margin: 0 0 16px;
+}
+
+.xb-alert-text-info {
+  color: var(--xb-text-primary, #e6edf3);
+}
+
+.xb-alert-text-warning {
+  color: var(--xb-accent-yellow, #d29922);
+}
+
+.xb-alert-text-error {
+  color: var(--xb-accent-red, #f85149);
+}
+
+/* ============================================================
+   Dialogs — AuthDialog / IntroDialog inputs
+   ============================================================ */
+
+.xb-form-input {
+  padding: 4px 8px;
+  font-size: 14px;
+  background: var(--xb-bg-elevated, #21262d);
+  color: var(--xb-text-primary, #e6edf3);
+  border: 1px solid var(--xb-border-default, #30363d);
+  border-radius: var(--xb-radius-sm, 3px);
+  width: 200px;
+  outline: none;
+}
+
+.xb-form-input-auth {
+  padding: 4px 8px;
+  font-size: 14px;
+  background: var(--xb-bg-elevated, #21262d);
+  color: var(--xb-text-primary, #e6edf3);
+  border: 1px solid var(--xb-border-default, #30363d);
+  border-radius: var(--xb-radius-sm, 3px);
+  width: 200px;
+}
+
+.xb-form-input-full {
+  width: 100%;
+  margin: 8px 0;
+  box-sizing: border-box;
+}
+
+.xb-form-error {
+  color: var(--xb-accent-red, #f85149);
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+/* ============================================================
+   Dialogs — IntelDialog
+   ============================================================ */
+
+.xb-intel-label {
+  padding-right: 12px;
+  color: var(--xb-text-secondary, #8b949e);
+  white-space: nowrap;
+  vertical-align: top;
+  font-weight: 600;
+}
+
+.xb-intel-value {
+  color: var(--xb-text-primary, #e6edf3);
+  vertical-align: top;
+}
+
+.xb-intel-section-header {
+  margin-top: 12px;
+  margin-bottom: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--xb-accent-blue, #58a6ff);
+  border-bottom: 1px solid var(--xb-border-default, #30363d);
+  padding-bottom: 2px;
+}
+
+.xb-intel-dipl-list {
+  margin: 4px 0;
+  padding-left: 20px;
+}
+
+.xb-intel-dipl-item {
+  color: var(--xb-text-primary, #e6edf3);
+  padding: 2px 0;
+}
+
+.xb-intel-techs {
+  margin: 4px 0;
+  line-height: 1.6;
+  color: var(--xb-text-primary, #e6edf3);
+}
+
+/* ============================================================
+   Dialogs — CityDialog
+   ============================================================ */
+
+.xb-city-overview-row {
+  font-size: var(--xb-font-size-sm, 12px);
+  line-height: 1.6;
+  color: var(--xb-text-primary, #e6edf3);
+}
+
+.xb-city-secondary {
+  color: var(--xb-text-secondary, #8b949e);
+  font-size: var(--xb-font-size-sm, 12px);
+}
+
+.xb-city-state-disorder {
+  margin-top: 4px;
+  font-size: var(--xb-font-size-sm, 12px);
+  color: var(--xb-status-error, #f85149);
+}
+
+.xb-city-state-celebrating {
+  margin-top: 4px;
+  font-size: var(--xb-font-size-sm, 12px);
+  color: var(--xb-accent-green, #3fb950);
+}
+
+.xb-city-state-normal {
+  margin-top: 4px;
+  font-size: var(--xb-font-size-sm, 12px);
+  color: var(--xb-text-secondary, #8b949e);
+}
+
+.xb-city-overview-layout {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.xb-city-overview-left {
+  min-width: 180px;
+}
+
+.xb-city-resource-table {
+  font-size: var(--xb-font-size-sm, 12px);
+  border-collapse: collapse;
+  color: var(--xb-text-primary, #e6edf3);
+}
+
+.xb-city-resource-label {
+  padding-right: 8px;
+  color: var(--xb-text-secondary, #8b949e);
+}
+
+.xb-city-buildings-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-size: var(--xb-font-size-sm, 12px);
+}
+
+.xb-city-building-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.xb-city-units-section {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin-bottom: 12px;
+}
+
+.xb-city-can-build-scroll {
+  font-size: var(--xb-font-size-sm, 12px);
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.xb-city-can-build-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--xb-bg-tertiary, #21262d);
+  border-radius: 3px;
+  padding: 2px 6px;
+  cursor: default;
+}
+
+.xb-city-can-build-cost {
+  color: var(--xb-text-secondary, #8b949e);
+}
+
+.xb-city-can-build-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.xb-city-section-header {
+  color: var(--xb-text-secondary, #8b949e);
+  font-size: var(--xb-font-size-sm, 12px);
+  margin-bottom: 4px;
+}
+
+/* ============================================================
+   Dialogs — TaxRatesDialog
+   ============================================================ */
+
+.xb-tax-rate-item {
+  margin-bottom: 12px;
+}
+
+.xb-tax-rate-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.xb-tax-track {
+  height: 8px;
+  background: var(--xb-bg-secondary, #161b22);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.xb-tax-fill {
+  height: 100%;
+  background: var(--xb-accent-blue, #388bfd);
+  border-radius: 4px;
+  transition: width 0.2s;
+}
+
+.xb-tax-total {
+  margin: 12px 0 4px;
+  font-size: 0.85em;
+  color: var(--xb-text-secondary, #8b949e);
+}
+
+.xb-tax-rates-padding {
+  padding: 8px 0;
+}
+
+/* ============================================================
+   Dialogs — TechDialog / TechPanel / ResearchList
+   ============================================================ */
+
+.xb-research-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.xb-research-empty {
+  color: var(--xb-text-secondary, #8b949e);
+  font-size: var(--xb-font-size-sm, 12px);
+}
+
+.xb-research-card {
+  background: var(--xb-bg-elevated, #21262d);
+  border: 1px solid var(--xb-border-default, #30363d);
+  border-radius: 6px;
+  padding: 8px 12px;
+  /* border-left is set inline because it uses the dynamic player color */
+}
+
+.xb-research-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.xb-research-card-name {
+  font-weight: 600;
+  /* color set inline — player color */
+}
+
+.xb-research-card-detail {
+  color: var(--xb-text-secondary, #8b949e);
+  font-size: var(--xb-font-size-sm, 12px);
+}
+
+.xb-tech-panel-root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.xb-tech-subtab-bar {
+  display: flex;
+  border-bottom: 1px solid var(--xb-border-default, #30363d);
+  padding: 4px 8px 0;
+  flex-shrink: 0;
+}
+
+.xb-tech-subtab {
+  padding: 4px 12px;
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-size: 13px;
+}
+
+.xb-tech-subtab-active {
+  border-bottom: 2px solid var(--xb-accent-blue, #58a6ff);
+  color: var(--xb-text-primary, #e6edf3);
+  font-weight: 600;
+}
+
+.xb-tech-subtab-inactive {
+  border-bottom: 2px solid transparent;
+  color: var(--xb-text-secondary, #8b949e);
+  font-weight: 400;
+}
+
+.xb-tech-panel-content {
+  flex: 1;
+  overflow: auto;
+}
+
+.xb-tech-panel-content-padded {
+  padding: 12px;
+}
+
+.xb-tech-tree-wrap {
+  overflow: auto;
+  width: 100%;
+  height: 100%;
+}
+
+.xb-tech-tree-canvas {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.xb-tech-tree-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+.xb-tech-box {
+  position: absolute;
+  background: var(--xb-bg-secondary, #161b22);
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 2px 6px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.xb-tech-box-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--xb-text-primary, #e6edf3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.xb-tech-box-dots {
+  display: flex;
+  gap: 2px;
+  margin-top: 2px;
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+.xb-tech-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.xb-tech-dot-researching {
+  outline: 1px solid var(--xb-accent-orange, #d29922);
+}
+
+/* TechInfoDialog */
+.xb-tech-info-dt {
+  font-weight: 600;
+  padding-right: 8px;
+  color: var(--xb-text-secondary, #8b949e);
+  white-space: nowrap;
+}
+
+.xb-tech-info-dd {
+  margin: 0;
+}
+
+.xb-tech-info-helptext {
+  margin: 0 0 6px;
+  color: var(--xb-text-secondary, #8b949e);
+  font-size: var(--xb-font-size-sm, 12px);
+}
+
+.xb-tech-info-table {
+  border-collapse: collapse;
+  font-size: var(--xb-font-size-sm, 12px);
+}
+
+/* WikiDialog */
+.xb-wiki-link {
+  color: inherit;
+}
+
+.xb-wiki-image {
+  max-width: 100%;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.xb-wiki-summary {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+/* ============================================================
+   Dialogs — CityDialog sprite
+   ============================================================ */
+
+.xb-sprite-div {
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   Legacy CSS isolation comment
+   ============================================================ */
+
+/*
+ * LEGACY CSS ISOLATION NOTE:
+ *
+ * webclient.min.css is loaded via <link> in index.html before the Preact bundle CSS.
+ * This file contains minified jQuery UI styles that apply globally.
+ *
+ * Isolation strategy:
+ * - The legacy jQuery UI widgets live inside #pregame_page and #tabs .ui-tabs* nodes.
+ *   tokens.css already overrides the key jQuery UI selectors (#tabs.ui-tabs,
+ *   #tabs_menu.ui-widget-header, #tabs .ui-tabs-nav li, #tabs .ui-tabs-panel, etc.)
+ *   with dark-theme values so legacy bleed is contained.
+ *
+ * - All Preact component containers (dialogs, nation overview, chat box, status panel)
+ *   use explicit background/color via CSS custom properties so they are not affected
+ *   by any residual jQuery UI rules.
+ *
+ * - The legacy CSS file (webclient.min.css) is minified and served statically;
+ *   it cannot be safely scoped with a .legacy-ui wrapper at build time because the
+ *   HTML that renders jQuery UI widgets is also built server-side.
+ *
+ * - To fully scope the legacy CSS in future: add class="legacy-ui" to #pregame_page
+ *   and #tabs, then prefix every rule in webclient.min.css with ".legacy-ui" using
+ *   PostCSS or a similar build-time transform.
+ */
+
+/* ============================================================
+   Admin Dashboard
+   ============================================================ */
+
+.xb-admin-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.xb-admin-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--xb-space-md) var(--xb-space-xl);
+  background: var(--xb-bg-secondary);
+  border-bottom: 1px solid var(--xb-border-subtle);
+}
+
+.xb-admin-title {
+  font-size: var(--xb-font-size-md);
+  font-weight: 700;
+  color: var(--xb-text-primary);
+}
+
+.xb-admin-sse-badge {
+  font-size: var(--xb-font-size-xs);
+  padding: 2px 8px;
+  border-radius: var(--xb-radius-full);
+}
+.xb-admin-sse-connected { background: rgba(63,185,80,0.15); color: var(--xb-accent-green); }
+.xb-admin-sse-connecting { background: rgba(210,153,34,0.15); color: var(--xb-accent-yellow); }
+.xb-admin-sse-error { background: rgba(248,81,73,0.15); color: var(--xb-accent-red); }
+
+.xb-admin-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 0 var(--xb-space-xl);
+  background: var(--xb-bg-secondary);
+  border-bottom: 1px solid var(--xb-border-subtle);
+}
+
+.xb-admin-tab {
+  padding: var(--xb-space-sm) var(--xb-space-lg);
+  font-size: var(--xb-font-size-sm);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--xb-text-secondary);
+  cursor: pointer;
+  transition: color var(--xb-transition-fast);
+}
+.xb-admin-tab:hover { color: var(--xb-text-primary); }
+.xb-admin-tab-active {
+  color: var(--xb-accent-blue);
+  border-bottom-color: var(--xb-accent-blue);
+}
+
+.xb-admin-content {
+  flex: 1;
+  overflow-y: auto;
+  background: var(--xb-bg-primary);
+}
+
+.xb-admin-tab-body {
+  padding: var(--xb-space-xl);
+  max-width: 1200px;
+}
+
+.xb-admin-section-title {
+  font-size: var(--xb-font-size-sm);
+  font-weight: 700;
+  color: var(--xb-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: var(--xb-space-md);
+  padding-bottom: var(--xb-space-xs);
+  border-bottom: 1px solid var(--xb-border-subtle);
+}
+
+.xb-admin-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--xb-space-md);
+  margin-bottom: var(--xb-space-lg);
+}
+
+.xb-admin-form-row {
+  display: flex;
+  align-items: center;
+  gap: var(--xb-space-lg);
+  margin-bottom: var(--xb-space-lg);
+  flex-wrap: wrap;
+}
+
+.xb-admin-token-group {
+  margin-bottom: var(--xb-space-xl);
+}
+
+.xb-admin-banner {
+  padding: var(--xb-space-sm) var(--xb-space-md);
+  border-radius: var(--xb-radius-md);
+  font-size: var(--xb-font-size-sm);
+  margin-bottom: var(--xb-space-lg);
+}
+.xb-admin-banner-warn {
+  background: rgba(210,153,34,0.15);
+  color: var(--xb-accent-yellow);
+  border: 1px solid rgba(210,153,34,0.3);
+}
+
+/* Admin launcher button in StatusBar */
+.xb-status-bar-admin-btn {
+  background: none;
+  border: 1px solid var(--xb-border-subtle);
+  border-radius: var(--xb-radius-sm);
+  color: var(--xb-text-secondary);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px 6px;
+  transition: color var(--xb-transition-fast), border-color var(--xb-transition-fast);
+}
+.xb-status-bar-admin-btn:hover {
+  color: var(--xb-text-primary);
+  border-color: var(--xb-accent-blue);
+}

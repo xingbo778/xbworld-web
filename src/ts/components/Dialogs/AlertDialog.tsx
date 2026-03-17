@@ -29,10 +29,10 @@ export function closeAlertDialog(): void {
   alertState.value = { ...alertState.value, open: false };
 }
 
-const TYPE_COLOR: Record<AlertType, string> = {
-  info:    'var(--xb-text-primary, #e6edf3)',
-  warning: 'var(--xb-accent-yellow, #d29922)',
-  error:   'var(--xb-accent-red, #f85149)',
+const TYPE_CLASS: Record<AlertType, string> = {
+  info:    'xb-alert-text-info',
+  warning: 'xb-alert-text-warning',
+  error:   'xb-alert-text-error',
 };
 
 export function AlertDialog() {
@@ -40,8 +40,8 @@ export function AlertDialog() {
   if (!open) return null;
   return (
     <Dialog title={title} open onClose={closeAlertDialog} width={400} modal>
-      <p style={{ margin: '0 0 16px', color: TYPE_COLOR[type] }}>{text}</p>
-      <div style={{ textAlign: 'right' }}>
+      <p class={`xb-alert-text ${TYPE_CLASS[type]}`}>{text}</p>
+      <div class="xb-dialog-footer-right">
         <Button onClick={closeAlertDialog}>Ok</Button>
       </div>
     </Dialog>

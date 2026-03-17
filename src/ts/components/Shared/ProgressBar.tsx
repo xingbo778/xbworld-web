@@ -14,44 +14,15 @@ export function ProgressBar({
   label,
 }: ProgressBarProps) {
   const pct = Math.min(100, Math.max(0, (value / max) * 100));
+  // height and color are truly dynamic (caller-controlled numbers / player colors)
+  const trackStyle = { height: `${label ? Math.max(height, 16) : height}px` };
+  const fillStyle = { width: `${pct}%`, background: color };
 
   return (
-    <div
-      class="xb-progress"
-      style={{
-        position: 'relative',
-        width: '100%',
-        height: `${label ? Math.max(height, 16) : height}px`,
-        background: 'var(--xb-bg-secondary, #161b22)',
-        borderRadius: 'var(--xb-radius-sm, 3px)',
-        border: '1px solid var(--xb-border-default, #30363d)',
-        overflow: 'hidden',
-      }}
-    >
-      <div
-        class="xb-progress-fill"
-        style={{
-          width: `${pct}%`,
-          height: '100%',
-          background: color,
-          borderRadius: 'var(--xb-radius-sm, 3px)',
-          transition: 'width var(--xb-transition-normal, 200ms ease)',
-        }}
-      />
+    <div class="xb-progress" style={trackStyle}>
+      <div class="xb-progress-fill" style={fillStyle} />
       {label && (
-        <span
-          style={{
-            position: 'absolute',
-            inset: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 'var(--xb-font-size-xs, 11px)',
-            color: 'var(--xb-text-primary, #e6edf3)',
-            textShadow: '0 1px 2px rgba(0,0,0,0.6)',
-            pointerEvents: 'none',
-          }}
-        >
+        <span class="xb-progress-label">
           {label}
         </span>
       )}

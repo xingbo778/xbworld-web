@@ -44,26 +44,18 @@ export function AuthDialog() {
       width={window.innerWidth <= 600 ? '80%' : '60%'}
       modal={true}
     >
-      <div style={{ marginBottom: '8px', color: 'var(--xb-text-primary, #e6edf3)' }}>{message}</div>
-      <div style={{ marginTop: '12px' }}>
+      <div class="xb-dialog-row">{message}</div>
+      <div class="xb-dialog-row-mt">
         <label>
           Password:{' '}
           <input
             ref={inputRef}
             type="text"
-            style={{
-              padding: '4px 8px',
-              fontSize: '14px',
-              background: '#2a2a3e',
-              color: '#e0e0e0',
-              border: '1px solid #555',
-              borderRadius: '3px',
-              width: '200px',
-            }}
+            class="xb-form-input-auth"
           />
         </label>
       </div>
-      <div style={{ marginTop: '12px', textAlign: 'right' }}>
+      <div class="xb-dialog-footer-right">
         <Button onClick={submit}>Ok</Button>
       </div>
     </Dialog>

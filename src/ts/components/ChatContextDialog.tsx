@@ -65,7 +65,7 @@ function FlagCanvas({ flag, iconText }: FlagCanvasProps) {
     }
   }, [flag, iconText]);
 
-  return <canvas ref={ref} width={29} height={20} style={{ verticalAlign: 'middle' }} />;
+  return <canvas ref={ref} width={29} height={20} class="xb-flag-canvas-inline" />;
 }
 
 // ── ChatContextDialog component ────────────────────────────────────────────
@@ -82,29 +82,21 @@ export function ChatContextDialog() {
     );
   }
 
+  // maxHeight is dynamic (viewport-based) — keep as inline style
   return (
     <div
       id="chat_context_dialog"
-      style={{
-        position: 'absolute',
-        zIndex: 5000,
-        background: 'var(--xb-bg-elevated,#21262d)',
-        border: '1px solid var(--xb-border-default,#30363d)',
-        borderRadius: 6,
-        padding: 8,
-        maxHeight: Math.floor(0.9 * window.innerHeight) + 'px',
-        overflowY: 'auto',
-        minWidth: 200,
-      }}
+      class="xb-chat-context-dialog"
+      style={{ maxHeight: Math.floor(0.9 * window.innerHeight) + 'px' }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-        <span style={{ color: 'var(--xb-text-secondary,#8b949e)', fontSize: 12 }}>Choose recipient</span>
+      <div class="xb-chat-context-header">
+        <span class="xb-chat-context-label">Choose recipient</span>
         <button
           onClick={closeChatContextDialog}
-          style={{ background: 'none', border: 'none', color: 'var(--xb-text-primary,#e6edf3)', cursor: 'pointer', fontSize: 16, lineHeight: 1 }}
+          class="xb-chat-context-close"
         >×</button>
       </div>
-      <table style={{ borderCollapse: 'collapse', width: '100%' }}>
+      <table class="xb-chat-context-table">
         <tbody>
           {recipients
             .filter(r => r.id !== currentId)
@@ -112,17 +104,12 @@ export function ChatContextDialog() {
               <tr
                 key={i}
                 onClick={() => handleRowClick(r.id)}
-                style={{
-                  cursor: 'pointer',
-                  borderBottom: '1px solid var(--xb-border-muted,#21262d)',
-                }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--xb-bg-secondary,#161b22)'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; }}
+                class="xb-chat-context-row"
               >
-                <td style={{ padding: '4px 8px 4px 4px' }}>
+                <td class="xb-chat-context-flag-cell">
                   <FlagCanvas flag={r.flag} iconText={r.iconText} />
                 </td>
-                <td style={{ padding: '4px 8px 4px 0', color: 'var(--xb-text-primary,#e6edf3)', fontSize: 13 }}>
+                <td class="xb-chat-context-name-cell">
                   {r.description}
                 </td>
               </tr>

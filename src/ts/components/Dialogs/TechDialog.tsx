@@ -63,9 +63,9 @@ function ResearchList() {
   playerUpdated.value;   // re-render when player count/state changes
   const players = Object.values(store.players);
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <div class="xb-research-list">
       {players.length === 0 && (
-        <div style={{ color: 'var(--xb-text-secondary, #8b949e)', fontSize: 'var(--xb-font-size-sm, 12px)' }}>
+        <div class="xb-research-empty">
           No player data yet.
         </div>
       )}
@@ -83,19 +83,15 @@ function ResearchList() {
         return (
           <div
             key={(pplayer as Record<string, unknown>)['playerno'] as number}
-            style={{
-              background: 'var(--xb-bg-elevated, #21262d)',
-              border: '1px solid var(--xb-border-default, #30363d)',
-              borderLeft: `3px solid ${color}`,
-              borderRadius: 6,
-              padding: '8px 12px',
-            }}
+            class="xb-research-card"
+            style={{ borderLeft: `3px solid ${color}` }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: hasResearch ? 4 : 0 }}>
-              <span style={{ fontWeight: 600, color }}>
+            <div class="xb-research-card-header" style={{ marginBottom: hasResearch ? 4 : 0 }}>
+              {/* color is dynamic player color — kept inline */}
+              <span class="xb-research-card-name" style={{ color }}>
                 {(pplayer as Record<string, unknown>)['name'] as string}
               </span>
-              <span style={{ color: 'var(--xb-text-secondary, #8b949e)', fontSize: 'var(--xb-font-size-sm, 12px)' }}>
+              <span class="xb-research-card-detail">
                 {hasResearch ? `${techData ? techData['name'] as string : `Tech #${researching}`} (${bulbs}/${cost})` : '—'}
               </span>
             </div>
@@ -193,10 +189,10 @@ function TechTree() {
   }
 
   return (
-    <div style={{ position: 'relative', width: canvasW, height: canvasH, flexShrink: 0 }}>
+    <div class="xb-tech-tree-canvas" style={{ width: canvasW, height: canvasH }}>
       {/* SVG connector lines */}
       <svg
-        style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}
+        class="xb-tech-tree-svg"
         width={canvasW}
         height={canvasH}
       >
@@ -224,6 +220,7 @@ function TechTree() {
         const total = Object.keys(store.players).length;
         const allKnown = total > 0 && knownBy === total;
 
+        // borderColor is dynamic (conditional on game state) — kept inline
         let borderColor = 'var(--xb-border-default, #30363d)';
         if (isResearching) borderColor = 'var(--xb-accent-orange, #d29922)';
         else if (allKnown) borderColor = 'var(--xb-accent-green, #3fb950)';
@@ -232,55 +229,34 @@ function TechTree() {
           <div
             key={techIdStr}
             title={`${tech['name']} — ${knownBy}/${total} players know this`}
+            class="xb-tech-box"
             style={{
-              position: 'absolute',
               left: x,
               top: y,
               width: BOX_W,
               height: BOX_H,
-              background: 'var(--xb-bg-secondary, #161b22)',
               border: `1px solid ${borderColor}`,
-              borderRadius: 4,
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
-              padding: '2px 6px',
-              boxSizing: 'border-box',
-              overflow: 'hidden',
             }}
           >
-            <div style={{
-              fontSize: 11,
-              fontWeight: 600,
-              color: 'var(--xb-text-primary, #e6edf3)',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-            }}>
+            <div class="xb-tech-box-name">
               {tech['name'] as string}
             </div>
             {/* Player status dots */}
-            <div style={{ display: 'flex', gap: 2, marginTop: 2, flexWrap: 'nowrap', overflow: 'hidden' }}>
+            <div class="xb-tech-box-dots">
               {(status?.researchingColors ?? []).map((c, i) => (
                 <span
                   key={`r${i}`}
                   title="Researching"
-                  style={{
-                    width: 8, height: 8, borderRadius: '50%',
-                    background: c, outline: '1px solid var(--xb-accent-orange, #d29922)',
-                    flexShrink: 0,
-                  }}
+                  class="xb-tech-dot xb-tech-dot-researching"
+                  style={{ background: c }}
                 />
               ))}
               {(status?.knownColors ?? []).map((c, i) => (
                 <span
                   key={`k${i}`}
                   title="Known"
-                  style={{
-                    width: 8, height: 8, borderRadius: '50%',
-                    background: c,
-                    flexShrink: 0,
-                  }}
+                  class="xb-tech-dot"
+                  style={{ background: c }}
                 />
               ))}
             </div>
@@ -295,40 +271,32 @@ function TechTree() {
 export function TechPanel() {
   const [activeTab, setActiveTab] = useState<'progress' | 'tree'>('progress');
 
-  const tabStyle = (active: boolean) => ({
-    padding: '4px 12px',
-    cursor: 'pointer',
-    border: 'none',
-    borderBottom: active ? '2px solid var(--xb-accent-blue, #58a6ff)' : '2px solid transparent',
-    background: 'none',
-    color: active ? 'var(--xb-text-primary, #e6edf3)' : 'var(--xb-text-secondary, #8b949e)',
-    fontSize: 13,
-    fontWeight: active ? 600 : 400,
-  } as const);
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div class="xb-tech-panel-root">
       {/* Sub-tab bar */}
-      <div style={{
-        display: 'flex',
-        borderBottom: '1px solid var(--xb-border-default, #30363d)',
-        padding: '4px 8px 0',
-        flexShrink: 0,
-      }}>
-        <button style={tabStyle(activeTab === 'progress')} onClick={() => setActiveTab('progress')}>
+      <div class="xb-tech-subtab-bar">
+        <button
+          class={`xb-tech-subtab ${activeTab === 'progress' ? 'xb-tech-subtab-active' : 'xb-tech-subtab-inactive'}`}
+          onClick={() => setActiveTab('progress')}
+        >
           Research Progress
         </button>
-        <button style={tabStyle(activeTab === 'tree')} onClick={() => setActiveTab('tree')}>
+        <button
+          class={`xb-tech-subtab ${activeTab === 'tree' ? 'xb-tech-subtab-active' : 'xb-tech-subtab-inactive'}`}
+          onClick={() => setActiveTab('tree')}
+        >
           Tech Tree
         </button>
       </div>
 
-      {/* Tab content */}
-      <div style={{ flex: 1, overflow: 'auto', padding: activeTab === 'tree' ? 0 : 12 }}>
+      {/* Tab content — padding only when not on tree tab */}
+      <div
+        class={`xb-tech-panel-content${activeTab !== 'tree' ? ' xb-tech-panel-content-padded' : ''}`}
+      >
         {activeTab === 'progress' ? (
           <ResearchList />
         ) : (
-          <div style={{ overflow: 'auto', width: '100%', height: '100%' }}>
+          <div class="xb-tech-tree-wrap">
             <TechTree />
           </div>
         )}
@@ -375,15 +343,15 @@ export function WikiDialog() {
     <Dialog title={data.techName} open onClose={onClose} width={600}>
       <p style={{ margin: '0 0 8px' }}>
         <strong>
-          <a href={data.wikiUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit' }}>
+          <a href={data.wikiUrl} target="_blank" rel="noopener noreferrer" class="xb-wiki-link">
             {data.title}
           </a>
         </strong>
       </p>
       {data.imageUrl && (
-        <img src={data.imageUrl} alt={data.title} style={{ maxWidth: '100%', marginBottom: 8, display: 'block' }} />
+        <img src={data.imageUrl} alt={data.title} class="xb-wiki-image" />
       )}
-      <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{data.summary}</p>
+      <p class="xb-wiki-summary">{data.summary}</p>
     </Dialog>
   );
 }
@@ -408,16 +376,13 @@ export function TechInfoDialog() {
   const onClose = useCallback(() => { techInfoDialogSignal.value = null; }, []);
   if (!data) return null;
 
-  const dtStyle = { fontWeight: 600, paddingRight: 8, color: 'var(--xb-text-secondary, #8b949e)', whiteSpace: 'nowrap' as const };
-  const ddStyle = { margin: 0 };
-
   return (
     <Dialog title={data.techName} open onClose={onClose} width={640}>
       {data.unit && (
         <section style={{ marginBottom: 12 }}>
           <p style={{ margin: '0 0 6px' }}><strong>Unit: {data.unit.name}</strong></p>
-          {data.unit.helptext && <p style={{ margin: '0 0 6px', color: 'var(--xb-text-secondary, #8b949e)', fontSize: 'var(--xb-font-size-sm, 12px)' }}>{data.unit.helptext}</p>}
-          <table style={{ borderCollapse: 'collapse', fontSize: 'var(--xb-font-size-sm, 12px)' }}>
+          {data.unit.helptext && <p class="xb-tech-info-helptext">{data.unit.helptext}</p>}
+          <table class="xb-tech-info-table">
             <tbody>
               {([
                 ['Cost',        data.unit.build_cost],
@@ -429,8 +394,8 @@ export function TechInfoDialog() {
                 ['Vision',      data.unit.vision_radius_sq],
               ] as [string, string | number][]).map(([label, val]) => (
                 <tr key={label}>
-                  <td style={dtStyle}>{label}</td>
-                  <td style={ddStyle}>{val}</td>
+                  <td class="xb-tech-info-dt">{label}</td>
+                  <td class="xb-tech-info-dd">{val}</td>
                 </tr>
               ))}
             </tbody>
@@ -446,15 +411,15 @@ export function TechInfoDialog() {
         <section style={{ marginTop: data.unit || data.improvement ? 8 : 0 }}>
           <p style={{ margin: '0 0 8px' }}>
             <strong>
-              <a href={data.wiki.wikiUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit' }}>
+              <a href={data.wiki.wikiUrl} target="_blank" rel="noopener noreferrer" class="xb-wiki-link">
                 Wikipedia: {data.wiki.title}
               </a>
             </strong>
           </p>
           {data.wiki.imageUrl && (
-            <img src={data.wiki.imageUrl} alt={data.wiki.title} style={{ maxWidth: '100%', marginBottom: 8, display: 'block' }} />
+            <img src={data.wiki.imageUrl} alt={data.wiki.title} class="xb-wiki-image" />
           )}
-          <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{data.wiki.summary}</p>
+          <p class="xb-wiki-summary">{data.wiki.summary}</p>
         </section>
       )}
     </Dialog>

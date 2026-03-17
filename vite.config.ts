@@ -37,6 +37,10 @@ export default defineConfig({
         ws: true,
       },
       '/civclientlauncher': 'http://localhost:8002',
+      '/admin': {
+        target: 'http://localhost:8081',
+        changeOrigin: true,
+      },
     },
   },
 });

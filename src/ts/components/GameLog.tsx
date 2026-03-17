@@ -35,50 +35,30 @@ function GameLog() {
   }, [entries]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--xb-bg-primary, #0d1117)' }}>
-      <div style={{
-        padding: '8px 12px',
-        borderBottom: '1px solid var(--xb-border-default, #30363d)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        background: 'var(--xb-bg-secondary, #161b22)',
-        flexShrink: 0,
-      }}>
-        <span style={{ color: 'var(--xb-accent-blue, #58a6ff)', fontWeight: 'bold', fontSize: '14px' }}>Game Event Log</span>
+    <div class="xb-log-root">
+      <div class="xb-log-header">
+        <span class="xb-log-header-title">Game Event Log</span>
         <button
           onClick={() => { logEntries.value = []; }}
-          style={{
-            background: 'none', border: '1px solid var(--xb-border-default, #30363d)', color: 'var(--xb-text-secondary, #8b949e)',
-            cursor: 'pointer', borderRadius: '4px', padding: '2px 8px', fontSize: '12px',
-          }}
+          class="xb-log-clear-btn"
         >
           Clear
         </button>
       </div>
       <div
-        style={{ flex: 1, overflowY: 'auto', padding: '8px 12px' }}
+        class="xb-log-body"
         onScroll={(e) => {
           const el = e.currentTarget as HTMLDivElement;
           autoScroll.current = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
         }}
       >
         {entries.length === 0 && (
-          <p style={{ color: 'var(--xb-text-secondary, #8b949e)', fontStyle: 'italic', fontSize: '13px', textAlign: 'center', marginTop: '40px' }}>
+          <p class="xb-log-empty">
             Game events will appear here.
           </p>
         )}
         {entries.map(entry => (
-          <div
-            key={entry.id}
-            style={{
-              padding: '4px 0',
-              borderBottom: '1px solid var(--xb-bg-elevated, #21262d)',
-              fontSize: '13px',
-              color: 'var(--xb-text-primary, #e6edf3)',
-              lineHeight: '1.5',
-            }}
-          >
+          <div key={entry.id} class="xb-log-entry">
             {parseGameHtml(entry.html)}
           </div>
         ))}

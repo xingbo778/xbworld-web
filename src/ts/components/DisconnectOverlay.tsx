@@ -25,53 +25,23 @@ export function DisconnectOverlay() {
   const state = disconnectOverlay.value;
   if (!state) return null;
 
-  const overlayStyle = {
-    position: 'fixed' as const,
-    inset: '0',
-    zIndex: 10000,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: 'rgba(0,0,0,0.82)',
-  };
-
-  const boxStyle = {
-    background: 'var(--xb-bg-primary, #0d1117)',
-    border: '1px solid var(--xb-border-default, #30363d)',
-    borderRadius: '10px',
-    padding: '32px 40px',
-    color: 'var(--xb-text-primary, #e6edf3)',
-    textAlign: 'center' as const,
-    maxWidth: '440px',
-    width: '90%',
-    boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
-  };
-
   if (state.phase === 'reconnecting') {
     return (
-      <div style={overlayStyle}>
-        <div style={boxStyle}>
-          <div style={{ fontSize: '40px', marginBottom: '12px' }}>⚡</div>
-          <h2 style={{ margin: '0 0 8px', fontSize: '20px', fontWeight: 700 }}>
+      <div class="xb-disconnect-overlay">
+        <div class="xb-disconnect-box">
+          <div class="xb-disconnect-icon">⚡</div>
+          <h2 class="xb-disconnect-title">
             Connection Lost
           </h2>
-          <p style={{ margin: '0 0 20px', color: 'var(--xb-text-secondary, #8b949e)', fontSize: '14px' }}>
-            Reconnecting in <b style={{ color: 'var(--xb-text-primary, #e6edf3)' }}>{state.countdown}s</b>
+          <p class="xb-disconnect-message">
+            Reconnecting in <b class="xb-disconnect-countdown">{state.countdown}s</b>
             {' '}— attempt {state.attempt + 1} of {state.max}
           </p>
-          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+          <div class="xb-disconnect-actions">
             <Button onClick={doReconnectNow}>Try Now</Button>
             <button
               onClick={() => location.reload()}
-              style={{
-                background: 'none',
-                border: '1px solid var(--xb-border-default, #30363d)',
-                color: 'var(--xb-text-secondary, #8b949e)',
-                borderRadius: '6px',
-                padding: '6px 16px',
-                cursor: 'pointer',
-                fontSize: '13px',
-              }}
+              class="xb-disconnect-reload-btn"
             >
               Reload Page
             </button>
@@ -83,28 +53,20 @@ export function DisconnectOverlay() {
 
   // phase === 'disconnected'
   return (
-    <div style={overlayStyle}>
-      <div style={boxStyle}>
-        <div style={{ fontSize: '40px', marginBottom: '12px' }}>⚠</div>
-        <h2 style={{ margin: '0 0 8px', fontSize: '20px', fontWeight: 700, color: 'var(--xb-accent-red, #f85149)' }}>
+    <div class="xb-disconnect-overlay">
+      <div class="xb-disconnect-box">
+        <div class="xb-disconnect-icon">⚠</div>
+        <h2 class="xb-disconnect-title xb-disconnect-title-error">
           Disconnected
         </h2>
-        <p style={{ margin: '0 0 20px', color: 'var(--xb-text-secondary, #8b949e)', fontSize: '14px' }}>
+        <p class="xb-disconnect-message">
           Could not reconnect to the game server.
         </p>
-        <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+        <div class="xb-disconnect-actions">
           <Button onClick={doTryAgain}>Try Again</Button>
           <button
             onClick={() => location.reload()}
-            style={{
-              background: 'none',
-              border: '1px solid var(--xb-border-default, #30363d)',
-              color: 'var(--xb-text-secondary, #8b949e)',
-              borderRadius: '6px',
-              padding: '6px 16px',
-              cursor: 'pointer',
-              fontSize: '13px',
-            }}
+            class="xb-disconnect-reload-btn"
           >
             Reload Page
           </button>

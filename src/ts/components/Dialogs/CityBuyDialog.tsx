@@ -32,7 +32,7 @@ export function CityBuyDialog() {
   return (
     <Dialog title="Buy It!" open={open} onClose={close} width={window.innerWidth <= 600 ? '95%' : '50%'} modal>
       <div>{parseGameHtml(question)}</div>
-      <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+      <div class="xb-dialog-footer-flex">
         <Button onClick={handleYes}>Yes</Button>
         <Button variant="secondary" onClick={close}>No</Button>
       </div>

@@ -90,8 +90,8 @@ export function SwalDialog() {
       width={360}
       modal={true}
     >
-      {text && <div style={{ marginBottom: '12px', lineHeight: 1.5 }}>{text}</div>}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+      {text && <div class="xb-swal-text">{text}</div>}
+      <div class="xb-dialog-footer-flex-end">
         {showCancelButton && (
           <Button onClick={closeSwal}>Cancel</Button>
         )}

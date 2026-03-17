@@ -54,16 +54,16 @@ export function CityInputDialog() {
 
   return (
     <Dialog title={title} open={open} onClose={handleCancel} width="320px" modal>
-      <div style={{ marginBottom: '8px' }}>{prompt}</div>
+      <div class="xb-dialog-row">{prompt}</div>
       <input
         ref={inputRef}
         type="text"
         defaultValue={initialValue}
         maxLength={maxLength}
-        style={{ width: '100%', margin: '8px 0', boxSizing: 'border-box' }}
+        class="xb-form-input-full"
         onKeyUp={(e) => { if (e.key === 'Enter') handleSubmit(); }}
       />
-      <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+      <div class="xb-dialog-footer-flex">
         <Button onClick={handleSubmit}>Ok</Button>
         <Button variant="secondary" onClick={handleCancel}>Cancel</Button>
       </div>

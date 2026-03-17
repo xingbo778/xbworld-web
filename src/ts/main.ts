@@ -11,6 +11,8 @@ console.log('[xbw] main.ts bundle starting');
 
 // CSS design tokens
 import './styles/tokens.css';
+// Component utility classes (tables, panels, overlays, badges, etc.)
+import '../styles/components.css';
 
 // ---------------------------------------------------------------------------
 // Step 0: Ensure global data stores exist before any module runs.
@@ -234,3 +236,8 @@ function init(): void {
 }
 
 init();
+
+// Admin dashboard — mounted only when the host page provides a root element
+if (document.getElementById('xb-admin-root')) {
+  import('./components/AdminDashboard').then(m => m.mountAdminDashboard());
+}

@@ -42,10 +42,10 @@ export function TechGainedDialog() {
       width={window.innerWidth <= 600 ? '90%' : '60%'}
       modal={false}
     >
-      <div style={{ maxHeight: '70vh', overflow: 'auto' }}>
+      <div class="xb-dialog-body-scroll" style={{ maxHeight: '70vh' }}>
         {parseGameHtml(message)}
       </div>
-      <div style={{ marginTop: '12px', display: 'flex', gap: '8px' }}>
+      <div class="xb-dialog-footer-flex">
         <Button onClick={close}>Close</Button>
         <Button variant="secondary" onClick={showTechTree}>Show Technology Tree</Button>
       </div>

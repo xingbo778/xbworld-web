@@ -75,12 +75,12 @@ function ConnectionBannerEl() {
   const banner = connectionBanner.value;
   if (!banner) return null;
   return (
-    <span style="margin-right:12px;color:var(--xb-accent-orange,#d29922);font-weight:600;">
+    <span class="xb-connection-banner">
       {banner.text}
       {banner.showReload && (
         <button
           onClick={() => location.reload()}
-          style="background:none;border:none;color:inherit;cursor:pointer;padding:0;text-decoration:underline;font:inherit;"
+          class="xb-connection-banner-reload"
         >Reload page</button>
       )}
     </span>
@@ -129,7 +129,7 @@ export function StatusPanelContent() {
           {String(pplayer['gold'])} ({netStr})
         </b>
         {'\u00a0\u00a0 '}
-        <span style="cursor:pointer;" data-action="show-tax-rates">
+        <span class="xb-status-panel-taxrates" data-action="show-tax-rates">
           <span title="Tax rate">{'📊'}</span>{': '}<b>{tax}</b>{'% '}
           <span title="Luxury rate">{'🎵'}</span>{': '}<b>{lux}</b>{'% '}
           <span title="Science rate">{'🧪'}</span>{': '}<b>{sci}</b>{'%'}

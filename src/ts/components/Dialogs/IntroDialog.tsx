@@ -62,7 +62,7 @@ export function IntroDialog() {
       modal={true}
     >
       <p>{message}</p>
-      <div style={{ marginTop: '12px' }}>
+      <div class="xb-dialog-row-mt">
         <label>
           Username:{' '}
           <input
@@ -71,23 +71,14 @@ export function IntroDialog() {
             type="text"
             maxLength={32}
             onKeyDown={handleKeyDown}
-            style={{
-              padding: '4px 8px',
-              fontSize: '14px',
-              background: 'var(--xb-bg-elevated, #21262d)',
-              color: 'var(--xb-text-primary, #e6edf3)',
-              border: '1px solid var(--xb-border-default, #30363d)',
-              borderRadius: 'var(--xb-radius-sm, 3px)',
-              width: '200px',
-              outline: 'none',
-            }}
+            class="xb-form-input"
           />
         </label>
         {error && (
-          <div style={{ color: 'var(--xb-accent-red, #f85149)', marginTop: '4px', fontSize: '13px' }}>{error}</div>
+          <div class="xb-form-error">{error}</div>
         )}
       </div>
-      <div style={{ marginTop: '12px', textAlign: 'right' }}>
+      <div class="xb-dialog-footer-right">
         <Button onClick={submit}>Observe Game</Button>
       </div>
     </Dialog>

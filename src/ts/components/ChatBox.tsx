@@ -58,13 +58,13 @@ function ChatBox() {
   }, [entries]);
 
   return (
-    <ol style={{ margin: 0, padding: '0 0 4px 0', listStyle: 'none' }}>
+    <ol class="xb-chat-list">
       {entries.map(entry => (
         <li key={entry.id} class={entry.className || undefined}>
           {parseGameHtml(entry.html)}
         </li>
       ))}
-      <li ref={bottomRef} style={{ height: 0, margin: 0, padding: 0 }} />
+      <li ref={bottomRef} class="xb-chat-sentinel" />
     </ol>
   );
 }

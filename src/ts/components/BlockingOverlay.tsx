@@ -20,25 +20,8 @@ export function BlockingOverlay() {
   const html = overlayHtml.value;
   if (!html) return null;
   return (
-    <div class="xb-block-overlay" style={{
-      position: 'fixed',
-      inset: '0',
-      zIndex: 9999,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: 'rgba(0,0,0,0.75)',
-    }}>
-      <div class="xb-block-message" style={{
-        background: 'var(--xb-bg-primary, #0d1117)',
-        border: '1px solid var(--xb-border-default, #30363d)',
-        borderRadius: '8px',
-        padding: '24px 32px',
-        color: 'var(--xb-text-primary, #e6edf3)',
-        fontSize: '16px',
-        textAlign: 'center',
-        maxWidth: '480px',
-      }}>
+    <div class="xb-block-overlay xb-overlay xb-overlay-backdrop">
+      <div class="xb-block-message xb-overlay-content">
         {parseGameHtml(html)}
       </div>
     </div>

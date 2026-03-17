@@ -75,15 +75,10 @@ export function Dialog({
 
   if (!open) return null;
 
-  const style: Record<string, string | number> = {
-    position: 'fixed',
-    zIndex: 10000,
+  // width/height/position are truly dynamic values — keep as inline style
+  const dialogStyle: Record<string, string | number> = {
     width,
     height,
-    borderRadius: 'var(--xb-dialog-radius, 6px)',
-    boxShadow: 'var(--xb-dialog-shadow, 0 8px 32px rgba(0,0,0,0.6))',
-    border: '1px solid var(--xb-dialog-border-color, var(--xb-border-default, #30363d))',
-    overflow: 'hidden',
     ...(pos.x >= 0 ? { left: pos.x, top: pos.y } : {}),
   };
 
@@ -93,74 +88,32 @@ export function Dialog({
         <div
           class="xb-dialog-overlay"
           onClick={onClose}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'var(--xb-dialog-backdrop-bg)',
-            zIndex: 9999,
-          }}
         />
       )}
       <div
         ref={dialogRef}
         class={`xb-dialog ${className}`}
-        style={style}
+        style={dialogStyle}
       >
         <div
-          class="xb-dialog-titlebar"
+          class={`xb-dialog-titlebar${draggable ? ' xb-dialog-titlebar-draggable' : ''}`}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: 'var(--xb-dialog-titlebar-padding)',
-            background: 'var(--xb-dialog-titlebar-bg)',
-            color: 'var(--xb-dialog-titlebar-color)',
-            cursor: draggable ? 'move' : 'default',
-            userSelect: 'none',
-            borderBottom: '2px solid var(--xb-dialog-titlebar-accent, var(--xb-accent-blue, #58a6ff))',
-          }}
         >
-          <span style={{ fontWeight: 600, fontSize: 'var(--xb-dialog-titlebar-font-size)' }}>{title}</span>
+          <span class="xb-dialog-title">{title}</span>
           {onClose && (
             <button
               onClick={onClose}
               onPointerDown={(e) => e.stopPropagation()}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--xb-dialog-titlebar-close-color)',
-                fontSize: '20px',
-                cursor: 'pointer',
-                padding: '2px 6px',
-                lineHeight: 1,
-                touchAction: 'manipulation',
-                minWidth: '28px',
-                minHeight: '28px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderRadius: 'var(--xb-radius-sm, 3px)',
-                transition: 'background var(--xb-transition-fast, 100ms ease)',
-              }}
+              class="xb-dialog-close-btn"
               aria-label="Close"
             >
               ×
             </button>
           )}
         </div>
-        <div
-          class="xb-dialog-content"
-          style={{
-            background: 'var(--xb-dialog-content-bg)',
-            color: 'var(--xb-dialog-content-color)',
-            padding: 'var(--xb-dialog-content-padding)',
-            maxHeight: '80vh',
-            overflow: 'auto',
-          }}
-        >
+        <div class="xb-dialog-content">
           {children}
         </div>
       </div>

@@ -50,10 +50,10 @@ export function MessageDialog() {
       width={window.innerWidth <= 600 ? '90%' : '50%'}
       modal={false}
     >
-      <div style={{ maxHeight: '450px', overflow: 'auto' }}>
+      <div class="xb-dialog-body-scroll" style={{ maxHeight: '450px' }}>
         {parseGameHtml(message)}
       </div>
-      <div style={{ marginTop: '12px', textAlign: 'right' }}>
+      <div class="xb-dialog-footer-right">
         <Button onClick={closeMessageDialog}>Ok</Button>
       </div>
     </Dialog>
