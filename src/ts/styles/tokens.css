@@ -180,8 +180,9 @@
   border-left: none;
   border-right: none;
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
-  overflow: visible;
+  overflow: hidden;
   min-height: 70px;
+  max-height: 180px;
 }
 
 #xbworld_custom_scrollbar_div,
@@ -240,7 +241,7 @@
 
 #game_overview_panel {
   position: absolute;
-  bottom: 80px;
+  bottom: 190px;
   left: 6px;
   z-index: var(--xb-z-ui);
   background: var(--xb-bg-secondary, #161b22);
@@ -269,7 +270,7 @@
 
 #game_status_panel_bottom {
   position: absolute;
-  bottom: 76px;
+  bottom: 190px;
   right: 6px;
   z-index: var(--xb-z-ui);
   color: var(--xb-text-primary, #e6edf3);
