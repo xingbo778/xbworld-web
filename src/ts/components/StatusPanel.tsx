@@ -110,47 +110,57 @@ export function StatusPanelContent() {
     const adjective = String(store.nations[pplayer['nation']]?.['adjective'] ?? '');
 
     return (
-      <>
+      <div class="xb-sp-row">
         <ConnectionBannerEl />
         {!small && adjective && (
-          <><b>{adjective}</b>{'\u00a0\u00a0 '}
-          <span title="Population">{'👤'}</span>{': '}
-          <b>{civPopulation(pplayer.playerno)}</b>{'\u00a0\u00a0 '}</>
+          <span class="xb-sp-chip xb-sp-chip-nation" title="Your civilization">
+            <span class="xb-sp-icon">🏛</span>
+            <span class="xb-sp-val">{adjective}</span>
+            <span class="xb-sp-sub">{civPopulation(pplayer.playerno)}</span>
+          </span>
         )}
         {!small && gi && (
-          <><span title="Year (turn)">{'🕐'}</span>{': '}
-          <b>{getYearString()}</b>{'\u00a0\u00a0 '}</>
+          <span class="xb-sp-chip" title="Current year and turn">
+            <span class="xb-sp-icon">📅</span>
+            <span class="xb-sp-val">{getYearString()}</span>
+          </span>
         )}
-        <span title="Gold (net income)">{'💰'}</span>{': '}
-        <b
-          class={netIncome < 0 ? 'negative_net_income' : undefined}
-          title="Gold (net income)"
+        <span class="xb-sp-divider" />
+        <span
+          class={`xb-sp-chip${netIncome < 0 ? ' xb-sp-chip-danger' : ''}`}
+          title="Gold treasury (net income per turn)"
         >
-          {String(pplayer['gold'])} ({netStr})
-        </b>
-        {'\u00a0\u00a0 '}
-        <span class="xb-status-panel-taxrates" data-action="show-tax-rates">
-          <span title="Tax rate">{'📊'}</span>{': '}<b>{tax}</b>{'% '}
-          <span title="Luxury rate">{'🎵'}</span>{': '}<b>{lux}</b>{'% '}
-          <span title="Science rate">{'🧪'}</span>{': '}<b>{sci}</b>{'%'}
+          <span class="xb-sp-icon">💰</span>
+          <span class="xb-sp-val">{String(pplayer['gold'])}</span>
+          <span class={`xb-sp-sub${netIncome < 0 ? ' xb-sp-neg' : ' xb-sp-pos'}`}>({netStr})</span>
         </span>
-      </>
+        <span
+          class="xb-sp-chip xb-sp-taxbar"
+          data-action="show-tax-rates"
+          title="Tax / Luxury / Science rates — click to change"
+        >
+          <span class="xb-sp-rate" title="Tax">📊 <b>{tax}%</b></span>
+          <span class="xb-sp-rate" title="Luxury">🎵 <b>{lux}%</b></span>
+          <span class="xb-sp-rate" title="Science">🧪 <b>{sci}%</b></span>
+        </span>
+      </div>
     );
   }
 
   if (store.observing || clientPlaying() == null) {
     const meta = store.serverSettings?.['metamessage']?.['val'];
     return (
-      <>
+      <div class="xb-sp-row">
         <ConnectionBannerEl />
-        {meta && <>{String(meta)}{' \u2014 '}</>}
-        {gi && !small && (
-          <><span title="Year (turn)">{'🕐'}</span>{': '}
-          <b>{getYearString()}</b>{'\u00a0\u00a0 '}</>
+        {meta && <span class="xb-sp-meta">{String(meta)}</span>}
+        {gi && (
+          <span class="xb-sp-chip xb-sp-chip-observer" title="Observing game">
+            <span class="xb-sp-icon">👁</span>
+            <span class="xb-sp-val">{getYearString()}</span>
+            <span class="xb-sp-sub">Observing</span>
+          </span>
         )}
-        {gi && small && <><b>{getYearString()}</b>{' '}</>}
-        {gi && 'Observing'}
-      </>
+      </div>
     );
   }
 

@@ -1,5 +1,8 @@
 /**
- * StatusBar — Preact HUD showing game turn, year, connection status, and theme switcher.
+ * StatusBar — Game HUD with three sections:
+ *   Left:   Logo + OBSERVER badge
+ *   Center: Stat chips (year/turn, nations, cities, units)
+ *   Right:  Theme selector + admin button
  */
 import { useState } from 'preact/hooks';
 import { currentTurn, currentYear, playerCount, cityCount, unitCount, isObserver } from '../data/signals';
@@ -19,12 +22,30 @@ function ThemeSelect() {
       value={current}
       onChange={handleChange}
       title="UI Theme"
-      class="xb-theme-select"
+      class="xb-hud-theme-select"
     >
-      <option value="dark">Dark</option>
-      <option value="light">Light</option>
-      <option value="fantasy">Fantasy</option>
+      <option value="dark">🌙 Dark</option>
+      <option value="light">☀️ Light</option>
+      <option value="fantasy">✨ Fantasy</option>
     </select>
+  );
+}
+
+interface StatChipProps {
+  icon: string;
+  value: string | number;
+  label: string;
+  title?: string;
+  accent?: boolean;
+}
+
+function StatChip({ icon, value, label, title, accent }: StatChipProps) {
+  return (
+    <div class={`xb-hud-chip${accent ? ' xb-hud-chip-accent' : ''}`} title={title}>
+      <span class="xb-hud-chip-icon">{icon}</span>
+      <span class="xb-hud-chip-value">{value}</span>
+      <span class="xb-hud-chip-label">{label}</span>
+    </div>
   );
 }
 
@@ -38,24 +59,50 @@ export function StatusBar() {
 
   if (turn === 0 && !observer) return null;
 
+  const adminUrl = typeof window !== 'undefined' && (window as any).ADMIN_BASE_URL
+    ? (window as any).ADMIN_BASE_URL + '/admin/'
+    : '/admin/';
+
   return (
     <div id="xb-status-bar" class="xb-status-bar">
-      {observer && (
-        <span class="xb-status-bar-observer">OBSERVER</span>
-      )}
-      {year && <span>Year: {year}</span>}
-      {turn > 0 && <span>Turn: {turn}</span>}
-      <span>{players} players</span>
-      <span>{cities} cities</span>
-      <span>{units} units</span>
-      <ThemeSelect />
-      <button
-        class="xb-status-bar-admin-btn"
-        title="Open Admin Dashboard"
-        onClick={() => window.open('http://localhost:8081/admin/', '_blank', 'width=1400,height=900')}
-      >
-        &#9881;
-      </button>
+
+      {/* ── Left: branding + observer badge ── */}
+      <div class="xb-hud-left">
+        <span class="xb-hud-logo">XBWorld</span>
+        {observer && (
+          <span class="xb-hud-observer-badge">OBSERVER</span>
+        )}
+      </div>
+
+      {/* ── Center: live game stats ── */}
+      <div class="xb-hud-center">
+        {year && turn > 0 && (
+          <StatChip
+            icon="📅"
+            value={year}
+            label={`T${turn}`}
+            title={`Year ${year} — Turn ${turn}`}
+            accent
+          />
+        )}
+        <div class="xb-hud-divider" />
+        <StatChip icon="👥" value={players} label="nations" title={`${players} civilizations`} />
+        <StatChip icon="🏙" value={cities} label="cities" title={`${cities} cities total`} />
+        <StatChip icon="⚔" value={units} label="units" title={`${units} units on map`} />
+      </div>
+
+      {/* ── Right: controls ── */}
+      <div class="xb-hud-right">
+        <ThemeSelect />
+        <button
+          class="xb-hud-icon-btn"
+          title="Admin Dashboard"
+          onClick={() => window.open(adminUrl, '_blank', 'width=1400,height=900')}
+        >
+          ⚙
+        </button>
+      </div>
+
     </div>
   );
 }
