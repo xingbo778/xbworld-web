@@ -79,7 +79,7 @@ export function Dialog({
   const dialogStyle: Record<string, string | number> = {
     width,
     height,
-    ...(pos.x >= 0 ? { left: pos.x, top: pos.y } : {}),
+    ...(pos.x >= 0 ? { left: pos.x, top: pos.y } : { visibility: 'hidden' }),
   };
 
   return (

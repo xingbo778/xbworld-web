@@ -18,6 +18,7 @@ const TABS = [
   { id: 'live',      label: 'Live State' },
 ];
 
+export const adminPanelOpen = signal(false);
 export const activeTab = signal('live');
 export const configSignal = signal<AdminConfig | null>(null);
 export const sseStatus = signal<'connecting' | 'connected' | 'error'>('connecting');
@@ -75,6 +76,8 @@ function AdminDashboard() {
     </div>
   );
 }
+
+export { AdminDashboard };
 
 export function mountAdminDashboard() {
   const root = document.getElementById('xb-admin-root');

@@ -7,6 +7,7 @@
 import { useState } from 'preact/hooks';
 import { currentTurn, currentYear, playerCount, cityCount, unitCount, isObserver } from '../data/signals';
 import { setTheme, getTheme, type ThemeName } from '../utils/theme';
+import { adminPanelOpen } from './AdminDashboard';
 
 function ThemeSelect() {
   const [current, setCurrent] = useState<ThemeName>(getTheme);
@@ -59,10 +60,6 @@ export function StatusBar() {
 
   if (turn === 0 && !observer) return null;
 
-  const adminUrl = typeof window !== 'undefined' && (window as any).ADMIN_BASE_URL
-    ? (window as any).ADMIN_BASE_URL + '/admin/'
-    : '/admin/';
-
   return (
     <div id="xb-status-bar" class="xb-status-bar">
 
@@ -97,7 +94,7 @@ export function StatusBar() {
         <button
           class="xb-hud-icon-btn"
           title="Admin Dashboard"
-          onClick={() => window.open(adminUrl, '_blank', 'width=1400,height=900')}
+          onClick={() => { adminPanelOpen.value = true; }}
         >
           ⚙
         </button>

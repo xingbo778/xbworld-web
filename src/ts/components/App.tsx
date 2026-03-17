@@ -20,6 +20,7 @@ import { BlockingOverlay } from './BlockingOverlay';
 import { DisconnectOverlay } from './DisconnectOverlay';
 import { IntroDialog } from './Dialogs/IntroDialog';
 import { StatusBar } from './StatusBar';
+import { AdminDashboard, adminPanelOpen } from './AdminDashboard';
 
 /**
  * LazyMountOnce — defers mounting children until the controlling signal is
@@ -72,6 +73,29 @@ function App() {
       </LazyMountOnce>
       <LazyMountOnce signal={techInfoDialogSignal}>
         <TechInfoDialog />
+      </LazyMountOnce>
+
+      {/* Admin dashboard overlay — deferred until first open */}
+      <LazyMountOnce signal={adminPanelOpen}>
+        {adminPanelOpen.value && (
+          <div
+            style={{
+              position: 'fixed', inset: 0, zIndex: 2000,
+              background: 'rgba(0,0,0,0.6)', display: 'flex',
+              alignItems: 'center', justifyContent: 'center',
+            }}
+            onClick={(e) => { if (e.target === e.currentTarget) adminPanelOpen.value = false; }}
+          >
+            <div style={{ position: 'relative', width: '90vw', maxWidth: '1200px', height: '85vh', overflow: 'hidden', borderRadius: '8px' }}>
+              <button
+                onClick={() => { adminPanelOpen.value = false; }}
+                style={{ position: 'absolute', top: 8, right: 8, zIndex: 10, background: 'transparent', border: 'none', color: 'var(--xb-text-primary)', fontSize: '18px', cursor: 'pointer', lineHeight: 1 }}
+                aria-label="Close admin"
+              >×</button>
+              <AdminDashboard />
+            </div>
+          </div>
+        )}
       </LazyMountOnce>
     </div>
   );
