@@ -12,6 +12,7 @@ import { show_city_dialog } from '../../ui/cityDialog';
 import { tileCity } from '../../data/tile';
 import * as S from './controlState';
 import { getActiveTab } from '../../ui/tabs';
+import { deactivate_goto } from './gotoPath';
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -40,8 +41,13 @@ export function civclient_handle_key(keyboard_key: string, key_code: number, ctr
       break;
   }
 
-  // ESC — cancel any active mode
+  // ESC — cancel any active mode (goto, paradrop, airlift)
   if (key_code === 27) {
+    if (S.goto_active || S.paradrop_active || S.airlift_active) {
+      deactivate_goto(false);
+      S.setParadropActive(false);
+      S.setAirliftActive(false);
+    }
     S.setContextMenuActive(true);
     const canvasDivEl = document.getElementById('canvas_div');
     (canvasDivEl as unknown as { contextMenu?: (arg: boolean) => void })?.contextMenu?.(true);
