@@ -105,8 +105,9 @@ export function StatusPanelContent() {
     const tax = Number(pplayer['tax']);
     const lux = Number(pplayer['luxury']);
     const sci = Number(pplayer['science']);
-    const netIncome = Number(pplayer['expected_income']);
-    const netStr = netIncome > 0 ? '+' + netIncome : String(netIncome);
+    const netIncome = Number(pplayer['expected_income'] ?? 0);
+    const safeIncome = isNaN(netIncome) ? 0 : netIncome;
+    const netStr = safeIncome > 0 ? '+' + safeIncome : String(safeIncome);
     const adjective = String(store.nations[pplayer['nation']]?.['adjective'] ?? '');
 
     return (
@@ -127,12 +128,12 @@ export function StatusPanelContent() {
         )}
         <span class="xb-sp-divider" />
         <span
-          class={`xb-sp-chip${netIncome < 0 ? ' xb-sp-chip-danger' : ''}`}
+          class={`xb-sp-chip${safeIncome < 0 ? ' xb-sp-chip-danger' : ''}`}
           title="Gold treasury (net income per turn)"
         >
           <span class="xb-sp-icon">💰</span>
           <span class="xb-sp-val">{String(pplayer['gold'])}</span>
-          <span class={`xb-sp-sub${netIncome < 0 ? ' xb-sp-neg' : ' xb-sp-pos'}`}>({netStr})</span>
+          <span class={`xb-sp-sub${safeIncome < 0 ? ' xb-sp-neg' : ' xb-sp-pos'}`}>({netStr})</span>
         </span>
         <span
           class="xb-sp-chip xb-sp-taxbar"

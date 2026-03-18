@@ -11,14 +11,21 @@ interface LogEntry {
   id: number;
   html: string;
   ts: number;
+  count: number;
 }
 
 let _counter = 0;
 const logEntries = signal<LogEntry[]>([]);
 
-/** Called from messages.ts to push a new log entry. */
+/** Called from messages.ts to push a new log entry. Collapses consecutive duplicates. */
 export function pushGameLogEntry(html: string): void {
-  let entries = [...logEntries.value, { id: _counter++, html, ts: Date.now() }];
+  const prev = logEntries.value;
+  if (prev.length > 0 && prev[prev.length - 1].html === html) {
+    const last = prev[prev.length - 1];
+    logEntries.value = [...prev.slice(0, -1), { ...last, count: last.count + 1 }];
+    return;
+  }
+  let entries = [...prev, { id: _counter++, html, ts: Date.now(), count: 1 }];
   if (entries.length > 500) entries = entries.slice(-500);
   logEntries.value = entries;
 }
@@ -60,6 +67,9 @@ function GameLog() {
         {entries.map(entry => (
           <div key={entry.id} class="xb-log-entry">
             {parseGameHtml(entry.html)}
+            {entry.count > 1 && (
+              <span class="xb-log-entry-count">×{entry.count}</span>
+            )}
           </div>
         ))}
         <div ref={bottomRef} />
@@ -72,7 +82,7 @@ export function mountGameLog(container: HTMLElement): void {
   // Pull existing messages from #game_message_area
   const existing = document.querySelectorAll('#game_message_area li');
   existing.forEach(li => {
-    logEntries.value = [...logEntries.value, { id: _counter++, html: li.textContent ?? '', ts: Date.now() }];
+    pushGameLogEntry(li.textContent ?? '');
   });
   render(<GameLog />, container);
 }

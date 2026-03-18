@@ -60,9 +60,13 @@
   background: var(--xb-bg-elevated, #21262d);
 }
 
-/* tbody row borders */
+/* tbody row borders + zebra striping */
 .xb-table tbody tr {
   border-bottom: 1px solid var(--xb-border-default, #30363d);
+}
+
+.xb-table tbody tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.025);
 }
 
 /* Selected row highlight */
@@ -296,9 +300,15 @@
 }
 
 .xb-empty-state {
-  padding: 16px;
+  padding: 48px 24px;
   color: var(--xb-text-secondary);
-  font-size: var(--xb-text-sm);
+  font-size: 15px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  opacity: 0.7;
 }
 
 /* ============================================================
@@ -505,11 +515,24 @@
 }
 
 .xb-log-entry {
-  padding: 4px 0;
+  padding: 2px 0;
   border-bottom: 1px solid var(--xb-bg-elevated, #21262d);
-  font-size: 13px;
+  font-size: 12px;
   color: var(--xb-text-primary);
-  line-height: 1.5;
+  line-height: 1.4;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.xb-log-entry-count {
+  font-size: 11px;
+  color: var(--xb-accent-blue, #58a6ff);
+  background: rgba(88, 166, 255, 0.12);
+  border-radius: 10px;
+  padding: 0 6px;
+  flex-shrink: 0;
+  font-weight: 600;
 }
 
 /* ============================================================
@@ -1302,6 +1325,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
 }
 
 .xb-research-card-name {

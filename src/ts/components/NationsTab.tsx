@@ -82,7 +82,9 @@ export function NationsTab() {
       <>
         <ActionBar />
         <div class="xb-empty-state">
-          No players connected yet.
+          <span style={{ fontSize: 36 }}>🏴</span>
+          <span>No nations connected yet</span>
+          <span style={{ fontSize: 12 }}>Waiting for players to join the game</span>
         </div>
       </>
     );

@@ -17,7 +17,9 @@ export function CitiesTab() {
   if (cities.length === 0) {
     return (
       <div class="xb-empty-state">
-        No cities known yet.
+        <span style={{ fontSize: 36 }}>🏙</span>
+        <span>No cities known yet</span>
+        <span style={{ fontSize: 12 }}>Select a Settler unit on the map and build your first city</span>
       </div>
     );
   }
