@@ -9,32 +9,17 @@
  *   2. Vite dev server: BACKEND_URL=http://localhost:8002 npx vite --config vite.config.dev.ts --port 8080
  */
 import { test, expect, Page } from '@playwright/test';
+import { connectAsObserver as connectObserver } from './helpers/observer';
 
 /** Helper: connect as observer and wait for game page */
-async function connectAsObserver(page: Page): Promise<void> {
-  await page.goto('/webclient/index.html');
-  await page.waitForLoadState('domcontentloaded');
-  await page.waitForTimeout(2000);
-
-  // Fill in username and click "Observe Game"
-  const usernameInput = page.locator('#username_req');
-  if (await usernameInput.isVisible({ timeout: 3000 }).catch(() => false)) {
-    await usernameInput.fill('TestObserver');
-    const observeBtn = page.getByRole('button', { name: 'Observe Game' });
-    if (await observeBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
-      await observeBtn.click();
-    }
-  }
-
-  // Wait for game page to become visible
-  await page.waitForSelector('#game_page', { state: 'visible', timeout: 15000 });
-  // Extra wait for rendering to settle
-  await page.waitForTimeout(3000);
+async function connectAsObserver(page: Page): Promise<boolean> {
+  return connectObserver(page, { username: 'TestObserver', timeout: 15_000, settleMs: 3_000 });
 }
 
 test.describe('Observer UI Elements', () => {
   test.beforeEach(async ({ page }) => {
-    await connectAsObserver(page);
+    const connected = await connectAsObserver(page);
+    test.skip(!connected, 'Observer backend did not reach game page');
   });
 
   // ─── Tab Structure ────────────────────────────────────────────────

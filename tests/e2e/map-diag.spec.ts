@@ -1,4 +1,5 @@
 import { test } from '@playwright/test';
+import { XbwPageGlobals } from './helpers/pageGlobals';
 
 test('sprite deep diagnostic', async ({ page }) => {
   const logs: string[] = [];
@@ -9,7 +10,10 @@ test('sprite deep diagnostic', async ({ page }) => {
 
   // Inject monitoring hooks into the page immediately after load
   await page.evaluate(() => {
-    const w = window as any;
+    const w = window as XbwPageGlobals;
+    type CreateImageBitmapArgs =
+      | [image: ImageBitmapSource, options?: ImageBitmapOptions]
+      | [image: ImageBitmapSource, sx: number, sy: number, sw: number, sh: number, options?: ImageBitmapOptions];
     w.__spriteDiag = {
       init_sprites_called: false,
       preload_check_called: 0,
@@ -25,16 +29,24 @@ test('sprite deep diagnostic', async ({ page }) => {
     // Patch createImageBitmap to monitor calls
     const origCIB = createImageBitmap;
     let cibCallCount = 0;
-    (window as any).createImageBitmap = async function(...args: any[]) {
+    const patchedCreateImageBitmap: typeof createImageBitmap = async (...args: CreateImageBitmapArgs) => {
       cibCallCount++;
-      (window as any).__cibCallCount = cibCallCount;
+      w.__cibCallCount = cibCallCount;
       try {
-        return await origCIB.apply(this, args as any);
-      } catch (e: any) {
-        w.__spriteDiag.errors.push('cib error: ' + e.message);
+        if (typeof args[1] !== 'number') {
+          const [image, options] = args;
+          return await origCIB(image, options);
+        }
+        const [image, sx, sy, sw, sh, options] =
+          args as [ImageBitmapSource, number, number, number, number, ImageBitmapOptions?];
+        return await origCIB(image, sx, sy, sw, sh, options);
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        w.__spriteDiag?.errors.push('cib error: ' + message);
         throw e;
       }
     };
+    window.createImageBitmap = patchedCreateImageBitmap;
   });
 
   // Wait for game page
@@ -43,11 +55,17 @@ test('sprite deep diagnostic', async ({ page }) => {
     return gp && window.getComputedStyle(gp).display !== 'none';
   }, { timeout: 20_000 }).catch(() => {});
 
+  const gameVisible = await page.evaluate(() => {
+    const gp = document.getElementById('game_page');
+    return !!gp && window.getComputedStyle(gp).display !== 'none';
+  });
+  test.skip(!gameVisible, 'Backend did not reach game page');
+
   // Check state right after
   const snap1 = await page.evaluate(() => {
-    const w = window as any;
+    const w = window as XbwPageGlobals;
     return {
-      spriteCount: w.store?.sprites ? Object.keys(w.store.sprites).length : 0,
+      spriteCount: w.__store?.sprites ? Object.keys(w.__store.sprites).length : 0,
       tilesetKeys: w.tileset ? Object.keys(w.tileset).length : 0,
       cibCalls: w.__cibCallCount || 0,
       diag: w.__spriteDiag,
@@ -59,9 +77,9 @@ test('sprite deep diagnostic', async ({ page }) => {
   // Wait more
   await page.waitForTimeout(10000);
   const snap2 = await page.evaluate(() => {
-    const w = window as any;
+    const w = window as XbwPageGlobals;
     return {
-      spriteCount: w.store?.sprites ? Object.keys(w.store.sprites).length : 0,
+      spriteCount: w.__store?.sprites ? Object.keys(w.__store.sprites).length : 0,
       cibCalls: w.__cibCallCount || 0,
       diag: w.__spriteDiag,
       blockUI: !!document.querySelector('.xb-block-overlay'),
@@ -73,7 +91,7 @@ test('sprite deep diagnostic', async ({ page }) => {
 
   // Try manual sprite creation
   const manualTest = await page.evaluate(async () => {
-    const w = window as any;
+    const w = window as XbwPageGlobals;
     if (!w.tileset) return { error: 'no tileset' };
     // Try creating one sprite manually
     try {
@@ -90,8 +108,8 @@ test('sprite deep diagnostic', async ({ page }) => {
       
       const bmp = await createImageBitmap(img, x, y, width, height);
       return { success: true, tag, bmpSize: `${bmp.width}x${bmp.height}` };
-    } catch (e: any) {
-      return { error: e.message };
+    } catch (e) {
+      return { error: e instanceof Error ? e.message : String(e) };
     }
   });
   console.log('Manual createImageBitmap test:', JSON.stringify(manualTest));

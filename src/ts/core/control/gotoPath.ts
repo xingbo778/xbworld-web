@@ -21,6 +21,7 @@ import * as S from './controlState';
 import { update_unit_focus } from './unitFocus';
 import { update_mouse_cursor } from './mouse';
 import { turnDoneState, unitTextDetails, activeUnitInfo } from '../../data/signals';
+import { setMapCursor } from '../../renderer/mapCanvas';
 
 const ORDER_LAST = Order.LAST;
 
@@ -35,8 +36,7 @@ export function activate_goto() {
 
 export function activate_goto_last(last_order: number, last_action: number) {
   S.setGotoActive(true);
-  const canvasDiv = document.getElementById("canvas_div");
-  if (canvasDiv) canvasDiv.style.cursor = "crosshair";
+  setMapCursor("crosshair");
 
   S.setGotoLastOrder(last_order);
   S.setGotoLastAction(last_action);
@@ -70,8 +70,7 @@ export function activate_goto_last(last_order: number, last_action: number) {
 
 export function deactivate_goto(will_advance_unit_focus: boolean) {
   S.setGotoActive(false);
-  const canvasDivEl = document.getElementById("canvas_div");
-  if (canvasDivEl) canvasDivEl.style.cursor = "default";
+  setMapCursor("default");
   S.setGotoRequestMap({});
   S.setGotoTurnsRequestMap({});
   clear_goto_tiles();

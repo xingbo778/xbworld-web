@@ -10,9 +10,22 @@ import { nativeToMapPos, mapToNativePos } from '@/data/map';
 import { move_points_text, get_unit_moves_left } from '@/data/unit';
 import { clientIsObserver } from '@/client/clientState';
 import { store } from '@/data/store';
+import type { ClientState } from '@/data/store';
+import type { Unit } from '@/data/types';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-const win = window as any;
+type RegressionWindow = Window & {
+  map?: { xsize: number; ysize: number };
+  MAP_IS_ISOMETRIC?: boolean;
+  topo_has_flag?: (flag: number) => boolean;
+  wrap_has_flag?: (flag: number) => boolean;
+  improvements_name_index?: unknown;
+};
+
+const win = window as RegressionWindow;
+
+function makeUnit(movesleft: number): Unit {
+  return { movesleft } as Unit;
+}
 
 describe('Pitfall #6: Return value property names must match Legacy', () => {
   beforeEach(() => {
@@ -95,13 +108,13 @@ describe('Pitfall #9: Optional chaining on uninitialized objects', () => {
     // This is the root cause of the "map not centered" bug.
     // Legacy throws an error → caller catches → effectively false.
     // TS with ?. returns undefined == null → true (WRONG).
-    (store as any).client = undefined;
+    Object.assign(store, { client: undefined as unknown as ClientState });
     store.observing = false;
     expect(clientIsObserver()).toBe(false);
   });
 
   it('client_is_observer must return false when client.conn is uninitialized', () => {
-    store.client = {} as any;
+    store.client = {} as ClientState;
     store.observing = false;
     expect(clientIsObserver()).toBe(false);
   });
@@ -133,14 +146,12 @@ describe('General: exposeToLegacy functions must not break Legacy behavior', () 
 
   it('get_unit_moves_left should return formatted string with moves', () => {
     store.singleMove = 3;
-    const unit = { movesleft: 6 };
-    expect(get_unit_moves_left(unit as any)).toBe('Moves:2');
+    expect(get_unit_moves_left(makeUnit(6))).toBe('Moves:2');
   });
 
   it('get_unit_moves_left should handle unit with zero moves', () => {
     store.singleMove = 3;
-    const unit = { movesleft: 0 };
-    expect(get_unit_moves_left(unit as any)).toBe('Moves:0');
+    expect(get_unit_moves_left(makeUnit(0))).toBe('Moves:0');
   });
 
   it('get_unit_moves_left should return 0 for null unit', () => {

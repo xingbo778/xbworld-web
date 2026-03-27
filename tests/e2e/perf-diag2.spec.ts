@@ -2,6 +2,7 @@
  * Performance diagnostic 2 — find what's blocking the main thread.
  */
 import { test, expect } from '@playwright/test';
+import type { XbwPageGlobals } from './helpers/pageGlobals';
 
 const BASE = process.env.TEST_BASE_URL || 'http://localhost:8080';
 const RND = Math.random().toString(36).slice(2, 6).toUpperCase();
@@ -12,10 +13,11 @@ test('find blocking code', async ({ page }) => {
 
   // Enable long task observer before page load
   await page.addInitScript(() => {
-    (window as any).__longTasks = [];
+    const w = window as XbwPageGlobals;
+    w.__longTasks = [];
     const obs = new PerformanceObserver(list => {
       for (const entry of list.getEntries()) {
-        (window as any).__longTasks.push({
+        w.__longTasks?.push({
           name: entry.name,
           startTime: +entry.startTime.toFixed(1),
           duration: +entry.duration.toFixed(1),
@@ -29,14 +31,20 @@ test('find blocking code', async ({ page }) => {
 
   // Wait for game running
   await page.waitForFunction(
-    () => (window as any).__store?.civclientState === 2,
+    () => {
+      const w = window as XbwPageGlobals;
+      return w.__store?.civclientState === 2;
+    },
     { timeout: 60_000 }
   );
 
   // Wait 8 more seconds to collect long tasks
   await page.waitForTimeout(8000);
 
-  const longTasks = await page.evaluate(() => (window as any).__longTasks as Array<{name:string; startTime:number; duration:number}>);
+  const longTasks = await page.evaluate(() => {
+    const w = window as XbwPageGlobals;
+    return w.__longTasks ?? [];
+  });
 
   console.log(`\n=== Long tasks (>${50}ms) ===`);
   console.log(`Total long tasks: ${longTasks.length}`);
@@ -50,10 +58,11 @@ test('find blocking code', async ({ page }) => {
     const timers: Array<{type: string; delay: number; t: number}> = [];
     const origSI = window.setInterval;
     const origST = window.setTimeout;
+    const w = window as XbwPageGlobals;
     // Just check current state
     return {
-      animationFrameCount: (window as any).__perfFrames?.length || 0,
-      longTaskCount: (window as any).__longTasks?.length || 0,
+      animationFrameCount: w.__perfFrames?.length || 0,
+      longTaskCount: w.__longTasks?.length || 0,
     };
   });
   console.log('\n=== Timer info ===');

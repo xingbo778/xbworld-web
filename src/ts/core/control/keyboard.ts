@@ -13,6 +13,7 @@ import { tileCity } from '../../data/tile';
 import * as S from './controlState';
 import { getActiveTab } from '../../ui/tabs';
 import { deactivate_goto } from './gotoPath';
+import { setMapContextMenuOpen } from '../../renderer/mapCanvas';
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -49,8 +50,7 @@ export function civclient_handle_key(keyboard_key: string, key_code: number, ctr
       S.setAirliftActive(false);
     }
     S.setContextMenuActive(true);
-    const canvasDivEl = document.getElementById('canvas_div');
-    (canvasDivEl as unknown as { contextMenu?: (arg: boolean) => void })?.contextMenu?.(true);
+    setMapContextMenuOpen(true);
   }
 }
 
@@ -61,7 +61,7 @@ export function map_handle_key(_keyboard_key: string, _key_code: number, _ctrl: 
 export function handle_context_menu_callback(key: string): void {
   if (key === 'show_city') {
     const ptile = S.current_focus[0] != null
-      ? store.tiles[(S.current_focus[0] as Record<string, unknown>)['tile'] as number]
+      ? store.tiles[S.current_focus[0].tile]
       : null;
     if (ptile) {
       const city = tileCity(ptile);

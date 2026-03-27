@@ -8,6 +8,27 @@ import {
 } from '@/client/clientState';
 import { ClientState } from '@/core/constants';
 import { store } from '@/data/store';
+import type { ClientState as StoreClientState } from '@/data/store';
+import type { Player } from '@/data/types';
+
+function makePlayer(playerno = 0): Player {
+  return {
+    playerno,
+    name: 'Player',
+    username: 'player',
+    nation: 0,
+    is_alive: true,
+    is_ready: true,
+    ai_skill_level: 0,
+    gold: 0,
+    tax: 0,
+    luxury: 0,
+    science: 0,
+    expected_income: 0,
+    team: 0,
+    embassy_txt: '',
+  };
+}
 
 describe('clientState', () => {
   beforeEach(() => {
@@ -47,31 +68,31 @@ describe('clientIsObserver', () => {
    * Fix: Return false when client or conn is not initialized.
    */
   it('should return false when client is undefined (not observer)', () => {
-    store.client = undefined as any;
+    Object.assign(store, { client: undefined as unknown as StoreClientState });
     store.observing = false;
     expect(clientIsObserver()).toBe(false);
   });
 
   it('should return false when client is null', () => {
-    store.client = null as any;
+    Object.assign(store, { client: null as unknown as StoreClientState });
     store.observing = false;
     expect(clientIsObserver()).toBe(false);
   });
 
   it('should return false when client.conn is undefined', () => {
-    store.client = {} as any;
+    store.client = {} as StoreClientState;
     store.observing = false;
     expect(clientIsObserver()).toBe(false);
   });
 
   it('should return false when client.conn is null', () => {
-    store.client = { conn: null } as any;
+    store.client = { conn: null as unknown as StoreClientState['conn'] };
     store.observing = false;
     expect(clientIsObserver()).toBe(false);
   });
 
   it('should return false when playing is set and not observer', () => {
-    store.client = { conn: { id: 0, playing: { playerno: 0 } as any, observer: false } };
+    store.client = { conn: { id: 0, playing: makePlayer(0), observer: false } };
     store.observing = false;
     expect(clientIsObserver()).toBe(false);
   });
@@ -83,13 +104,13 @@ describe('clientIsObserver', () => {
   });
 
   it('should return true when conn.observer is true', () => {
-    store.client = { conn: { id: 0, playing: { playerno: 0 } as any, observer: true } };
+    store.client = { conn: { id: 0, playing: makePlayer(0), observer: true } };
     store.observing = false;
     expect(clientIsObserver()).toBe(true);
   });
 
   it('should return true when store.observing is true', () => {
-    store.client = { conn: { id: 0, playing: { playerno: 0 } as any, observer: false } };
+    store.client = { conn: { id: 0, playing: makePlayer(0), observer: false } };
     store.observing = true;
     expect(clientIsObserver()).toBe(true);
   });
@@ -102,7 +123,7 @@ describe('canClientControl', () => {
   });
 
   it('should return true when not observer', () => {
-    store.client = { conn: { id: 0, playing: { playerno: 0 } as any, observer: false } };
+    store.client = { conn: { id: 0, playing: makePlayer(0), observer: false } };
     store.observing = false;
     expect(canClientControl()).toBe(true);
   });
@@ -118,7 +139,7 @@ describe('canClientControl', () => {
    * return true (not observer), not false.
    */
   it('should return true when client is uninitialized', () => {
-    store.client = undefined as any;
+    Object.assign(store, { client: undefined as unknown as StoreClientState });
     store.observing = false;
     expect(canClientControl()).toBe(true);
   });
@@ -132,7 +153,7 @@ describe('canClientIssueOrders', () => {
   });
 
   it('should return true when can control and running', () => {
-    store.client = { conn: { id: 0, playing: { playerno: 0 } as any, observer: false } };
+    store.client = { conn: { id: 0, playing: makePlayer(0), observer: false } };
     store.observing = false;
     store.civclientState = ClientState.RUNNING;
     expect(canClientIssueOrders()).toBe(true);
@@ -146,7 +167,7 @@ describe('canClientIssueOrders', () => {
   });
 
   it('should return false when not running', () => {
-    store.client = { conn: { id: 0, playing: { playerno: 0 } as any, observer: false } };
+    store.client = { conn: { id: 0, playing: makePlayer(0), observer: false } };
     store.observing = false;
     store.civclientState = ClientState.PREPARING;
     expect(canClientIssueOrders()).toBe(false);
@@ -161,14 +182,14 @@ describe('canClientChangeView', () => {
   });
 
   it('should return true when playing and running', () => {
-    store.client = { conn: { id: 0, playing: { playerno: 0 } as any, observer: false } };
+    store.client = { conn: { id: 0, playing: makePlayer(0), observer: false } };
     store.observing = false;
     store.civclientState = ClientState.RUNNING;
     expect(canClientChangeView()).toBe(true);
   });
 
   it('should return false when not running', () => {
-    store.client = { conn: { id: 0, playing: { playerno: 0 } as any, observer: false } };
+    store.client = { conn: { id: 0, playing: makePlayer(0), observer: false } };
     store.observing = false;
     store.civclientState = ClientState.INITIAL;
     expect(canClientChangeView()).toBe(false);

@@ -76,7 +76,7 @@ export function can_player_build_unit_direct(p: Player | null, punittype: UnitTy
  */
 export function getUnitClassForType(punittype: UnitType | null | undefined): Record<string, unknown> | null {
   if (punittype == null) return null;
-  const classId = (punittype as Record<string, unknown>)['unit_class'] as number | undefined;
+  const classId = punittype['unit_class'] as number | undefined;
   if (classId == null) return null;
   return store.unitClasses[classId] ?? null;
 }
@@ -92,4 +92,3 @@ export function get_units_from_tech(tech_id: number): UnitType[] {
   }
   return result;
 }
-

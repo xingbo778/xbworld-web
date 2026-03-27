@@ -78,6 +78,22 @@ export interface RendererConfig {
   container: HTMLElement;
 }
 
+type SpriteEntryRenderData = SpriteEntry & {
+  key?: string | null;
+  offset_x?: number;
+  offset_y?: number;
+  city?: City;
+  dir?: number;
+  color?: string;
+  goto_dir?: number;
+  tile?: Tile;
+};
+
+type TileEventPayload = {
+  tileIndex?: number;
+  tile?: number | { index?: number };
+};
+
 export class PixiRenderer {
   private app!: Application;
 
@@ -299,29 +315,29 @@ export class PixiRenderer {
     container: Container,
     fogAlpha: number,
   ): void {
-    const e = entry as Record<string, unknown>;
-    const ox = typeof e['offset_x'] === 'number' ? (e['offset_x'] as number) : 0;
-    const oy = typeof e['offset_y'] === 'number' ? (e['offset_y'] as number) : 0;
+    const e = entry as SpriteEntryRenderData;
+    const ox = typeof e.offset_x === 'number' ? e.offset_x : 0;
+    const oy = typeof e.offset_y === 'number' ? e.offset_y : 0;
 
-    switch (e['key']) {
+    switch (e.key) {
       case 'city_text':
-        this.renderCityBar(e['city'] as City, baseGX + ox, baseGY + oy, container);
+        this.renderCityBar(e.city as City, baseGX + ox, baseGY + oy, container);
         break;
       case 'border':
-        this.renderBorder(e['dir'] as number, e['color'] as string, baseGX, baseGY, container);
+        this.renderBorder(e.dir as number, e.color as string, baseGX, baseGY, container);
         break;
       case 'goto_line':
-        this.renderGotoLine(e['goto_dir'] as number, baseGX, baseGY, container);
+        this.renderGotoLine(e.goto_dir as number, baseGX, baseGY, container);
         break;
       case 'tile_label':
-        this.renderTileLabel(e['tile'] as Tile, baseGX + ox, baseGY + oy, container);
+        this.renderTileLabel(e.tile as Tile, baseGX + ox, baseGY + oy, container);
         break;
       case null:
       case undefined:
       case '':
         break;
       default: {
-        const tex = this.getTexture(e['key'] as string);
+        const tex = this.getTexture(e.key as string);
         if (tex) {
           const sp = new Sprite(tex);
           sp.x = baseGX + ox;
@@ -348,9 +364,8 @@ export class PixiRenderer {
 
   private renderCityBar(city: City, x: number, y: number, container: Container): void {
     if (!city) return;
-    const c = city as Record<string, unknown>;
-    const name = (c['name'] as string) ?? '';
-    const size = (c['size'] as number) ?? 0;
+    const name = city.name ?? '';
+    const size = city.size ?? 0;
     const t = new Text({ text: `${name} (${size})`, style: PixiRenderer.CITY_TEXT_STYLE });
     t.x = x;
     t.y = y;
@@ -358,7 +373,7 @@ export class PixiRenderer {
   }
 
   private renderTileLabel(tile: Tile, x: number, y: number, container: Container): void {
-    const label = (tile as Record<string, unknown>)['label'] as string;
+    const label = tile['label'] as string | undefined;
     if (!label) return;
     const t = new Text({ text: label, style: PixiRenderer.LABEL_TEXT_STYLE });
     t.x = x;

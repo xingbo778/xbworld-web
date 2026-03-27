@@ -543,7 +543,7 @@ export function fill_sprite_array(layer: number, ptile: Tile | null, pedge: unkn
       }
 
       if (ptile != null && (ptile['nuke'] as number) > 0) {
-        (ptile as Record<string, unknown>)['nuke'] = (ptile['nuke'] as number) - 1;
+        ptile['nuke'] = (ptile['nuke'] as number) - 1;
         sprite_array.push({
           "key": "explode.nuke",
           "offset_x": -45,

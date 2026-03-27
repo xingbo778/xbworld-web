@@ -91,7 +91,7 @@ export function buildIntelData(pplayer: Player): IntelData {
 
   const diplomacy: IntelData['diplomacy'] = [];
   if (pplayer['diplstates'] !== undefined) {
-    (pplayer['diplstates'] as Record<string, unknown>[]).forEach((st, i) => {
+    (pplayer['diplstates'] as Array<{ state?: number }>).forEach((st, i) => {
       if (st['state'] !== DiplState.DS_NO_CONTACT && i !== (pplayer['playerno'] as number) && store.players[i]) {
         diplomacy.push({
           nation: (store.nations[store.players[i]['nation'] as number]?.['adjective'] as string) || 'Unknown',
@@ -104,7 +104,7 @@ export function buildIntelData(pplayer: Player): IntelData {
   return {
     ruler: pplayer['name'] as string,
     government: gov ? (gov['name'] as string) : '(Unknown)',
-    capital: capital ? (capital as Record<string, unknown>)['name'] as string : '(capital unknown)',
+    capital: capital ? String(capital['name']) : '(capital unknown)',
     gold: String(pplayer['gold']),
     tax: `${pplayer['tax']}%`,
     science: `${pplayer['science']}%`,

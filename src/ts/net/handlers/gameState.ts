@@ -85,7 +85,6 @@ export function handle_trade_route_info(packet: TradeRouteInfoPacket): void {
 
 export function handle_endgame_player(packet: EndgamePlayerPacket): void {
   store.endgamePlayerInfo.push(packet);
-  (window as unknown as Record<string, unknown>)['endgame_player_info'] = store.endgamePlayerInfo;  // legacy JS bridge
 }
 
 export function handle_unknown_research(packet: UnknownResearchPacket): void {

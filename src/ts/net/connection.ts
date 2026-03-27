@@ -26,14 +26,12 @@ import { showDialogMessage as show_dialog_message } from '../client/civClient';
 import { client_handle_packet } from './packhandlers';
 import { packet_chat_msg_req } from './packetConstants';
 import { blockUI, unblockUI } from '../utils/dom';
+import { incrementDebugCounter } from '../utils/debugGlobals';
 async function sha512hex(text: string): Promise<string> {
   const data = new TextEncoder().encode(text);
   const hash = await crypto.subtle.digest('SHA-512', data);
   return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
-
-const win = window as unknown as Record<string, unknown>;
-
 // Packet worker — JSON.parse off the main thread.
 // Uses an inline Blob URL so the worker URL never mismatches after a build.
 let _packetWorker: Worker | null = null;
@@ -55,7 +53,7 @@ const error_shown = false;
 const syncTimerId = -1;
 let clinet_last_send = 0;
 export const debug_client_speed_list: number[] = [];
-const freeciv_version = '+Freeciv.Web.Devel-3.4';
+export const freeciv_version = '+Freeciv.Web.Devel-3.4';
 let ws: WebSocket | null = null;
 let civserverport: string | null = null;
 let ping_last = new Date().getTime();
@@ -82,6 +80,47 @@ let _serverShutdown = false; // set by handle_server_shutdown before ws.close ar
  */
 export function markServerShutdown(): void {
   _serverShutdown = true;
+}
+
+export function getCurrentWebSocketForTests(): WebSocket | null {
+  return ws;
+}
+
+export function setCurrentWebSocketForTests(value: WebSocket | null): void {
+  ws = value;
+}
+
+export function getCivserverportForTests(): string | null {
+  return civserverport;
+}
+
+export function setCivserverportForTests(value: string | null): void {
+  civserverport = value;
+  store.civserverport = value ?? '';
+}
+
+export function forceCurrentWebSocketCloseForTests(
+  code: number,
+  reason = '',
+  wasClean = false,
+): { ok: boolean } {
+  if (!ws?.onclose) return { ok: false };
+  ws.onclose(new CloseEvent('close', { code, reason, wasClean }));
+  return { ok: true };
+}
+
+export function getNetworkDebugState(): {
+  readyState: number | 'no-ws';
+  url: string | 'no-url';
+  onmessageType: string | 'no-ws';
+  civserverport: string | null;
+} {
+  return {
+    readyState: ws ? ws.readyState : 'no-ws',
+    url: ws ? ws.url : 'no-url',
+    onmessageType: ws ? typeof ws.onmessage : 'no-ws',
+    civserverport,
+  };
 }
 
 /**
@@ -202,7 +241,7 @@ export function network_init(): void {
   const urlParams = new URLSearchParams(window.location.search);
   const urlPort = urlParams.get('civserverport');
   if (urlPort) {
-    civserverport = urlPort;
+    setCivserverportForTests(urlPort);
     websocket_init();
     return;
   }
@@ -229,7 +268,7 @@ export function network_init(): void {
       }
 
       if (port != null && result === 'success') {
-        civserverport = port;
+        setCivserverportForTests(port);
         websocket_init();
       } else {
         show_dialog_message('Network error', 'Invalid server port. Error: ' + result);
@@ -266,8 +305,7 @@ export function websocket_init(): void {
     if (typeof client_handle_packet === 'undefined' || !parsed) {
       return;
     }
-    if ((window as any).__xbwPacketCount === undefined) (window as any).__xbwPacketCount = 0;
-    (window as any).__xbwPacketCount += parsed.length;
+    incrementDebugCounter('__xbwPacketCount', parsed.length);
     // Use larger chunks for big batches (tile replays) to reduce setTimeout overhead.
     // Each tile packet is a fast O(1) assign, so 200 per chunk still stays under ~2ms.
     const CHUNK = parsed.length > 200 ? 200 : 50;
@@ -495,27 +533,3 @@ export function send_message_delayed(message: string, delay: number): void {
 export function send_message(message: string): void {
   sendChatMessage(message);
 }
-
-// ============================================================================
-// Expose to Legacy — exact same names as clinet.js
-// ============================================================================
-
-// Expose module-local state that Legacy code reads
-// Override ws/civserverport/ping_last with getters so legacy reads get current values
-Object.defineProperty(win, 'ws', {
-  get: () => ws,
-  set: (v: WebSocket | null) => { ws = v; },
-  configurable: true,
-});
-
-Object.defineProperty(win, 'civserverport', {
-  get: () => civserverport,
-  set: (v: string | null) => { civserverport = v; },
-  configurable: true,
-});
-
-Object.defineProperty(win, 'ping_last', {
-  get: () => ping_last,
-  set: (v: number) => { ping_last = v; },
-  configurable: true,
-});

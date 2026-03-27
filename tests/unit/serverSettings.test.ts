@@ -38,22 +38,9 @@ vi.mock('@/ui/options', () => ({
   loadSavedTheme: vi.fn(),
 }));
 
-vi.mock('@/data/store', async (importOriginal) => {
-  const original = (await importOriginal()) as { store: Record<string, unknown> };
-  return {
-    ...original,
-    store: new Proxy(original.store, {
-      get(target, prop: string) {
-        if (prop === 'pixiRenderer') return { markAllDirty: mockMarkAllDirty };
-        return (target as any)[prop];
-      },
-      set(target, prop: string, value: unknown) {
-        (target as any)[prop] = value;
-        return true;
-      },
-    }),
-  };
-});
+vi.mock('@/renderer/rendererRegistry', () => ({
+  getActiveRenderer: () => ({ markAllDirty: mockMarkAllDirty }),
+}));
 
 import { store } from '@/data/store';
 import {

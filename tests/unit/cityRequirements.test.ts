@@ -10,6 +10,22 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { VUT_UTYPE, VUT_IMPROVEMENT } from '@/data/fcTypes';
+import type { City, GameInfo, Improvement, Player, UnitType } from '@/data/types';
+
+type RequirementTestCity = City & {
+  can_build_unit?: MockBitVector;
+  can_build_improvement?: MockBitVector;
+};
+type RequirementStoreState = {
+  players: Record<number, Player>;
+  cities: Record<number, RequirementTestCity>;
+  improvements: Record<number, Improvement>;
+  unitTypes: Record<number, UnitType>;
+  specialists: Record<number, { id: number }>;
+  rulesControl: { num_impr_types: number };
+  gameInfo: GameInfo | null;
+  tileset: Record<string, object>;
+};
 
 // ---------------------------------------------------------------------------
 // Minimal BitVector mock
@@ -26,21 +42,21 @@ class MockBitVector {
 // ---------------------------------------------------------------------------
 
 // Shared state object that the store mock delegates to
-const storeState = {
-  players: {} as Record<number, unknown>,
-  cities: {} as Record<number, unknown>,
-  improvements: {} as Record<number, unknown>,
-  unitTypes: {} as Record<number, unknown>,
-  specialists: {} as Record<number, unknown>,
-  rulesControl: { num_impr_types: 3 } as Record<string, unknown>,
-  gameInfo: null as Record<string, unknown> | null,
-  tileset: {} as Record<string, unknown>,
+const storeState: RequirementStoreState = {
+  players: {},
+  cities: {},
+  improvements: {},
+  unitTypes: {},
+  specialists: {},
+  rulesControl: { num_impr_types: 3 },
+  gameInfo: null,
+  tileset: {},
 };
 
 vi.mock('@/data/store', () => ({
   store: new Proxy({}, {
-    get(_target, prop: string) { return (storeState as Record<string, unknown>)[prop]; },
-    set(_target, prop: string, value: unknown) { (storeState as Record<string, unknown>)[prop] = value; return true; },
+    get(_target, prop: keyof RequirementStoreState) { return storeState[prop]; },
+    set(_target, prop: keyof RequirementStoreState, value: RequirementStoreState[keyof RequirementStoreState]) { storeState[prop] = value as never; return true; },
   }),
 }));
 
@@ -83,28 +99,80 @@ import { buildProductionListData } from '@/ui/cityLogic';
 // Helpers
 // ---------------------------------------------------------------------------
 
-function makeImprovement(id: number, name: string, extra: Record<string, unknown> = {}): Record<string, unknown> {
-  return { id, name, build_cost: 100, genus: 0, rule_name: name.toLowerCase(), graphic_str: name, graphic_alt: name, ...extra };
-}
-
-function makeCity(extra: Record<string, unknown> = {}): Record<string, unknown> {
+function makeImprovement(
+  id: number,
+  name: string,
+  extra: Partial<Improvement> = {},
+): Improvement {
   return {
-    id: 1,
-    owner: 0,
-    tile: 0,
-    improvements: new MockBitVector([]), // no buildings by default
-    production_kind: VUT_IMPROVEMENT,
-    production_value: 0,
-    did_buy: false,
-    turn_founded: 1,
-    shield_stock: 0,
-    surplus: { 5: 5 }, // O_SHIELD=5
+    id,
+    name,
+    build_cost: 100,
+    genus: 0,
+    rule_name: name.toLowerCase(),
+    graphic_str: name,
+    graphic_alt: name,
     ...extra,
   };
 }
 
-function makePlayer(knownTechs: number[] = []): Record<string, unknown> {
-  return { playerno: 0, techs: knownTechs };
+function makeCity(extra: Partial<RequirementTestCity> = {}): RequirementTestCity {
+  return {
+    id: 1,
+    owner: 0,
+    tile: 0,
+    name: 'City',
+    size: 2,
+    food_stock: 0,
+    shield_stock: 0,
+    production_kind: VUT_IMPROVEMENT,
+    production_value: 0,
+    surplus: [] as number[],
+    waste: [] as number[],
+    unhappy_penalty: [] as number[],
+    prod: [] as number[],
+    citizen_extra: [] as number[],
+    ppl_happy: [] as number[],
+    ppl_content: [] as number[],
+    ppl_unhappy: [] as number[],
+    ppl_angry: [] as number[],
+    improvements: new MockBitVector([]) as unknown as boolean[], // no buildings by default
+    did_buy: false,
+    turn_founded: 1,
+    surplus_shields: 5,
+    ...extra,
+  } as unknown as RequirementTestCity;
+}
+
+function makePlayer(knownTechs: number[] = []): Player {
+  return {
+    playerno: 0,
+    name: 'Player',
+    username: 'player',
+    nation: 0,
+    is_alive: true,
+    is_ready: true,
+    ai_skill_level: 0,
+    gold: 0,
+    tax: 0,
+    luxury: 0,
+    science: 0,
+    expected_income: 0,
+    team: 0,
+    embassy_txt: '',
+    techs: knownTechs,
+  };
+}
+
+function makeGameInfo(turn: number): GameInfo {
+  return {
+    turn,
+    year: 0,
+    timeout: 0,
+    first_timeout: 0,
+    phase: 0,
+    phase_mode: 0,
+  };
 }
 
 beforeEach(() => {
@@ -125,15 +193,15 @@ describe('canCityBuildImprovementDirect', () => {
   it('returns false when improvement is already built', () => {
     const impr = makeImprovement(0, 'Barracks');
     storeState.improvements[0] = impr;
-    const city = makeCity({ improvements: new MockBitVector([0]) }); // Barracks already built
-    expect(canCityBuildImprovementDirect(city as any, impr as any)).toBe(false);
+    const city = makeCity({ improvements: new MockBitVector([0]) as unknown as boolean[] }); // Barracks already built
+    expect(canCityBuildImprovementDirect(city, impr)).toBe(false);
   });
 
   it('returns true when improvement is not yet built and no tech/reqs', () => {
     const impr = makeImprovement(1, 'Library');
     storeState.improvements[1] = impr;
     const city = makeCity(); // nothing built
-    expect(canCityBuildImprovementDirect(city as any, impr as any)).toBe(true);
+    expect(canCityBuildImprovementDirect(city, impr)).toBe(true);
   });
 
   it('returns false when tech_req is not known by player', () => {
@@ -141,7 +209,7 @@ describe('canCityBuildImprovementDirect', () => {
     storeState.improvements[1] = impr;
     _techState.returnVal = 0; // TECH_UNKNOWN
     const city = makeCity();
-    expect(canCityBuildImprovementDirect(city as any, impr as any)).toBe(false);
+    expect(canCityBuildImprovementDirect(city, impr)).toBe(false);
   });
 
   it('returns true when tech_req IS known by player', () => {
@@ -149,14 +217,14 @@ describe('canCityBuildImprovementDirect', () => {
     storeState.improvements[1] = impr;
     _techState.returnVal = 2; // TECH_KNOWN
     const city = makeCity();
-    expect(canCityBuildImprovementDirect(city as any, impr as any)).toBe(true);
+    expect(canCityBuildImprovementDirect(city, impr)).toBe(true);
   });
 
   it('returns true when tech_req is -1 (no tech required)', () => {
     const impr = makeImprovement(0, 'Barracks', { tech_req: -1 });
     storeState.improvements[0] = impr;
     const city = makeCity();
-    expect(canCityBuildImprovementDirect(city as any, impr as any)).toBe(true);
+    expect(canCityBuildImprovementDirect(city, impr)).toBe(true);
   });
 
   it('returns false when build_reqs fail', () => {
@@ -164,7 +232,7 @@ describe('canCityBuildImprovementDirect', () => {
     storeState.improvements[1] = impr;
     _reqsState.returnVal = false;
     const city = makeCity();
-    expect(canCityBuildImprovementDirect(city as any, impr as any)).toBe(false);
+    expect(canCityBuildImprovementDirect(city, impr)).toBe(false);
   });
 
   it('returns true when build_reqs pass', () => {
@@ -172,7 +240,7 @@ describe('canCityBuildImprovementDirect', () => {
     storeState.improvements[1] = impr;
     _reqsState.returnVal = true;
     const city = makeCity();
-    expect(canCityBuildImprovementDirect(city as any, impr as any)).toBe(true);
+    expect(canCityBuildImprovementDirect(city, impr)).toBe(true);
   });
 });
 
@@ -183,61 +251,61 @@ describe('canCityBuildImprovementDirect', () => {
 describe('cityCanBuy', () => {
   it('returns false when producing a unit (VUT_UTYPE) — no crash', () => {
     const city = makeCity({ production_kind: VUT_UTYPE, production_value: 5 });
-    expect(() => cityCanBuy(city as any)).not.toThrow();
-    expect(cityCanBuy(city as any)).toBe(false);
+    expect(() => cityCanBuy(city)).not.toThrow();
+    expect(cityCanBuy(city)).toBe(false);
   });
 
   it('returns false when production_kind is VUT_IMPROVEMENT but improvement missing', () => {
     const city = makeCity({ production_kind: VUT_IMPROVEMENT, production_value: 99 });
     // store.improvements[99] is undefined
-    expect(() => cityCanBuy(city as any)).not.toThrow();
-    expect(cityCanBuy(city as any)).toBe(false);
+    expect(() => cityCanBuy(city)).not.toThrow();
+    expect(cityCanBuy(city)).toBe(false);
   });
 
   it('returns false for Coinage improvement', () => {
     const impr = makeImprovement(0, 'Coinage');
     storeState.improvements[0] = impr;
     const city = makeCity({ production_kind: VUT_IMPROVEMENT, production_value: 0 });
-    expect(cityCanBuy(city as any)).toBe(false);
+    expect(cityCanBuy(city)).toBe(false);
   });
 
   it('returns true for a normal improvement when conditions met', () => {
     const impr = makeImprovement(1, 'Barracks');
     storeState.improvements[1] = impr;
-    storeState.gameInfo = { turn: 5 };
+    storeState.gameInfo = makeGameInfo(5);
     const city = makeCity({
       production_kind: VUT_IMPROVEMENT,
       production_value: 1,
       did_buy: false,
       turn_founded: 3, // ≠ current turn 5
     });
-    expect(cityCanBuy(city as any)).toBe(true);
+    expect(cityCanBuy(city)).toBe(true);
   });
 
   it('returns false when city already bought this turn (did_buy=true)', () => {
     const impr = makeImprovement(1, 'Barracks');
     storeState.improvements[1] = impr;
-    storeState.gameInfo = { turn: 5 };
+    storeState.gameInfo = makeGameInfo(5);
     const city = makeCity({
       production_kind: VUT_IMPROVEMENT,
       production_value: 1,
       did_buy: true,
       turn_founded: 3,
     });
-    expect(cityCanBuy(city as any)).toBe(false);
+    expect(cityCanBuy(city)).toBe(false);
   });
 
   it('returns false when city was founded this turn', () => {
     const impr = makeImprovement(1, 'Barracks');
     storeState.improvements[1] = impr;
-    storeState.gameInfo = { turn: 5 };
+    storeState.gameInfo = makeGameInfo(5);
     const city = makeCity({
       production_kind: VUT_IMPROVEMENT,
       production_value: 1,
       did_buy: false,
       turn_founded: 5, // same as current turn
     });
-    expect(cityCanBuy(city as any)).toBe(false);
+    expect(cityCanBuy(city)).toBe(false);
   });
 
   it('returns false when gameInfo is null (game not loaded)', () => {
@@ -250,7 +318,7 @@ describe('cityCanBuy', () => {
       did_buy: false,
       turn_founded: 1,
     });
-    expect(cityCanBuy(city as any)).toBe(false);
+    expect(cityCanBuy(city)).toBe(false);
   });
 });
 
@@ -264,25 +332,25 @@ describe('doesCityHaveImprovement', () => {
   });
 
   it('returns false when improvements BitVector is null', () => {
-    const city = makeCity({ improvements: null });
-    expect(doesCityHaveImprovement(city as any, 'Barracks')).toBe(false);
+    const city = makeCity({ improvements: null as unknown as boolean[] });
+    expect(doesCityHaveImprovement(city, 'Barracks')).toBe(false);
   });
 
   it('returns true when the named improvement is built', () => {
     storeState.improvements[0] = makeImprovement(0, 'Barracks');
     storeState.improvements[1] = makeImprovement(1, 'Library');
     storeState.improvements[2] = makeImprovement(2, 'University');
-    const city = makeCity({ improvements: new MockBitVector([0, 2]) }); // Barracks + University
-    expect(doesCityHaveImprovement(city as any, 'Barracks')).toBe(true);
-    expect(doesCityHaveImprovement(city as any, 'University')).toBe(true);
+    const city = makeCity({ improvements: new MockBitVector([0, 2]) as unknown as boolean[] }); // Barracks + University
+    expect(doesCityHaveImprovement(city, 'Barracks')).toBe(true);
+    expect(doesCityHaveImprovement(city, 'University')).toBe(true);
   });
 
   it('returns false when the named improvement is not built', () => {
     storeState.improvements[0] = makeImprovement(0, 'Barracks');
     storeState.improvements[1] = makeImprovement(1, 'Library');
     storeState.improvements[2] = makeImprovement(2, 'University');
-    const city = makeCity({ improvements: new MockBitVector([0]) }); // only Barracks
-    expect(doesCityHaveImprovement(city as any, 'Library')).toBe(false);
+    const city = makeCity({ improvements: new MockBitVector([0]) as unknown as boolean[] }); // only Barracks
+    expect(doesCityHaveImprovement(city, 'Library')).toBe(false);
   });
 });
 
@@ -298,9 +366,9 @@ describe('buildProductionListData — improvements fallback', () => {
     _techState.returnVal = 0; // TECH_UNKNOWN
     // City has no can_build_unit → hasData=false
     const city = makeCity();
-    delete (city as any)['can_build_unit'];
+    delete city.can_build_unit;
 
-    const result = buildProductionListData(city as any);
+    const result = buildProductionListData(city);
     expect(result.hasData).toBe(false);
     expect(result.improvements).toHaveLength(0);
   });
@@ -310,9 +378,9 @@ describe('buildProductionListData — improvements fallback', () => {
       0: makeImprovement(0, 'Barracks'), // no tech_req, no build_reqs
     };
     const city = makeCity();
-    delete (city as any)['can_build_unit'];
+    delete city.can_build_unit;
 
-    const result = buildProductionListData(city as any);
+    const result = buildProductionListData(city);
     expect(result.hasData).toBe(false);
     expect(result.improvements).toHaveLength(1);
     expect(result.improvements[0].impr.name).toBe('Barracks');
@@ -323,10 +391,10 @@ describe('buildProductionListData — improvements fallback', () => {
       0: makeImprovement(0, 'Barracks'),
     };
     // Barracks already built
-    const city = makeCity({ improvements: new MockBitVector([0]) });
-    delete (city as any)['can_build_unit'];
+    const city = makeCity({ improvements: new MockBitVector([0]) as unknown as boolean[] });
+    delete city.can_build_unit;
 
-    const result = buildProductionListData(city as any);
+    const result = buildProductionListData(city);
     expect(result.improvements).toHaveLength(0);
   });
 
@@ -340,7 +408,7 @@ describe('buildProductionListData — improvements fallback', () => {
       can_build_improvement: new MockBitVector([0]),
     });
 
-    const result = buildProductionListData(city as any);
+    const result = buildProductionListData(city);
     expect(result.hasData).toBe(true);
     expect(result.improvements).toHaveLength(1);
   });
@@ -354,7 +422,7 @@ describe('buildProductionListData — improvements fallback', () => {
       can_build_improvement: new MockBitVector([]), // bit 0 NOT set
     });
 
-    const result = buildProductionListData(city as any);
+    const result = buildProductionListData(city);
     expect(result.hasData).toBe(true);
     expect(result.improvements).toHaveLength(0);
   });

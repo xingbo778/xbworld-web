@@ -14,6 +14,7 @@
  */
 
 import { test, expect } from '@playwright/test';
+import type { TerrainBlendStatsSnapshot, XbwPageGlobals } from './helpers/pageGlobals';
 
 test.setTimeout(60_000);
 
@@ -22,10 +23,14 @@ test('terrain blend stats are exposed on window', async ({ page }) => {
   await page.waitForSelector('#game_page', { state: 'visible', timeout: 25_000 });
   await page.waitForTimeout(3000); // allow initial map render
 
-  const stats = await page.evaluate(() => (window as any).__terrainBlendStats);
+  const stats = await page.evaluate(() => {
+    const w = window as XbwPageGlobals;
+    return w.__terrainBlendStats;
+  });
   console.log('Terrain blend stats after load:', stats);
 
   expect(stats).toBeDefined();
+  if (!stats) throw new Error('terrain blend stats missing');
   expect(typeof stats.matchSameRequests).toBe('number');
   expect(typeof stats.cellCornerRequests).toBe('number');
 });
@@ -36,7 +41,14 @@ test('MATCH_SAME requests are tracked and have reasonable hit rate', async ({ pa
   await page.waitForTimeout(4000);
 
   const stats = await page.evaluate(() => {
-    const s = (window as any).__terrainBlendStats;
+    const w = window as XbwPageGlobals;
+    const s = w.__terrainBlendStats as {
+      matchSameRequests: number;
+      matchSameKeysFound: number;
+      matchSameKeysMissing: number;
+      cellCornerRequests: number;
+      cellCornerNullNeighbors: number;
+    };
     const total = s.matchSameKeysFound + s.matchSameKeysMissing;
     const hitRate = total > 0 ? (s.matchSameKeysFound / total * 100).toFixed(1) : 'N/A';
     return { ...s, hitRate };
@@ -60,14 +72,15 @@ test('resetTerrainBlendStats works from window', async ({ page }) => {
   await page.waitForTimeout(2000);
 
   const result = await page.evaluate(() => {
-    const win = window as any;
+    const win = window as XbwPageGlobals;
     if (typeof win.__resetTerrainBlendStats !== 'function') return { error: 'not exposed' };
     win.__resetTerrainBlendStats();
-    return { ...win.__terrainBlendStats };
+    return { ...(win.__terrainBlendStats as TerrainBlendStatsSnapshot) };
   });
 
   console.log('After reset:', result);
   expect(result).not.toHaveProperty('error');
+  if ('error' in result) throw new Error(result.error);
   expect(result.matchSameRequests).toBe(0);
   expect(result.matchSameKeysFound).toBe(0);
   expect(result.matchSameKeysMissing).toBe(0);
@@ -86,13 +99,16 @@ test('no console errors from terrain sprite calculation', async ({ page }) => {
 
   // Trigger mark_all_dirty to force terrain recalculation
   await page.evaluate(() => {
-    const win = window as any;
+    const win = window as XbwPageGlobals;
     if (typeof win.__resetTerrainBlendStats === 'function') win.__resetTerrainBlendStats();
     if (typeof win.mark_all_dirty === 'function') win.mark_all_dirty();
   });
   await page.waitForTimeout(1000);
 
-  const stats = await page.evaluate(() => (window as any).__terrainBlendStats);
+  const stats = await page.evaluate(() => {
+    const w = window as XbwPageGlobals;
+    return w.__terrainBlendStats;
+  });
   console.log('Stats after mark_all_dirty:', stats);
 
   const terrainErrors = errors.filter(e =>

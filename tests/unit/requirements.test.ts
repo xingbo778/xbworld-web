@@ -50,19 +50,77 @@ import {
 } from '@/data/requirements';
 import { playerInventionState, TECH_KNOWN } from '@/data/tech';
 import { store } from '@/data/store';
-
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import type { City, GameInfo, MapInfo, Player, Tile, Unit, UnitType } from '@/data/types';
+import type { Requirement } from '@/data/requirements';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-function makeReq(overrides: Record<string, any> = {}): any {
+function makeReq(overrides: Partial<Requirement> = {}): Requirement {
   return {
     kind: VUT_NONE,
     range: REQ_RANGE_PLAYER,
     value: 0,
     present: true,
+    ...overrides,
+  };
+}
+
+function makePlayer(overrides: Partial<Player> & { inventions?: Record<number, number> } = {}): Player {
+  return {
+    playerno: 0,
+    name: 'Player',
+    username: 'player',
+    nation: 0,
+    is_alive: true,
+    is_ready: true,
+    ai_skill_level: 0,
+    gold: 0,
+    tax: 0,
+    luxury: 0,
+    science: 0,
+    expected_income: 0,
+    team: 0,
+    embassy_txt: '',
+    ...overrides,
+  };
+}
+
+function makeGameInfo(overrides: Partial<GameInfo> = {}): GameInfo {
+  return {
+    turn: 0,
+    year: 0,
+    timeout: 0,
+    first_timeout: 0,
+    phase: 0,
+    phase_mode: 0,
+    ...overrides,
+  };
+}
+
+function makeMapInfo(overrides: Partial<MapInfo> = {}): MapInfo {
+  return {
+    xsize: 0,
+    ysize: 0,
+    topology_id: 0,
+    wrap_id: 0,
+    ...overrides,
+  };
+}
+
+function makeTile(overrides: Partial<Tile> = {}): Tile {
+  return {
+    index: 0,
+    x: 0,
+    y: 0,
+    terrain: 0,
+    known: 0,
+    extras: [],
+    owner: 0,
+    worked: 0,
+    resource: 0,
+    continent: 0,
     ...overrides,
   };
 }
@@ -77,12 +135,12 @@ describe('isTechInRange', () => {
   // playerInventionState is a direct import.
 
   it('should return TRI_YES when player knows the tech (PLAYER range)', () => {
-    const player = { inventions: { 5: TECH_KNOWN, 10: TECH_KNOWN, 15: TECH_KNOWN } } as any;
+    const player = makePlayer({ inventions: { 5: TECH_KNOWN, 10: TECH_KNOWN, 15: TECH_KNOWN } });
     expect(isTechInRange(player, REQ_RANGE_PLAYER, 10)).toBe(TRI_YES);
   });
 
   it('should return TRI_NO when player does not know the tech', () => {
-    const player = { inventions: { 5: TECH_KNOWN, 10: TECH_KNOWN, 15: TECH_KNOWN } } as any;
+    const player = makePlayer({ inventions: { 5: TECH_KNOWN, 10: TECH_KNOWN, 15: TECH_KNOWN } });
     expect(isTechInRange(player, REQ_RANGE_PLAYER, 20)).toBe(TRI_NO);
   });
 
@@ -91,17 +149,17 @@ describe('isTechInRange', () => {
   });
 
   it('should return TRI_MAYBE for TEAM range (unimplemented)', () => {
-    const player = { inventions: { 5: TECH_KNOWN } } as any;
+    const player = makePlayer({ inventions: { 5: TECH_KNOWN } });
     expect(isTechInRange(player, REQ_RANGE_TEAM, 5)).toBe(TRI_MAYBE);
   });
 
   it('should return TRI_MAYBE for WORLD range (unimplemented)', () => {
-    const player = { inventions: { 5: TECH_KNOWN } } as any;
+    const player = makePlayer({ inventions: { 5: TECH_KNOWN } });
     expect(isTechInRange(player, REQ_RANGE_WORLD, 5)).toBe(TRI_MAYBE);
   });
 
   it('should return TRI_MAYBE for invalid range (LOCAL)', () => {
-    const player = { inventions: { 5: TECH_KNOWN } } as any;
+    const player = makePlayer({ inventions: { 5: TECH_KNOWN } });
     expect(isTechInRange(player, REQ_RANGE_LOCAL, 5)).toBe(TRI_MAYBE);
   });
 });
@@ -119,37 +177,37 @@ describe('isReqActive', () => {
   });
 
   it('should return true when tech requirement is met', () => {
-    const player = { inventions: { 10: TECH_KNOWN } } as any;
+    const player = makePlayer({ inventions: { 10: TECH_KNOWN } });
     const req = makeReq({ kind: VUT_ADVANCE, range: REQ_RANGE_PLAYER, value: 10, present: true });
     expect(isReqActive(player, null, null, null, null, null, null, req, RPT_POSSIBLE)).toBe(true);
   });
 
   it('should return false when tech requirement is not met', () => {
-    const player = { inventions: { 5: TECH_KNOWN } } as any;
+    const player = makePlayer({ inventions: { 5: TECH_KNOWN } });
     const req = makeReq({ kind: VUT_ADVANCE, range: REQ_RANGE_PLAYER, value: 10, present: true });
     expect(isReqActive(player, null, null, null, null, null, null, req, RPT_POSSIBLE)).toBe(false);
   });
 
   it('should handle negated requirement (present=false)', () => {
-    const player = { inventions: { 10: TECH_KNOWN } } as any;
+    const player = makePlayer({ inventions: { 10: TECH_KNOWN } });
     const req = makeReq({ kind: VUT_ADVANCE, range: REQ_RANGE_PLAYER, value: 10, present: false });
     expect(isReqActive(player, null, null, null, null, null, null, req, RPT_POSSIBLE)).toBe(false);
   });
 
   it('should return true for negated requirement when tech is not known', () => {
-    const player = { inventions: { 5: TECH_KNOWN } } as any;
+    const player = makePlayer({ inventions: { 5: TECH_KNOWN } });
     const req = makeReq({ kind: VUT_ADVANCE, range: REQ_RANGE_PLAYER, value: 10, present: false });
     expect(isReqActive(player, null, null, null, null, null, null, req, RPT_POSSIBLE)).toBe(true);
   });
 
   it('should handle VUT_GOVERNMENT requirement', () => {
-    const player = { government: 3 } as any;
+    const player = makePlayer({ government: 3 });
     const req = makeReq({ kind: VUT_GOVERNMENT, value: 3, present: true });
     expect(isReqActive(player, null, null, null, null, null, null, req, RPT_POSSIBLE)).toBe(true);
   });
 
   it('should return false when government does not match', () => {
-    const player = { government: 2 } as any;
+    const player = makePlayer({ government: 2 });
     const req = makeReq({ kind: VUT_GOVERNMENT, value: 3, present: true });
     expect(isReqActive(player, null, null, null, null, null, null, req, RPT_POSSIBLE)).toBe(false);
   });
@@ -204,7 +262,7 @@ describe('isReqActive', () => {
 
   it('VUT_MINTECHS: returns true when player knows enough techs', () => {
     store.techs = { 1: {}, 2: {}, 3: {} } as never;
-    const player = { inventions: { 1: TECH_KNOWN, 2: TECH_KNOWN, 3: TECH_KNOWN } } as any;
+    const player = makePlayer({ inventions: { 1: TECH_KNOWN, 2: TECH_KNOWN, 3: TECH_KNOWN } });
     const req = makeReq({ kind: VUT_MINTECHS, value: 3, present: true });
     expect(isReqActive(player, null, null, null, null, null, null, req, RPT_POSSIBLE)).toBe(true);
     store.techs = {};
@@ -212,7 +270,7 @@ describe('isReqActive', () => {
 
   it('VUT_MINTECHS: returns false when player knows too few techs', () => {
     store.techs = { 1: {}, 2: {}, 3: {} } as never;
-    const player = { inventions: { 1: TECH_KNOWN } } as any;
+    const player = makePlayer({ inventions: { 1: TECH_KNOWN } });
     const req = makeReq({ kind: VUT_MINTECHS, value: 3, present: true });
     expect(isReqActive(player, null, null, null, null, null, null, req, RPT_POSSIBLE)).toBe(false);
     store.techs = {};
@@ -227,14 +285,14 @@ describe('isReqActive', () => {
   });
 
   it('VUT_TOPO: returns true when topology_id matches', () => {
-    store.mapInfo = { topology_id: 4 } as never;
+    store.mapInfo = makeMapInfo({ topology_id: 4 });
     const req = makeReq({ kind: VUT_TOPO, value: 4, present: true });
     expect(isReqActive(null, null, null, null, null, null, null, req, RPT_POSSIBLE)).toBe(true);
     store.mapInfo = null;
   });
 
   it('VUT_TOPO: returns false when topology_id does not match', () => {
-    store.mapInfo = { topology_id: 2 } as never;
+    store.mapInfo = makeMapInfo({ topology_id: 2 });
     const req = makeReq({ kind: VUT_TOPO, value: 4, present: true });
     expect(isReqActive(null, null, null, null, null, null, null, req, RPT_POSSIBLE)).toBe(false);
     store.mapInfo = null;
@@ -276,7 +334,7 @@ describe('areReqsActive', () => {
   // No window globals needed — see isTechInRange comment.
 
   it('should return true when all requirements are met', () => {
-    const player = { inventions: { 5: TECH_KNOWN, 10: TECH_KNOWN }, government: 3 } as any;
+    const player = makePlayer({ inventions: { 5: TECH_KNOWN, 10: TECH_KNOWN }, government: 3 });
     const reqs = [
       makeReq({ kind: VUT_ADVANCE, range: REQ_RANGE_PLAYER, value: 5, present: true }),
       makeReq({ kind: VUT_ADVANCE, range: REQ_RANGE_PLAYER, value: 10, present: true }),
@@ -286,7 +344,7 @@ describe('areReqsActive', () => {
   });
 
   it('should return false when any requirement is not met', () => {
-    const player = { inventions: { 5: TECH_KNOWN }, government: 3 } as any;
+    const player = makePlayer({ inventions: { 5: TECH_KNOWN }, government: 3 });
     const reqs = [
       makeReq({ kind: VUT_ADVANCE, range: REQ_RANGE_PLAYER, value: 5, present: true }),
       makeReq({ kind: VUT_ADVANCE, range: REQ_RANGE_PLAYER, value: 10, present: true }),
@@ -318,14 +376,14 @@ describe('universalBuildShieldCost', () => {
 /** Fake BitVector whose isSet() returns true iff id is in the list */
 function makeBV(ids: number[]) { return { isSet: (n: number) => ids.includes(n) }; }
 
-function b1makeReq(kind: number, value: number, range = REQ_RANGE_CITY, present = true): any {
+function b1makeReq(kind: number, value: number, range = REQ_RANGE_CITY, present = true): Requirement {
   return { kind, value, range, present };
 }
 
-function b1call(req: any, city?: any, tile?: any, unit?: any) {
+function b1call(req: Requirement, city?: unknown, tile?: unknown, unit?: unknown) {
   return isReqActive(null, city ?? null, null, tile ?? null, unit ?? null, null, null, req, RPT_CERTAIN);
 }
-function b1callPoss(req: any, city?: any, tile?: any, unit?: any) {
+function b1callPoss(req: Requirement, city?: unknown, tile?: unknown, unit?: unknown) {
   return isReqActive(null, city ?? null, null, tile ?? null, unit ?? null, null, null, req, RPT_POSSIBLE);
 }
 
@@ -370,15 +428,15 @@ describe('B1 VUT_MINYEAR', () => {
   const r = (v: number) => b1makeReq(VUT_MINYEAR, v, REQ_RANGE_CITY);
 
   it('true when game year >= req', () => {
-    store.gameInfo = { year: 1900 } as any;
+    store.gameInfo = makeGameInfo({ year: 1900 });
     expect(b1call(r(1800))).toBe(true);
   });
   it('false when game year < req', () => {
-    store.gameInfo = { year: 100 } as any;
+    store.gameInfo = makeGameInfo({ year: 100 });
     expect(b1call(r(500))).toBe(false);
   });
   it('true for exact year match', () => {
-    store.gameInfo = { year: -300 } as any;
+    store.gameInfo = makeGameInfo({ year: -300 });
     expect(b1call(r(-300))).toBe(true);
   });
   it('TRI_MAYBE (→false) when gameInfo null', () => {
@@ -577,7 +635,7 @@ describe('A1 VUT_IMPR_GENUS (city buildings iteration)', () => {
       0: { id: 0, name: 'Pyramids', genus: IG_GREAT_WONDER },
       1: { id: 1, name: 'Library', genus: IG_IMPROVEMENT },
       2: { id: 2, name: 'University', genus: IG_IMPROVEMENT },
-    } as any;
+    } as never;
   });
 
   afterEach(() => { store.improvements = {}; });

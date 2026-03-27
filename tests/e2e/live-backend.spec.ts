@@ -15,6 +15,7 @@
  *   BACKEND_URL=https://xbworld-production.up.railway.app npx vite --config vite.config.dev.ts --port 8081
  */
 import { test, expect } from '@playwright/test';
+import { XbwPageGlobals } from './helpers/pageGlobals';
 
 // Minimal 1×1 transparent PNG (base64).  Returned for every tileset image
 // request so the three image.onload callbacks fire instantly while keeping
@@ -188,7 +189,7 @@ test.describe('Live Railway connection', () => {
       const panel = document.getElementById('game_overview_panel');
       const map = document.getElementById('overview_map');
       const img = document.getElementById('overview_img') as HTMLCanvasElement | null;
-      const w = window as any;
+      const w = window as XbwPageGlobals;
       return {
         panel_display: panel ? getComputedStyle(panel).display : 'missing',
         panel_visibility: panel ? getComputedStyle(panel).visibility : 'missing',
@@ -199,12 +200,12 @@ test.describe('Live Railway connection', () => {
         img_display: img ? getComputedStyle(img).display : 'missing',
         img_w: img?.offsetWidth, img_h: img?.offsetHeight,
         overview_active: w.__xbwOverviewActive,
-        store_map_info: w.store ? !!w.store.mapInfo : 'no-store',
-        map_info_xsize: w.store?.mapInfo?.xsize,
+        store_map_info: w.__store ? !!w.__store.mapInfo : 'no-store',
+        map_info_xsize: w.__store?.mapInfo?.xsize,
         init_overview_called: w.__xbwInitOverviewCalled,
         init_overview_no_map_info: w.__xbwInitOverviewNoMapInfo,
         handle_map_info_called: w.__xbwHandleMapInfoCalled,
-        map_info_xsize: w.__xbwMapInfoXsize,
+        debug_map_info_xsize: w.__xbwMapInfoXsize,
         received_pids_sample: JSON.stringify(w.__xbwReceivedPids).slice(0, 200),
       };
     });
@@ -289,16 +290,15 @@ test.describe('Debug connection', () => {
       const pregame = document.getElementById('pregame_page');
       const gamePage = document.getElementById('game_page');
       const chatbox = document.getElementById('pregame_message_area');
-      const w = window as any;
-      const wsState = w.ws ? w.ws.readyState : 'no-ws';
-      const wsUrl = w.ws ? w.ws.url : 'no-url';
+      const w = window as XbwPageGlobals;
+      const net = w.__networkDebug?.state ?? {};
       return {
         pregame_exists: !!pregame,
         game_page_display: gamePage ? gamePage.style.display : 'missing',
         chatbox_text: chatbox ? chatbox.textContent?.slice(0, 200) : '(no chatbox)',
-        civserverport: w.civserverport,
-        ws_readyState: wsState,
-        ws_url: wsUrl,
+        civserverport: net.civserverport ?? null,
+        ws_readyState: net.readyState ?? 'no-ws',
+        ws_url: net.url ?? 'no-url',
         blockUI_visible: !!document.querySelector('.xb-block-overlay, .blockUI'),
       };
     });
@@ -311,27 +311,28 @@ test.describe('Debug connection', () => {
       const pregame = document.getElementById('pregame_page');
       const gamePage = document.getElementById('game_page');
       const chatbox = document.getElementById('pregame_message_area');
-      const w = window as any;
+      const w = window as XbwPageGlobals;
+      const net = w.__networkDebug?.state ?? {};
       return {
         pregame_exists: !!pregame,
         game_page_display: gamePage ? gamePage.style.display : 'missing',
         chatbox_text: chatbox ? chatbox.textContent?.slice(0, 200) : '(no chatbox)',
         chatbox_innerHTML: chatbox ? chatbox.innerHTML?.slice(0, 200) : '(no chatbox)',
         chatbox_childCount: chatbox ? chatbox.children.length : -1,
-        ws_readyState: w.ws ? w.ws.readyState : 'no-ws',
-        ws_url: w.ws ? w.ws.url : 'no-ws',
+        ws_readyState: net.readyState ?? 'no-ws',
+        ws_url: net.url ?? 'no-ws',
         packets_processed: w.__xbwPacketCount || 0,
         onMessage_called: w.__xbwOnMessageCalled || 0,
         processPackets_called: w.__xbwProcessPacketsCalled || 0,
         early_return: w.__xbwEarlyReturn || null,
         main_thread_parsing: w.__xbwMainThreadParsing || false,
         parse_error: w.__xbwParseError || null,
-        ws_onmessage_type: w.ws ? typeof w.ws.onmessage : 'no-ws',
+        ws_onmessage_type: net.onmessageType ?? 'no-ws',
         blockUI_visible: !!document.querySelector('.xb-block-overlay'),
         swal_visible: !!document.querySelector('.swal2-popup'),
         dialog_text: document.querySelector('[class*="MessageDialog"], [class*="xb-msg"]')?.textContent?.slice(0,100) || 'none',
         game_info_year: (document.getElementById('game_status_panel_top') || document.getElementById('game_status_panel_bottom'))?.textContent?.slice(0, 50) || '(none)',
-        civclient_state: w.store?.civclientState,
+        civclient_state: w.__store?.civclientState,
         game_info_turn: w.__xbwGameInfoTurn,
         game_info_called: w.__xbwGameInfoCalled,
         set_running_scheduled: w.__xbwSetRunningScheduled,

@@ -13,6 +13,7 @@
  *     npx vite --config vite.config.dev.ts --port 8080
  */
 import { test, expect, Browser, Page } from '@playwright/test';
+import { XbwPageGlobals, XbwPerfMonitorReport } from './helpers/pageGlobals';
 
 test.describe.configure({ timeout: 300_000 });
 
@@ -57,25 +58,31 @@ async function startGame(browser: Browser): Promise<Page> {
   await bots[0].page.waitForTimeout(5000);
 
   // aifill=0 (auto-voted YES by all bots)
-  await bots[0].page.evaluate(() => { (window as any).send_message?.('/set aifill 0'); });
+  await bots[0].page.evaluate(() => {
+    (window as XbwPageGlobals).send_message?.('/set aifill 0');
+  });
   await bots[0].page.waitForTimeout(20_000);
 
   // Remove persistent Host player
   const hostName = await bots[0].page.evaluate(() => {
-    const players = Object.values((window as any).players || {}) as any[];
+    const players = Object.values((window as XbwPageGlobals).__store?.players || {});
     return players.find(p => p.name && !p.name.startsWith('PerfBot') && !p.name.startsWith('AI'))?.name ?? null;
   });
   if (hostName) {
-    await bots[0].page.evaluate((n) => { (window as any).send_message?.('/remove ' + n); }, hostName);
+    await bots[0].page.evaluate((n) => {
+      (window as XbwPageGlobals).send_message?.('/remove ' + n);
+    }, hostName);
     await bots[0].page.waitForTimeout(20_000);
   }
 
   // All bots send /start
-  await Promise.all(bots.map(b => b.page.evaluate(() => { (window as any).send_message?.('/start'); })));
+  await Promise.all(bots.map(b => b.page.evaluate(() => {
+    (window as XbwPageGlobals).send_message?.('/start');
+  })));
 
   // Wait for MAP_INFO
   await bots[0].page.waitForFunction(
-    () => ((window as any).__xbwHandleMapInfoCalled || 0) > 0,
+    () => (((window as XbwPageGlobals).__xbwHandleMapInfoCalled || 0) > 0),
     { timeout: 90_000 }
   );
 
@@ -232,19 +239,30 @@ test('map render performance benchmark', async ({ page, browser }) => {
   // Inject perf monitor
   await gamePage.evaluate(MONITOR_SCRIPT);
 
-  const tileCount = await gamePage.evaluate(() => Object.keys((window as any).tiles || {}).length);
-  const renderer = await gamePage.evaluate(() => (window as any).__store?.renderer ?? 'unknown');
+  const tileCount = await gamePage.evaluate(() => Object.keys((window as XbwPageGlobals).__store?.tiles || {}).length);
+  const renderer = await gamePage.evaluate(() => (window as XbwPageGlobals).__store?.renderer ?? 'unknown');
   console.log(`Map: ${tileCount} tiles | Renderer: ${renderer === 2 ? 'Pixi/WebGL' : renderer === 1 ? '2D Canvas' : renderer}`);
 
   await gamePage.screenshot({ path: 'test-results/perf-00-game-started.png' }).catch(() => {});
 
   // ── Benchmark 1: Idle FPS (no interaction) ────────────────────────────────
   console.log('\n[1/4] Idle FPS (5 seconds, no input)...');
-  await gamePage.evaluate(() => { (window as any).__perfMonitor.start(); (window as any).__perfMonitor.snapshot('idle-start'); });
+  await gamePage.evaluate(() => {
+    const monitor = (window as XbwPageGlobals).__perfMonitor;
+    monitor?.start();
+    monitor?.snapshot('idle-start');
+  });
   await gamePage.waitForTimeout(5000);
-  await gamePage.evaluate(() => { (window as any).__perfMonitor.snapshot('idle-end'); });
-  const idleReport = await gamePage.evaluate(() => (window as any).__perfMonitor.report(5000));
-  await gamePage.evaluate(() => (window as any).__perfMonitor.stop());
+  await gamePage.evaluate(() => {
+    (window as XbwPageGlobals).__perfMonitor?.snapshot('idle-end');
+  });
+  const idleReport = await gamePage.evaluate<XbwPerfMonitorReport | null>(() =>
+    (window as XbwPageGlobals).__perfMonitor?.report(5000) ?? null
+  );
+  await gamePage.evaluate(() => {
+    (window as XbwPageGlobals).__perfMonitor?.stop();
+  });
+  if (!idleReport) throw new Error('__perfMonitor missing after injection');
 
   console.log(`  FPS:           ${idleReport.fps}`);
   console.log(`  Frame p50/p95: ${idleReport.frameTimeP50}ms / ${idleReport.frameTimeP95}ms`);
@@ -253,13 +271,24 @@ test('map render performance benchmark', async ({ page, browser }) => {
 
   // ── Benchmark 2: Drag FPS (10 swipes over 5s) ────────────────────────────
   console.log('\n[2/4] Drag FPS (10 swipes, 5 seconds)...');
-  await gamePage.evaluate(() => { (window as any).__perfMonitor.start(); (window as any).__perfMonitor.snapshot('drag-start'); });
+  await gamePage.evaluate(() => {
+    const monitor = (window as XbwPageGlobals).__perfMonitor;
+    monitor?.start();
+    monitor?.snapshot('drag-start');
+  });
 
   await simulateDrag(gamePage, 5000, 10);
 
-  await gamePage.evaluate(() => { (window as any).__perfMonitor.snapshot('drag-end'); });
-  const dragReport = await gamePage.evaluate(() => (window as any).__perfMonitor.report(5000));
-  await gamePage.evaluate(() => (window as any).__perfMonitor.stop());
+  await gamePage.evaluate(() => {
+    (window as XbwPageGlobals).__perfMonitor?.snapshot('drag-end');
+  });
+  const dragReport = await gamePage.evaluate<XbwPerfMonitorReport | null>(() =>
+    (window as XbwPageGlobals).__perfMonitor?.report(5000) ?? null
+  );
+  await gamePage.evaluate(() => {
+    (window as XbwPageGlobals).__perfMonitor?.stop();
+  });
+  if (!dragReport) throw new Error('__perfMonitor missing during drag benchmark');
 
   console.log(`  FPS:           ${dragReport.fps}`);
   console.log(`  Frame p50/p95: ${dragReport.frameTimeP50}ms / ${dragReport.frameTimeP95}ms`);
@@ -271,18 +300,27 @@ test('map render performance benchmark', async ({ page, browser }) => {
   // ── Benchmark 3: Rapid drag — memory leak detection ───────────────────────
   console.log('\n[3/4] Rapid drag — memory leak (30 swipes, 10s)...');
   await gamePage.evaluate(() => {
-    (window as any).__perfMonitor.frames = [];
-    (window as any).__perfMonitor.longTasks = [];
-    (window as any).__perfMonitor.heapSnapshots = [];
-    (window as any).__perfMonitor.start();
-    (window as any).__perfMonitor.snapshot('rapid-start');
+    const monitor = (window as XbwPageGlobals).__perfMonitor;
+    if (!monitor) return;
+    monitor.frames = [];
+    monitor.longTasks = [];
+    monitor.heapSnapshots = [];
+    monitor.start();
+    monitor.snapshot('rapid-start');
   });
 
   await simulateDrag(gamePage, 10_000, 30);
 
-  await gamePage.evaluate(() => { (window as any).__perfMonitor.snapshot('rapid-end'); });
-  const rapidReport = await gamePage.evaluate(() => (window as any).__perfMonitor.report(10_000));
-  await gamePage.evaluate(() => (window as any).__perfMonitor.stop());
+  await gamePage.evaluate(() => {
+    (window as XbwPageGlobals).__perfMonitor?.snapshot('rapid-end');
+  });
+  const rapidReport = await gamePage.evaluate<XbwPerfMonitorReport | null>(() =>
+    (window as XbwPageGlobals).__perfMonitor?.report(10_000) ?? null
+  );
+  await gamePage.evaluate(() => {
+    (window as XbwPageGlobals).__perfMonitor?.stop();
+  });
+  if (!rapidReport) throw new Error('__perfMonitor missing during rapid benchmark');
 
   const heapBefore = rapidReport.heapSnapshots.find((s: any) => s.label === 'rapid-start')?.usedJSHeapSize ?? 0;
   const heapAfter  = rapidReport.heapSnapshots.find((s: any) => s.label === 'rapid-end')?.usedJSHeapSize ?? 0;
@@ -299,7 +337,9 @@ test('map render performance benchmark', async ({ page, browser }) => {
   console.log('\n[4/4] Post-drag idle (5s, GC recovery check)...');
   await gamePage.waitForTimeout(5000);
   const heapFinal = await gamePage.evaluate(() => {
-    const mem = (performance as any).memory;
+    const mem = (performance as Performance & {
+      memory?: { usedJSHeapSize: number; totalJSHeapSize: number };
+    }).memory;
     return mem ? mem.usedJSHeapSize : 0;
   });
   const heapRecoveryMB = Math.round((heapFinal - heapBefore) / 1024 / 1024 * 10) / 10;

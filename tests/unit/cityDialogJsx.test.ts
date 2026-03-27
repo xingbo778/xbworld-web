@@ -10,25 +10,44 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { City, Improvement, Player, Tile, Unit, UnitType } from '@/data/types';
+
+type MockBitVector = { isSet: (bit: number) => boolean };
+type MockImprovement = Pick<Improvement, 'id' | 'name'> & { helptext?: string };
+type CityDialogMockStore = {
+  rulesControl: { num_impr_types: number };
+  improvements: Record<number, MockImprovement>;
+  specialists: Record<number, { id: number }>;
+  unitTypes: Record<number, UnitType>;
+  cities: Record<number, City>;
+  players: Record<number, Player>;
+  techs: Record<number, { id: number }>;
+  units: Record<number, Unit>;
+  nations: Record<number, { id: number; adjective?: string }>;
+  terrains: Record<number, { id: number; name?: string; graphic_str?: string }>;
+  governments: Record<number, { id: number; name?: string }>;
+  tiles: Record<number, Tile>;
+  effects: Record<number, { id: number }>;
+};
 
 // ---------------------------------------------------------------------------
 // Mocks
 // ---------------------------------------------------------------------------
 
-const mockStore = vi.hoisted(() => ({
-  rulesControl: { num_impr_types: 0 } as Record<string, unknown>,
-  improvements: {} as Record<number, unknown>,
-  specialists: {} as Record<number, unknown>,
-  unitTypes: {} as Record<number, unknown>,
-  cities: {} as Record<number, unknown>,
-  players: {} as Record<number, unknown>,
-  techs: {} as Record<number, unknown>,
-  units: {} as Record<number, unknown>,
-  nations: {} as Record<number, unknown>,
-  terrains: {} as Record<number, unknown>,
-  governments: {} as Record<number, unknown>,
-  tiles: {} as Record<number, unknown>,
-  effects: {} as Record<number, unknown>,
+const mockStore = vi.hoisted<CityDialogMockStore>(() => ({
+  rulesControl: { num_impr_types: 0 },
+  improvements: {},
+  specialists: {},
+  unitTypes: {},
+  cities: {},
+  players: {},
+  techs: {},
+  units: {},
+  nations: {},
+  terrains: {},
+  governments: {},
+  tiles: {},
+  effects: {},
 }));
 
 vi.mock('@/data/store', () => ({ store: mockStore }));
@@ -56,7 +75,15 @@ vi.mock('@/data/map', async (importOriginal) => ({ ...(await importOriginal() as
 // Helpers
 // ---------------------------------------------------------------------------
 
-function makeCity(overrides: Record<string, unknown> = {}) {
+function makeCity(overrides: Omit<Partial<City>, 'improvements'> & {
+  granary_size?: number;
+  pollution?: number;
+  steal?: number;
+  culture?: number;
+  improvements?: City['improvements'] | MockBitVector;
+  was_happy?: boolean;
+  unhappy?: boolean;
+} = {}): City {
   return {
     id: 1,
     name: 'Rome',
@@ -78,10 +105,21 @@ function makeCity(overrides: Record<string, unknown> = {}) {
     was_happy: false,
     unhappy: false,
     ...overrides,
-  };
+  } as unknown as City;
 }
 
-async function mountCity(container: HTMLElement, cityOverrides: Record<string, unknown> = {}) {
+async function mountCity(
+  container: HTMLElement,
+  cityOverrides: Omit<Partial<City>, 'improvements'> & {
+    granary_size?: number;
+    pollution?: number;
+    steal?: number;
+    culture?: number;
+    improvements?: City['improvements'] | MockBitVector;
+    was_happy?: boolean;
+    unhappy?: boolean;
+  } = {},
+) {
   const { showCityDialogPreact, mountCityDialog } = await import('@/components/Dialogs/CityDialog');
   showCityDialogPreact(makeCity(cityOverrides) as never);
   mountCityDialog(container);
@@ -158,8 +196,8 @@ describe('CityDialog — Buildings tab (no dangerouslySetInnerHTML)', () => {
   beforeEach(() => {
     mockStore.rulesControl = { num_impr_types: 2 };
     mockStore.improvements = {
-      0: { name: 'Barracks', helptext: 'Train troops' },
-      1: { name: 'Library', helptext: 'Science boost' },
+      0: { id: 0, name: 'Barracks', helptext: 'Train troops' },
+      1: { id: 1, name: 'Library', helptext: 'Science boost' },
     };
   });
 

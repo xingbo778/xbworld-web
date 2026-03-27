@@ -1,4 +1,5 @@
 import { test } from '@playwright/test';
+import type { XbwPageGlobals } from './helpers/pageGlobals';
 
 test('pregame debug', async ({ page }) => {
   const logs: string[] = [];
@@ -22,7 +23,7 @@ test('pregame debug', async ({ page }) => {
   await page.waitForTimeout(20_000);
 
   const state = await page.evaluate(() => {
-    const w = window as any;
+    const w = window as XbwPageGlobals;
     const gamePage = document.getElementById('game_page');
     const startPage = document.getElementById('start_page');
     return {

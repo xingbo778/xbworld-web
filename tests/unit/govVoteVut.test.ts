@@ -16,23 +16,43 @@ import {
   RPT_POSSIBLE,
   RPT_CERTAIN,
 } from '@/data/fcTypes';
+import type { City, Extra, Government, Improvement, MapInfo, Player, Tech, Terrain, Tile, UnitType } from '@/data/types';
+
+type GovVoteStore = {
+  unitTypes: Record<number, UnitType>;
+  unitClasses: Record<number, { id: number; flags?: unknown }>;
+  improvements: Record<number, Improvement>;
+  players: Record<number, Player>;
+  cities: Record<number, City>;
+  techs: Record<number, Tech>;
+  terrains: Record<number, Terrain>;
+  governments: Record<number, Government & { reqs?: unknown[] | null }>;
+  rulesControl: { num_impr_types: number };
+  gameInfo: null;
+  mapInfo: MapInfo | null;
+  nations: Record<number, { id: number }>;
+  votes?: Record<number, VotePacket>;
+};
+
+type VotePacket = { vote_no?: number; id?: number; desc: string };
+type MockBitVector = { isSet(n: number): boolean };
 
 // ---------------------------------------------------------------------------
 // Store mock
 // ---------------------------------------------------------------------------
-const mockStore = vi.hoisted(() => ({
-  unitTypes: {} as Record<number, unknown>,
-  unitClasses: {} as Record<number, unknown>,
-  improvements: {} as Record<number, unknown>,
-  players: {} as Record<number, unknown>,
-  cities: {} as Record<number, unknown>,
-  techs: {} as Record<number, unknown>,
-  terrains: {} as Record<number, unknown>,
-  governments: {} as Record<number, unknown>,
+const mockStore = vi.hoisted<GovVoteStore>(() => ({
+  unitTypes: {},
+  unitClasses: {},
+  improvements: {},
+  players: {},
+  cities: {},
+  techs: {},
+  terrains: {},
+  governments: {},
   rulesControl: { num_impr_types: 0 },
-  gameInfo: null as unknown,
-  mapInfo: null as unknown,
-  nations: {} as Record<number, unknown>,
+  gameInfo: null,
+  mapInfo: null,
+  nations: {},
 }));
 
 vi.mock('@/data/store', () => ({ store: mockStore }));
@@ -80,13 +100,11 @@ import {
 } from '@/net/handlers/server';
 import { clientPlaying } from '@/client/clientState';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-function makeBitVector(setBits: number[] = []): { isSet(n: number): boolean } {
+function makeBitVector(setBits: number[] = []): MockBitVector {
   return { isSet: (n: number) => setBits.includes(n) };
 }
 
@@ -94,11 +112,71 @@ function makeReq(kind: number, value: number, present = true) {
   return { kind, range: REQ_RANGE_LOCAL, value, present };
 }
 
-function makeTile(terrainId: number, extraBits: number[] = []): Record<string, unknown> {
+function makeTile(terrainId: number, extraBits: number[] = []): Tile {
   return {
+    index: 0,
+    x: 0,
+    y: 0,
     terrain: terrainId,
-    extras: makeBitVector(extraBits),
+    known: 0,
+    extras: makeBitVector(extraBits) as unknown as number[],
+    owner: 0,
+    worked: 0,
+    resource: 0,
+    continent: 0,
   };
+}
+
+function makePlayer(overrides: Partial<Player> = {}): Player {
+  return {
+    playerno: 1,
+    name: 'Player',
+    username: 'player',
+    nation: 0,
+    is_alive: true,
+    is_ready: true,
+    ai_skill_level: 0,
+    gold: 0,
+    tax: 0,
+    luxury: 0,
+    science: 0,
+    expected_income: 0,
+    team: 0,
+    embassy_txt: '',
+    ...overrides,
+  };
+}
+
+function makeGovernment(
+  id: number,
+  reqs: unknown[] | null,
+): Government & { reqs?: unknown[] | null } {
+  return {
+    id,
+    name: `Gov${id}`,
+    rule_name: `gov_${id}`,
+    reqs,
+  };
+}
+
+function makeTerrain(
+  id: number,
+  name: string,
+  flags: MockBitVector | number,
+): Terrain {
+  return {
+    id,
+    name,
+    graphic_str: name.toLowerCase(),
+    movement_cost: 1,
+    defense_bonus: 0,
+    output: [],
+    flags,
+  };
+}
+
+function getVotes(): Record<number, VotePacket> {
+  return mockStore.votes ?? {};
 }
 
 function resetStore() {
@@ -128,26 +206,26 @@ describe('canPlayerGetGov()', () => {
 
   it('GOV-1: returns false when no player is playing (observer)', () => {
     vi.mocked(clientPlaying).mockReturnValue(null);
-    mockStore.governments[1] = { id: 1, reqs: [] };
+    mockStore.governments[1] = makeGovernment(1, []);
     expect(canPlayerGetGov(1)).toBe(false);
   });
 
   it('GOV-2: returns true when government has empty reqs', () => {
-    const fakePlayer = { playerno: 1, government: 0, inventions: {} } as any;
+    const fakePlayer = makePlayer({ government: 0, inventions: {} });
     vi.mocked(clientPlaying).mockReturnValue(fakePlayer);
-    mockStore.governments[2] = { id: 2, reqs: [] };
+    mockStore.governments[2] = makeGovernment(2, []);
     expect(canPlayerGetGov(2)).toBe(true);
   });
 
   it('GOV-3: returns true when government has null reqs', () => {
-    const fakePlayer = { playerno: 1, government: 0, inventions: {} } as any;
+    const fakePlayer = makePlayer({ government: 0, inventions: {} });
     vi.mocked(clientPlaying).mockReturnValue(fakePlayer);
-    mockStore.governments[3] = { id: 3, reqs: null };
+    mockStore.governments[3] = makeGovernment(3, null);
     expect(canPlayerGetGov(3)).toBe(true);
   });
 
   it('GOV-4: returns false when government not in store', () => {
-    const fakePlayer = { playerno: 1, government: 0, inventions: {} } as any;
+    const fakePlayer = makePlayer({ government: 0, inventions: {} });
     vi.mocked(clientPlaying).mockReturnValue(fakePlayer);
     expect(canPlayerGetGov(99)).toBe(false);
   });
@@ -161,37 +239,37 @@ describe('vote handlers', () => {
   beforeEach(() => {
     resetStore();
     // Clear any votes on store
-    delete (mockStore as any)['votes'];
+    delete mockStore.votes;
   });
 
   it('VOTE-1: handle_vote_update stores vote by vote_no', () => {
-    const packet = { vote_no: 7, desc: 'allow_observer' } as any;
+    const packet: VotePacket = { vote_no: 7, desc: 'allow_observer' };
     handle_vote_update(packet);
-    const votes = (mockStore as any)['votes'] as Record<number, unknown>;
+    const votes = getVotes();
     expect(votes).toBeDefined();
     expect(votes[7]).toBe(packet);
   });
 
   it('VOTE-2: handle_vote_update stores vote by id when vote_no absent', () => {
-    const packet = { id: 3, desc: 'foo' } as any;
+    const packet: VotePacket = { id: 3, desc: 'foo' };
     handle_vote_update(packet);
-    const votes = (mockStore as any)['votes'] as Record<number, unknown>;
+    const votes = getVotes();
     expect(votes[3]).toBe(packet);
   });
 
   it('VOTE-3: handle_vote_remove deletes the stored vote', () => {
-    const packet = { vote_no: 5, desc: 'bar' } as any;
+    const packet: VotePacket = { vote_no: 5, desc: 'bar' };
     handle_vote_update(packet);
-    handle_vote_remove({ vote_no: 5 } as any);
-    const votes = (mockStore as any)['votes'] as Record<number, unknown>;
+    handle_vote_remove({ vote_no: 5 } as VotePacket);
+    const votes = getVotes();
     expect(votes[5]).toBeUndefined();
   });
 
   it('VOTE-4: handle_vote_resolve deletes the stored vote', () => {
-    const packet = { vote_no: 9, desc: 'baz' } as any;
+    const packet: VotePacket = { vote_no: 9, desc: 'baz' };
     handle_vote_update(packet);
-    handle_vote_resolve({ vote_no: 9 } as any);
-    const votes = (mockStore as any)['votes'] as Record<number, unknown>;
+    handle_vote_resolve({ vote_no: 9 } as VotePacket);
+    const votes = getVotes();
     expect(votes[9]).toBeUndefined();
   });
 });
@@ -239,7 +317,7 @@ describe('VUT_TERRFLAG — terrain flag check', () => {
   beforeEach(resetStore);
 
   it('VTF-1: TRI_YES when terrain has flag (BitVector format)', () => {
-    mockStore.terrains[2] = { id: 2, name: 'Desert', flags: makeBitVector([5]) };
+    mockStore.terrains[2] = makeTerrain(2, 'Desert', makeBitVector([5]));
     const tile = makeTile(2);
     const result = isReqActive(null, null, null, tile, null, null, null,
       makeReq(VUT_TERRFLAG, 5), RPT_CERTAIN);
@@ -247,7 +325,7 @@ describe('VUT_TERRFLAG — terrain flag check', () => {
   });
 
   it('VTF-2: TRI_NO when terrain does NOT have flag (BitVector)', () => {
-    mockStore.terrains[2] = { id: 2, name: 'Desert', flags: makeBitVector([]) };
+    mockStore.terrains[2] = makeTerrain(2, 'Desert', makeBitVector([]));
     const tile = makeTile(2);
     const result = isReqActive(null, null, null, tile, null, null, null,
       makeReq(VUT_TERRFLAG, 5), RPT_CERTAIN);
@@ -256,7 +334,7 @@ describe('VUT_TERRFLAG — terrain flag check', () => {
 
   it('VTF-3: TRI_YES when terrain has flag (raw number bitmask)', () => {
     // bit 3 = 0b1000 = 8
-    mockStore.terrains[1] = { id: 1, name: 'Ocean', flags: 0b1001000 }; // bits 3 and 6
+    mockStore.terrains[1] = makeTerrain(1, 'Ocean', 0b1001000); // bits 3 and 6
     const tile = makeTile(1);
     const result = isReqActive(null, null, null, tile, null, null, null,
       makeReq(VUT_TERRFLAG, 3), RPT_CERTAIN);
@@ -264,7 +342,7 @@ describe('VUT_TERRFLAG — terrain flag check', () => {
   });
 
   it('VTF-4: TRI_NO when bit not set (raw number bitmask)', () => {
-    mockStore.terrains[1] = { id: 1, name: 'Ocean', flags: 0b0000100 }; // only bit 2
+    mockStore.terrains[1] = makeTerrain(1, 'Ocean', 0b0000100); // only bit 2
     const tile = makeTile(1);
     const result = isReqActive(null, null, null, tile, null, null, null,
       makeReq(VUT_TERRFLAG, 3), RPT_CERTAIN);

@@ -17,16 +17,33 @@ import {
 } from '@/data/unittype';
 import { store } from '@/data/store';
 import { TECH_KNOWN } from '@/data/tech';
-
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import type { Player, UnitType } from '@/data/types';
 
 // Helper to create a player with inventions
-function makePlayerWithTechs(knownTechs: number[]): any {
+function makePlayerWithTechs(knownTechs: number[]): Player {
   const inventions: Record<number, number> = {};
   for (const t of knownTechs) {
     inventions[t] = TECH_KNOWN;
   }
-  return { inventions };
+  return { inventions } as unknown as Player;
+}
+
+function makeUnitType(overrides: Partial<UnitType> = {}): UnitType {
+  return {
+    id: 0,
+    name: 'Warrior',
+    rule_name: 'warrior',
+    graphic_str: 'warrior',
+    attack_strength: 1,
+    defense_strength: 1,
+    move_rate: 1,
+    hp: 10,
+    firepower: 1,
+    build_cost: 10,
+    vision_radius_sq: 2,
+    flags: [],
+    ...overrides,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -99,15 +116,15 @@ describe('utype_can_do_action', () => {
 
 describe('can_player_build_unit_direct', () => {
   beforeEach(() => {
-    (store as any).unitTypes = {};
+    store.unitTypes = {};
   });
 
   afterEach(() => {
-    (store as any).unitTypes = {};
+    store.unitTypes = {};
   });
 
   it('should return false for null player', () => {
-    expect(can_player_build_unit_direct(null, { tech_requirement: 5 } as any)).toBe(false);
+    expect(can_player_build_unit_direct(null, makeUnitType({ tech_requirement: 5 }))).toBe(false);
   });
 
   it('should return false for null unittype', () => {
@@ -116,36 +133,36 @@ describe('can_player_build_unit_direct', () => {
 
   it('should return true when player knows required tech', () => {
     const player = makePlayerWithTechs([10]);
-    const utype = { tech_requirement: 10 } as any;
+    const utype = makeUnitType({ tech_requirement: 10 });
     expect(can_player_build_unit_direct(player, utype)).toBe(true);
   });
 
   it('should return false when player lacks required tech', () => {
     const player = makePlayerWithTechs([5]);
-    const utype = { tech_requirement: 10 } as any;
+    const utype = makeUnitType({ tech_requirement: 10 });
     expect(can_player_build_unit_direct(player, utype)).toBe(false);
   });
 
   it('should return true when no tech requirement', () => {
     const player = makePlayerWithTechs([]);
-    const utype = { tech_requirement: -1 } as any;
+    const utype = makeUnitType({ tech_requirement: -1 });
     expect(can_player_build_unit_direct(player, utype)).toBe(true);
   });
 
   it('should return false when obsoleted_by unit is buildable', () => {
     const player = makePlayerWithTechs([10, 20]);
-    const utype = { tech_requirement: 10, obsoleted_by: 2 } as any;
-    (store as any).unitTypes = {
-      2: { tech_requirement: 20 },
+    const utype = makeUnitType({ tech_requirement: 10, obsoleted_by: 2 });
+    store.unitTypes = {
+      2: makeUnitType({ id: 2, tech_requirement: 20 }),
     };
     expect(can_player_build_unit_direct(player, utype)).toBe(false);
   });
 
   it('should return true when obsoleting unit tech is not known', () => {
     const player = makePlayerWithTechs([10]);
-    const utype = { tech_requirement: 10, obsoleted_by: 2 } as any;
-    (store as any).unitTypes = {
-      2: { tech_requirement: 20 },
+    const utype = makeUnitType({ tech_requirement: 10, obsoleted_by: 2 });
+    store.unitTypes = {
+      2: makeUnitType({ id: 2, tech_requirement: 20 }),
     };
     expect(can_player_build_unit_direct(player, utype)).toBe(true);
   });
@@ -157,23 +174,23 @@ describe('can_player_build_unit_direct', () => {
 
 describe('get_units_from_tech', () => {
   beforeEach(() => {
-    (store as any).unitTypes = {
-      0: { id: 0, name: 'Warriors', tech_requirement: -1 },
-      1: { id: 1, name: 'Phalanx', tech_requirement: 5 },
-      2: { id: 2, name: 'Musketeers', tech_requirement: 10 },
-      3: { id: 3, name: 'Pikemen', tech_requirement: 5 },
+    store.unitTypes = {
+      0: makeUnitType({ id: 0, name: 'Warriors', tech_requirement: -1 }),
+      1: makeUnitType({ id: 1, name: 'Phalanx', tech_requirement: 5 }),
+      2: makeUnitType({ id: 2, name: 'Musketeers', tech_requirement: 10 }),
+      3: makeUnitType({ id: 3, name: 'Pikemen', tech_requirement: 5 }),
     };
   });
 
   afterEach(() => {
-    (store as any).unitTypes = {};
+    store.unitTypes = {};
   });
 
   it('should return units requiring the given tech', () => {
     const units = get_units_from_tech(5);
     expect(units).toHaveLength(2);
-    expect(units.map((u: any) => u.name)).toContain('Phalanx');
-    expect(units.map((u: any) => u.name)).toContain('Pikemen');
+    expect(units.map((u) => u.name)).toContain('Phalanx');
+    expect(units.map((u) => u.name)).toContain('Pikemen');
   });
 
   it('should return empty array when no units require the tech', () => {

@@ -26,7 +26,7 @@ describe('handle_web_player_info_addition', () => {
 
     handle_web_player_info_addition({ playerno: 2, real_embassy: 5 } as never);
 
-    expect((store.players[2] as Record<string, unknown>)['real_embassy']).toBe(5);
+    expect(store.players[2].real_embassy).toBe(5);
     expect(spy.called).toBe(true);
     globalEvents.off('player:updated', handler as never);
   });

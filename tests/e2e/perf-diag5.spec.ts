@@ -2,6 +2,7 @@
  * Diagnostic 5 — measure packet processing time and find slow handlers.
  */
 import { test } from '@playwright/test';
+import type { XbwPageGlobals } from './helpers/pageGlobals';
 
 const BASE = process.env.TEST_BASE_URL || 'http://localhost:8080';
 const RND = Math.random().toString(36).slice(2, 6).toUpperCase();
@@ -11,7 +12,7 @@ test('packet handler timing', async ({ page }) => {
   test.setTimeout(120_000);
 
   await page.addInitScript(() => {
-    (window as any).__packetStats = {
+    (window as XbwPageGlobals).__packetStats = {
       handlerTimes: {} as Record<number, number[]>,
       slowPackets: [] as Array<{pid: number; ms: number}>,
     };
@@ -20,7 +21,7 @@ test('packet handler timing', async ({ page }) => {
   await page.goto(PAGE_URL, { waitUntil: 'domcontentloaded' });
 
   // Wait for bundle to load, then patch client_handle_packet
-  await page.waitForFunction(() => !!(window as any).__store, { timeout: 30_000 });
+  await page.waitForFunction(() => !!(window as XbwPageGlobals).__store, { timeout: 30_000 });
 
   // Patch the packet handler at the module level
   // We need to find it via the bundle's exposed globals
@@ -28,7 +29,7 @@ test('packet handler timing', async ({ page }) => {
     // client_handle_packet is not directly exposed, but we can hook into
     // the WebSocket message processing by patching JSON.parse
     const origParse = JSON.parse.bind(JSON);
-    const stats = (window as any).__packetStats;
+    const stats = (window as XbwPageGlobals).__packetStats!;
 
     JSON.parse = function(text: string) {
       const result = origParse(text);
@@ -49,21 +50,25 @@ test('packet handler timing', async ({ page }) => {
 
   // Better approach: patch the WebSocket
   const wsPatched = await page.evaluate(() => {
-    const stats = (window as any).__packetStats;
+    const stats = (window as XbwPageGlobals).__packetStats!;
 
     // Find the WebSocket by patching its constructor
     // Since ws was already created, we need to find it differently
     // Monitor for the next batch of packets
     const origAddEventListener = EventTarget.prototype.addEventListener;
-    (window as any).__wsMessages = 0;
-    (window as any).__wsTotalMs = 0;
+    const w = window as XbwPageGlobals;
+    w.__wsMessages = 0;
+    w.__wsTotalMs = 0;
 
     return 'monitoring setup';
   });
 
   // Wait for game running
   await page.waitForFunction(
-    () => (window as any).__store?.civclientState === 2,
+    () => {
+      const w = window as XbwPageGlobals;
+      return w.__store?.civclientState === 2;
+    },
     { timeout: 60_000 }
   );
 
@@ -72,6 +77,7 @@ test('packet handler timing', async ({ page }) => {
 
   // Get the actual timing by running a micro-benchmark inline
   const timing = await page.evaluate(() => {
+    const w = window as XbwPageGlobals;
     // Test: how long does a simple tight loop take?
     const t0 = performance.now();
     let x = 0;
@@ -94,17 +100,17 @@ test('packet handler timing', async ({ page }) => {
 
     // Check redraw_overview timing
     let overviewMs = 0;
-    if (typeof (window as any).redraw_overview === 'function') {
+    if (typeof w.redraw_overview === 'function') {
       const t3 = performance.now();
-      (window as any).redraw_overview();
+      w.redraw_overview();
       overviewMs = performance.now() - t3;
     }
 
     // Check update_game_status_panel timing
     let statusMs = 0;
-    if (typeof (window as any).update_game_status_panel === 'function') {
+    if (typeof w.update_game_status_panel === 'function') {
       const t4 = performance.now();
-      (window as any).update_game_status_panel();
+      w.update_game_status_panel();
       statusMs = performance.now() - t4;
     }
 
@@ -114,9 +120,9 @@ test('packet handler timing', async ({ page }) => {
       domMsPerCall: +domMs.toFixed(3),
       overviewMs: +overviewMs.toFixed(2),
       statusMs: +statusMs.toFixed(2),
-      packetCount: (window as any).__xbwPacketCount || 0,
-      sprites: Object.keys((window as any).__store?.sprites || {}).length,
-      tiles: Object.keys((window as any).__store?.tiles || {}).length,
+      packetCount: w.__xbwPacketCount || 0,
+      sprites: Object.keys(w.__store?.sprites || {}).length,
+      tiles: Object.keys(w.__store?.tiles || {}).length,
     };
   });
 

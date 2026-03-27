@@ -126,7 +126,7 @@ export interface ImprovementItem {
 /** Returns improvement items for JSX rendering. */
 export function getImprovementItems(pcity: City): ImprovementItem[] {
   const items: ImprovementItem[] = [];
-  const numTypes = (store.rulesControl as Record<string, unknown> | null)?.['num_impr_types'] as number ?? 0;
+  const numTypes = (store.rulesControl?.['num_impr_types'] as number | undefined) ?? 0;
   for (let z = 0; z < numTypes; z++) {
     if (pcity['improvements'] != null && (pcity['improvements'] as unknown as { isSet(bit: number): boolean }).isSet(z)) {
       items.push({
@@ -202,8 +202,11 @@ export function buildProductionListData(pcity: City): ProductionListData {
   for (const id in store.unitTypes) {
     const ut: UnitType = store.unitTypes[Number(id)];
     // Filter non-player-buildable units using flags (replaces hardcoded name hack).
-    const utFlags = (ut as Record<string, unknown>)['flags'] as { isSet(n: number): boolean } | null | undefined;
-    if (utFlags != null && typeof utFlags.isSet === 'function' && utFlags.isSet(UTYF_PROVIDES_RANSOM)) continue;
+    const utFlags = ut['flags'] as number[] | { isSet(n: number): boolean } | null | undefined;
+    const providesRansom = Array.isArray(utFlags)
+      ? utFlags.includes(UTYF_PROVIDES_RANSOM)
+      : (utFlags != null && typeof utFlags.isSet === 'function' && utFlags.isSet(UTYF_PROVIDES_RANSOM));
+    if (providesRansom) continue;
     if (hasData) {
       if (!canCityBuildUnitNow(pcity, Number(id))) continue;
     } else {

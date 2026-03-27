@@ -15,6 +15,7 @@ import { wait_for_text, add_chatbox_text } from '../../core/messages';
 import { update_player_info_pregame, update_game_info_pregame } from '../../core/pregame';
 import { mapInitTopology } from '../../data/map';
 import { globalEvents } from '../../core/events';
+import { getDebugWebSocket } from '../../utils/debugGlobals';
 import type {
   BasePacket,
   ServerJoinReplyPacket,
@@ -159,17 +160,12 @@ export function handle_server_info(packet: ServerInfoPacket): void {
 }
 
 export function handle_set_topology(packet: BasePacket): void {
-  const p = packet as Record<string, unknown>;
-  if (store.mapInfo && p['topology_id'] != null) {
-    (store.mapInfo as Record<string, unknown>)['topology_id'] = p['topology_id'];
+  if (store.mapInfo && packet['topology_id'] != null) {
+    store.mapInfo.topology_id = packet['topology_id'] as number;
   }
-  if (store.mapInfo && p['wrap_id'] != null) {
-    (store.mapInfo as Record<string, unknown>)['wrap_id'] = p['wrap_id'];
+  if (store.mapInfo && packet['wrap_id'] != null) {
+    store.mapInfo.wrap_id = packet['wrap_id'] as number;
   }
-  // Update the legacy window.map mirror so mapInitTopology reads the new values
-  const winMap = (window as unknown as Record<string, unknown>)['map'] as Record<string, unknown> | undefined;
-  if (winMap && p['topology_id'] != null) winMap['topology_id'] = p['topology_id'];
-  if (winMap && p['wrap_id'] != null) winMap['wrap_id'] = p['wrap_id'];
   mapInitTopology(false);
 }
 
@@ -186,41 +182,33 @@ export function handle_single_want_hack_reply(_packet: BasePacket): void {
 
 export function handle_vote_new(packet: BasePacket): void {
   // Auto-vote YES on any vote via chat command (safer than PACKET_VOTE_SUBMIT)
-  const p = packet as Record<string, unknown>;
-  const voteId = (p['vote_no'] ?? p['id']) as number | undefined;
+  const voteId = (packet['vote_no'] ?? packet['id']) as number | undefined;
   if (voteId != null) {
     console.log('[xbw] vote_new: auto-voting YES on vote', voteId);
     // Use chat command approach: /vote yes <n>
     // Note: import send_message from connection is already available via send_request
-    const ws = (window as any).ws as WebSocket | null;
+    const ws = getDebugWebSocket();
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ pid: 26, message: '/vote yes ' + voteId }));
     }
   }
 }
 export function handle_vote_update(packet: BasePacket): void {
-  const p = packet as Record<string, unknown>;
-  const voteId = (p['vote_no'] ?? p['id']) as number | undefined;
+  const voteId = (packet['vote_no'] ?? packet['id']) as number | undefined;
   if (voteId != null) {
-    const s = store as unknown as Record<string, unknown>;
-    if (s['votes'] == null) s['votes'] = {};
-    (s['votes'] as Record<number, unknown>)[voteId] = packet;
+    store.votes[voteId] = packet;
   }
 }
 export function handle_vote_remove(packet: BasePacket): void {
-  const p = packet as Record<string, unknown>;
-  const voteId = (p['vote_no'] ?? p['id']) as number | undefined;
+  const voteId = (packet['vote_no'] ?? packet['id']) as number | undefined;
   if (voteId != null) {
-    const votes = (store as unknown as Record<string, unknown>)['votes'] as Record<number, unknown> | undefined;
-    if (votes != null) delete votes[voteId];
+    delete store.votes[voteId];
   }
 }
 export function handle_vote_resolve(packet: BasePacket): void {
-  const p = packet as Record<string, unknown>;
-  const voteId = (p['vote_no'] ?? p['id']) as number | undefined;
+  const voteId = (packet['vote_no'] ?? packet['id']) as number | undefined;
   if (voteId != null) {
-    const votes = (store as unknown as Record<string, unknown>)['votes'] as Record<number, unknown> | undefined;
-    if (votes != null) delete votes[voteId];
+    delete store.votes[voteId];
   }
 }
 export function handle_edit_startpos(_packet: BasePacket): void { /* no-op */ }
@@ -232,7 +220,7 @@ export function handle_server_setting_const(packet: ServerSettingConstPacket): v
   // Resolve human-readable category name from the CONTROL packet.
   const catIndex = packet['category'] as number | undefined;
   if (catIndex != null && store.serverSettingCategories[catIndex] != null) {
-    (setting as Record<string, unknown>)['categoryName'] = store.serverSettingCategories[catIndex];
+    setting.categoryName = store.serverSettingCategories[catIndex];
   }
   store.serverSettings[packet['id']] = setting;
   store.serverSettings[packet['name']] = setting;

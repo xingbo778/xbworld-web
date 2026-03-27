@@ -29,6 +29,7 @@ import * as S from './controlState';
 import { set_unit_focus_and_redraw, set_unit_focus_and_activate, update_unit_focus, update_active_units_dialog, find_visible_unit, find_a_focus_unit_tile_to_center_on } from './unitFocus';
 import { request_unit_do_action, request_unit_act_sel_vs } from './unitCommands';
 import { deactivate_goto, request_goto_path } from './gotoPath';
+import { dispatchMapContextMenu } from '../../renderer/mapCanvas';
 
 const USSDT_QUEUE = UnitSSDataType.QUEUE;
 const ORDER_LAST = Order.LAST;
@@ -126,7 +127,7 @@ export function do_map_click(ptile: Tile, qtype: number, first_time_called: bool
     if (S.goto_active && !is_touch_device()) {
       deactivate_goto(false);
     }
-    document.getElementById("canvas_div")?.dispatchEvent(new Event("contextmenu"));
+    dispatchMapContextMenu();
     return;
   }
   const sunits = tile_units(ptile);
@@ -265,7 +266,7 @@ export function do_map_click(ptile: Tile, qtype: number, first_time_called: bool
         if (sunits != null && sunits.length > 0
           && sunits[0]['activity'] == ACTIVITY_IDLE) {
           set_unit_focus_and_redraw(sunits[0]);
-          document.getElementById("canvas_div")?.dispatchEvent(new Event("contextmenu"));
+          dispatchMapContextMenu();
         } else if (!S.goto_active) {
           show_city_dialog(pcity);
         }
@@ -287,7 +288,7 @@ export function do_map_click(ptile: Tile, qtype: number, first_time_called: bool
         }
 
         if (is_touch_device()) {
-          document.getElementById("canvas_div")?.dispatchEvent(new Event("contextmenu"));
+          dispatchMapContextMenu();
         }
       } else if (pcity == null) {
         S.setCurrentFocus(sunits);
@@ -360,8 +361,8 @@ export function popit_req(ptile: Tile | null) {
 export function center_on_any_city() {
   // If map info is known, center on the map center — avoids showing the
   // world-boundary black edge as the first thing the observer sees.
-  // Use getMapInfo() (reads window.map) as it is reliably set by handle_map_info
-  // before tiles arrive. store.mapInfo may be an empty {} from game_init().
+  // Use getMapInfo(); it now prefers store.mapInfo and only falls back to the
+  // legacy mirror when the transition path has not fully initialized yet.
   const mi = getMapInfo();
   if (mi && mi.xsize && mi.ysize) {
     const midTile = map_pos_to_tile(Math.floor(mi.xsize / 2), Math.floor(mi.ysize / 2));
@@ -370,10 +371,10 @@ export function center_on_any_city() {
       return;
     }
     // Fallback: pick any valid tile from the map center area
-    const tiles = (window as any).tiles as Record<number, any> | undefined;
+    const tiles = store.tiles as Record<number, unknown> | undefined;
     if (tiles) {
       const midIdx = Math.floor(mi.xsize / 2) + Math.floor(mi.ysize / 2) * mi.xsize;
-      const t = tiles[midIdx];
+      const t = tiles[midIdx] as Tile | undefined;
       if (t) { center_tile_mapcanvas(t); return; }
     }
   }

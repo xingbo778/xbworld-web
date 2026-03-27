@@ -6,6 +6,7 @@
  *   2. Vite dev server: BACKEND_URL=http://localhost:8002 npx vite --config vite.config.dev.ts --port 8080
  */
 import { test, expect } from '@playwright/test';
+import { connectAsObserver } from './helpers/observer';
 
 test.describe('Mock Backend Observer Test', () => {
   test('should connect, enter game page, and render map', async ({ page }) => {
@@ -16,26 +17,13 @@ test.describe('Mock Backend Observer Test', () => {
       if (msg.type() !== 'debug') consoleLogs.push(`[${msg.type()}] ${msg.text()}`);
     });
 
-    await page.goto('/webclient/index.html');
-    await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(2000);
+    await connectAsObserver(page, {
+      username: 'MockObserver',
+      waitForGamePage: false,
+      settleMs: 2_000,
+    });
 
     await page.screenshot({ path: 'test-results/mock-01-initial.png', fullPage: true });
-
-    // Fill in username and click "Observe Game"
-    const usernameInput = page.locator('#username_req');
-    if (await usernameInput.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await usernameInput.fill('MockObserver');
-      const observeBtn = page.getByRole('button', { name: 'Observe Game' });
-      if (await observeBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
-        await observeBtn.click();
-        console.log('Clicked Observe Game button');
-      } else {
-        console.log('Observe Game button not found');
-      }
-    } else {
-      console.log('Username input not found');
-    }
 
     // Wait for game data to load
     await page.waitForTimeout(8000);
@@ -63,7 +51,7 @@ test.describe('Mock Backend Observer Test', () => {
       await page.screenshot({ path: 'test-results/mock-03-map-tab.png', fullPage: true });
 
       // Check for canvas element
-      const canvas = page.locator('#canvas, #mapview_canvas');
+      const canvas = page.locator('#canvas_div canvas, #canvas, #mapview_canvas');
       const canvasCount = await canvas.count();
       console.log('Canvas elements found:', canvasCount);
 
@@ -78,6 +66,7 @@ test.describe('Mock Backend Observer Test', () => {
       // Still on pregame — take diagnostic screenshot
       await page.screenshot({ path: 'test-results/mock-03-still-pregame.png', fullPage: true });
       console.log('Did not reach game page. Check mock backend packets.');
+      test.skip(true, 'Mock backend did not reach game page');
     }
   });
 });

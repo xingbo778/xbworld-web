@@ -18,6 +18,7 @@
  *   6. Verify canvas has non-black pixels (map rendered)
  */
 import { test, expect, Browser } from '@playwright/test';
+import type { XbwPageGlobals } from './helpers/pageGlobals';
 
 test.describe.configure({ timeout: 180_000 });
 
@@ -77,9 +78,9 @@ test('start game and verify map renders', async ({ browser }) => {
 
   // Log initial state
   const initState = await bot1.page.evaluate(() => {
-    const w = window as any;
+    const w = window as XbwPageGlobals;
     return {
-      playerCount: Object.keys(w.players || {}).length,
+      playerCount: Object.keys(w.__store?.players || {}).length,
       hasSendMessage: typeof w.send_message === 'function',
     };
   });
@@ -88,7 +89,7 @@ test('start game and verify map renders', async ({ browser }) => {
 
   // Step 1: Set aifill=0 (removes AI players, vote auto-voted YES by all bots)
   await bot1.page.evaluate(() => {
-    const w = window as any;
+    const w = window as XbwPageGlobals;
     if (typeof w.send_message === 'function') {
       console.log('[xbw] Bot1 sending /set aifill 0');
       w.send_message('/set aifill 0');
@@ -103,8 +104,8 @@ test('start game and verify map renders', async ({ browser }) => {
   // Step 2: Vote to kick the persistent "Host" player
   // This uses /callvote kick which goes through the voting system
   const hostPlayerName = await bot1.page.evaluate(() => {
-    const w = window as any;
-    const players = Object.values(w.players || {}) as any[];
+    const w = window as XbwPageGlobals;
+    const players = Object.values(w.__store?.players || {});
     // Find any non-GameBot player (the Host or other persistent player)
     const nonBot = players.find(p => p.name && !p.name.startsWith('GameBot') && !p.name.startsWith('AI'));
     return nonBot?.name || null;
@@ -114,7 +115,7 @@ test('start game and verify map renders', async ({ browser }) => {
   if (hostPlayerName) {
     // Try /vote kick <name> — freeciv-web voting syntax
     await bot1.page.evaluate((name) => {
-      const w = window as any;
+      const w = window as XbwPageGlobals;
       if (typeof w.send_message === 'function') {
         console.log('[xbw] Bot1 sending /vote kick', name);
         w.send_message('/vote kick ' + name);
@@ -124,7 +125,7 @@ test('start game and verify map renders', async ({ browser }) => {
 
     // Also try /remove <name> (admin command that may create a vote)
     await bot1.page.evaluate((name) => {
-      const w = window as any;
+      const w = window as XbwPageGlobals;
       if (typeof w.send_message === 'function') {
         console.log('[xbw] Bot1 sending /remove', name);
         w.send_message('/remove ' + name);
@@ -140,8 +141,8 @@ test('start game and verify map renders', async ({ browser }) => {
   }
 
   const afterAifill = await bot1.page.evaluate(() => {
-    const w = window as any;
-    return { playerCount: Object.keys(w.players || {}).length };
+    const w = window as XbwPageGlobals;
+    return { playerCount: Object.keys(w.__store?.players || {}).length };
   });
   console.log('After aifill=0:', JSON.stringify(afterAifill));
   console.log('Bot1 chats after aifill:', bot1.chats().slice(-8));
@@ -149,7 +150,7 @@ test('start game and verify map renders', async ({ browser }) => {
   // Step 2: All bots send /start simultaneously
   await Promise.all([bot1, bot2, bot3, bot4].map((bot, i) =>
     bot.page.evaluate((idx) => {
-      const w = window as any;
+      const w = window as XbwPageGlobals;
       if (typeof w.send_message === 'function') {
         console.log('[xbw] Bot' + idx + ' sending /start');
         w.send_message('/start');
@@ -162,7 +163,7 @@ test('start game and verify map renders', async ({ browser }) => {
 
   // Wait for MAP_INFO on bot1
   const mapInfoReceived = await bot1.page.waitForFunction(() => {
-    const w = window as any;
+    const w = window as XbwPageGlobals;
     return (w.__xbwHandleMapInfoCalled || 0) > 0;
   }, { timeout: 90_000 }).then(() => true).catch(() => false);
 
@@ -174,7 +175,7 @@ test('start game and verify map renders', async ({ browser }) => {
   await bot1.page.waitForTimeout(5000);
 
   const state = await bot1.page.evaluate(() => {
-    const w = window as any;
+    const w = window as XbwPageGlobals;
     const canvas = document.querySelector('#canvas_div canvas') as HTMLCanvasElement | null;
     let canvasInfo = 'no-canvas';
     let nonBlack = 0;
@@ -193,9 +194,9 @@ test('start game and verify map renders', async ({ browser }) => {
     }
     return {
       mapInfoCalled: w.__xbwHandleMapInfoCalled,
-      tileCount: Object.keys(w.tiles || {}).length,
+      tileCount: Object.keys(w.__store?.tiles || {}).length,
       canvasInfo,
-      civclientState: w.civclient_state,
+      civclientState: w.__store?.civclientState,
       receivedPids: Object.keys(w.__xbwReceivedPids || {}).sort((a, b) => Number(a) - Number(b)).join(','),
     };
   });

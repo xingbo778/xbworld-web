@@ -82,9 +82,13 @@ function makeImageBitmap(w: number, h: number): ImageBitmap {
   return { width: w, height: h, close: vi.fn() } as unknown as ImageBitmap;
 }
 
+function getSprites(): Record<string, HTMLCanvasElement | ImageBitmap> {
+  return store.sprites as Record<string, HTMLCanvasElement | ImageBitmap>;
+}
+
 beforeEach(() => {
   // Clear any previously generated blend sprites from the store
-  const sprites = store.sprites as Record<string, HTMLCanvasElement | ImageBitmap>;
+  const sprites = getSprites();
   for (const key of Object.keys(sprites)) {
     if (key.startsWith('__blend_')) delete sprites[key];
   }
@@ -99,27 +103,27 @@ describe('generateBlendSprite — missing sprites', () => {
   it('returns null when source sprite is missing', async () => {
     const { generateBlendSprite, resetBlendStats } = await import('@/renderer/terrainBlendGen');
     resetBlendStats();
-    const sprites = store.sprites as Record<string, HTMLCanvasElement | ImageBitmap>;
+    const sprites = getSprites();
     sprites['nbr_key'] = makeImageBitmap(48, 24);
-    delete (sprites as Record<string, unknown>)['src_key'];
+    delete sprites['src_key'];
 
     const result = generateBlendSprite(0, 'src_key', 'nbr_key');
     expect(result).toBeNull();
 
-    delete (sprites as Record<string, unknown>)['nbr_key'];
+    delete sprites['nbr_key'];
   });
 
   it('returns null when neighbor sprite is missing', async () => {
     const { generateBlendSprite, resetBlendStats } = await import('@/renderer/terrainBlendGen');
     resetBlendStats();
-    const sprites = store.sprites as Record<string, HTMLCanvasElement | ImageBitmap>;
+    const sprites = getSprites();
     sprites['src_key2'] = makeImageBitmap(48, 24);
-    delete (sprites as Record<string, unknown>)['nbr_key2'];
+    delete sprites['nbr_key2'];
 
     const result = generateBlendSprite(0, 'src_key2', 'nbr_key2');
     expect(result).toBeNull();
 
-    delete (sprites as Record<string, unknown>)['src_key2'];
+    delete sprites['src_key2'];
   });
 
   it('returns null when both sprites are missing', async () => {
@@ -139,7 +143,7 @@ describe('generateBlendSprite — successful generation', () => {
     resetBlendStats();
     patchCreateElement();
 
-    const sprites = store.sprites as Record<string, HTMLCanvasElement | ImageBitmap>;
+    const sprites = getSprites();
     sprites['0grassland_grassland'] = makeImageBitmap(48, 24);
     sprites['0forest_forest'] = makeImageBitmap(48, 24);
 
@@ -149,9 +153,9 @@ describe('generateBlendSprite — successful generation', () => {
     expect(result).toBe(expectedKey);
     expect(sprites[expectedKey]).toBeDefined();
 
-    delete (sprites as Record<string, unknown>)['0grassland_grassland'];
-    delete (sprites as Record<string, unknown>)['0forest_forest'];
-    delete (sprites as Record<string, unknown>)[expectedKey];
+    delete sprites['0grassland_grassland'];
+    delete sprites['0forest_forest'];
+    delete sprites[expectedKey];
   });
 
   it('increments blendStats.generated on first call', async () => {
@@ -159,7 +163,7 @@ describe('generateBlendSprite — successful generation', () => {
     resetBlendStats();
     patchCreateElement();
 
-    const sprites = store.sprites as Record<string, HTMLCanvasElement | ImageBitmap>;
+    const sprites = getSprites();
     sprites['0plains_plains'] = makeImageBitmap(48, 24);
     sprites['0desert_desert'] = makeImageBitmap(48, 24);
 
@@ -168,9 +172,9 @@ describe('generateBlendSprite — successful generation', () => {
     expect(blendStats.cacheHits).toBe(0);
 
     const blendKey = '__blend_1_0plains_plains_0desert_desert';
-    delete (sprites as Record<string, unknown>)['0plains_plains'];
-    delete (sprites as Record<string, unknown>)['0desert_desert'];
-    delete (sprites as Record<string, unknown>)[blendKey];
+    delete sprites['0plains_plains'];
+    delete sprites['0desert_desert'];
+    delete sprites[blendKey];
   });
 
   it('returns the same key on second call (cache hit)', async () => {
@@ -178,7 +182,7 @@ describe('generateBlendSprite — successful generation', () => {
     resetBlendStats();
     patchCreateElement();
 
-    const sprites = store.sprites as Record<string, HTMLCanvasElement | ImageBitmap>;
+    const sprites = getSprites();
     sprites['0hills_hills'] = makeImageBitmap(48, 24);
     sprites['0mountains_mountains'] = makeImageBitmap(48, 24);
 
@@ -191,9 +195,9 @@ describe('generateBlendSprite — successful generation', () => {
     expect(blendStats.cacheHits).toBe(1);
 
     const blendKey = '__blend_2_0hills_hills_0mountains_mountains';
-    delete (sprites as Record<string, unknown>)['0hills_hills'];
-    delete (sprites as Record<string, unknown>)['0mountains_mountains'];
-    delete (sprites as Record<string, unknown>)[blendKey];
+    delete sprites['0hills_hills'];
+    delete sprites['0mountains_mountains'];
+    delete sprites[blendKey];
   });
 
   it('uses both canvas 2D drawing calls (drawImage on main and tmp)', async () => {
@@ -203,7 +207,7 @@ describe('generateBlendSprite — successful generation', () => {
     const tmpCtx = makeMockCtx();
     patchCreateElement(mainCtx, tmpCtx);
 
-    const sprites = store.sprites as Record<string, HTMLCanvasElement | ImageBitmap>;
+    const sprites = getSprites();
     sprites['0tundra_tundra'] = makeImageBitmap(48, 24);
     sprites['0swamp_swamp'] = makeImageBitmap(48, 24);
 
@@ -218,9 +222,9 @@ describe('generateBlendSprite — successful generation', () => {
     expect(tmpCtx.globalCompositeOperation).toBe('destination-in');
 
     const blendKey = '__blend_3_0tundra_tundra_0swamp_swamp';
-    delete (sprites as Record<string, unknown>)['0tundra_tundra'];
-    delete (sprites as Record<string, unknown>)['0swamp_swamp'];
-    delete (sprites as Record<string, unknown>)[blendKey];
+    delete sprites['0tundra_tundra'];
+    delete sprites['0swamp_swamp'];
+    delete sprites[blendKey];
   });
 
   it('returns null when canvas context is unavailable', async () => {
@@ -228,15 +232,15 @@ describe('generateBlendSprite — successful generation', () => {
     resetBlendStats();
     patchCreateElement(null, null); // null ctx = unavailable
 
-    const sprites = store.sprites as Record<string, HTMLCanvasElement | ImageBitmap>;
+    const sprites = getSprites();
     sprites['0ocean_ocean'] = makeImageBitmap(48, 24);
     sprites['0coast_coast'] = makeImageBitmap(48, 24);
 
     const result = generateBlendSprite(0, '0ocean_ocean', '0coast_coast');
     expect(result).toBeNull();
 
-    delete (sprites as Record<string, unknown>)['0ocean_ocean'];
-    delete (sprites as Record<string, unknown>)['0coast_coast'];
+    delete sprites['0ocean_ocean'];
+    delete sprites['0coast_coast'];
   });
 });
 
@@ -249,7 +253,7 @@ describe('generateBlendSprite — cardinal directions', () => {
     const { generateBlendSprite, resetBlendStats } = await import('@/renderer/terrainBlendGen');
     resetBlendStats();
 
-    const sprites = store.sprites as Record<string, HTMLCanvasElement | ImageBitmap>;
+    const sprites = getSprites();
     sprites['0src_src'] = makeImageBitmap(48, 24);
     sprites['0nbr_nbr'] = makeImageBitmap(48, 24);
 
@@ -258,7 +262,7 @@ describe('generateBlendSprite — cardinal directions', () => {
       patchCreateElement();
       const key = generateBlendSprite(i, '0src_src', '0nbr_nbr');
       keys.add(key);
-      if (key) delete (sprites as Record<string, unknown>)[key];
+      if (key) delete sprites[key];
       vi.restoreAllMocks();
     }
 
@@ -266,8 +270,8 @@ describe('generateBlendSprite — cardinal directions', () => {
     expect(keys.size).toBe(4);
     expect(keys.has(null)).toBe(false);
 
-    delete (sprites as Record<string, unknown>)['0src_src'];
-    delete (sprites as Record<string, unknown>)['0nbr_nbr'];
+    delete sprites['0src_src'];
+    delete sprites['0nbr_nbr'];
   });
 });
 
@@ -280,7 +284,7 @@ describe('clearBlendCache', () => {
     const { clearBlendCache, generateBlendSprite, resetBlendStats } = await import('@/renderer/terrainBlendGen');
     resetBlendStats();
 
-    const sprites = store.sprites as Record<string, HTMLCanvasElement | ImageBitmap>;
+    const sprites = getSprites();
     sprites['0t1_t1'] = makeImageBitmap(48, 24);
     sprites['0t2_t2'] = makeImageBitmap(48, 24);
 
@@ -294,20 +298,20 @@ describe('clearBlendCache', () => {
     clearBlendCache();
     expect(sprites[blendKey]).toBeUndefined();
 
-    delete (sprites as Record<string, unknown>)['0t1_t1'];
-    delete (sprites as Record<string, unknown>)['0t2_t2'];
+    delete sprites['0t1_t1'];
+    delete sprites['0t2_t2'];
   });
 
   it('does not remove non-blend sprites', async () => {
     const { clearBlendCache } = await import('@/renderer/terrainBlendGen');
 
-    const sprites = store.sprites as Record<string, HTMLCanvasElement | ImageBitmap>;
+    const sprites = getSprites();
     sprites['t.l0.grassland_n1e0s0w0'] = makeImageBitmap(96, 48);
 
     clearBlendCache();
     expect(sprites['t.l0.grassland_n1e0s0w0']).toBeDefined();
 
-    delete (sprites as Record<string, unknown>)['t.l0.grassland_n1e0s0w0'];
+    delete sprites['t.l0.grassland_n1e0s0w0'];
   });
 });
 
@@ -318,8 +322,8 @@ describe('clearBlendCache', () => {
 describe('resetBlendStats', () => {
   it('zeros both counters', async () => {
     const { blendStats, resetBlendStats } = await import('@/renderer/terrainBlendGen');
-    (blendStats as Record<string, number>).generated = 99;
-    (blendStats as Record<string, number>).cacheHits = 42;
+    blendStats.generated = 99;
+    blendStats.cacheHits = 42;
 
     resetBlendStats();
     expect(blendStats.generated).toBe(0);
@@ -337,7 +341,7 @@ describe('generateBlendSprite — HTMLCanvasElement source', () => {
     resetBlendStats();
     patchCreateElement();
 
-    const sprites = store.sprites as Record<string, HTMLCanvasElement | ImageBitmap>;
+    const sprites = getSprites();
     // Use a real HTMLCanvasElement as source (width/height from property)
     const srcCanvas = document.createElement('canvas');
     srcCanvas.width = 48;
@@ -349,8 +353,8 @@ describe('generateBlendSprite — HTMLCanvasElement source', () => {
     expect(result).toBe('__blend_0_0canvas_src_0canvas_nbr');
 
     const blendKey = '__blend_0_0canvas_src_0canvas_nbr';
-    delete (sprites as Record<string, unknown>)['0canvas_src'];
-    delete (sprites as Record<string, unknown>)['0canvas_nbr'];
-    delete (sprites as Record<string, unknown>)[blendKey];
+    delete sprites['0canvas_src'];
+    delete sprites['0canvas_nbr'];
+    delete sprites[blendKey];
   });
 });

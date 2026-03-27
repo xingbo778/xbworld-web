@@ -14,6 +14,7 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { store } from '@/data/store';
+import type { City, Player, Tile, Unit } from '@/data/types';
 
 // ---------------------------------------------------------------------------
 // WebSocket mock — must be registered BEFORE importing connection/server
@@ -36,7 +37,7 @@ class MockWebSocket {
     this.readyState = MockWebSocket.CLOSED;
   }
 }
-(globalThis as any).WebSocket = MockWebSocket;
+Object.assign(globalThis, { WebSocket: MockWebSocket as unknown as typeof WebSocket });
 
 // Stub localStorage
 Object.defineProperty(globalThis, 'localStorage', {
@@ -110,10 +111,11 @@ import {
   network_stop,
   _resetReconnectStateForTests,
   RECONNECT_DELAYS_MS,
+  getCurrentWebSocketForTests,
+  setCurrentWebSocketForTests,
+  setCivserverportForTests,
 } from '@/net/connection';
 import { handle_server_shutdown } from '@/net/handlers/server';
-
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -121,11 +123,11 @@ import { handle_server_shutdown } from '@/net/handlers/server';
 function resetAll(): void {
   vi.clearAllMocks();
   _resetReconnectStateForTests();
-  (window as any).civserverport = '6001';
-  (window as any).ws = null;
+  setCivserverportForTests('6001');
+  setCurrentWebSocketForTests(null);
   // Restore game state
-  store.tiles = { 42: { index: 42 } as any };
-  store.players = { 0: { playerno: 0 } as any };
+  store.tiles = { 42: { index: 42 } as Tile };
+  store.players = { 0: { playerno: 0 } as Player };
   store.units = {};
   store.cities = {};
   store.overviewTimerId = setInterval(() => {}, 99999);
@@ -135,7 +137,7 @@ function resetAll(): void {
 
 function simulateConnected(): void {
   websocket_init();
-  const ws = (window as any).ws as MockWebSocket;
+  const ws = getCurrentWebSocketForTests() as MockWebSocket;
   ws.onopen!(new Event('open'));
 }
 
@@ -150,9 +152,9 @@ describe('SD-1: markServerShutdown prevents reconnect after ws.onclose', () => {
     simulateConnected();
     handle_server_shutdown({});
 
-    const wsAfterShutdown = (window as any).ws;
+    const wsAfterShutdown = getCurrentWebSocketForTests();
     vi.advanceTimersByTime(30000); // past all reconnect delays
-    expect((window as any).ws).toBe(wsAfterShutdown); // no new WS created
+    expect(getCurrentWebSocketForTests()).toBe(wsAfterShutdown); // no new WS created
   });
 
   it('store.connectionState is "disconnected" immediately', () => {
@@ -184,16 +186,16 @@ describe('SD-3: network_stop is called — ws cleared', () => {
 
   it('ws is null after shutdown', () => {
     simulateConnected();
-    expect((window as any).ws).not.toBeNull();
+    expect(getCurrentWebSocketForTests()).not.toBeNull();
 
     handle_server_shutdown({});
-    expect((window as any).ws).toBeNull();
+    expect(getCurrentWebSocketForTests()).toBeNull();
   });
 
   it('safe to call shutdown when no ws exists', () => {
     // ws is null (never connected)
     expect(() => handle_server_shutdown({})).not.toThrow();
-    expect((window as any).ws).toBeNull();
+    expect(getCurrentWebSocketForTests()).toBeNull();
   });
 });
 
@@ -217,8 +219,8 @@ describe('SD-4: store.reset clears game data', () => {
   });
 
   it('store.cities and store.units are cleared', () => {
-    store.cities = { 1: { id: 1 } as any };
-    store.units = { 1: { id: 1 } as any };
+    store.cities = { 1: { id: 1 } as City };
+    store.units = { 1: { id: 1 } as Unit };
     handle_server_shutdown({});
     expect(store.cities).toEqual({});
     expect(store.units).toEqual({});
@@ -299,7 +301,7 @@ describe('SD-8: shutdown during reconnect cancels pending timers', () => {
 
   it('no new WS is created after shutdown even when reconnect timer would have fired', () => {
     simulateConnected();
-    const ws1 = (window as any).ws as MockWebSocket;
+    const ws1 = getCurrentWebSocketForTests() as MockWebSocket;
 
     // Trigger abnormal close → schedules reconnect in 1s
     ws1.onclose!(new CloseEvent('close', { code: 1006 }));
@@ -310,9 +312,9 @@ describe('SD-8: shutdown during reconnect cancels pending timers', () => {
     expect(store.connectionState).toBe('disconnected');
 
     // Advance past the reconnect delay — no new WS should appear
-    const wsAfterShutdown = (window as any).ws;
+    const wsAfterShutdown = getCurrentWebSocketForTests();
     vi.advanceTimersByTime(RECONNECT_DELAYS_MS[0] + 1000);
-    expect((window as any).ws).toBe(wsAfterShutdown);
+    expect(getCurrentWebSocketForTests()).toBe(wsAfterShutdown);
   });
 });
 
@@ -324,7 +326,7 @@ describe('SD-9: shutdown without active WebSocket', () => {
   afterEach(() => { _resetReconnectStateForTests(); vi.restoreAllMocks(); vi.useRealTimers(); });
 
   it('handle_server_shutdown does not throw when ws is null', () => {
-    expect((window as any).ws).toBeNull();
+    expect(getCurrentWebSocketForTests()).toBeNull();
     expect(() => handle_server_shutdown({})).not.toThrow();
   });
 

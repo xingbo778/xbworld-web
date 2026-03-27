@@ -98,7 +98,8 @@ export function remove(el: HTMLElement | null): void {
 export function setCSS(el: HTMLElement | null, styles: Partial<CSSStyleDeclaration>): void {
   if (!el) return;
   for (const [k, v] of Object.entries(styles)) {
-    (el.style as unknown as Record<string, unknown>)[k] = v;
+    if (v == null) continue;
+    el.style.setProperty(k.replace(/[A-Z]/g, c => '-' + c.toLowerCase()), String(v));
   }
 }
 

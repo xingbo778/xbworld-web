@@ -18,9 +18,8 @@ import {
   VUT_EXTRA, ERM_PILLAGE,
 } from './fcTypes';
 import { BitVector } from '../utils/bitvector';
-// map_to_gui_pos and mapview are renderer globals resolved at runtime
-declare function map_to_gui_pos(x: number, y: number): { gui_dx: number; gui_dy: number };
-declare const mapview: { gui_x0: number; gui_y0: number; width: number; height: number };
+import { map_to_gui_pos } from '../renderer/mapCoords';
+import { mapview } from '../renderer/mapViewState';
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
@@ -472,4 +471,3 @@ export function get_what_can_unit_pillage_from(punit: Unit | null, ptile: Tile |
 // ---------------------------------------------------------------------------
 // Expose to legacy JS via window
 // ---------------------------------------------------------------------------
-

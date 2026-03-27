@@ -12,6 +12,7 @@
 import { store } from './store';
 import { setDrawFogOfWar } from '../ui/options';
 import type { ServerSetting } from './types';
+import { getActiveRenderer } from '../renderer/rendererRegistry';
 
 // ---------------------------------------------------------------------------
 // Query helpers
@@ -60,8 +61,7 @@ const KEY_SETTING_EFFECTS: Readonly<Record<string, (val: unknown) => void>> = {
   'fogofwar': (val: unknown) => {
     setDrawFogOfWar(Boolean(val));
     // Re-render all tiles so fog overlays are added/removed immediately.
-    const pr = (store as unknown as Record<string, unknown>)['pixiRenderer'] as
-      { markAllDirty(): void } | undefined;
+    const pr = getActiveRenderer();
     pr?.markAllDirty();
   },
 };

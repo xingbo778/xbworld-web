@@ -1,63 +1,46 @@
 import { test, expect } from '@playwright/test';
+import type { XbwPageGlobals } from './helpers/pageGlobals';
 
-test.describe('Intro Dialog', () => {
-  test('should show intro dialog on load', async ({ page }) => {
-    await page.goto('/webclient/index.html');
-    await page.waitForSelector('.xb-dialog', { timeout: 5000 });
-
-    const dialog = page.locator('.xb-dialog');
-    await expect(dialog).toBeVisible();
+test.describe('Observer Auto-Connect', () => {
+  test('should not show username intro form on load', async ({ page }) => {
+    await page.goto('/webclient/index.html', { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(1500);
+    await expect(page.locator('#username_req')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Observe Game' })).toHaveCount(0);
   });
 
-  test('should have a username input field', async ({ page }) => {
-    await page.goto('/webclient/index.html');
-    await page.waitForSelector('#username_req', { timeout: 5000 });
-
-    const input = page.locator('#username_req');
-    await expect(input).toBeVisible();
-    await expect(input).toBeEditable();
+  test('should auto-connect when username query param is present', async ({ page }) => {
+    await page.goto('/webclient/index.html?username=IntroSpecUser', { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(1500);
+    const username = await page.evaluate(() => {
+      const w = window as XbwPageGlobals;
+      return w.__store?.username ?? null;
+    });
+    expect(username).toBe('IntroSpecUser');
+    await expect(page.locator('#username_req')).toHaveCount(0);
   });
 
-  test('should validate empty username', async ({ page }) => {
-    await page.goto('/webclient/index.html');
-    await page.waitForSelector('.xb-dialog', { timeout: 5000 });
-
-    const startBtn = page.locator('.xb-dialog-content .xb-btn');
-    await startBtn.click();
-
-    await expect(page.getByText('Username must be at least 3 characters')).toBeVisible();
-  });
-
-  test('should validate short username', async ({ page }) => {
-    await page.goto('/webclient/index.html');
-    await page.waitForSelector('#username_req', { timeout: 5000 });
-
-    await page.fill('#username_req', 'ab');
-    const startBtn = page.locator('.xb-dialog-content .xb-btn');
-    await startBtn.click();
-
-    await expect(page.getByText('Username must be at least 3 characters')).toBeVisible();
-  });
-
-  test('should accept valid username and close dialog', async ({ page }) => {
-    await page.goto('/webclient/index.html');
-    await page.waitForSelector('#username_req', { timeout: 5000 });
-
-    await page.fill('#username_req', 'TestPlayer');
-    const startBtn = page.locator('.xb-dialog-content .xb-btn');
-    await startBtn.click();
-
-    // Dialog should close (network will fail but dialog should dismiss)
-    await expect(page.locator('.xb-dialog')).toHaveCount(0, { timeout: 5000 });
-  });
-
-  test('should remember username from localStorage', async ({ page }) => {
-    await page.goto('/webclient/index.html');
+  test('should resolve username from localStorage when no query param is provided', async ({ page }) => {
+    await page.goto('/webclient/index.html', { waitUntil: 'domcontentloaded' });
     await page.evaluate(() => localStorage.setItem('username', 'SavedUser'));
-    await page.reload();
-    await page.waitForSelector('#username_req', { timeout: 5000 });
+    await page.reload({ waitUntil: 'domcontentloaded' });
 
-    const value = await page.inputValue('#username_req');
-    expect(value).toBe('SavedUser');
+    const username = await page.evaluate(() => {
+      const w = window as XbwPageGlobals;
+      return w.__store?.username ?? null;
+    });
+    expect(username).toBe('SavedUser');
+  });
+
+  test('should prefer username query param over localStorage', async ({ page }) => {
+    await page.goto('/webclient/index.html', { waitUntil: 'domcontentloaded' });
+    await page.evaluate(() => localStorage.setItem('username', 'SavedUser'));
+    await page.goto('/webclient/index.html?username=ParamUser', { waitUntil: 'domcontentloaded' });
+
+    const username = await page.evaluate(() => {
+      const w = window as XbwPageGlobals;
+      return w.__store?.username ?? null;
+    });
+    expect(username).toBe('ParamUser');
   });
 });

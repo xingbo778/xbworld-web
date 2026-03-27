@@ -10,26 +10,46 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { FC_INFINITY } from '@/data/fcTypes';
+import type { City, Improvement, Player, Tile, Unit, UnitType } from '@/data/types';
+
+type MockBitVector = { isSet: (bit: number) => boolean };
+type MockImprovement = Pick<Improvement, 'id' | 'name'> & { helptext?: string };
+type CityLogicMockStore = {
+  rulesControl: { num_impr_types: number };
+  improvements: Record<number, MockImprovement>;
+  specialists: Record<number, { id: number }>;
+  unitTypes: Record<number, UnitType>;
+  cities: Record<number, City>;
+  players: Record<number, Player>;
+  techs: Record<number, { id: number }>;
+  units: Record<number, Unit>;
+  nations: Record<number, { id: number; adjective?: string }>;
+  terrains: Record<number, { id: number; name?: string; graphic_str?: string }>;
+  governments: Record<number, { id: number; name?: string }>;
+  tiles: Record<number, Tile>;
+  effects: Record<number, { id: number }>;
+  rulesControlData: null;
+};
 
 // ---------------------------------------------------------------------------
 // Mocks
 // ---------------------------------------------------------------------------
 
-const mockStore = vi.hoisted(() => ({
-  rulesControl: { num_impr_types: 0 } as Record<string, unknown>,
-  improvements: {} as Record<number, unknown>,
-  specialists: {} as Record<number, unknown>,
-  unitTypes: {} as Record<number, unknown>,
-  cities: {} as Record<number, unknown>,
-  players: {} as Record<number, unknown>,
-  techs: {} as Record<number, unknown>,
-  units: {} as Record<number, unknown>,
-  nations: {} as Record<number, unknown>,
-  terrains: {} as Record<number, unknown>,
-  governments: {} as Record<number, unknown>,
-  tiles: {} as Record<number, unknown>,
-  effects: {} as Record<number, unknown>,
-  rulesControlData: null as unknown,
+const mockStore = vi.hoisted<CityLogicMockStore>(() => ({
+  rulesControl: { num_impr_types: 0 },
+  improvements: {},
+  specialists: {},
+  unitTypes: {},
+  cities: {},
+  players: {},
+  techs: {},
+  units: {},
+  nations: {},
+  terrains: {},
+  governments: {},
+  tiles: {},
+  effects: {},
+  rulesControlData: null,
 }));
 
 vi.mock('@/data/store', () => ({ store: mockStore }));
@@ -57,7 +77,17 @@ vi.mock('@/data/map', async (importOriginal) => ({ ...(await importOriginal() as
 // Helpers
 // ---------------------------------------------------------------------------
 
-function makeCity(overrides: Record<string, unknown> = {}) {
+function makeCity(overrides: Omit<Partial<City>, 'improvements'> & {
+  granary_size?: number;
+  food_surplus?: number;
+  pollution?: number;
+  steal?: number;
+  culture?: number;
+  improvements?: City['improvements'] | MockBitVector;
+  was_happy?: boolean;
+  unhappy?: boolean;
+  can_build_unit?: boolean;
+} = {}): City {
   return {
     id: 1,
     name: 'Rome',
@@ -81,7 +111,7 @@ function makeCity(overrides: Record<string, unknown> = {}) {
     unhappy: false,
     can_build_unit: undefined,
     ...overrides,
-  };
+  } as unknown as City;
 }
 
 // ---------------------------------------------------------------------------
@@ -154,9 +184,9 @@ describe('getImprovementItems', () => {
   beforeEach(() => {
     mockStore.rulesControl = { num_impr_types: 3 };
     mockStore.improvements = {
-      0: { name: 'Barracks', helptext: 'Build units faster' },
-      1: { name: 'Granary', helptext: 'Store food' },
-      2: { name: 'Library', helptext: 'Research' },
+      0: { id: 0, name: 'Barracks', helptext: 'Build units faster' },
+      1: { id: 1, name: 'Granary', helptext: 'Store food' },
+      2: { id: 2, name: 'Library', helptext: 'Research' },
     };
   });
 

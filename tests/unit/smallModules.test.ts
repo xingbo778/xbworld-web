@@ -48,9 +48,56 @@ import {
   setPhaseStart,
   getInvalidUsernameReason,
 } from '@/client/clientCore';
+import type { Extra, Improvement, Terrain, Tile } from '@/data/types';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-const win = window as any;
+type SmallModulesWindow = Window & {
+  check_text_with_banlist_exact?: (name: string) => boolean;
+};
+
+const win = window as SmallModulesWindow;
+
+function makeImprovementFixture(
+  id: number,
+  name: string,
+  extra: Partial<Improvement> = {},
+): Improvement {
+  return {
+    id,
+    name,
+    rule_name: name.toLowerCase(),
+    genus: 0,
+    build_cost: 100,
+    graphic_str: name,
+    graphic_alt: name,
+    ...extra,
+  };
+}
+
+function makeTerrain(terrain: number): Tile {
+  return {
+    index: 0,
+    x: 0,
+    y: 0,
+    terrain,
+    known: 0,
+    extras: [],
+    owner: 0,
+    worked: 0,
+    resource: 0,
+    continent: 0,
+  };
+}
+
+function makeTerrainType(id: number, name: string, graphicStr: string): Terrain {
+  return {
+    id,
+    name,
+    graphic_str: graphicStr,
+    movement_cost: 1,
+    defense_bonus: 0,
+    output: [],
+  };
+}
 
 // ===========================================================================
 // improvement.ts
@@ -60,12 +107,12 @@ describe('improvement.ts', () => {
   beforeEach(() => {
     improvements_init();
     const buildings = [
-      { id: 0, name: 'Palace', soundtag: 'b_palace', reqs: [{ kind: 4, value: 5, present: true }] },
-      { id: 1, name: 'Barracks', soundtag: 'b_barracks', reqs: [{ kind: 4, value: 3, present: true }] },
-      { id: 2, name: 'Great Wall', soundtag: 'w_great_wall', reqs: [{ kind: 4, value: 10, present: true }] },
-      { id: 3, name: 'Library', soundtag: 'b_library', reqs: [] },
+      makeImprovementFixture(0, 'Palace', { soundtag: 'b_palace', reqs: [{ kind: 4, value: 5, present: true }] }),
+      makeImprovementFixture(1, 'Barracks', { soundtag: 'b_barracks', reqs: [{ kind: 4, value: 3, present: true }] }),
+      makeImprovementFixture(2, 'Great Wall', { soundtag: 'w_great_wall', reqs: [{ kind: 4, value: 10, present: true }] }),
+      makeImprovementFixture(3, 'Library', { soundtag: 'b_library', reqs: [] }),
     ];
-    buildings.forEach((b) => improvements_add_building(b as any));
+    buildings.forEach((b) => improvements_add_building(b));
   });
 
   afterEach(() => {
@@ -133,11 +180,11 @@ describe('extra.ts', () => {
 
   beforeEach(() => {
     store.extras = {
-      0: { id: 0, name: 'Road', causes: mockBV(0, 1), rmcauses: mockBV(), gui_type: 0 } as any,
-      1: { id: 1, name: 'Fortress', causes: mockBV(0, 2), rmcauses: mockBV(1), gui_type: BASE_GUI_FORTRESS } as any,
-      2: { id: 2, name: 'Airbase', causes: mockBV(0, 2), rmcauses: mockBV(1), gui_type: BASE_GUI_AIRBASE } as any,
+      0: { id: 0, name: 'Road', rule_name: 'road', causes: mockBV(0, 1), rmcauses: mockBV(), gui_type: 0 } as never,
+      1: { id: 1, name: 'Fortress', rule_name: 'fortress', causes: mockBV(0, 2), rmcauses: mockBV(1), gui_type: BASE_GUI_FORTRESS } as never,
+      2: { id: 2, name: 'Airbase', rule_name: 'airbase', causes: mockBV(0, 2), rmcauses: mockBV(1), gui_type: BASE_GUI_AIRBASE } as never,
     };
-    store.rulesControl = { num_extra_types: 10 } as any;
+    store.rulesControl = { num_extra_types: 10 };
   });
 
   afterEach(() => {
@@ -254,47 +301,47 @@ function makeMaxRatesEffect(effectValue: number, govtId?: number): Record<string
 
 describe('government.ts', () => {
   describe('governmentMaxRate — effects-based', () => {
-    beforeEach(() => { (store.effects as Record<string, unknown>) = {}; });
-    afterEach(() => { (store.effects as Record<string, unknown>) = {}; });
+    beforeEach(() => { store.effects = {}; });
+    afterEach(() => { store.effects = {}; });
 
     it('returns 100 when store.effects has no EFT_MAX_RATES data', () => {
       expect(governmentMaxRate(1)).toBe(100);
     });
 
     it('returns 100 when EFT_MAX_RATES array is empty', () => {
-      (store.effects as Record<number, unknown[]>)[EFT_MAX_RATES] = [];
+      store.effects[EFT_MAX_RATES] = [];
       expect(governmentMaxRate(1)).toBe(100);
     });
 
     it('returns effect_value for government with matching VUT_GOVERNMENT requirement', () => {
-      (store.effects as Record<number, unknown[]>)[EFT_MAX_RATES] = [
+      store.effects[EFT_MAX_RATES] = [
         makeMaxRatesEffect(60, 1), // Despotism
         makeMaxRatesEffect(70, 2), // Monarchy
-      ];
+      ] as never;
       expect(governmentMaxRate(1)).toBe(60);
       expect(governmentMaxRate(2)).toBe(70);
     });
 
     it('returns 100 when no effects match the given government', () => {
-      (store.effects as Record<number, unknown[]>)[EFT_MAX_RATES] = [
+      store.effects[EFT_MAX_RATES] = [
         makeMaxRatesEffect(60, 1), // only Despotism has an effect
-      ];
+      ] as never;
       expect(governmentMaxRate(5)).toBe(100); // Democracy: no matching effect
     });
 
     it('applies unconditional effect (empty reqs) to all governments', () => {
-      (store.effects as Record<number, unknown[]>)[EFT_MAX_RATES] = [
+      store.effects[EFT_MAX_RATES] = [
         makeMaxRatesEffect(80), // no government requirement → applies everywhere
-      ];
+      ] as never;
       expect(governmentMaxRate(1)).toBe(80);
       expect(governmentMaxRate(3)).toBe(80);
     });
 
     it('sums multiple matching effects', () => {
-      (store.effects as Record<number, unknown[]>)[EFT_MAX_RATES] = [
+      store.effects[EFT_MAX_RATES] = [
         makeMaxRatesEffect(60, 1), // government-specific: +60
         makeMaxRatesEffect(20),    // unconditional: +20
-      ];
+      ] as never;
       // Despotism (1): 60 + 20 = 80
       expect(governmentMaxRate(1)).toBe(80);
       // Monarchy (2): only the unconditional effect applies → 20
@@ -302,9 +349,9 @@ describe('government.ts', () => {
     });
 
     it('returns 100 for unknown government id when no matching effects', () => {
-      (store.effects as Record<number, unknown[]>)[EFT_MAX_RATES] = [
+      store.effects[EFT_MAX_RATES] = [
         makeMaxRatesEffect(60, 1),
-      ];
+      ] as never;
       expect(governmentMaxRate(99)).toBe(100);
     });
   });
@@ -317,10 +364,10 @@ describe('government.ts', () => {
 describe('terrain.ts', () => {
   beforeEach(() => {
     store.terrains = {
-      0: { id: 0, graphic_str: 'grassland', name: 'Grassland' } as any,
-      1: { id: 1, graphic_str: 'floor', name: 'Ocean' } as any,
-      2: { id: 2, graphic_str: 'coast', name: 'Coast' } as any,
-      3: { id: 3, graphic_str: 'desert', name: 'Desert' } as any,
+      0: makeTerrainType(0, 'Grassland', 'grassland'),
+      1: makeTerrainType(1, 'Ocean', 'floor'),
+      2: makeTerrainType(2, 'Coast', 'coast'),
+      3: makeTerrainType(3, 'Desert', 'desert'),
     };
   });
 
@@ -330,7 +377,7 @@ describe('terrain.ts', () => {
 
   describe('tile_set_terrain / tile_terrain', () => {
     it('should set and get terrain', () => {
-      const ptile = { terrain: -1 } as any;
+      const ptile = makeTerrain(-1);
       tileSetTerrain(ptile, 2);
       expect(ptile.terrain).toBe(2);
       const t = tileTerrain(ptile);
@@ -338,29 +385,29 @@ describe('terrain.ts', () => {
     });
 
     it('should return undefined for invalid terrain id', () => {
-      const ptile = { terrain: 99 } as any;
+      const ptile = makeTerrain(99);
       expect(tileTerrain(ptile)).toBeUndefined();
     });
   });
 
   describe('is_ocean_tile', () => {
     it('should return true for floor terrain (Ocean)', () => {
-      const ptile = { terrain: 1 } as any;
+      const ptile = makeTerrain(1);
       expect(isOceanTile(ptile)).toBe(true);
     });
 
     it('should return true for coast terrain', () => {
-      const ptile = { terrain: 2 } as any;
+      const ptile = makeTerrain(2);
       expect(isOceanTile(ptile)).toBe(true);
     });
 
     it('should return false for land terrain', () => {
-      const ptile = { terrain: 0 } as any;
+      const ptile = makeTerrain(0);
       expect(isOceanTile(ptile)).toBe(false);
     });
 
     it('should return false for invalid terrain', () => {
-      const ptile = { terrain: 99 } as any;
+      const ptile = makeTerrain(99);
       expect(isOceanTile(ptile)).toBe(false);
     });
   });
@@ -411,16 +458,16 @@ describe('unittype.ts', () => {
 describe('clientCore.ts', () => {
   describe('game type queries', () => {
     afterEach(() => {
-      delete win.game_type;
+      store.gameType = '';
     });
 
     it('isLongturn should return true for longturn game', () => {
-      win.game_type = 'longturn';
+      store.gameType = 'longturn';
       expect(isLongturn()).toBe(true);
     });
 
     it('isLongturn should return false for other game types', () => {
-      win.game_type = 'singleplayer';
+      store.gameType = 'singleplayer';
       expect(isLongturn()).toBe(false);
     });
 
@@ -431,15 +478,15 @@ describe('clientCore.ts', () => {
 
   describe('setPhaseStart', () => {
     afterEach(() => {
-      delete win.phase_start_time;
+      store.phaseStartTime = 0;
     });
 
     it('should set phase_start_time to current time', () => {
       const before = Date.now();
       setPhaseStart();
       const after = Date.now();
-      expect(win.phase_start_time).toBeGreaterThanOrEqual(before);
-      expect(win.phase_start_time).toBeLessThanOrEqual(after);
+      expect(store.phaseStartTime).toBeGreaterThanOrEqual(before);
+      expect(store.phaseStartTime).toBeLessThanOrEqual(after);
     });
   });
 

@@ -11,16 +11,26 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { VUT_ADVANCE, VUT_GOVERNMENT, RPT_POSSIBLE, REQ_RANGE_PLAYER } from '@/data/fcTypes';
+import type { City, Improvement, Player, Tech, UnitType } from '@/data/types';
+
+type BuildTestStore = {
+  unitTypes: Record<number, UnitType>;
+  improvements: Record<number, Improvement>;
+  players: Record<number, Player>;
+  cities: Record<number, City>;
+  techs: Record<number, Tech>;
+  rulesControl: { num_impr_types: number };
+};
 
 // ---------------------------------------------------------------------------
 // Store mock — must be hoisted so vi.mock factory can reference it
 // ---------------------------------------------------------------------------
-const mockStore = vi.hoisted(() => ({
-  unitTypes: {} as Record<number, unknown>,
-  improvements: {} as Record<number, unknown>,
-  players: {} as Record<number, unknown>,
-  cities: {} as Record<number, unknown>,
-  techs: {} as Record<number, unknown>,
+const mockStore = vi.hoisted<BuildTestStore>(() => ({
+  unitTypes: {},
+  improvements: {},
+  players: {},
+  cities: {},
+  techs: {},
   rulesControl: { num_impr_types: 0 },
 }));
 
@@ -29,8 +39,8 @@ vi.mock('@/data/store', () => ({ store: mockStore }));
 // Minimal tech mock: playerInventionState returns TECH_KNOWN for techs in player.known_techs
 vi.mock('@/data/tech', () => ({
   TECH_KNOWN: 2,
-  playerInventionState: (player: Record<string, unknown>, techId: number) => {
-    const known = player['known_techs'] as number[] | undefined;
+  playerInventionState: (player: Player, techId: number) => {
+    const known = player.known_techs as number[] | undefined;
     return known?.includes(techId) ? 2 : 0;
   },
 }));
@@ -44,7 +54,6 @@ vi.mock('@/data/map', async (importOriginal) => ({
 // Import after mocks
 // ---------------------------------------------------------------------------
 import { canCityBuildUnitDirect, canCityBuildImprovementDirect } from '@/data/city';
-import type { City, Player, UnitType, Improvement } from '@/data/types';
 
 // ---------------------------------------------------------------------------
 // Test helpers
@@ -114,10 +123,10 @@ beforeEach(() => {
 describe('canCityBuildUnitDirect — tech_requirement', () => {
   it('allows building when no tech required (tech_req=-1)', () => {
     const player = makePlayer(1, []);
-    (mockStore.players as Record<number, unknown>)[1] = player;
+    mockStore.players[1] = player;
 
     const ut = makeUnitType(1, { techReq: -1 });
-    (mockStore.unitTypes as Record<number, unknown>)[1] = ut;
+    mockStore.unitTypes[1] = ut;
     const city = makeCity(1);
 
     expect(canCityBuildUnitDirect(city, ut)).toBe(true);
@@ -125,10 +134,10 @@ describe('canCityBuildUnitDirect — tech_requirement', () => {
 
   it('blocks building when player lacks required tech', () => {
     const player = makePlayer(1, []); // no techs
-    (mockStore.players as Record<number, unknown>)[1] = player;
+    mockStore.players[1] = player;
 
     const ut = makeUnitType(1, { techReq: 5 }); // requires tech 5
-    (mockStore.unitTypes as Record<number, unknown>)[1] = ut;
+    mockStore.unitTypes[1] = ut;
     const city = makeCity(1);
 
     expect(canCityBuildUnitDirect(city, ut)).toBe(false);
@@ -136,10 +145,10 @@ describe('canCityBuildUnitDirect — tech_requirement', () => {
 
   it('allows building when player knows required tech', () => {
     const player = makePlayer(1, [5]); // knows tech 5
-    (mockStore.players as Record<number, unknown>)[1] = player;
+    mockStore.players[1] = player;
 
     const ut = makeUnitType(1, { techReq: 5 });
-    (mockStore.unitTypes as Record<number, unknown>)[1] = ut;
+    mockStore.unitTypes[1] = ut;
     const city = makeCity(1);
 
     expect(canCityBuildUnitDirect(city, ut)).toBe(true);
@@ -153,13 +162,13 @@ describe('canCityBuildUnitDirect — tech_requirement', () => {
 describe('canCityBuildUnitDirect — obsoleted_by', () => {
   it('allows building when player lacks the obsoleting unit\'s tech', () => {
     const player = makePlayer(1, [5]); // knows tech 5 (for Warriors), not tech 10 (for Phalanx)
-    (mockStore.players as Record<number, unknown>)[1] = player;
+    mockStore.players[1] = player;
 
     const obsoletingType = makeUnitType(2, { techReq: 10 });
-    (mockStore.unitTypes as Record<number, unknown>)[2] = obsoletingType;
+    mockStore.unitTypes[2] = obsoletingType;
 
     const ut = makeUnitType(1, { techReq: 5, obsoletedBy: 2 });
-    (mockStore.unitTypes as Record<number, unknown>)[1] = ut;
+    mockStore.unitTypes[1] = ut;
 
     const city = makeCity(1);
     expect(canCityBuildUnitDirect(city, ut)).toBe(true);
@@ -167,13 +176,13 @@ describe('canCityBuildUnitDirect — obsoleted_by', () => {
 
   it('blocks building when player knows the obsoleting unit\'s tech', () => {
     const player = makePlayer(1, [5, 10]); // knows both techs
-    (mockStore.players as Record<number, unknown>)[1] = player;
+    mockStore.players[1] = player;
 
     const obsoletingType = makeUnitType(2, { techReq: 10 });
-    (mockStore.unitTypes as Record<number, unknown>)[2] = obsoletingType;
+    mockStore.unitTypes[2] = obsoletingType;
 
     const ut = makeUnitType(1, { techReq: 5, obsoletedBy: 2 });
-    (mockStore.unitTypes as Record<number, unknown>)[1] = ut;
+    mockStore.unitTypes[1] = ut;
 
     const city = makeCity(1);
     expect(canCityBuildUnitDirect(city, ut)).toBe(false);
@@ -182,13 +191,13 @@ describe('canCityBuildUnitDirect — obsoleted_by', () => {
   it('does not block when obsoleted_by unit has no tech requirement', () => {
     // If the obsoleting unit has no tech_requirement, it's always available — so this unit IS obsoleted
     const player = makePlayer(1, [5]);
-    (mockStore.players as Record<number, unknown>)[1] = player;
+    mockStore.players[1] = player;
 
     const obsoletingType = makeUnitType(2, { techReq: -1 }); // no tech needed
-    (mockStore.unitTypes as Record<number, unknown>)[2] = obsoletingType;
+    mockStore.unitTypes[2] = obsoletingType;
 
     const ut = makeUnitType(1, { techReq: 5, obsoletedBy: 2 });
-    (mockStore.unitTypes as Record<number, unknown>)[1] = ut;
+    mockStore.unitTypes[1] = ut;
 
     const city = makeCity(1);
     // obsoleting unit has no tech req → always obsoletes → cannot build
@@ -203,7 +212,7 @@ describe('canCityBuildUnitDirect — obsoleted_by', () => {
 describe('canCityBuildUnitDirect — build_reqs', () => {
   it('allows building when build_reqs is empty', () => {
     const player = makePlayer(1, []);
-    (mockStore.players as Record<number, unknown>)[1] = player;
+    mockStore.players[1] = player;
 
     const ut = makeUnitType(1, { buildReqs: [] });
     const city = makeCity(1);
@@ -213,7 +222,7 @@ describe('canCityBuildUnitDirect — build_reqs', () => {
 
   it('allows building when VUT_ADVANCE build_req is met (tech known)', () => {
     const player = makePlayer(1, [7]); // knows tech 7
-    (mockStore.players as Record<number, unknown>)[1] = player;
+    mockStore.players[1] = player;
 
     const ut = makeUnitType(1, {
       buildReqs: [{ kind: VUT_ADVANCE, range: REQ_RANGE_PLAYER, value: 7, present: true }],
@@ -225,7 +234,7 @@ describe('canCityBuildUnitDirect — build_reqs', () => {
 
   it('blocks building when VUT_ADVANCE build_req is not met (tech missing)', () => {
     const player = makePlayer(1, []); // knows no techs
-    (mockStore.players as Record<number, unknown>)[1] = player;
+    mockStore.players[1] = player;
 
     const ut = makeUnitType(1, {
       buildReqs: [{ kind: VUT_ADVANCE, range: REQ_RANGE_PLAYER, value: 7, present: true }],
@@ -237,7 +246,7 @@ describe('canCityBuildUnitDirect — build_reqs', () => {
 
   it('allows building when VUT_GOVERNMENT req matches player government', () => {
     const player = makePlayer(1, [], 3); // government = 3
-    (mockStore.players as Record<number, unknown>)[1] = player;
+    mockStore.players[1] = player;
 
     const ut = makeUnitType(1, {
       buildReqs: [{ kind: VUT_GOVERNMENT, range: REQ_RANGE_PLAYER, value: 3, present: true }],
@@ -249,7 +258,7 @@ describe('canCityBuildUnitDirect — build_reqs', () => {
 
   it('blocks building when VUT_GOVERNMENT req does not match player government', () => {
     const player = makePlayer(1, [], 1); // government = 1
-    (mockStore.players as Record<number, unknown>)[1] = player;
+    mockStore.players[1] = player;
 
     const ut = makeUnitType(1, {
       buildReqs: [{ kind: VUT_GOVERNMENT, range: REQ_RANGE_PLAYER, value: 3, present: true }],
@@ -261,7 +270,7 @@ describe('canCityBuildUnitDirect — build_reqs', () => {
 
   it('blocks building when prohibit req (present=false) matches — e.g. government IS active', () => {
     const player = makePlayer(1, [], 3); // government = 3
-    (mockStore.players as Record<number, unknown>)[1] = player;
+    mockStore.players[1] = player;
 
     // present=false means "must NOT have this government"
     const ut = makeUnitType(1, {
@@ -282,12 +291,12 @@ describe('buildProductionListData — fallback (no server BitVector)', () => {
   it('filters units by tech requirement when no BitVector present', () => {
     // Player knows tech 5, unit 1 needs tech 5, unit 2 needs tech 99 (unknown)
     const player = makePlayer(1, [5]);
-    (mockStore.players as Record<number, unknown>)[1] = player;
+    mockStore.players[1] = player;
 
     const ut1 = makeUnitType(1, { techReq: 5 });
     const ut2 = makeUnitType(2, { techReq: 99 });
-    (mockStore.unitTypes as Record<number, unknown>)[1] = ut1;
-    (mockStore.unitTypes as Record<number, unknown>)[2] = ut2;
+    mockStore.unitTypes[1] = ut1;
+    mockStore.unitTypes[2] = ut2;
 
     const city = makeCity(1);
 
@@ -306,12 +315,12 @@ describe('buildProductionListData — fallback (no server BitVector)', () => {
 describe('canCityBuildImprovementDirect — VUT_ADVANCE build_req', () => {
   it('allows building when VUT_ADVANCE build_req is met (tech known)', () => {
     const player = makePlayer(1, [7]);
-    (mockStore.players as Record<number, unknown>)[1] = player;
+    mockStore.players[1] = player;
 
     const impr = makeImprovement(1, {
       buildReqs: [{ kind: VUT_ADVANCE, range: REQ_RANGE_PLAYER, value: 7, present: true }],
     });
-    (mockStore.improvements as Record<number, unknown>)[1] = impr;
+    mockStore.improvements[1] = impr;
     const city = makeCity(1);
 
     expect(canCityBuildImprovementDirect(city, impr)).toBe(true);
@@ -319,12 +328,12 @@ describe('canCityBuildImprovementDirect — VUT_ADVANCE build_req', () => {
 
   it('blocks building when VUT_ADVANCE build_req is not met (tech missing)', () => {
     const player = makePlayer(1, []); // no techs
-    (mockStore.players as Record<number, unknown>)[1] = player;
+    mockStore.players[1] = player;
 
     const impr = makeImprovement(1, {
       buildReqs: [{ kind: VUT_ADVANCE, range: REQ_RANGE_PLAYER, value: 7, present: true }],
     });
-    (mockStore.improvements as Record<number, unknown>)[1] = impr;
+    mockStore.improvements[1] = impr;
     const city = makeCity(1);
 
     expect(canCityBuildImprovementDirect(city, impr)).toBe(false);
@@ -334,12 +343,12 @@ describe('canCityBuildImprovementDirect — VUT_ADVANCE build_req', () => {
 describe('canCityBuildImprovementDirect — VUT_GOVERNMENT build_req', () => {
   it('allows building when VUT_GOVERNMENT req matches player government', () => {
     const player = makePlayer(1, [], 2); // Monarchy
-    (mockStore.players as Record<number, unknown>)[1] = player;
+    mockStore.players[1] = player;
 
     const impr = makeImprovement(1, {
       buildReqs: [{ kind: VUT_GOVERNMENT, range: REQ_RANGE_PLAYER, value: 2, present: true }],
     });
-    (mockStore.improvements as Record<number, unknown>)[1] = impr;
+    mockStore.improvements[1] = impr;
     const city = makeCity(1);
 
     expect(canCityBuildImprovementDirect(city, impr)).toBe(true);
@@ -347,12 +356,12 @@ describe('canCityBuildImprovementDirect — VUT_GOVERNMENT build_req', () => {
 
   it('blocks building when VUT_GOVERNMENT req does not match player government', () => {
     const player = makePlayer(1, [], 1); // Despotism
-    (mockStore.players as Record<number, unknown>)[1] = player;
+    mockStore.players[1] = player;
 
     const impr = makeImprovement(1, {
       buildReqs: [{ kind: VUT_GOVERNMENT, range: REQ_RANGE_PLAYER, value: 2, present: true }],
     });
-    (mockStore.improvements as Record<number, unknown>)[1] = impr;
+    mockStore.improvements[1] = impr;
     const city = makeCity(1);
 
     expect(canCityBuildImprovementDirect(city, impr)).toBe(false);
@@ -360,13 +369,13 @@ describe('canCityBuildImprovementDirect — VUT_GOVERNMENT build_req', () => {
 
   it('blocks building when prohibit req (present=false) matches government', () => {
     const player = makePlayer(1, [], 3); // Communism
-    (mockStore.players as Record<number, unknown>)[1] = player;
+    mockStore.players[1] = player;
 
     // present=false means "must NOT have this government"
     const impr = makeImprovement(1, {
       buildReqs: [{ kind: VUT_GOVERNMENT, range: REQ_RANGE_PLAYER, value: 3, present: false }],
     });
-    (mockStore.improvements as Record<number, unknown>)[1] = impr;
+    mockStore.improvements[1] = impr;
     const city = makeCity(1);
 
     expect(canCityBuildImprovementDirect(city, impr)).toBe(false);
@@ -374,12 +383,12 @@ describe('canCityBuildImprovementDirect — VUT_GOVERNMENT build_req', () => {
 
   it('allows building when prohibit req (present=false) does not match government', () => {
     const player = makePlayer(1, [], 1); // Despotism — government 3 is absent → prohibition satisfied
-    (mockStore.players as Record<number, unknown>)[1] = player;
+    mockStore.players[1] = player;
 
     const impr = makeImprovement(1, {
       buildReqs: [{ kind: VUT_GOVERNMENT, range: REQ_RANGE_PLAYER, value: 3, present: false }],
     });
-    (mockStore.improvements as Record<number, unknown>)[1] = impr;
+    mockStore.improvements[1] = impr;
     const city = makeCity(1);
 
     expect(canCityBuildImprovementDirect(city, impr)).toBe(true);

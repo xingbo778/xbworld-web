@@ -62,11 +62,10 @@ export function isExtraRemovedBy(pextra: Extra, rmcause: number): boolean {
  * Does this extra type claim territory?
  */
 export function territoryClaimingExtra(pextra: Extra): boolean {
-  const base = pextra['base'] as Record<string, unknown> | undefined;
-  return !!base && (base['border_sq'] as number) > -1;
+  const base = pextra['base'] as { border_sq?: number } | undefined;
+  return !!base && (base.border_sq ?? -1) > -1;
 }
 
 // ---------------------------------------------------------------------------
 // Expose to legacy
 // ---------------------------------------------------------------------------
-

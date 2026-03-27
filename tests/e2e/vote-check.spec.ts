@@ -2,6 +2,7 @@
  * Check vote behavior after /start command.
  */
 import { test, expect } from '@playwright/test';
+import type { XbwPageGlobals } from './helpers/pageGlobals';
 
 test.describe.configure({ timeout: 60_000 });
 
@@ -47,7 +48,7 @@ test('vote check', async ({ page }) => {
   console.log('Sent packets so far:', sentPackets);
 
   await page.evaluate(() => {
-    const w = window as any;
+    const w = window as XbwPageGlobals;
     if (typeof w.send_message === 'function') {
       console.log('[vc] Sending /start');
       w.send_message('/start');
@@ -66,10 +67,10 @@ test('vote check', async ({ page }) => {
   await page.waitForTimeout(30000);
 
   const state = await page.evaluate(() => {
-    const w = window as any;
+    const w = window as XbwPageGlobals;
     return {
       mapInfoCalled: w.__xbwHandleMapInfoCalled,
-      tileCount: Object.keys(w.tiles || {}).length,
+      tileCount: Object.keys(w.__store?.tiles || {}).length,
       receivedPids: w.__xbwReceivedPids,
     };
   });

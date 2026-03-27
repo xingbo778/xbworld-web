@@ -26,9 +26,38 @@ import {
   techIdByName,
 } from '@/data/tech';
 import { store } from '@/data/store';
+import type { Player, Tech } from '@/data/types';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-const win = window as any;
+function makeResearchPlayer(inventions: Record<number, number> | null): Player {
+  return {
+    playerno: 0,
+    name: 'TestPlayer',
+    username: 'test',
+    nation: 0,
+    is_alive: true,
+    is_ready: false,
+    ai_skill_level: 0,
+    gold: 0,
+    tax: 0,
+    luxury: 0,
+    science: 0,
+    expected_income: 0,
+    team: 0,
+    embassy_txt: '',
+    inventions,
+  };
+}
+
+function makeTech(id: number, name: string, research_reqs: Array<{ value: number }> = []): Tech {
+  return {
+    id,
+    name,
+    rule_name: name.toLowerCase(),
+    graphic_str: '',
+    graphic_alt: '',
+    research_reqs,
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -67,26 +96,26 @@ describe('Tech constants', () => {
 
 describe('playerInventionState', () => {
   it('should return TECH_KNOWN when player has the tech', () => {
-    const player = { inventions: { 5: TECH_KNOWN, 10: TECH_PREREQS_KNOWN } } as any;
+    const player = makeResearchPlayer({ 5: TECH_KNOWN, 10: TECH_PREREQS_KNOWN });
     expect(playerInventionState(player, 5)).toBe(TECH_KNOWN);
   });
 
   it('should return TECH_PREREQS_KNOWN when prereqs are known', () => {
-    const player = { inventions: { 5: TECH_KNOWN, 10: TECH_PREREQS_KNOWN } } as any;
+    const player = makeResearchPlayer({ 5: TECH_KNOWN, 10: TECH_PREREQS_KNOWN });
     expect(playerInventionState(player, 10)).toBe(TECH_PREREQS_KNOWN);
   });
 
   it('should return TECH_UNKNOWN when tech is not in inventions', () => {
-    const player = { inventions: { 5: TECH_KNOWN } } as any;
+    const player = makeResearchPlayer({ 5: TECH_KNOWN });
     expect(playerInventionState(player, 99)).toBe(TECH_UNKNOWN);
   });
 
   it('should return TECH_UNKNOWN for null player', () => {
-    expect(playerInventionState(null as any, 5)).toBe(TECH_UNKNOWN);
+    expect(playerInventionState(null as unknown as Player, 5)).toBe(TECH_UNKNOWN);
   });
 
   it('should return TECH_UNKNOWN when inventions is null', () => {
-    const player = { inventions: null } as any;
+    const player = makeResearchPlayer(null);
     expect(playerInventionState(player, 5)).toBe(TECH_UNKNOWN);
   });
 });
@@ -100,16 +129,16 @@ describe('isTechReqForGoal', () => {
     // Tech tree:
     //   1 (Alphabet) → 2 (Writing) → 3 (Literacy)
     //   4 (Masonry) → 3 (Literacy)
-    (store as any).techs = {
-      1: { id: 1, name: 'Alphabet', research_reqs: [] },
-      2: { id: 2, name: 'Writing', research_reqs: [{ value: 1 }] },
-      3: { id: 3, name: 'Literacy', research_reqs: [{ value: 2 }, { value: 4 }] },
-      4: { id: 4, name: 'Masonry', research_reqs: [] },
+    store.techs = {
+      1: makeTech(1, 'Alphabet'),
+      2: makeTech(2, 'Writing', [{ value: 1 }]),
+      3: makeTech(3, 'Literacy', [{ value: 2 }, { value: 4 }]),
+      4: makeTech(4, 'Masonry'),
     };
   });
 
   afterEach(() => {
-    delete (store as any).techs;
+    store.techs = {};
   });
 
   it('should return true when check == goal', () => {
@@ -148,16 +177,16 @@ describe('isTechReqForGoal', () => {
 
 describe('isTechReqForTech', () => {
   beforeEach(() => {
-    (store as any).techs = {
-      1: { id: 1, name: 'Alphabet', research_reqs: [] },
-      2: { id: 2, name: 'Writing', research_reqs: [{ value: 1 }] },
-      3: { id: 3, name: 'Literacy', research_reqs: [{ value: 2 }, { value: 4 }] },
-      4: { id: 4, name: 'Masonry', research_reqs: [] },
+    store.techs = {
+      1: makeTech(1, 'Alphabet'),
+      2: makeTech(2, 'Writing', [{ value: 1 }]),
+      3: makeTech(3, 'Literacy', [{ value: 2 }, { value: 4 }]),
+      4: makeTech(4, 'Masonry'),
     };
   });
 
   afterEach(() => {
-    delete (store as any).techs;
+    store.techs = {};
   });
 
   it('should return true for direct requirement', () => {
@@ -220,15 +249,15 @@ describe('getCurrentBulbsOutputText', () => {
 
 describe('techIdByName', () => {
   beforeEach(() => {
-    (store as any).techs = {
-      1: { id: 1, name: 'Alphabet' },
-      2: { id: 2, name: 'Writing' },
-      3: { id: 3, name: 'Literacy' },
+    store.techs = {
+      1: makeTech(1, 'Alphabet'),
+      2: makeTech(2, 'Writing'),
+      3: makeTech(3, 'Literacy'),
     };
   });
 
   afterEach(() => {
-    delete (store as any).techs;
+    store.techs = {};
   });
 
   it('should return tech id as string when found', () => {

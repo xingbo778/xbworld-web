@@ -1,6 +1,7 @@
 import { test } from '@playwright/test';
+import { connectAsObserver } from './helpers/observer';
 
-test('diagnose observe click', async ({ page }) => {
+test('diagnose observer autoconnect', async ({ page }) => {
   const wsFrameCount = { n: 0, lastPid: 0 };
   const failed: string[] = [];
 
@@ -15,12 +16,12 @@ test('diagnose observe click', async ({ page }) => {
   page.on('requestfailed', r => failed.push(`FAIL ${r.url().split('/').pop()} — ${r.failure()?.errorText}`));
   page.on('console', m => { if (m.type() === 'error') console.log(`[err] ${m.text()}`); });
 
-  await page.goto('/webclient/index.html');
-  await page.waitForTimeout(2000);
-  const input = page.locator('#username_req');
-  if (await input.isVisible({ timeout: 3000 }).catch(() => false)) await input.fill('TestObserver');
-  await page.getByRole('button', { name: 'Observe Game' }).click();
-  console.log('Clicked Observe');
+  await connectAsObserver(page, {
+    username: 'TestObserver',
+    waitForGamePage: false,
+    settleMs: 2_000,
+  });
+  console.log('Auto-connect started');
 
   for (let i = 0; i < 20; i++) {
     await page.waitForTimeout(2000);
@@ -32,4 +33,6 @@ test('diagnose observe click', async ({ page }) => {
   }
 
   console.log('Failed:', failed.join(', '));
+  const gameVisible = await page.locator('#game_page').isVisible().catch(() => false);
+  test.skip(!gameVisible, 'Backend did not reach game page');
 });

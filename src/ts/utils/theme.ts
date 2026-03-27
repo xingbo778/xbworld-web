@@ -8,6 +8,8 @@
  *   getTheme()          // returns current theme name
  */
 
+import { setWindowValue } from './windowBridge';
+
 export type ThemeName = 'dark' | 'light' | 'fantasy';
 
 const STORAGE_KEY = 'xbw-theme';
@@ -37,5 +39,5 @@ export function loadSavedTheme(): void {
 }
 
 // Expose on window for console use
-(window as unknown as Record<string, unknown>)['setTheme'] = setTheme;
-(window as unknown as Record<string, unknown>)['getTheme'] = getTheme;
+setWindowValue('setTheme', setTheme);
+setWindowValue('getTheme', getTheme);

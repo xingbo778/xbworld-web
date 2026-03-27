@@ -10,6 +10,7 @@ import { render } from 'preact';
 import { useEffect, useRef } from 'preact/hooks';
 import { pregameRefresh, playerUpdated, rulesetReady } from '../data/signals';
 import { store } from '../data/store';
+import type { Nation, Player } from '../data/types';
 
 // ── FlagCanvas — draws a nation flag sprite onto a <canvas> ──────────────────
 
@@ -78,18 +79,18 @@ function ScenarioInfo() {
 
 interface PlayerRowProps {
   id: number;
-  player: Record<string, unknown>;
+  player: Player;
 }
 
 function PlayerRow({ id, player }: PlayerRowProps) {
   void rulesetReady.value;
 
-  const name = String(player['name'] ?? '');
+  const name = String(player.name ?? '');
   const isAI = name.indexOf('AI') !== -1;
-  const isReady = player['is_ready'] === true;
-  const nation = store.nations[player['nation'] as number];
-  const nationAdj = nation ? String(nation['adjective'] || '') : '';
-  const sprite = nation ? store.sprites['f.' + nation['graphic_str']] ?? null : null;
+  const isReady = player.is_ready === true;
+  const nation = store.nations[player.nation] as Nation | undefined;
+  const nationAdj = nation ? String(nation.adjective || '') : '';
+  const sprite = nation ? store.sprites['f.' + nation.graphic_str] ?? null : null;
 
   let titleText: string;
   if (isReady) {
@@ -106,7 +107,7 @@ function PlayerRow({ id, player }: PlayerRowProps) {
       class={'pregame_player_name' + (isReady ? ' pregame_player_ready' : '')}
       title={titleText}
       data-player-name={name}
-      data-player-id={String(player['playerno'])}
+      data-player-id={String(player.playerno)}
     >
       {sprite != null && <FlagCanvas sprite={sprite} />}
       {!sprite && nation == null && (
@@ -124,7 +125,7 @@ export function PlayerList() {
 
   const players = Object.entries(store.players).map(([idStr, p]) => ({
     id: parseInt(idStr),
-    player: p as Record<string, unknown>,
+    player: p,
   }));
 
   return (

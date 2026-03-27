@@ -1,3 +1,5 @@
+import { setWindowValue } from '../utils/windowBridge';
+
 /**********************************************************************
     Freeciv-web - the web version of Freeciv. https://www.freeciv.org/
     Copyright (C) 2009-2015  The Freeciv-web project
@@ -29,13 +31,12 @@ const CELL_WHOLE = 0;
 const CELL_CORNER = 1;
 
 // Expose to window — legacy tileset JS files loaded via eval() need these as globals
-const _w = window as unknown as Record<string, unknown>;
-_w.MATCH_NONE = MATCH_NONE;
-_w.MATCH_SAME = MATCH_SAME;
-_w.MATCH_PAIR = MATCH_PAIR;
-_w.MATCH_FULL = MATCH_FULL;
-_w.CELL_WHOLE = CELL_WHOLE;
-_w.CELL_CORNER = CELL_CORNER;
+setWindowValue('MATCH_NONE', MATCH_NONE);
+setWindowValue('MATCH_SAME', MATCH_SAME);
+setWindowValue('MATCH_PAIR', MATCH_PAIR);
+setWindowValue('MATCH_FULL', MATCH_FULL);
+setWindowValue('CELL_WHOLE', CELL_WHOLE);
+setWindowValue('CELL_CORNER', CELL_CORNER);
 
 export const tileset_tile_width: number = 96;
 export const tileset_tile_height: number = 48;

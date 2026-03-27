@@ -2,6 +2,7 @@
  * Render performance test — wait for sprites to load, then measure actual tile rendering.
  */
 import { test, expect } from '@playwright/test';
+import type { XbwPageGlobals } from './helpers/pageGlobals';
 
 const BASE = process.env.TEST_BASE_URL || 'http://localhost:8080';
 const RND = Math.random().toString(36).slice(2, 6).toUpperCase();
@@ -17,7 +18,10 @@ test('sprite loading + render timing', async ({ page }) => {
 
   // Wait for game running
   await page.waitForFunction(
-    () => (window as any).__store?.civclientState === 2,
+    () => {
+      const w = window as XbwPageGlobals;
+      return w.__store?.civclientState === 2;
+    },
     { timeout: 60_000 }
   );
   console.log('✅ Game running');
@@ -27,7 +31,10 @@ test('sprite loading + render timing', async ({ page }) => {
     (async () => {
       const t0 = Date.now();
       await page.waitForFunction(
-        () => Object.keys((window as any).__store?.sprites || {}).length > 0,
+        () => {
+          const w = window as XbwPageGlobals;
+          return Object.keys(w.__store?.sprites || {}).length > 0;
+        },
         { timeout: 30_000 }
       );
       return Date.now() - t0;
@@ -35,7 +42,8 @@ test('sprite loading + render timing', async ({ page }) => {
   ]).catch(() => [-1]);
 
   const state = await page.evaluate(() => {
-    const store = (window as any).__store;
+    const w = window as XbwPageGlobals;
+    const store = w.__store;
     const sprites = store?.sprites || {};
     const tiles = store?.tiles || {};
     const tileCount = Object.keys(tiles).length;

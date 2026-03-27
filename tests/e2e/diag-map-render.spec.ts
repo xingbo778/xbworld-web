@@ -5,6 +5,7 @@
 import { test, expect } from '@playwright/test';
 import * as path from 'path';
 import * as fs from 'fs';
+import type { XbwPageGlobals } from './helpers/pageGlobals';
 
 const OUT = path.join(process.cwd(), 'test-screenshots');
 if (!fs.existsSync(OUT)) fs.mkdirSync(OUT, { recursive: true });
@@ -17,7 +18,16 @@ async function snap(page: import('@playwright/test').Page, name: string) {
 
 async function getState(page: import('@playwright/test').Page) {
   return page.evaluate(() => {
-    const w = window as any;
+    const w = window as XbwPageGlobals;
+    const store = w.__store;
+    const tiles = store?.tiles as Record<string, { known?: unknown; terrain?: number }> | undefined;
+    const terrains = store?.terrains as Record<string, {
+      id?: unknown;
+      color_red?: unknown;
+      color_green?: unknown;
+      color_blue?: unknown;
+    }> | undefined;
+    const players = store?.players;
     const gamePage = document.getElementById('game_page');
     const pregamePage = document.getElementById('pregame_page');
     const canvases = document.querySelectorAll('#canvas_div canvas');
@@ -61,14 +71,14 @@ async function getState(page: import('@playwright/test').Page) {
     const pregameChat = document.getElementById('pregame_message_area');
 
     // JS errors from window
-    const sampleTile0 = w.tiles?.[0];
-    const sampleTerrain0 = w.terrains ? Object.values(w.terrains)[0] : null;
-    const sampleTile100 = w.tiles?.[100];
+    const sampleTile0 = tiles?.['0'];
+    const sampleTerrain0 = terrains ? Object.values(terrains)[0] : null;
+    const sampleTile100 = tiles?.['100'];
 
     // Count tiles with non-zero terrain
     let tilesWithTerrain = 0;
-    if (w.tiles) {
-      for (const t of Object.values(w.tiles as Record<string, any>)) {
+    if (tiles) {
+      for (const t of Object.values(tiles)) {
         if (t && t.terrain && t.terrain !== 0) tilesWithTerrain++;
       }
     }
@@ -85,7 +95,7 @@ async function getState(page: import('@playwright/test').Page) {
     const mapviewOrigin = (() => {
       try {
         // Try to read via the store's renderer reference
-        const mapview = (w as any).__xbwMapview;
+        const mapview = w.__xbwMapview;
         if (mapview) return `(${mapview.x0},${mapview.y0})`;
         return 'unknown';
       } catch { return 'error'; }
@@ -97,18 +107,20 @@ async function getState(page: import('@playwright/test').Page) {
       centerCalled: w.__xbwCenterCalled || 0,
       midTileNull: w.__xbwMidTileNull,
       mapviewOrigin: w.__xbwMapview ? `(${w.__xbwMapview.x0},${w.__xbwMapview.y0})` : ('__xbwMapview' in w ? 'falsy' : 'not-set'),
-      tilesCount: w.tiles ? Object.keys(w.tiles).length : 0,
+      tilesCount: tiles ? Object.keys(tiles).length : 0,
       tilesWithTerrain,
-      terrainsCount: w.terrains ? Object.keys(w.terrains).length : -1,
+      terrainsCount: terrains ? Object.keys(terrains).length : -1,
       sampleTile0known: sampleTile0 != null ? sampleTile0.known : 'no-tile0',
       sampleTile0terrain: sampleTile0 != null ? sampleTile0.terrain : 'no-tile0',
       sampleTile100terrain: sampleTile100 != null ? sampleTile100.terrain : 'no-tile100',
-      sampleTerrainId: sampleTerrain0 != null ? (sampleTerrain0 as any).id : 'no-terrain',
-      sampleTerrainColor: sampleTerrain0 != null ? `rgb(${(sampleTerrain0 as any).color_red},${(sampleTerrain0 as any).color_green},${(sampleTerrain0 as any).color_blue})` : 'no-terrain',
-      mapInfo: w.map?.xsize ? `${w.map.xsize}x${w.map.ysize}` : null,
+      sampleTerrainId: sampleTerrain0 != null ? sampleTerrain0.id : 'no-terrain',
+      sampleTerrainColor: sampleTerrain0 != null
+        ? `rgb(${sampleTerrain0.color_red},${sampleTerrain0.color_green},${sampleTerrain0.color_blue})`
+        : 'no-terrain',
+      mapInfo: store?.mapInfo?.xsize ? `${store.mapInfo.xsize}x${store.mapInfo.ysize}` : null,
       storeMapInfoXsize: w.__store?.mapInfo?.xsize,
-      winTilesCount: w.tiles ? Object.keys(w.tiles).length : 0,
-      playersCount: w.store?.players ? Object.keys(w.store.players).length : 0,
+      winTilesCount: tiles ? Object.keys(tiles).length : 0,
+      playersCount: players ? Object.keys(players).length : 0,
       pidsReceived: JSON.stringify(w.__xbwReceivedPids || {}).slice(0, 800),
       overviewDiag,
       game_page_display: gamePage ? getComputedStyle(gamePage).display : 'missing',
@@ -161,7 +173,7 @@ test('map rendering diagnostic', async ({ page }) => {
     await snap(page, '02-timeout-no-gamepage');
     const s = await getState(page);
     console.log('State at timeout:', JSON.stringify(s, null, 2));
-    return;
+    test.skip(true, 'Backend did not reach game page');
   }
 
   await snap(page, '02-game-page-visible');

@@ -26,9 +26,7 @@ import {
   MAX_AI_LOVE,
 } from '@/data/player';
 import { store } from '@/data/store';
-import type { Player, City } from '@/data/types';
-
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import type { Player, City, Unit, Connection, Improvement } from '@/data/types';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -77,6 +75,47 @@ function makeCity(overrides: Partial<City> & { id: number; owner: number } = { i
   } as City;
 }
 
+function makeUnit(overrides: Partial<Unit> & { id: number; owner: number } = { id: 1, owner: 0 }): Unit {
+  return {
+    tile: 0,
+    type: 0,
+    hp: 10,
+    veteran: 0,
+    movesleft: 3,
+    activity: 0,
+    transported_by: 0,
+    homecity: 0,
+    done_moving: false,
+    ai: false,
+    goto_tile: 0,
+    ...overrides,
+  } as Unit;
+}
+
+function makeConnection(
+  overrides: Partial<Connection> & Pick<Connection, 'id'> = { id: 0 },
+): Connection {
+  return {
+    playing: null,
+    observer: false,
+    ...overrides,
+  };
+}
+
+function makeImprovement(
+  overrides: Partial<Improvement> & Pick<Improvement, 'id'> = { id: 0 },
+): Improvement {
+  return {
+    name: 'Palace',
+    rule_name: 'palace',
+    genus: 0,
+    build_cost: 100,
+    graphic_str: 'palace',
+    graphic_alt: 'palace',
+    ...overrides,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
@@ -97,14 +136,14 @@ describe('Player constants', () => {
 
 describe('valid_player_by_number / player_by_number', () => {
   beforeEach(() => {
-    (store as any).players = {
+    store.players = {
       0: makePlayer({ playerno: 0, name: 'Alice' }),
       1: makePlayer({ playerno: 1, name: 'Bob' }),
     };
   });
 
   afterEach(() => {
-    (store as any).players = {};
+    store.players = {};
   });
 
   it('should return the player for a valid number', () => {
@@ -120,14 +159,14 @@ describe('valid_player_by_number / player_by_number', () => {
 
 describe('player_by_name', () => {
   beforeEach(() => {
-    (store as any).players = {
+    store.players = {
       0: makePlayer({ playerno: 0, name: 'Alice' }),
       1: makePlayer({ playerno: 1, name: 'Bob' }),
     };
   });
 
   afterEach(() => {
-    (store as any).players = {};
+    store.players = {};
   });
 
   it('should find player by name', () => {
@@ -141,14 +180,14 @@ describe('player_by_name', () => {
 
 describe('player_by_full_username', () => {
   beforeEach(() => {
-    (store as any).players = {
+    store.players = {
       0: makePlayer({ playerno: 0, name: 'Alice', username: 'alice123' }),
       1: makePlayer({ playerno: 1, name: 'BotPlayer', username: '' }),
     };
   });
 
   afterEach(() => {
-    (store as any).players = {};
+    store.players = {};
   });
 
   it('should find player by username', () => {
@@ -166,15 +205,15 @@ describe('player_by_full_username', () => {
 
 describe('player_find_unit_by_id', () => {
   beforeEach(() => {
-    (store as any).units = {
-      10: { id: 10, owner: 0 },
-      11: { id: 11, owner: 1 },
-      12: { id: 12, owner: 0 },
+    store.units = {
+      10: makeUnit({ id: 10, owner: 0 }),
+      11: makeUnit({ id: 11, owner: 1 }),
+      12: makeUnit({ id: 12, owner: 0 }),
     };
   });
 
   afterEach(() => {
-    (store as any).units = {};
+    store.units = {};
   });
 
   it('should find unit belonging to player', () => {
@@ -223,14 +262,14 @@ describe('get_diplstate_text', () => {
 
 describe('get_embassy_text', () => {
   beforeEach(() => {
-    (store as any).players = {
+    store.players = {
       0: makePlayer({ playerno: 0, embassy_txt: 'Embassy established' }),
       1: makePlayer({ playerno: 1, embassy_txt: '' }),
     };
   });
 
   afterEach(() => {
-    (store as any).players = {};
+    store.players = {};
   });
 
   it('should return embassy text for player', () => {
@@ -265,16 +304,16 @@ describe('get_ai_level_text', () => {
 
 describe('get_player_connection_status', () => {
   beforeEach(() => {
-    (store as any).connections = {};
+    store.connections = {};
   });
 
   afterEach(() => {
-    (store as any).connections = {};
+    store.connections = {};
   });
 
   it('should return "connected" when player has active connection', () => {
-    (store as any).connections = {
-      0: { playing: { playerno: 0 } },
+    store.connections = {
+      0: makeConnection({ id: 0, playing: makePlayer({ playerno: 0 }) }),
     };
     expect(get_player_connection_status(makePlayer({ playerno: 0 }))).toBe('connected');
   });
@@ -288,7 +327,7 @@ describe('get_player_connection_status', () => {
   });
 
   it('should return empty string for null player', () => {
-    expect(get_player_connection_status(null as any)).toBe('');
+    expect(get_player_connection_status(null as unknown as Player)).toBe('');
   });
 });
 
@@ -299,7 +338,7 @@ describe('get_player_connection_status', () => {
 describe('research_get', () => {
   afterEach(() => {
     for (const key in research_data) {
-      delete research_data[key as any];
+      delete research_data[Number(key)];
     }
   });
 
@@ -313,7 +352,7 @@ describe('research_get', () => {
   });
 
   it('should return null for null player', () => {
-    expect(research_get(null as any)).toBeNull();
+    expect(research_get(null as unknown as Player)).toBeNull();
   });
 });
 
@@ -323,14 +362,14 @@ describe('research_get', () => {
 
 describe('player_has_wonder', () => {
   beforeEach(() => {
-    (store as any).cities = {
-      1: makeCity({ id: 1, owner: 0, improvements: { 10: true, 11: false } as any }),
-      2: makeCity({ id: 2, owner: 1, improvements: { 10: true } as any }),
+    store.cities = {
+      1: makeCity({ id: 1, owner: 0, improvements: { 10: true, 11: false } as unknown as boolean[] }),
+      2: makeCity({ id: 2, owner: 1, improvements: { 10: true } as unknown as boolean[] }),
     };
   });
 
   afterEach(() => {
-    (store as any).cities = {};
+    store.cities = {};
   });
 
   it('should return true when player owns city with wonder', () => {
@@ -360,7 +399,7 @@ describe('get_invalid_username_reason', () => {
 
   it('should reject empty username', () => {
     expect(get_invalid_username_reason('')).not.toBeNull();
-    expect(get_invalid_username_reason(null as any)).not.toBeNull();
+    expect(get_invalid_username_reason(null as unknown as string)).not.toBeNull();
   });
 
   it('should reject username shorter than 3 characters', () => {
@@ -400,20 +439,20 @@ describe('get_invalid_username_reason', () => {
 
 describe('player_capital', () => {
   beforeEach(() => {
-    (store as any).improvements = {
-      0: { id: 0, name: 'Palace', genus: 0 },
-      1: { id: 1, name: 'Granary', genus: 1 },
+    store.improvements = {
+      0: makeImprovement({ id: 0, name: 'Palace', genus: 0 }),
+      1: makeImprovement({ id: 1, name: 'Granary', genus: 1, rule_name: 'granary', graphic_str: 'granary', graphic_alt: 'granary' }),
     };
-    (store as any).cities = {
-      1: makeCity({ id: 1, owner: 0, name: 'Rome', improvements: { 0: true, 1: true } as any }),
-      2: makeCity({ id: 2, owner: 0, name: 'Milan', improvements: { 1: true } as any }),
-      3: makeCity({ id: 3, owner: 1, name: 'Paris', improvements: { 0: true } as any }),
+    store.cities = {
+      1: makeCity({ id: 1, owner: 0, name: 'Rome', improvements: { 0: true, 1: true } as unknown as boolean[] }),
+      2: makeCity({ id: 2, owner: 0, name: 'Milan', improvements: { 1: true } as unknown as boolean[] }),
+      3: makeCity({ id: 3, owner: 1, name: 'Paris', improvements: { 0: true } as unknown as boolean[] }),
     };
   });
 
   afterEach(() => {
-    (store as any).improvements = {};
-    (store as any).cities = {};
+    store.improvements = {};
+    store.cities = {};
   });
 
   it('should return the capital city of the player', () => {
@@ -422,14 +461,14 @@ describe('player_capital', () => {
   });
 
   it('should return null when player has no capital', () => {
-    (store as any).cities = {
-      2: makeCity({ id: 2, owner: 0, name: 'Milan', improvements: { 1: true } as any }),
+    store.cities = {
+      2: makeCity({ id: 2, owner: 0, name: 'Milan', improvements: { 1: true } as unknown as boolean[] }),
     };
     expect(player_capital(makePlayer({ playerno: 0 }))).toBeNull();
   });
 
   it('should return null for null player', () => {
-    expect(player_capital(null as any)).toBeNull();
+    expect(player_capital(null as unknown as Player)).toBeNull();
   });
 });
 
@@ -447,8 +486,8 @@ describe('does_player_own_city', () => {
   });
 
   it('should return false for null player or city', () => {
-    expect(does_player_own_city(null as any, makeCity({ id: 1, owner: 0 }))).toBe(false);
-    expect(does_player_own_city(makePlayer(), null as any)).toBe(false);
+    expect(does_player_own_city(null as unknown as Player, makeCity({ id: 1, owner: 0 }))).toBe(false);
+    expect(does_player_own_city(makePlayer(), null as unknown as City)).toBe(false);
   });
 });
 

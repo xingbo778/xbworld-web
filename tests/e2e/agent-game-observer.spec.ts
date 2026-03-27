@@ -11,6 +11,7 @@
  *   OBSERVE_MINUTES — how long to watch in minutes (default: 60)
  */
 import { test, expect, Page } from '@playwright/test';
+import { connectAsObserver as connectObserver } from './helpers/observer';
 
 const CIVSERVER_PORT = process.env.CIVSERVER_PORT || '6001';
 const OBSERVE_MINUTES = parseInt(process.env.OBSERVE_MINUTES || '60', 10);
@@ -23,18 +24,12 @@ test.setTimeout(OBSERVE_MINUTES * 60 * 1000 + 120_000);
 
 /** Navigate to observer URL, fill username, click Observe Game. */
 async function connectAsObserver(page: Page): Promise<void> {
-  await page.goto(`/webclient/index.html?civserverport=${CIVSERVER_PORT}`);
-  await page.waitForLoadState('domcontentloaded');
-  await page.waitForTimeout(2000);
-
-  const usernameInput = page.locator('#username_req');
-  if (await usernameInput.isVisible({ timeout: 5000 }).catch(() => false)) {
-    await usernameInput.fill('Observer');
-    const observeBtn = page.getByRole('button', { name: 'Observe Game' });
-    if (await observeBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await observeBtn.click();
-    }
-  }
+  await connectObserver(page, {
+    username: 'Observer',
+    query: { civserverport: CIVSERVER_PORT },
+    waitForGamePage: false,
+    settleMs: 2_000,
+  });
 }
 
 /** Read current turn number from DOM status panel (returns 0 if not found). */

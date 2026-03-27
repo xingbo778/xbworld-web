@@ -2,6 +2,7 @@
  * Quick diagnostic: check renderer mode and WebGL availability.
  */
 import { test } from '@playwright/test';
+import type { XbwPageGlobals } from './helpers/pageGlobals';
 
 test.describe.configure({ timeout: 30_000 });
 
@@ -10,7 +11,7 @@ test('renderer and webgl diagnostic', async ({ page }) => {
   await page.waitForTimeout(5000);
 
   const info2 = await page.evaluate(() => {
-    const w = window as any;
+    const w = window as XbwPageGlobals;
     const testCanvas = document.createElement('canvas');
     const gl2 = testCanvas.getContext('webgl2');
     const gl1 = testCanvas.getContext('webgl');
@@ -20,10 +21,10 @@ test('renderer and webgl diagnostic', async ({ page }) => {
       pixiRendererExists: !!w.__store?.pixiRenderer,
       webgl2: !!gl2,
       webgl1: !!gl1,
-      glRenderer: gl ? (gl as any).getParameter(0x1F01) : null,  // RENDERER string
+      glRenderer: gl ? (gl as WebGLRenderingContext).getParameter(0x1F01) : null,  // RENDERER string
       canvasesInDiv: document.querySelectorAll('#canvas_div canvas').length,
       mapviewCanvas: !!w.__store?.mapviewCanvas,
-      civclientState: w.civclient_state,
+      civclientState: w.__store?.civclientState,
     };
   });
 

@@ -8,24 +8,40 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { City, Government, Nation, Player, Tech, Unit, UnitType } from '@/data/types';
+
+type IntelDialogStore = {
+  selectedPlayer: number;
+  players: Record<number, Player>;
+  nations: Record<number, Nation>;
+  governments: Record<number, Government>;
+  techs: Record<number, Tech>;
+  cities: Record<number, City>;
+  improvements: Record<number, { id: number }>;
+  unitTypes: Record<number, UnitType>;
+  units: Record<number, Unit>;
+  tiles: Record<number, { index: number }>;
+  rulesControl: { num_impr_types: number };
+  effects: Record<number, { id: number }>;
+};
 
 // ---------------------------------------------------------------------------
 // Mocks
 // ---------------------------------------------------------------------------
 
-const mockStore = vi.hoisted(() => ({
+const mockStore = vi.hoisted<IntelDialogStore>(() => ({
   selectedPlayer: 0,
-  players: {} as Record<number, unknown>,
-  nations: {} as Record<number, unknown>,
-  governments: {} as Record<number, unknown>,
-  techs: {} as Record<number, unknown>,
-  cities: {} as Record<number, unknown>,
-  improvements: {} as Record<number, unknown>,
-  unitTypes: {} as Record<number, unknown>,
-  units: {} as Record<number, unknown>,
-  tiles: {} as Record<number, unknown>,
-  rulesControl: { num_impr_types: 0 } as Record<string, unknown>,
-  effects: {} as Record<number, unknown>,
+  players: {},
+  nations: {},
+  governments: {},
+  techs: {},
+  cities: {},
+  improvements: {},
+  unitTypes: {},
+  units: {},
+  tiles: {},
+  rulesControl: { num_impr_types: 0 },
+  effects: {},
 }));
 
 vi.mock('@/data/store', () => ({ store: mockStore }));
@@ -53,20 +69,49 @@ vi.mock('@/renderer/tilespec', () => ({
 // Helpers
 // ---------------------------------------------------------------------------
 
-function makePlayer(overrides: Record<string, unknown> = {}) {
+function makePlayer(overrides: Partial<Player> = {}): Player {
   return {
     playerno: 1,
+    username: 'player',
     name: 'Caesar',
     nation: 2,
     government: 3,
+    is_alive: true,
+    is_ready: true,
+    ai_skill_level: 0,
     gold: 250,
     tax: 40,
     science: 40,
     luxury: 20,
+    expected_income: 0,
+    team: 0,
+    embassy_txt: '',
     culture: 500,
     diplstates: [],
-    researching: null,
     ...overrides,
+  };
+}
+
+function makeGovernment(id: number, name: string): Government {
+  return { id, name, rule_name: name.toLowerCase() };
+}
+
+function makeNation(id: number, adjective: string): Nation {
+  return {
+    id,
+    adjective,
+    translation_name: adjective,
+    flag_graphic: adjective.toLowerCase(),
+  };
+}
+
+function makeTech(id: number, name: string): Tech {
+  return {
+    id,
+    name,
+    rule_name: name.toLowerCase(),
+    graphic_str: name.toLowerCase(),
+    graphic_alt: name.toLowerCase(),
   };
 }
 
@@ -76,8 +121,8 @@ function makePlayer(overrides: Record<string, unknown> = {}) {
 
 describe('buildIntelData', () => {
   beforeEach(() => {
-    mockStore.governments = { 3: { name: 'Democracy' } };
-    mockStore.nations = { 2: { adjective: 'Roman' } };
+    mockStore.governments = { 3: makeGovernment(3, 'Democracy') };
+    mockStore.nations = { 2: makeNation(2, 'Roman') };
     mockStore.cities = {};
     mockStore.techs = {};
     mockStore.players = {};
@@ -106,7 +151,7 @@ describe('buildIntelData', () => {
   });
 
   it('BID-4: researching shows tech name and progress when research_data available', async () => {
-    mockStore.techs = { 42: { name: 'Alphabet' } };
+    mockStore.techs = { 42: makeTech(42, 'Alphabet') };
     // research_data needs to be set for research_get to return data
     const { research_data } = await import('@/data/player');
     research_data[1] = { researching: 42, bulbs_researched: 10, researching_cost: 100 } as never;
@@ -127,8 +172,8 @@ describe('buildIntelData', () => {
   });
 
   it('BID-6: returns diplomacy entries for non-DS_NO_CONTACT states with known players', async () => {
-    mockStore.players = { 0: { nation: 5 } };
-    mockStore.nations = { 2: { adjective: 'Roman' }, 5: { adjective: 'Greek' } };
+    mockStore.players = { 0: makePlayer({ playerno: 0, nation: 5 }) };
+    mockStore.nations = { 2: makeNation(2, 'Roman'), 5: makeNation(5, 'Greek') };
     // DS_NO_CONTACT = 6 per DiplState enum; use state 3 (Peace) which is not DS_NO_CONTACT
     const diplstates = [
       { state: 3 }, // index 0 → player 0 (Greek), Peace
@@ -308,3 +353,86 @@ describe('show_intelligence_report_dialog', () => {
   });
 });
 
+describe('show_intelligence_report_hearsay', () => {
+  beforeEach(() => {
+    mockStore.selectedPlayer = 1;
+    mockStore.governments = {};
+    mockStore.nations = { 2: makeNation(2, 'Roman') };
+    mockStore.techs = {};
+    mockStore.players = { 1: makePlayer({ playerno: 1 }) };
+  });
+
+  it('SIR-1: calls showIntelDialog with typed data (no HTML building)', async () => {
+    const { show_intelligence_report_dialog } = await import('@/ui/intelDialog');
+    const { showIntelDialog } = await import('@/components/Dialogs/IntelDialog');
+    // showIntelDialog opens the signal; close it afterwards
+    mockStore.players[1] = makePlayer({ playerno: 1 });
+    expect(() => show_intelligence_report_dialog()).not.toThrow();
+    const { closeIntelDialog } = await import('@/components/Dialogs/IntelDialog');
+    closeIntelDialog();
+    void showIntelDialog; // suppress unused
+  });
+
+  it('SIR-2: ruler name comes from player name', async () => {
+    const { show_intelligence_report_dialog } = await import('@/ui/intelDialog');
+    const { IntelDialog, closeIntelDialog } = await import('@/components/Dialogs/IntelDialog');
+    const { render, h } = await import('preact');
+
+    mockStore.players[1] = makePlayer({ playerno: 1, name: 'Cleopatra' });
+    show_intelligence_report_dialog();
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    render(h(IntelDialog, null), container);
+    expect(container.textContent).toContain('Cleopatra');
+    closeIntelDialog();
+    document.body.removeChild(container);
+  });
+
+  it('SIR-3: government is (Unknown) when not in store', async () => {
+    mockStore.governments = {};
+    const { show_intelligence_report_dialog } = await import('@/ui/intelDialog');
+    const { IntelDialog, closeIntelDialog } = await import('@/components/Dialogs/IntelDialog');
+    const { render, h } = await import('preact');
+
+    mockStore.players[1] = makePlayer({ playerno: 1, government: 99 });
+    show_intelligence_report_dialog();
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    render(h(IntelDialog, null), container);
+    expect(container.textContent).toContain('(Unknown)');
+    closeIntelDialog();
+    document.body.removeChild(container);
+  });
+
+  it('SIR-4: researching tech name shown when known', async () => {
+    mockStore.techs = { 42: makeTech(42, 'Alphabet') };
+    const { show_intelligence_report_dialog } = await import('@/ui/intelDialog');
+    const { IntelDialog, closeIntelDialog } = await import('@/components/Dialogs/IntelDialog');
+    const { render, h } = await import('preact');
+
+    mockStore.players[1] = makePlayer({ playerno: 1, researching: 42 });
+    show_intelligence_report_dialog();
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    render(h(IntelDialog, null), container);
+    expect(container.textContent).toContain('Alphabet');
+    closeIntelDialog();
+    document.body.removeChild(container);
+  });
+
+  it('SIR-5: dialog title uses nation adjective', async () => {
+    mockStore.nations = { 2: makeNation(2, 'Carthaginian') };
+    const { show_intelligence_report_dialog } = await import('@/ui/intelDialog');
+    const { IntelDialog, closeIntelDialog } = await import('@/components/Dialogs/IntelDialog');
+    const { render, h } = await import('preact');
+
+    mockStore.players[1] = makePlayer({ playerno: 1, nation: 2 });
+    show_intelligence_report_dialog();
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    render(h(IntelDialog, null), container);
+    expect(container.textContent).toContain('Carthaginian');
+    closeIntelDialog();
+    document.body.removeChild(container);
+  });
+});

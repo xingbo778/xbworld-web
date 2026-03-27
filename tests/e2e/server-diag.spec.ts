@@ -2,6 +2,7 @@
  * Quick diagnostic: connect to Railway server, try /start, dump all received data.
  */
 import { test, expect } from '@playwright/test';
+import type { XbwPageGlobals } from './helpers/pageGlobals';
 
 test.describe.configure({ timeout: 60_000 });
 
@@ -50,12 +51,12 @@ test('server diagnostics', async ({ page }) => {
 
   // Print current state
   const state1 = await page.evaluate(() => {
-    const w = window as any;
+    const w = window as XbwPageGlobals;
     return {
       hasSendMessage: typeof w.send_message === 'function',
-      wsReadyState: w.ws?.readyState,
-      playerCount: Object.keys(w.players || {}).length,
-      civclientState: w.civclient_state,
+      wsReadyState: w.__networkDebug?.state?.readyState,
+      playerCount: Object.keys(w.__store?.players || {}).length,
+      civclientState: w.__store?.civclientState,
       mapInfoCalled: w.__xbwHandleMapInfoCalled,
       receivedPids: w.__xbwReceivedPids,
     };
@@ -65,7 +66,7 @@ test('server diagnostics', async ({ page }) => {
 
   // Try setting AI fill and starting
   await page.evaluate(() => {
-    const w = window as any;
+    const w = window as XbwPageGlobals;
     if (typeof w.send_message === 'function') {
       console.log('[diag] Sending /set aifill 1');
       w.send_message('/set aifill 1');
@@ -74,7 +75,7 @@ test('server diagnostics', async ({ page }) => {
   await page.waitForTimeout(1000);
 
   await page.evaluate(() => {
-    const w = window as any;
+    const w = window as XbwPageGlobals;
     if (typeof w.send_message === 'function') {
       console.log('[diag] Sending /start');
       w.send_message('/start');
@@ -84,13 +85,13 @@ test('server diagnostics', async ({ page }) => {
 
   // Print what we got
   const state2 = await page.evaluate(() => {
-    const w = window as any;
+    const w = window as XbwPageGlobals;
     return {
-      playerCount: Object.keys(w.players || {}).length,
-      civclientState: w.civclient_state,
+      playerCount: Object.keys(w.__store?.players || {}).length,
+      civclientState: w.__store?.civclientState,
       mapInfoCalled: w.__xbwHandleMapInfoCalled,
       receivedPids: w.__xbwReceivedPids,
-      tileCount: Object.keys(w.tiles || {}).length,
+      tileCount: Object.keys(w.__store?.tiles || {}).length,
     };
   });
 

@@ -22,8 +22,25 @@ import {
   ANIM_STEPS,
 } from '@/data/unit';
 import { store } from '@/data/store';
+import type { Unit } from '@/data/types';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+function makeUnit(overrides: Partial<Unit> & Pick<Unit, 'id'> = { id: 1 }): Unit {
+  return {
+    owner: 0,
+    tile: 0,
+    type: 0,
+    hp: 10,
+    veteran: 0,
+    movesleft: 0,
+    activity: 0,
+    transported_by: 0,
+    homecity: 0,
+    done_moving: false,
+    ai: false,
+    goto_tile: 0,
+    ...overrides,
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -41,7 +58,7 @@ describe('Unit constants', () => {
 
 describe('unit_list_size', () => {
   it('should return length of unit list', () => {
-    expect(unit_list_size([{}, {}, {}] as any)).toBe(3);
+    expect(unit_list_size([makeUnit({ id: 1 }), makeUnit({ id: 2 }), makeUnit({ id: 3 })])).toBe(3);
     expect(unit_list_size([])).toBe(0);
   });
 
@@ -57,24 +74,24 @@ describe('unit_list_size', () => {
 describe('unit_list_without', () => {
   it('should remove unit with matching id', () => {
     const units = [
-      { id: 1, name: 'Warriors' },
-      { id: 2, name: 'Phalanx' },
-      { id: 3, name: 'Settler' },
-    ] as any[];
-    const result = unit_list_without(units, { id: 2 } as any);
+      makeUnit({ id: 1, name: 'Warriors' }),
+      makeUnit({ id: 2, name: 'Phalanx' }),
+      makeUnit({ id: 3, name: 'Settler' }),
+    ];
+    const result = unit_list_without(units, makeUnit({ id: 2 }));
     expect(result).toHaveLength(2);
-    expect(result.map((u: any) => u.id)).toEqual([1, 3]);
+    expect(result.map((u) => u.id)).toEqual([1, 3]);
   });
 
   it('should return same-length list if unit not found', () => {
-    const units = [{ id: 1 }, { id: 2 }] as any[];
-    const result = unit_list_without(units, { id: 99 } as any);
+    const units = [makeUnit({ id: 1 }), makeUnit({ id: 2 })];
+    const result = unit_list_without(units, makeUnit({ id: 99 }));
     expect(result).toHaveLength(2);
   });
 
   it('should not modify original array', () => {
-    const units = [{ id: 1 }, { id: 2 }] as any[];
-    unit_list_without(units, { id: 1 } as any);
+    const units = [makeUnit({ id: 1 }), makeUnit({ id: 2 })];
+    unit_list_without(units, makeUnit({ id: 1 }));
     expect(units).toHaveLength(2);
   });
 });
@@ -125,8 +142,8 @@ describe('get_unit_moves_left', () => {
   });
 
   it('should return formatted moves string', () => {
-    expect(get_unit_moves_left({ movesleft: 6 } as any)).toBe('Moves:2');
-    expect(get_unit_moves_left({ movesleft: 4 } as any)).toBe('Moves:1 1/3');
+    expect(get_unit_moves_left(makeUnit({ id: 1, movesleft: 6 }))).toBe('Moves:2');
+    expect(get_unit_moves_left(makeUnit({ id: 2, movesleft: 4 }))).toBe('Moves:1 1/3');
   });
 
   it('should return 0 for null unit', () => {

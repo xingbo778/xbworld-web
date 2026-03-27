@@ -9,6 +9,7 @@ import { play_sound } from '../../audio/sounds';
 import type { TileInfoPacket, MapInfoPacket, NukeTileInfoPacket } from './packetTypes';
 import { mark_overview_dirty } from '../../core/overview';
 import { globalEvents } from '../../core/events';
+import { incrementDebugCounter } from '../../utils/debugGlobals';
 
 export function handle_tile_info(packet: TileInfoPacket): void {
   if (store.tiles != null) {
@@ -20,7 +21,7 @@ export function handle_tile_info(packet: TileInfoPacket): void {
     // in observer mode (revealmap GLOBAL), force every received tile to
     // TILE_KNOWN_SEEN (2) so the renderer draws it.
     if (!(packet['known'] as number) || (packet['known'] as number) < 2) {
-      (packet as Record<string, unknown>)['known'] = 2;
+      packet.known = 2;
     }
 
     Object.assign(store.tiles[packet['tile']], packet);
@@ -35,18 +36,8 @@ export function handle_tile_info(packet: TileInfoPacket): void {
 }
 
 export function handle_map_info(packet: MapInfoPacket): void {
-  (window as any).__xbwHandleMapInfoCalled = ((window as any).__xbwHandleMapInfoCalled || 0) + 1;
+  incrementDebugCounter('__xbwHandleMapInfoCalled');
   store.mapInfo = packet;
-
-  // Set window.map dimensions so getMapInfo() and mapAllocate() can read them.
-  // Legacy map.js used to do this; the TS handler must replicate it.
-  const winMap = (window as any).map as Record<string, unknown> | undefined;
-  if (winMap) {
-    winMap.xsize = packet.xsize;
-    winMap.ysize = packet.ysize;
-    winMap.topology_id = packet.topology_id;
-    winMap.wrap_id = packet.wrap_id;
-  }
 
   mapInitTopology(false);
   mapAllocate();

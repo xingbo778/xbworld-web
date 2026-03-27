@@ -20,16 +20,19 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { Terrain, Tile } from '@/data/types';
+
+type TerrainBlendStore = {
+  sprites: { [key: string]: object | null };
+  tileset: Record<string, number[]>;
+  terrains: Record<number, Terrain>;
+};
 
 // ---------------------------------------------------------------------------
 // Minimal store mock — must be in place before importing tilespecTerrain
 // ---------------------------------------------------------------------------
 vi.mock('@/data/store', () => ({
-  store: {
-    sprites: {} as Record<string, unknown>,
-    tileset: {} as Record<string, number[]>,
-    terrains: {},
-  },
+  store: { sprites: {}, tileset: {}, terrains: {} } as TerrainBlendStore,
 }));
 
 // Mock map helpers — keep originals, just expose dirCCW/dirCW
@@ -49,18 +52,28 @@ import { fill_terrain_sprite_array, _terrainBlendStats, resetTerrainBlendStats }
 // ---------------------------------------------------------------------------
 // Terrain stubs
 // ---------------------------------------------------------------------------
-const T_FOREST   = { graphic_str: 'forest'    } as any;
-const T_PLAINS   = { graphic_str: 'plains'    } as any;
-const T_HILLS    = { graphic_str: 'hills'     } as any;
-const T_MOUNTAINS= { graphic_str: 'mountains' } as any;
-const T_JUNGLE   = { graphic_str: 'jungle'    } as any;
-const T_GRASSLAND= { graphic_str: 'grassland' } as any;
+function makeTerrain(graphicStr: string): Terrain {
+  return {
+    id: 0,
+    name: graphicStr,
+    graphic_str: graphicStr,
+    movement_cost: 1,
+    defense_bonus: 0,
+    output: [],
+  };
+}
+const T_FOREST = makeTerrain('forest');
+const T_PLAINS = makeTerrain('plains');
+const T_HILLS = makeTerrain('hills');
+const T_MOUNTAINS = makeTerrain('mountains');
+const T_JUNGLE = makeTerrain('jungle');
+const T_GRASSLAND = makeTerrain('grassland');
 
 // DIR8 index constants
 const NW=0, N=1, NE=2, W=3, E=4, SW=5, S=6, SE=7;
 
 /** Build an 8-element neighbor array. `fill` = default terrain for all dirs. */
-function makeNear(fill: any, overrides: Partial<Record<number, any>> = {}): any[] {
+function makeNear(fill: Terrain | undefined, overrides: Partial<Record<number, Terrain | undefined>> = {}): (Terrain | undefined)[] {
   const near = Array(8).fill(fill);
   for (const [dir, t] of Object.entries(overrides)) {
     near[Number(dir)] = t;
@@ -69,7 +82,18 @@ function makeNear(fill: any, overrides: Partial<Record<number, any>> = {}): any[
 }
 
 /** Dummy tile. */
-const fakeTile: any = { index: 0, x: 0, y: 0, terrain: 0 };
+const fakeTile: Tile = {
+  index: 0,
+  x: 0,
+  y: 0,
+  terrain: 0,
+  known: 0,
+  extras: [],
+  owner: 0,
+  worked: 0,
+  resource: 0,
+  continent: 0,
+};
 
 // ---------------------------------------------------------------------------
 // helpers
@@ -83,8 +107,8 @@ function spriteKeyForLayer(sprites: { key?: string | null }[]): string | null | 
 // ---------------------------------------------------------------------------
 beforeEach(() => {
   resetTerrainBlendStats();
-  (store as any).sprites = {};
-  (store as any).tileset = {};
+  store.sprites = {};
+  store.tileset = {};
 });
 
 // ===========================================================================
@@ -180,9 +204,9 @@ describe('MATCH_SAME overlay — direction indexing fix', () => {
 describe('MATCH_SAME — null guard for missing tileset entry', () => {
   it('returns sprite with y=0 when tileset entry is absent (no crash)', () => {
     // store.tileset is empty — the key will be missing
-    (store as any).tileset = {};
+    store.tileset = {};
     const near = makeNear(T_PLAINS, { [N]: T_FOREST });
-    let sprites: any[] = [];
+    let sprites: ReturnType<typeof fill_terrain_sprite_array> = [];
     expect(() => {
       sprites = fill_terrain_sprite_array(1, fakeTile, T_FOREST, near);
     }).not.toThrow();
@@ -191,7 +215,7 @@ describe('MATCH_SAME — null guard for missing tileset entry', () => {
   });
 
   it('records a miss in stats when tileset entry absent', () => {
-    (store as any).tileset = {};
+    store.tileset = {};
     const near = makeNear(T_PLAINS);
     fill_terrain_sprite_array(1, fakeTile, T_FOREST, near);
     expect(_terrainBlendStats.matchSameKeysMissing).toBe(1);
@@ -200,7 +224,7 @@ describe('MATCH_SAME — null guard for missing tileset entry', () => {
 
   it('records a hit in stats when tileset entry present', () => {
     // Add a fake tileset entry with [x, y, w, h=20]
-    (store as any).tileset = { 't.l1.forest_n0e0s0w0': [0, 0, 64, 20] };
+    store.tileset = { 't.l1.forest_n0e0s0w0': [0, 0, 64, 20] };
     const near = makeNear(T_PLAINS);
     fill_terrain_sprite_array(1, fakeTile, T_FOREST, near);
     expect(_terrainBlendStats.matchSameKeysFound).toBe(1);
@@ -209,7 +233,7 @@ describe('MATCH_SAME — null guard for missing tileset entry', () => {
 
   it('correct y-offset when tileset entry present', () => {
     // tileset_tile_height = 48, entry[3] = 20 → y = 48 - 20 = 28
-    (store as any).tileset = { 't.l1.hills_n0e0s0w0': [0, 0, 64, 20] };
+    store.tileset = { 't.l1.hills_n0e0s0w0': [0, 0, 64, 20] };
     const near = makeNear(T_PLAINS);
     const sprites = fill_terrain_sprite_array(1, fakeTile, T_HILLS, near);
     expect(sprites[0].offset_y).toBe(28); // 48 - 20
@@ -223,14 +247,14 @@ describe('MATCH_SAME — null guard for missing tileset entry', () => {
 describe('CELL_CORNER — null neighbor guard', () => {
   it('does not crash when neighbor terrains are undefined (fog boundary)', () => {
     // Use coast which uses CELL_CORNER + MATCH_FULL
-    const T_COAST = { graphic_str: 'coast' } as any;
+    const T_COAST = makeTerrain('coast');
     // Some neighbors undefined (as happens at fog boundary)
     const near = makeNear(T_COAST);
     near[NW] = undefined;
     near[N]  = undefined;
     near[NE] = undefined;
 
-    let sprites: any[] = [];
+    let sprites: ReturnType<typeof fill_terrain_sprite_array> = [];
     expect(() => {
       sprites = fill_terrain_sprite_array(0, fakeTile, T_COAST, near);
     }).not.toThrow();
@@ -239,7 +263,7 @@ describe('CELL_CORNER — null neighbor guard', () => {
   });
 
   it('increments cellCornerNullNeighbors stat for undefined neighbors', () => {
-    const T_COAST = { graphic_str: 'coast' } as any;
+    const T_COAST = makeTerrain('coast');
     const near = makeNear(T_COAST);
     near[N] = undefined; // affects corners that include the N neighbor
     fill_terrain_sprite_array(0, fakeTile, T_COAST, near);
@@ -271,7 +295,7 @@ describe('_terrainBlendStats instrumentation', () => {
   });
 
   it('resetTerrainBlendStats clears dither transition counters', () => {
-    (store as any).tileset = { '0grassland_forest': [0, 0, 64, 64] };
+    store.tileset = { '0grassland_forest': [0, 0, 64, 64] };
     const near = makeNear(T_GRASSLAND, { [N]: T_FOREST });
     fill_terrain_sprite_array(0, fakeTile, T_GRASSLAND, near);
     expect(_terrainBlendStats.ditherTransitionFound).toBeGreaterThan(0);
@@ -305,21 +329,21 @@ describe('MATCH_NONE dither — direct-neighbor transition fix', () => {
   it('BEFORE/AFTER: grassland→forest uses direct transition (not hard-edge fallback)', () => {
     // Old code would produce '0grassland_grassland' (no blending).
     // New code produces '0grassland_forest' (smooth edge).
-    (store as any).tileset = { '0grassland_forest': [0, 0, 64, 64] };
+    store.tileset = { '0grassland_forest': [0, 0, 64, 64] };
     const near = makeNear(T_GRASSLAND, { [N]: T_FOREST });
     const sprites = fill_terrain_sprite_array(0, fakeTile, T_GRASSLAND, near);
     expect(sprites[0].key).toBe('0grassland_forest');
   });
 
   it('BEFORE/AFTER: plains→mountains uses direct transition', () => {
-    (store as any).tileset = { '0plains_mountains': [0, 0, 64, 64] };
+    store.tileset = { '0plains_mountains': [0, 0, 64, 64] };
     const near = makeNear(T_PLAINS, { [N]: T_MOUNTAINS });
     const sprites = fill_terrain_sprite_array(0, fakeTile, T_PLAINS, near);
     expect(sprites[0].key).toBe('0plains_mountains');
   });
 
   it('BEFORE/AFTER: grassland→hills uses direct transition', () => {
-    (store as any).tileset = { '2grassland_hills': [0, 0, 64, 64] };
+    store.tileset = { '2grassland_hills': [0, 0, 64, 64] };
     // E neighbor is hills → i=2 (DIR8_EAST = near[4])
     const near = makeNear(T_GRASSLAND, { [E]: T_HILLS });
     const sprites = fill_terrain_sprite_array(0, fakeTile, T_GRASSLAND, near);
@@ -328,14 +352,14 @@ describe('MATCH_NONE dither — direct-neighbor transition fix', () => {
   });
 
   it('falls back to same-terrain key when direct transition absent from tileset', () => {
-    (store as any).tileset = {}; // no transition sprites loaded
+    store.tileset = {}; // no transition sprites loaded
     const near = makeNear(T_GRASSLAND, { [N]: T_FOREST });
     const sprites = fill_terrain_sprite_array(0, fakeTile, T_GRASSLAND, near);
     expect(sprites[0].key).toBe('0grassland_grassland');
   });
 
   it('same-terrain neighbor: direct_key === fallback_key, treated as found', () => {
-    (store as any).tileset = { '0grassland_grassland': [0, 0, 64, 64] };
+    store.tileset = { '0grassland_grassland': [0, 0, 64, 64] };
     const near = makeNear(T_GRASSLAND);
     const sprites = fill_terrain_sprite_array(0, fakeTile, T_GRASSLAND, near);
     expect(sprites[0].key).toBe('0grassland_grassland');
@@ -343,7 +367,7 @@ describe('MATCH_NONE dither — direct-neighbor transition fix', () => {
 
   it('counts ditherTransitionFound for each direct-key hit', () => {
     // N=forest (i=0 → key "0grassland_forest"), E=hills (i=2 → key "2grassland_hills")
-    (store as any).tileset = {
+    store.tileset = {
       '0grassland_forest': [0, 0, 64, 64],
       '2grassland_hills':  [0, 0, 64, 64],
     };
@@ -353,7 +377,7 @@ describe('MATCH_NONE dither — direct-neighbor transition fix', () => {
   });
 
   it('counts ditherTransitionFallback when direct key is absent', () => {
-    (store as any).tileset = {}; // nothing
+    store.tileset = {}; // nothing
     const near = makeNear(T_GRASSLAND, { [N]: T_FOREST });
     fill_terrain_sprite_array(0, fakeTile, T_GRASSLAND, near);
     // N→forest: direct "0grassland_forest" missing → fallback
@@ -361,7 +385,7 @@ describe('MATCH_NONE dither — direct-neighbor transition fix', () => {
   });
 
   it('south neighbor uses i=1 key prefix', () => {
-    (store as any).tileset = { '1plains_jungle': [0, 0, 64, 64] };
+    store.tileset = { '1plains_jungle': [0, 0, 64, 64] };
     // S neighbor is jungle → i=1 (DIR8_SOUTH = near[6])
     const near = makeNear(T_PLAINS, { [S]: T_JUNGLE });
     const sprites = fill_terrain_sprite_array(0, fakeTile, T_PLAINS, near);
@@ -370,7 +394,7 @@ describe('MATCH_NONE dither — direct-neighbor transition fix', () => {
   });
 
   it('west neighbor uses i=3 key prefix', () => {
-    (store as any).tileset = { '3grassland_mountains': [0, 0, 64, 64] };
+    store.tileset = { '3grassland_mountains': [0, 0, 64, 64] };
     // W neighbor is mountains → i=3 (DIR8_WEST = near[3])
     const near = makeNear(T_GRASSLAND, { [W]: T_MOUNTAINS });
     const sprites = fill_terrain_sprite_array(0, fakeTile, T_GRASSLAND, near);
@@ -390,8 +414,8 @@ describe('MATCH_NONE dither — direct-neighbor transition fix', () => {
 // ===========================================================================
 
 describe('Lake terrain — CELL_CORNER MATCH_PAIR cellgroup_map entries', () => {
-  const T_LAKE = { graphic_str: 'lake' } as any;
-  const T_LAND = { graphic_str: 'grassland' } as any; // a land terrain
+  const T_LAKE = makeTerrain('lake');
+  const T_LAND = makeTerrain('grassland'); // a land terrain
 
   it('lake surrounded by other lake: renders 4 corner sprites (not "undefined.*")', () => {
     const near = makeNear(T_LAKE); // all neighbors are lake (shallow)
@@ -471,7 +495,7 @@ describe('cellgroup_map missing-entry guard', () => {
     // but no map entries. The only way to reach CELL_CORNER in tests is via an
     // existing configured terrain; instead test with "floor" (has map entries) as
     // baseline, then verify the stat starts at zero (no missing entries).
-    const T_FLOOR = { graphic_str: 'floor' } as any;
+    const T_FLOOR = makeTerrain('floor');
     const near = makeNear(T_FLOOR);
     fill_terrain_sprite_array(0, fakeTile, T_FLOOR, near);
     // floor has all 108 entries → no missing
@@ -480,13 +504,13 @@ describe('cellgroup_map missing-entry guard', () => {
 
   it('cellCornerMapMissing resets with resetTerrainBlendStats', () => {
     // Manually bump the stat to simulate a missing entry
-    (_terrainBlendStats as any).cellCornerMapMissing = 3;
+    _terrainBlendStats.cellCornerMapMissing = 3;
     resetTerrainBlendStats();
     expect(_terrainBlendStats.cellCornerMapMissing).toBe(0);
   });
 
   it('coast renders 4 corners with no undefined keys (cellgroup_map fully populated)', () => {
-    const T_COAST = { graphic_str: 'coast' } as any;
+    const T_COAST = makeTerrain('coast');
     const near = makeNear(T_COAST);
     const sprites = fill_terrain_sprite_array(0, fakeTile, T_COAST, near);
     expect(sprites).toHaveLength(4);
@@ -509,43 +533,43 @@ describe('isOceanTile — lake included', () => {
   it('isOceanTile returns true for lake terrain', async () => {
     // Import the function (store is mocked)
     const { isOceanTile } = await import('@/data/terrain');
-    (store as any).terrains = { 99: { graphic_str: 'lake' } };
-    const ptile = { index: 0, terrain: 99 } as any;
+    store.terrains = { 99: makeTerrain('lake') };
+    const ptile = { ...fakeTile, terrain: 99 };
     expect(isOceanTile(ptile)).toBe(true);
   });
 
   it('isOceanTile returns true for coast terrain', async () => {
     const { isOceanTile } = await import('@/data/terrain');
-    (store as any).terrains = { 1: { graphic_str: 'coast' } };
-    const ptile = { index: 0, terrain: 1 } as any;
+    store.terrains = { 1: makeTerrain('coast') };
+    const ptile = { ...fakeTile, terrain: 1 };
     expect(isOceanTile(ptile)).toBe(true);
   });
 
   it('isOceanTile returns true for floor (deep ocean)', async () => {
     const { isOceanTile } = await import('@/data/terrain');
-    (store as any).terrains = { 2: { graphic_str: 'floor' } };
-    const ptile = { index: 0, terrain: 2 } as any;
+    store.terrains = { 2: makeTerrain('floor') };
+    const ptile = { ...fakeTile, terrain: 2 };
     expect(isOceanTile(ptile)).toBe(true);
   });
 
   it('isOceanTile returns false for land terrain (grassland)', async () => {
     const { isOceanTile } = await import('@/data/terrain');
-    (store as any).terrains = { 3: { graphic_str: 'grassland' } };
-    const ptile = { index: 0, terrain: 3 } as any;
+    store.terrains = { 3: makeTerrain('grassland') };
+    const ptile = { ...fakeTile, terrain: 3 };
     expect(isOceanTile(ptile)).toBe(false);
   });
 
   it('isOceanTile returns false for mountains', async () => {
     const { isOceanTile } = await import('@/data/terrain');
-    (store as any).terrains = { 4: { graphic_str: 'mountains' } };
-    const ptile = { index: 0, terrain: 4 } as any;
+    store.terrains = { 4: makeTerrain('mountains') };
+    const ptile = { ...fakeTile, terrain: 4 };
     expect(isOceanTile(ptile)).toBe(false);
   });
 
   it('isOceanTile returns false when terrain is undefined', async () => {
     const { isOceanTile } = await import('@/data/terrain');
-    (store as any).terrains = {};
-    const ptile = { index: 0, terrain: 999 } as any;
+    store.terrains = {};
+    const ptile = { ...fakeTile, terrain: 999 };
     expect(isOceanTile(ptile)).toBe(false);
   });
 });

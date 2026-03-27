@@ -58,12 +58,3 @@ export function isOceanTile(ptile: Tile): boolean {
   // just as they do at coast edges.
   return t.graphic_str === 'floor' || t.graphic_str === 'coast' || t.graphic_str === 'lake';
 }
-
-// ---------------------------------------------------------------------------
-// Expose to legacy JS via window (snake_case names matching old JS API)
-// ---------------------------------------------------------------------------
-// Ensure global variables exist (previously declared in terrain.js)
-const _w = window as unknown as Record<string, unknown>;
-if (!_w['terrains']) _w['terrains'] = {};
-if (!_w['resources']) _w['resources'] = {};
-if (!_w['terrain_control']) _w['terrain_control'] = {};

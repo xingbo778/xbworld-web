@@ -20,8 +20,69 @@ import {
 } from '@/data/game';
 import { store } from '@/data/store';
 import { isSmallScreen } from '@/utils/helpers';
+import type { CalendarInfo, City, GameInfo, Unit } from '@/data/types';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+function makeCity(id: number, name: string): City {
+  return {
+    id,
+    owner: 0,
+    tile: 0,
+    name,
+    size: 1,
+    food_stock: 0,
+    shield_stock: 0,
+    production_kind: 0,
+    production_value: 0,
+    surplus: [],
+    waste: [],
+    unhappy_penalty: [],
+    prod: [],
+    citizen_extra: [],
+    ppl_happy: [],
+    ppl_content: [],
+    ppl_unhappy: [],
+    ppl_angry: [],
+    improvements: [],
+  };
+}
+
+function makeUnit(id: number, type: number, name: string): Unit {
+  return {
+    id,
+    owner: 0,
+    tile: 0,
+    type,
+    hp: 10,
+    veteran: 0,
+    movesleft: 0,
+    activity: 0,
+    transported_by: 0,
+    homecity: 0,
+    done_moving: false,
+    ai: false,
+    goto_tile: 0,
+    name,
+  };
+}
+
+function makeGameInfo(overrides: Partial<GameInfo>): GameInfo {
+  return {
+    turn: 0,
+    year: 0,
+    timeout: 0,
+    first_timeout: 0,
+    phase: 0,
+    phase_mode: 0,
+    ...overrides,
+  };
+}
+
+function makeCalendarInfo(): CalendarInfo {
+  return {
+    negative_year_label: ' BC',
+    positive_year_label: ' AD',
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -39,14 +100,14 @@ describe('Game constants', () => {
 
 describe('game_find_city_by_number', () => {
   beforeEach(() => {
-    (store as any).cities = {
-      10: { id: 10, name: 'Rome' },
-      20: { id: 20, name: 'London' },
+    store.cities = {
+      10: makeCity(10, 'Rome'),
+      20: makeCity(20, 'London'),
     };
   });
 
   afterEach(() => {
-    (store as any).cities = {};
+    store.cities = {};
   });
 
   it('should find city by number', () => {
@@ -65,14 +126,14 @@ describe('game_find_city_by_number', () => {
 
 describe('game_find_unit_by_number', () => {
   beforeEach(() => {
-    (store as any).units = {
-      1: { id: 1, type: 0, name: 'Warriors' },
-      2: { id: 2, type: 1, name: 'Settler' },
+    store.units = {
+      1: makeUnit(1, 0, 'Warriors'),
+      2: makeUnit(2, 1, 'Settler'),
     };
   });
 
   afterEach(() => {
-    (store as any).units = {};
+    store.units = {};
   });
 
   it('should find unit by number', () => {
@@ -99,17 +160,17 @@ describe('current_turn_timeout', () => {
   });
 
   it('should return first_timeout on turn 1 when set', () => {
-    store.gameInfo = { turn: 1, first_timeout: 120, timeout: 60 } as any;
+    store.gameInfo = makeGameInfo({ turn: 1, first_timeout: 120, timeout: 60 });
     expect(current_turn_timeout()).toBe(120);
   });
 
   it('should return normal timeout on turn 1 when first_timeout is -1', () => {
-    store.gameInfo = { turn: 1, first_timeout: -1, timeout: 60 } as any;
+    store.gameInfo = makeGameInfo({ turn: 1, first_timeout: -1, timeout: 60 });
     expect(current_turn_timeout()).toBe(60);
   });
 
   it('should return normal timeout on later turns', () => {
-    store.gameInfo = { turn: 5, first_timeout: 120, timeout: 60 } as any;
+    store.gameInfo = makeGameInfo({ turn: 5, first_timeout: 120, timeout: 60 });
     expect(current_turn_timeout()).toBe(60);
   });
 });
@@ -125,8 +186,8 @@ describe('get_year_string', () => {
   });
 
   it('should format BC year correctly', () => {
-    store.gameInfo = { year: -4000, turn: 1 } as any;
-    store.calendarInfo = { negative_year_label: ' BC', positive_year_label: ' AD' } as any;
+    store.gameInfo = makeGameInfo({ year: -4000, turn: 1 });
+    store.calendarInfo = makeCalendarInfo();
     vi.mocked(isSmallScreen).mockReturnValue(false);
     const result = get_year_string();
     expect(result).toContain('4000 BC');
@@ -134,8 +195,8 @@ describe('get_year_string', () => {
   });
 
   it('should format AD year correctly', () => {
-    store.gameInfo = { year: 1500, turn: 100 } as any;
-    store.calendarInfo = { negative_year_label: ' BC', positive_year_label: ' AD' } as any;
+    store.gameInfo = makeGameInfo({ year: 1500, turn: 100 });
+    store.calendarInfo = makeCalendarInfo();
     vi.mocked(isSmallScreen).mockReturnValue(false);
     const result = get_year_string();
     expect(result).toContain('1500 AD');
@@ -143,8 +204,8 @@ describe('get_year_string', () => {
   });
 
   it('should use short format on small screen', () => {
-    store.gameInfo = { year: 1500, turn: 100 } as any;
-    store.calendarInfo = { negative_year_label: ' BC', positive_year_label: ' AD' } as any;
+    store.gameInfo = makeGameInfo({ year: 1500, turn: 100 });
+    store.calendarInfo = makeCalendarInfo();
     vi.mocked(isSmallScreen).mockReturnValue(true);
     const result = get_year_string();
     expect(result).toContain('T:100');

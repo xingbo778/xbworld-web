@@ -5,10 +5,14 @@
 
 import type { Tile, City } from './types';
 import { store } from './store';
+import { getWindowValue } from '../utils/windowBridge';
 export const TILE_UNKNOWN = 0;
 export const TILE_KNOWN_UNSEEN = 1;
 export const TILE_KNOWN_SEEN = 2;
 export const TILE_INDEX_NONE = -1;
+
+type ExtraByNumberFn = (n: number) => unknown;
+type TerritoryClaimingExtraFn = (extra: unknown) => boolean;
 
 export function tileGetKnown(ptile: Tile): number {
   if (ptile.known == null || ptile.known === TILE_UNKNOWN) return TILE_UNKNOWN;
@@ -34,17 +38,19 @@ export function tileResource(ptile: Tile | null): number | null {
  * Migrated from tile.js tile_has_territory_claiming_extra().
  */
 export function tileHasTerritoryClaimingExtra(ptile: Tile): boolean {
-  const win = window as unknown as Record<string, unknown>;
-  const rulesetControl = win.ruleset_control as Record<string, unknown> | undefined;
+  const rulesetControl = store.rulesControl;
   if (!rulesetControl) return false;
+  const territoryClaimingExtra = getWindowValue<TerritoryClaimingExtraFn>('territory_claiming_extra');
+  const extraByNumber = getWindowValue<ExtraByNumberFn>('extra_by_number');
+  if (typeof territoryClaimingExtra !== 'function' || typeof extraByNumber !== 'function') {
+    return false;
+  }
 
   const numExtras = (rulesetControl['num_extra_types'] as number) ?? 0;
   for (let extra = 0; extra < numExtras; extra++) {
     if (
       tileHasExtra(ptile, extra) &&
-      typeof win.territory_claiming_extra === 'function' &&
-      typeof win.extra_by_number === 'function' &&
-      (win.territory_claiming_extra as (e: unknown) => boolean)((win.extra_by_number as (n: number) => unknown)(extra))
+      territoryClaimingExtra(extraByNumber(extra))
     ) {
       return true;
     }

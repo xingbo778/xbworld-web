@@ -17,6 +17,8 @@ import { getTilesetFileExtension } from '../utils/helpers';
 import { blockUI, unblockUI } from '../utils/dom';
 import { swal } from '../components/Dialogs/SwalDialog';
 import { VUT_UTYPE } from '../data/fcTypes';
+import { getActiveRenderer } from './rendererRegistry';
+import { getWindowValue, setWindowValue } from '../utils/windowBridge';
 
 // jQuery removed from this module
 
@@ -76,7 +78,8 @@ export function initTilesetSprites(): void {
       return r.json();
     })
     .then((data: unknown) => {
-      (window as unknown as Record<string, unknown>)['tileset'] = data;
+      store.tileset = data as typeof store.tileset;
+      setWindowValue('tileset', data);
       init_sprites();
     })
     .catch(err => { console.error('Failed to load tileset spec:', err); });
@@ -103,7 +106,7 @@ export function init_sprites(): void {
       const tileset_image = new Image();
       tileset_image.onload = preload_check;
       tileset_image.src = '/tileset/freeciv-web-tileset-'
-        + tileset_name + '-' + i + getTilesetFileExtension() + '?ts=' + ((window as unknown as Record<string, unknown>)['ts'] ?? '');
+        + tileset_name + '-' + i + getTilesetFileExtension() + '?ts=' + (getWindowValue<string | number>('ts') ?? '');
       tileset_images[i] = tileset_image;
     }
   } else {
@@ -228,7 +231,7 @@ function init_cache_sprites_canvas(): void {
 export function mapview_window_resized(): void {
   if (active_city != null || !resize_enabled) return;
   setupWindowSize();
-  const pr = (store as unknown as Record<string, unknown>)['pixiRenderer'] as { resize(): void; markAllDirty(): void } | undefined;
+  const pr = getActiveRenderer();
   pr?.resize();
   pr?.markAllDirty();
 }

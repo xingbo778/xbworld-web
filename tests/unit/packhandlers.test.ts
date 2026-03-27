@@ -18,9 +18,8 @@ describe('packet_hand_table', () => {
   it('has entries for common packet ids', async () => {
     const { packet_hand_table } = await import('@/net/packhandlers');
     // Spot-check a few packet ids that should be in the table
-    const table = packet_hand_table as Record<number, unknown>;
     // At least some entries should be functions
-    const handlers = Object.values(table).filter(v => typeof v === 'function');
+    const handlers = Object.values(packet_hand_table).filter(v => typeof v === 'function');
     expect(handlers.length).toBeGreaterThan(0);
   });
 });

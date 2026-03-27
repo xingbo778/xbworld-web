@@ -9,7 +9,7 @@
 import { render } from 'preact';
 import { cityCount, currentTurn, rulesetReady, playerUpdated } from '../data/signals';
 import { store } from '../data/store';
-import type { City } from '../data/types';
+import type { City, Improvement, Nation, UnitType } from '../data/types';
 import { show_city_dialog } from '../ui/cityDialog';
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -51,22 +51,22 @@ export function CitiesPanel() {
         </thead>
         <tbody>
           {sorted.map((city) => {
-            const owner = store.players[city.owner as number];
-            const ownerName = (owner as Record<string, unknown> | undefined)?.['name'] as string ?? `#${city.owner}`;
-            const nation = owner ? store.nations[(owner as Record<string, unknown>)['nation'] as number] : null;
-            const color: string = (nation as Record<string, unknown> | undefined)?.['color'] as string ?? 'var(--xb-text-primary)';
-            const prod = city.production as Record<string, unknown> | undefined;
-            const prodKind = prod?.['kind'] as number | undefined;
-            const prodValue = prod?.['value'] as number | undefined;
+            const owner = store.players[city.owner];
+            const ownerName = owner?.name ?? `#${city.owner}`;
+            const nation = owner ? store.nations[owner.nation] as (Nation & { color?: string }) | undefined : null;
+            const color = nation?.color ?? 'var(--xb-text-primary)';
+            const prod = city.production as { kind?: number; value?: number } | undefined;
+            const prodKind = prod?.kind;
+            const prodValue = prod?.value;
             let prodName = '—';
             if (prodKind === 0 && prodValue !== undefined) {
               // Improvement
-              const impr = store.improvements[prodValue];
-              if (impr) prodName = (impr as Record<string, unknown>)['name'] as string;
+              const impr = store.improvements[prodValue] as Improvement | undefined;
+              if (impr) prodName = impr.name;
             } else if (prodKind === 1 && prodValue !== undefined) {
               // Unit
-              const utype = store.unitTypes[prodValue];
-              if (utype) prodName = (utype as Record<string, unknown>)['name'] as string;
+              const utype = store.unitTypes[prodValue] as UnitType | undefined;
+              if (utype) prodName = utype.name;
             }
 
             return (

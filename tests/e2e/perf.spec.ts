@@ -20,6 +20,7 @@
  */
 
 import { test, expect, Page } from '@playwright/test';
+import { XbwPageGlobals } from './helpers/pageGlobals';
 
 const BASE = process.env.TEST_BASE_URL || 'http://localhost:8080';
 const RND = Math.random().toString(36).slice(2, 6).toUpperCase();
@@ -38,7 +39,7 @@ async function measure<T>(label: string, fn: () => Promise<T>): Promise<[T, numb
 async function waitForGameRunning(page: Page, timeout = 60_000): Promise<number> {
   const t0 = Date.now();
   await page.waitForFunction(
-    () => (window as any).__store?.civclientState === 2, // C_S_RUNNING = 2
+    () => (window as XbwPageGlobals).__store?.civclientState === 2, // C_S_RUNNING = 2
     { timeout }
   );
   return Date.now() - t0;
@@ -50,22 +51,26 @@ async function measureFrameTiming(page: Page, durationMs: number): Promise<{
 }> {
   // Inject frame counter
   await page.evaluate(() => {
-    (window as any).__perfFrames = [];
+    const w = window as XbwPageGlobals;
+    w.__perfFrames = [];
     let last = performance.now();
     function tick() {
       const now = performance.now();
-      (window as any).__perfFrames.push(now - last);
+      w.__perfFrames?.push(now - last);
       last = now;
-      (window as any).__perfRaf = requestAnimationFrame(tick);
+      w.__perfRaf = requestAnimationFrame(tick);
     }
-    (window as any).__perfRaf = requestAnimationFrame(tick);
+    w.__perfRaf = requestAnimationFrame(tick);
   });
 
   await page.waitForTimeout(durationMs);
 
   return page.evaluate(() => {
-    cancelAnimationFrame((window as any).__perfRaf);
-    const frames: number[] = (window as any).__perfFrames;
+    const w = window as XbwPageGlobals;
+    if (typeof w.__perfRaf === 'number') {
+      cancelAnimationFrame(w.__perfRaf);
+    }
+    const frames = w.__perfFrames ?? [];
     if (frames.length === 0) return { count: 0, avgMs: 0, maxMs: 0, p95Ms: 0 };
     const sorted = [...frames].sort((a, b) => a - b);
     const avg = frames.reduce((s, f) => s + f, 0) / frames.length;
@@ -100,7 +105,7 @@ test.describe('Performance benchmarks', () => {
     // ── 2. JS bundle parsed + network_init called ─────────────
     console.log('\n=== 2. JS bundle parsed ===');
     const [, bundleMs] = await measure('bundle parsed (__store available)', () =>
-      page.waitForFunction(() => !!(window as any).__store, { timeout: 30_000 })
+      page.waitForFunction(() => !!(window as XbwPageGlobals).__store, { timeout: 30_000 })
     );
     results['2_bundle_parsed_ms'] = bundleMs;
 
@@ -108,7 +113,7 @@ test.describe('Performance benchmarks', () => {
     console.log('\n=== 3. WebSocket + first packet ===');
     const [, firstPacketMs] = await measure('first packet received', () =>
       page.waitForFunction(
-        () => ((window as any).__xbwPacketCount || 0) >= 1,
+        () => (((window as XbwPageGlobals).__xbwPacketCount || 0) >= 1),
         { timeout: 30_000 }
       )
     );
@@ -126,8 +131,9 @@ test.describe('Performance benchmarks', () => {
     // ── 5. Packet count & throughput ─────────────────────────
     console.log('\n=== 5. Packet throughput ===');
     const packetStats = await page.evaluate(() => {
+      const w = window as XbwPageGlobals;
       return {
-        total: (window as any).__xbwPacketCount || 0,
+        total: w.__xbwPacketCount || 0,
       };
     });
     results['5_total_packets'] = packetStats.total;
@@ -170,15 +176,16 @@ test.describe('Performance benchmarks', () => {
 
       // Measure frame timing during drag
       await page.evaluate(() => {
-        (window as any).__perfFrames = [];
+        const w = window as XbwPageGlobals;
+        w.__perfFrames = [];
         let last = performance.now();
         function tick() {
           const now = performance.now();
-          (window as any).__perfFrames.push(now - last);
+          w.__perfFrames?.push(now - last);
           last = now;
-          (window as any).__perfRaf = requestAnimationFrame(tick);
+          w.__perfRaf = requestAnimationFrame(tick);
         }
-        (window as any).__perfRaf = requestAnimationFrame(tick);
+        w.__perfRaf = requestAnimationFrame(tick);
       });
 
       // Perform drag
@@ -194,8 +201,11 @@ test.describe('Performance benchmarks', () => {
       });
 
       const dragFrames = await page.evaluate(() => {
-        cancelAnimationFrame((window as any).__perfRaf);
-        const frames: number[] = (window as any).__perfFrames;
+        const w = window as XbwPageGlobals;
+        if (typeof w.__perfRaf === 'number') {
+          cancelAnimationFrame(w.__perfRaf);
+        }
+        const frames = w.__perfFrames ?? [];
         if (!frames.length) return { count: 0, avgMs: 0, maxMs: 0, p95Ms: 0 };
         const sorted = [...frames].sort((a, b) => a - b);
         return {
@@ -272,15 +282,16 @@ test.describe('Performance benchmarks', () => {
 
       // Measure frame during tab switch
       await page.evaluate(() => {
-        (window as any).__perfFrames = [];
+        const w = window as XbwPageGlobals;
+        w.__perfFrames = [];
         let last = performance.now();
         const tick = () => {
           const now = performance.now();
-          (window as any).__perfFrames.push(now - last);
+          w.__perfFrames?.push(now - last);
           last = now;
-          (window as any).__perfRaf = requestAnimationFrame(tick);
+          w.__perfRaf = requestAnimationFrame(tick);
         };
-        (window as any).__perfRaf = requestAnimationFrame(tick);
+        w.__perfRaf = requestAnimationFrame(tick);
       });
 
       const [, tabMs] = await measure(`tab switch → ${tab.name}`, () =>
@@ -288,8 +299,11 @@ test.describe('Performance benchmarks', () => {
       );
 
       const tabFrames = await page.evaluate(() => {
-        cancelAnimationFrame((window as any).__perfRaf);
-        const frames: number[] = (window as any).__perfFrames;
+        const w = window as XbwPageGlobals;
+        if (typeof w.__perfRaf === 'number') {
+          cancelAnimationFrame(w.__perfRaf);
+        }
+        const frames = w.__perfFrames ?? [];
         return frames.length > 0 ? +(frames[0]).toFixed(2) : 0;
       });
 
@@ -303,7 +317,9 @@ test.describe('Performance benchmarks', () => {
     // ── 11. Memory snapshot ───────────────────────────────────
     console.log('\n=== 11. Memory ===');
     const memory = await page.evaluate(() => {
-      const m = (performance as any).memory;
+      const m = (performance as Performance & {
+        memory?: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number };
+      }).memory;
       if (!m) return null;
       return {
         usedJSHeapMB: +(m.usedJSHeapSize / 1024 / 1024).toFixed(1),

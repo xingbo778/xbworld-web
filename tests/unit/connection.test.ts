@@ -50,6 +50,9 @@ import {
   _isPacketWorkerActiveForTests,
   _isBeforeUnloadHandlerRegisteredForTests,
   check_websocket_ready,
+  getCurrentWebSocketForTests,
+  setCurrentWebSocketForTests,
+  setCivserverportForTests,
 } from '@/net/connection';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -72,6 +75,14 @@ Object.defineProperty(globalThis, 'localStorage', {
 // ---------------------------------------------------------------------------
 // Reconnect delays
 // ---------------------------------------------------------------------------
+
+function getWs(): MockWebSocket | null {
+  return getCurrentWebSocketForTests() as MockWebSocket | null;
+}
+
+function setWs(value: MockWebSocket | null): void {
+  setCurrentWebSocketForTests(value as WebSocket | null);
+}
 
 describe('RECONNECT_DELAYS_MS', () => {
   it('has 5 entries', () => {
@@ -128,8 +139,7 @@ describe('websocket_init — onclose reconnect logic', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     _resetReconnectStateForTests();
-    // Set civserverport via the window getter so websocket_init can read it
-    (window as any).civserverport = '6001';
+    setCivserverportForTests('6001');
     // localStorage is stubbed at module level above
   });
 
@@ -141,7 +151,7 @@ describe('websocket_init — onclose reconnect logic', () => {
 
   it('transitions to "reconnecting" on abnormal close (code 1006)', () => {
     websocket_init();
-    const currentWs = (window as any).ws as MockWebSocket;
+    const currentWs = getWs()!;
 
     // Simulate abnormal close (network drop)
     const closeEvent = new CloseEvent('close', { code: 1006, reason: 'Abnormal Closure' });
@@ -152,7 +162,7 @@ describe('websocket_init — onclose reconnect logic', () => {
 
   it('does NOT reconnect on clean close (code 1000)', () => {
     websocket_init();
-    const currentWs = (window as any).ws as MockWebSocket;
+    const currentWs = getWs()!;
 
     const closeEvent = new CloseEvent('close', { code: 1000, reason: 'Normal Closure' });
     currentWs.onclose!(closeEvent);
@@ -162,7 +172,7 @@ describe('websocket_init — onclose reconnect logic', () => {
 
   it('does NOT reconnect on code 1001 (Going Away)', () => {
     websocket_init();
-    const currentWs = (window as any).ws as MockWebSocket;
+    const currentWs = getWs()!;
 
     const closeEvent = new CloseEvent('close', { code: 1001, reason: 'Going Away' });
     currentWs.onclose!(closeEvent);
@@ -172,7 +182,7 @@ describe('websocket_init — onclose reconnect logic', () => {
 
   it('does NOT reconnect after markServerShutdown(), sets disconnected', () => {
     websocket_init();
-    const currentWs = (window as any).ws as MockWebSocket;
+    const currentWs = getWs()!;
 
     markServerShutdown(); // server sent #12 before closing
 
@@ -185,7 +195,7 @@ describe('websocket_init — onclose reconnect logic', () => {
 
   it('schedules reconnect after first delay (1s)', () => {
     websocket_init();
-    const currentWs = (window as any).ws as MockWebSocket;
+    const currentWs = getWs()!;
 
     const closeEvent = new CloseEvent('close', { code: 1006, reason: '' });
     currentWs.onclose!(closeEvent);
@@ -195,13 +205,13 @@ describe('websocket_init — onclose reconnect logic', () => {
     // After 1 second, a new WebSocket should be created
     vi.advanceTimersByTime(1000);
     // websocket_init was called again internally
-    const newWs = (window as any).ws as MockWebSocket;
+    const newWs = getWs()!;
     expect(newWs).not.toBe(currentWs); // new WS instance
   });
 
   it('resets to "connected" when reconnect succeeds (onopen fires)', () => {
     websocket_init();
-    const currentWs = (window as any).ws as MockWebSocket;
+    const currentWs = getWs()!;
 
     // Simulate abnormal close → reconnecting
     currentWs.onclose!(new CloseEvent('close', { code: 1006 }));
@@ -209,7 +219,7 @@ describe('websocket_init — onclose reconnect logic', () => {
 
     // Fast-forward to reconnect attempt
     vi.advanceTimersByTime(1000);
-    const newWs = (window as any).ws as MockWebSocket;
+    const newWs = getWs()!;
 
     // Simulate successful reconnect
     newWs.onopen!(new Event('open'));
@@ -221,26 +231,26 @@ describe('websocket_init — onclose reconnect logic', () => {
 
     // 5 abnormal closes, each triggering a scheduled reconnect attempt
     for (let i = 0; i < RECONNECT_DELAYS_MS.length; i++) {
-      const currentWs = (window as any).ws as MockWebSocket;
+      const currentWs = getWs()!;
       currentWs.onclose!(new CloseEvent('close', { code: 1006 }));
       expect(store.connectionState).toBe('reconnecting');
       vi.advanceTimersByTime(RECONNECT_DELAYS_MS[i]);
     }
 
     // 6th close: reconnect counter exhausted → disconnected, no further timer
-    const finalWs = (window as any).ws as MockWebSocket;
+    const finalWs = getWs()!;
     finalWs.onclose!(new CloseEvent('close', { code: 1006 }));
     expect(store.connectionState).toBe('disconnected');
 
     // Advancing further time must NOT create another WebSocket
-    const wsAfterExhaustion = (window as any).ws as MockWebSocket;
+    const wsAfterExhaustion = getWs()!;
     vi.advanceTimersByTime(60000);
-    expect((window as any).ws).toBe(wsAfterExhaustion);
+    expect(getWs()).toBe(wsAfterExhaustion);
   });
 
   it('markServerShutdown during reconnect prevents further reconnects', () => {
     websocket_init();
-    const ws1 = (window as any).ws as MockWebSocket;
+    const ws1 = getWs()!;
 
     // Abnormal close → reconnecting, timer scheduled
     ws1.onclose!(new CloseEvent('close', { code: 1006 }));
@@ -248,7 +258,7 @@ describe('websocket_init — onclose reconnect logic', () => {
 
     // Timer fires → new WS created
     vi.advanceTimersByTime(1000);
-    const ws2 = (window as any).ws as MockWebSocket;
+    const ws2 = getWs()!;
     expect(ws2).not.toBe(ws1);
 
     // Server signals intentional shutdown on the new connection
@@ -259,7 +269,7 @@ describe('websocket_init — onclose reconnect logic', () => {
     expect(store.connectionState).toBe('disconnected');
     vi.advanceTimersByTime(60000);
     // No new WS should appear
-    expect((window as any).ws).toBe(ws2);
+    expect(getWs()).toBe(ws2);
   });
 });
 
@@ -271,45 +281,45 @@ describe('network_stop', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     _resetReconnectStateForTests();
-    (window as any).civserverport = '6001';
-    (window as any).ws = null;
+    setCivserverportForTests('6001');
+    setWs(null);
   });
 
   afterEach(() => {
     _resetReconnectStateForTests();
-    (window as any).ws = null;
+    setWs(null);
     vi.restoreAllMocks();
     vi.useRealTimers();
   });
 
   it('cancels a pending reconnect timer so no new WS is created', () => {
     websocket_init();
-    const ws1 = (window as any).ws as MockWebSocket;
+    const ws1 = getWs()!;
 
     ws1.onclose!(new CloseEvent('close', { code: 1006 }));
     expect(store.connectionState).toBe('reconnecting');
 
     // Stop before the 1-second timer fires
     network_stop();
-    expect((window as any).ws).toBeNull();
+    expect(getWs()).toBeNull();
 
     // Advance past the scheduled delay — timer should have been cancelled
     vi.advanceTimersByTime(2000);
-    expect((window as any).ws).toBeNull();
+    expect(getWs()).toBeNull();
   });
 
   it('is safe to call when no WebSocket exists', () => {
     expect(() => network_stop()).not.toThrow();
-    expect((window as any).ws).toBeNull();
+    expect(getWs()).toBeNull();
   });
 
   it('is safe to call when no reconnect is pending', () => {
     websocket_init();
     network_stop();
-    expect((window as any).ws).toBeNull();
+    expect(getWs()).toBeNull();
     // No timers to cancel — advancing time is harmless
     vi.advanceTimersByTime(5000);
-    expect((window as any).ws).toBeNull();
+    expect(getWs()).toBeNull();
   });
 });
 
@@ -321,8 +331,8 @@ describe('send_request', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     _resetReconnectStateForTests();
-    (window as any).civserverport = '6001';
-    (window as any).ws = null;
+    setCivserverportForTests('6001');
+    setWs(null);
   });
 
   afterEach(() => {
@@ -338,7 +348,7 @@ describe('send_request', () => {
 
   it('sends payload when readyState is OPEN (1)', () => {
     websocket_init();
-    const currentWs = (window as any).ws as MockWebSocket;
+    const currentWs = getWs()!;
     const sendSpy = vi.spyOn(currentWs, 'send');
     currentWs.readyState = MockWebSocket.OPEN;
 
@@ -350,7 +360,7 @@ describe('send_request', () => {
 
   it('does NOT send when readyState is CONNECTING (0)', () => {
     websocket_init();
-    const currentWs = (window as any).ws as MockWebSocket;
+    const currentWs = getWs()!;
     const sendSpy = vi.spyOn(currentWs, 'send');
     currentWs.readyState = MockWebSocket.CONNECTING;
 
@@ -360,7 +370,7 @@ describe('send_request', () => {
 
   it('does NOT send when readyState is CLOSING (2)', () => {
     websocket_init();
-    const currentWs = (window as any).ws as MockWebSocket;
+    const currentWs = getWs()!;
     const sendSpy = vi.spyOn(currentWs, 'send');
     currentWs.readyState = MockWebSocket.CLOSING;
 
@@ -370,7 +380,7 @@ describe('send_request', () => {
 
   it('does NOT send when readyState is CLOSED (3)', () => {
     websocket_init();
-    const currentWs = (window as any).ws as MockWebSocket;
+    const currentWs = getWs()!;
     const sendSpy = vi.spyOn(currentWs, 'send');
     currentWs.readyState = MockWebSocket.CLOSED;
 
@@ -387,20 +397,20 @@ describe('network_stop — resource cleanup', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     _resetReconnectStateForTests();
-    (window as any).civserverport = '6001';
-    (window as any).ws = null;
+    setCivserverportForTests('6001');
+    setWs(null);
   });
 
   afterEach(() => {
     _resetReconnectStateForTests();
-    (window as any).ws = null;
+    setWs(null);
     vi.restoreAllMocks();
     vi.useRealTimers();
   });
 
   it('clears ping_timer on network_stop()', () => {
     websocket_init();
-    const currentWs = (window as any).ws as MockWebSocket;
+    const currentWs = getWs()!;
     // Simulate onopen so check_websocket_ready runs and sets ping_timer
     // (In the mock ws.readyState is already OPEN=1, so trigger onopen manually)
     currentWs.onopen!(new Event('open'));
@@ -414,7 +424,7 @@ describe('network_stop — resource cleanup', () => {
 
   it('removes _beforeUnloadHandler on network_stop()', () => {
     websocket_init();
-    const currentWs = (window as any).ws as MockWebSocket;
+    const currentWs = getWs()!;
     currentWs.onopen!(new Event('open'));
     return Promise.resolve().then(() => {
       expect(_isBeforeUnloadHandlerRegisteredForTests()).toBe(true);
@@ -445,13 +455,13 @@ describe('check_websocket_ready — retry loop guard', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     _resetReconnectStateForTests();
-    (window as any).civserverport = '6001';
-    (window as any).ws = null;
+    setCivserverportForTests('6001');
+    setWs(null);
   });
 
   afterEach(() => {
     _resetReconnectStateForTests();
-    (window as any).ws = null;
+    setWs(null);
     vi.restoreAllMocks();
     vi.useRealTimers();
   });
@@ -460,16 +470,16 @@ describe('check_websocket_ready — retry loop guard', () => {
     // Set up a ws in CONNECTING state so check_websocket_ready schedules a retry
     const mockWs = new MockWebSocket('ws://localhost/test');
     mockWs.readyState = MockWebSocket.CONNECTING;
-    (window as any).ws = mockWs;
+    setWs(mockWs);
 
     // Capture any new WebSocket creations (should be none)
-    const initialWs = (window as any).ws;
+    const initialWs = getWs();
 
     // Start check_websocket_ready — it will see readyState=CONNECTING and schedule retry
     const promise = check_websocket_ready();
 
     // Null out ws (simulating network_stop called between check_websocket_ready invocations)
-    (window as any).ws = null;
+    setWs(null);
 
     // Advance time — the retry should fire but immediately return (ws is null)
     vi.advanceTimersByTime(1000);
@@ -477,7 +487,7 @@ describe('check_websocket_ready — retry loop guard', () => {
     await promise;
 
     // No new WebSocket should have been created
-    expect((window as any).ws).toBeNull();
+    expect(getWs()).toBeNull();
     // Confirm the retry fired and returned safely (no throw)
   });
 });
@@ -490,8 +500,8 @@ describe('connectionBanner signal', () => {
   beforeEach(async () => {
     vi.useFakeTimers();
     _resetReconnectStateForTests();
-    (window as any).civserverport = '6001';
-    (window as any).ws = null;
+    setCivserverportForTests('6001');
+    setWs(null);
     // Reset banner
     const { connectionBanner } = await import('@/data/signals');
     connectionBanner.value = null;
@@ -499,7 +509,7 @@ describe('connectionBanner signal', () => {
 
   afterEach(() => {
     _resetReconnectStateForTests();
-    (window as any).ws = null;
+    setWs(null);
     vi.restoreAllMocks();
     vi.useRealTimers();
   });
@@ -515,12 +525,12 @@ describe('connectionBanner signal', () => {
     websocket_init();
     // Exhaust all reconnect attempts
     for (let i = 0; i < RECONNECT_DELAYS_MS.length; i++) {
-      const ws = (window as any).ws as MockWebSocket;
+      const ws = getWs()!;
       ws.onclose!(new CloseEvent('close', { code: 1006 }));
       vi.advanceTimersByTime(RECONNECT_DELAYS_MS[i]);
     }
     // Final close — exhausted
-    const finalWs = (window as any).ws as MockWebSocket;
+    const finalWs = getWs()!;
     finalWs.onclose!(new CloseEvent('close', { code: 1006 }));
 
     expect(store.connectionState).toBe('disconnected');
@@ -532,7 +542,7 @@ describe('connectionBanner signal', () => {
     const { connectionBanner } = await import('@/data/signals');
 
     websocket_init();
-    const ws1 = (window as any).ws as MockWebSocket;
+    const ws1 = getWs()!;
 
     // Trigger reconnect
     ws1.onclose!(new CloseEvent('close', { code: 1006 }));
@@ -540,7 +550,7 @@ describe('connectionBanner signal', () => {
 
     // Reconnect timer fires, new ws created
     vi.advanceTimersByTime(1000);
-    const ws2 = (window as any).ws as MockWebSocket;
+    const ws2 = getWs()!;
 
     // New connection opens successfully
     ws2.onopen!(new Event('open'));

@@ -2,19 +2,21 @@
  * Map coordinate system, tile allocation, and direction utilities.
  * Migrated from map.js.
  *
- * IMPORTANT: All data access goes through window globals directly,
- * NOT through the TS store. This is because legacy globals are declared
- * with `var` (configurable: false) and cannot be intercepted by
- * Object.defineProperty. See docs/MIGRATION_PITFALLS.md §4.
- *
- * map_allocate, tile_init, and map_init_topology are NOW exposed via
- * exposeToLegacy (see bottom of file). The TS mapAllocate() replicates
- * all side-effects of the legacy version including calling init_overview().
+ * Map state now lives in store only. Test-only hooks are exposed from main.ts
+ * under window.__mapDebug instead of legacy window.map/window.tiles globals.
  */
 
 import { FC_WRAP } from '../utils/helpers';
 import { store } from './store';
-import type { Tile } from './types';
+import type { MapInfo, Tile } from './types';
+
+type RuntimeMapInfo = MapInfo & {
+  startpos_table?: Record<string, unknown>;
+  valid_dirs?: Record<number, number>;
+  cardinal_dirs?: Record<number, number>;
+  num_valid_dirs?: number;
+  num_cardinal_dirs?: number;
+};
 export const enum Direction {
   NORTHWEST = 0,
   NORTH = 1,
@@ -39,29 +41,19 @@ export const T_UNKNOWN = 0;
 export const DIR_DX = [-1, 0, 1, -1, 1, -1, 0, 1] as const;
 export const DIR_DY = [-1, -1, -1, 0, 0, 1, 1, 1] as const;
 
-// ---------------------------------------------------------------------------
-// Helper: access legacy globals directly via window.
-//
-// We CANNOT use the TS store for map/tiles because:
-// 1. Legacy globals are `var`-declared → configurable:false
-// 2. Object.defineProperty cannot intercept them
-// 3. store.mapInfo / store.tiles remain empty forever
-// ---------------------------------------------------------------------------
-const win = window as unknown as Record<string, unknown>;
-
 export function getMapInfo(): {
   xsize: number;
   ysize: number;
   topology_id: number;
   wrap_id: number;
 } | null {
-  const m = win.map as Record<string, unknown> | undefined;
-  if (m && typeof m.xsize === 'number') return m as { xsize: number; ysize: number; topology_id: number; wrap_id: number };
-  return null;
+  const mapInfo = store.mapInfo;
+  if (!mapInfo || typeof mapInfo.xsize !== 'number') return null;
+  return mapInfo;
 }
 
 export function getTiles(): Record<number, Tile> {
-  return (win.tiles || {}) as Record<number, Tile>;
+  return store.tiles;
 }
 
 export function topoHasFlag(flag: number): boolean {
@@ -95,11 +87,8 @@ export function tileInit(tile: Record<string, unknown>): Record<string, unknown>
 }
 
 /**
- * Allocate the tile array. Writes directly to window.tiles so that
- * legacy code sees the new tiles immediately.
- *
  * Mirrors the legacy map.js map_allocate() exactly:
- *   1. Initialise window.tiles with all tiles
+ *   1. Initialise the shared tile table
  *   2. Set map.startpos_table = {}
  *   3. Call init_overview() (still provided by overview.js)
  */
@@ -122,13 +111,10 @@ export function mapAllocate(): void {
     }
   }
 
-  // Assign directly to window.tiles AND store.tiles so both legacy JS
-  // and TS packet handlers see the same tile data.
-  win.tiles = newTiles;
   store.tiles = newTiles as Record<number, Tile>;
-
-  // Set startpos_table (required by later server packets)
-  if (win.map) (win.map as Record<string, unknown>)['startpos_table'] = {};
+  if (store.mapInfo) {
+    (store.mapInfo as RuntimeMapInfo).startpos_table = {};
+  }
 
   // Dynamic import to break circular: map → overview → control → mapClick → unit → map
   import('../core/overview').then(m => m.init_overview());
@@ -138,25 +124,24 @@ export function mapAllocate(): void {
  * Initialise map topology: valid_dirs and cardinal_dirs arrays.
  * Migrated from map.js map_init_topology().
  *
- * Exposed to legacy as window.map_init_topology.
  */
 export function mapInitTopology(_setSizes: boolean): void {
-  const m = win.map as Record<string, unknown> | undefined;
+  const m = store.mapInfo as RuntimeMapInfo | null;
   if (!m) return;
 
-  m.valid_dirs = {} as Record<number, number>;
-  m.cardinal_dirs = {} as Record<number, number>;
+  m.valid_dirs = {};
+  m.cardinal_dirs = {};
   m.num_valid_dirs = 0;
   m.num_cardinal_dirs = 0;
 
   for (let dir = 0; dir < 8; dir++) {
     if (isValidDir(dir)) {
-      (m.valid_dirs as Record<number, number>)[m.num_valid_dirs as number] = dir;
-      (m as Record<string, number>).num_valid_dirs++;
+      m.valid_dirs[m.num_valid_dirs] = dir;
+      m.num_valid_dirs++;
     }
     if (isCardinalDir(dir)) {
-      (m.cardinal_dirs as Record<number, number>)[m.num_cardinal_dirs as number] = dir;
-      (m as Record<string, number>).num_cardinal_dirs++;
+      m.cardinal_dirs[m.num_cardinal_dirs] = dir;
+      m.num_cardinal_dirs++;
     }
   }
 }
@@ -361,5 +346,3 @@ export function clearGotoTiles(): void {
 // ---------------------------------------------------------------------------
 // Expose to legacy JS via window (snake_case names matching old JS API)
 // ---------------------------------------------------------------------------
-win['map_init_topology'] = mapInitTopology;
-win['map_allocate'] = mapAllocate;

@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { connectAsObserver } from './helpers/observer';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -8,35 +9,9 @@ const SCREENSHOT_DIR = path.join(__dirname, '../../test-screenshots');
 
 test.describe('Headed UI Visual Check', () => {
   test('full UI visual inspection', async ({ page }) => {
-    // 1. Load page and capture intro dialog
-    await page.goto('/webclient/index.html');
-    await page.waitForSelector('.xb-dialog', { timeout: 10000 });
-    await page.screenshot({ path: path.join(SCREENSHOT_DIR, '01-intro-dialog.png'), fullPage: true });
-
-    // 2. Enter username and start observing
-    await page.fill('#username_req', 'TestObserver');
-    await page.screenshot({ path: path.join(SCREENSHOT_DIR, '02-username-entered.png'), fullPage: true });
-
-    // Click "Observe Game" button
-    const observeBtn = page.locator('.xb-dialog-content .xb-btn');
-    await observeBtn.click();
-
-    // Wait for game page to appear (dialog should close)
-    await page.waitForTimeout(2000);
-    await page.screenshot({ path: path.join(SCREENSHOT_DIR, '03-after-observe-click.png'), fullPage: true });
-
-    // Dismiss any remaining dialogs
-    await page.evaluate(() => {
-      document.querySelectorAll('.xb-dialog, .xb-dialog-overlay, .ui-dialog, #xb-ui-dialog-overlay, dialog').forEach((d) => {
-        if ('close' in d && typeof (d as any).close === 'function') (d as any).close();
-        d.remove();
-      });
-      const pregame = document.getElementById('pregame_page');
-      const gamePage = document.getElementById('game_page');
-      if (pregame) pregame.style.display = 'none';
-      if (gamePage) gamePage.style.display = '';
-    });
-    await page.waitForTimeout(500);
+    const connected = await connectAsObserver(page, { username: 'TestObserver', timeout: 20_000, settleMs: 2_000 });
+    test.skip(!connected, 'Backend did not reach game page');
+    await page.screenshot({ path: path.join(SCREENSHOT_DIR, '01-after-autoconnect.png'), fullPage: true });
 
     // 3. Map tab - main canvas
     await page.screenshot({ path: path.join(SCREENSHOT_DIR, '04-map-tab-full.png'), fullPage: true });

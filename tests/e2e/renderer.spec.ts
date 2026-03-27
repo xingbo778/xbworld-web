@@ -8,14 +8,20 @@
  *   npx playwright test --config playwright.headed.config.ts tests/e2e/renderer.spec.ts
  */
 import { test, expect, type Page } from '@playwright/test';
+import { connectAsObserver } from './helpers/observer';
+import type { XbwPageGlobals } from './helpers/pageGlobals';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 async function gotoPixi(page: Page): Promise<void> {
-  await page.goto('/webclient/index.html?renderer=pixi');
-  await page.waitForLoadState('domcontentloaded');
+  await connectAsObserver(page, {
+    username: 'PixiTester',
+    query: { renderer: 'pixi' },
+    waitForGamePage: false,
+    settleMs: 0,
+  });
 }
 
 async function dismissDialogs(page: Page): Promise<void> {
@@ -26,15 +32,6 @@ async function dismissDialogs(page: Page): Promise<void> {
 }
 
 async function waitForGamePage(page: Page): Promise<boolean> {
-  // Connect as observer via the intro form if visible
-  const usernameInput = page.locator('#username_req');
-  if (await usernameInput.isVisible({ timeout: 2000 }).catch(() => false)) {
-    await usernameInput.fill('PixiTester');
-    const observeBtn = page.getByRole('button', { name: /observe/i });
-    if (await observeBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
-      await observeBtn.click();
-    }
-  }
   // Wait up to 10s for game page to appear
   try {
     await page.waitForSelector('#game_page', { state: 'visible', timeout: 10000 });
@@ -68,13 +65,7 @@ test.describe('PixiJS Renderer — activation', () => {
     await page.waitForTimeout(1500);
 
     const rendererValue = await page.evaluate(() => {
-      // store is available on window via the IIFE bundle
-      const w = window as unknown as Record<string, unknown>;
-      const store = w['XBWorld'] as Record<string, unknown> | undefined;
-      // Fallback: check via any global store reference
-      return (w['_store'] as Record<string, unknown> | undefined)?.['renderer']
-        ?? (store?.['store'] as Record<string, unknown> | undefined)?.['renderer']
-        ?? null;
+      return (window as XbwPageGlobals).__store?.renderer ?? null;
     });
 
     // If we can read it, it should be 2 (RENDERER_PIXI)

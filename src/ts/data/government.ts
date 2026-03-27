@@ -61,7 +61,7 @@ export function canPlayerGetGov(govtId: number): boolean {
   if (pplayer == null) return false;
   const gov = store.governments[govtId];
   if (gov == null) return false;
-  const reqs = (gov as unknown as Record<string, unknown>)['reqs'] as Requirement[] | null | undefined;
+  const reqs = (gov as { reqs?: Requirement[] | null }).reqs;
   if (reqs == null || reqs.length === 0) return true;
   return areReqsActive(pplayer, null, null, null, null, null, null, reqs, RPT_POSSIBLE);
 }
@@ -69,4 +69,3 @@ export function canPlayerGetGov(govtId: number): boolean {
 // ---------------------------------------------------------------------------
 // Expose to legacy
 // ---------------------------------------------------------------------------
-

@@ -27,21 +27,37 @@ import {
   RPT_CERTAIN,
   VUT_UTYPE,
 } from '@/data/fcTypes';
+import type { City, Government, MapInfo, Nation, Player, Tech, UnitType } from '@/data/types';
+import type { BitVector } from '@/utils/bitvector';
+
+type UnitClassLike = { id: number; name: string; flags?: BitVector | { isSet(n: number): boolean } };
+type VutSystemStore = {
+  unitTypes: Record<number, UnitType>;
+  unitClasses: Record<number, UnitClassLike>;
+  improvements: Record<number, { id: number }>;
+  players: Record<number, Player>;
+  cities: Record<number, City>;
+  techs: Record<number, Tech>;
+  rulesControl: { num_impr_types: number };
+  gameInfo: null;
+  mapInfo: MapInfo | null;
+  nations: Record<number, Nation>;
+};
 
 // ---------------------------------------------------------------------------
 // Store mock (hoisted so vi.mock factory can reference it)
 // ---------------------------------------------------------------------------
-const mockStore = vi.hoisted(() => ({
-  unitTypes: {} as Record<number, unknown>,
-  unitClasses: {} as Record<number, unknown>,
-  improvements: {} as Record<number, unknown>,
-  players: {} as Record<number, unknown>,
-  cities: {} as Record<number, unknown>,
-  techs: {} as Record<number, unknown>,
+const mockStore = vi.hoisted<VutSystemStore>(() => ({
+  unitTypes: {},
+  unitClasses: {},
+  improvements: {},
+  players: {},
+  cities: {},
+  techs: {},
   rulesControl: { num_impr_types: 0 },
-  gameInfo: null as unknown,
-  mapInfo: null as unknown,
-  nations: {} as Record<number, unknown>,
+  gameInfo: null,
+  mapInfo: null,
+  nations: {},
 }));
 
 vi.mock('@/data/store', () => ({ store: mockStore }));
@@ -90,9 +106,6 @@ import { isReqActive, areReqsActive } from '@/data/requirements';
 import { generateProductionList } from '@/data/city';
 import { buildProductionListData } from '@/ui/cityLogic';
 import { getUnitClassForType, UTYF_PROVIDES_RANSOM } from '@/data/unittype';
-import type { UnitType } from '@/data/types';
-
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -141,8 +154,28 @@ function makeUnitType(id: number, opts: {
   } as unknown as UnitType;
 }
 
-function makeUnitClass(id: number, name: string, flagBits: number[] = []): Record<string, unknown> {
+function makeUnitClass(id: number, name: string, flagBits: number[] = []): UnitClassLike {
   return { id, name, flags: makeBitVector(flagBits) };
+}
+
+function makePlayer(overrides: Partial<Player> = {}): Player {
+  return {
+    playerno: 1,
+    name: 'Player',
+    username: 'player',
+    nation: 0,
+    is_alive: true,
+    is_ready: true,
+    ai_skill_level: 0,
+    gold: 0,
+    tax: 0,
+    luxury: 0,
+    science: 0,
+    expected_income: 0,
+    team: 0,
+    embassy_txt: '',
+    ...overrides,
+  };
 }
 
 function resetStore() {
@@ -305,19 +338,34 @@ describe('generateProductionList — flag-based unit filter + unit_details', () 
 describe('buildProductionListData — UTYF_PROVIDES_RANSOM filter', () => {
   beforeEach(resetStore);
 
-  function makeCity(id: number): any {
+  function makeCity(id: number): City {
     return {
       id,
       owner: 1,
-      improvements: { isSet: () => false },
+      tile: 0,
+      name: 'City',
       size: 2,
+      food_stock: 0,
+      shield_stock: 0,
+      production_kind: 0,
+      production_value: 0,
+      surplus: [],
+      waste: [],
+      unhappy_penalty: [],
+      prod: [],
+      citizen_extra: [],
+      ppl_happy: [],
+      ppl_content: [],
+      ppl_unhappy: [],
+      ppl_angry: [],
+      improvements: { isSet: () => false } as unknown as boolean[],
       // no can_build_unit → hasData=false path
-    };
+    } as City;
   }
 
   it('VUT-12: filters barbarian leader even in hasData=false path', () => {
     const barbarianFlags = makeBitVector([UTYF_PROVIDES_RANSOM]);
-    mockStore.players[1] = { playerno: 1, government: 0 } as any;
+    mockStore.players[1] = makePlayer({ government: 0 });
     mockStore.unitTypes[1] = makeUnitType(1, { flags: barbarianFlags });
     const pcity = makeCity(1);
     const result = buildProductionListData(pcity);
@@ -325,7 +373,7 @@ describe('buildProductionListData — UTYF_PROVIDES_RANSOM filter', () => {
   });
 
   it('VUT-12b: keeps regular unit in hasData=false path', () => {
-    mockStore.players[1] = { playerno: 1, government: 0 } as any;
+    mockStore.players[1] = makePlayer({ government: 0 });
     mockStore.unitTypes[2] = makeUnitType(2, { flags: makeBitVector([]) });
     const pcity = makeCity(1);
     const result = buildProductionListData(pcity);

@@ -1,3 +1,5 @@
+import { setWindowValue } from './windowBridge';
+
 /**
  * Simple seeded PRNG using Mulberry32 algorithm.
  * Replaces the external seedrandom.min.js library (1.6 KB).
@@ -33,5 +35,5 @@ function seedrandom(_seed: string): () => number {
 export { seedrandom };
 
 // Legacy compatibility
-(Math as unknown as Record<string, unknown>).seedrandom = seedrandom;
-(window as unknown as Record<string, unknown>)['seedrandom'] = seedrandom;
+Reflect.set(Math, 'seedrandom', seedrandom);
+setWindowValue('seedrandom', seedrandom);

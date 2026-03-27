@@ -7,6 +7,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { store } from '@/data/store';
+import type { DisconnectOverlayState } from '@/data/signals';
 
 // ---------------------------------------------------------------------------
 // Mock WebSocket before importing connection.ts
@@ -24,7 +25,7 @@ class MockWebSocket {
   send(_data: string) {}
   close(_code?: number, _reason?: string) {}
 }
-(globalThis as any).WebSocket = MockWebSocket;
+Object.assign(globalThis, { WebSocket: MockWebSocket as unknown as typeof WebSocket });
 
 vi.mock('@/components/Dialogs/SwalDialog', () => ({ swal: vi.fn() }));
 vi.mock('@/utils/dom', async (importOriginal) => ({
@@ -40,6 +41,8 @@ import {
   reconnectNow,
   tryAgain,
   _resetReconnectStateForTests,
+  getCurrentWebSocketForTests,
+  setCivserverportForTests,
 } from '@/net/connection';
 
 Object.defineProperty(globalThis, 'localStorage', {
@@ -56,13 +59,17 @@ async function getOverlay() {
   return disconnectOverlay;
 }
 
+function getCountdown(state: DisconnectOverlayState | null): number {
+  return state?.phase === 'reconnecting' ? state.countdown : 0;
+}
+
 function triggerAbnormalClose() {
-  const ws = (window as any).ws as MockWebSocket;
+  const ws = getCurrentWebSocketForTests() as MockWebSocket;
   ws.onclose!(new CloseEvent('close', { code: 1006, reason: 'Abnormal' }));
 }
 
 function triggerOpen() {
-  const ws = (window as any).ws as MockWebSocket;
+  const ws = getCurrentWebSocketForTests() as MockWebSocket;
   ws.onopen!(new Event('open'));
 }
 
@@ -85,7 +92,7 @@ describe('disconnectOverlay — reconnecting phase', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     _resetReconnectStateForTests();
-    (window as any).civserverport = '6001';
+    setCivserverportForTests('6001');
   });
 
   afterEach(() => {
@@ -133,9 +140,9 @@ describe('disconnectOverlay — reconnecting phase', () => {
     websocket_init();
     triggerAbnormalClose();
 
-    const initialCountdown = (overlay.value as any)?.countdown ?? 0;
+    const initialCountdown = getCountdown(overlay.value);
     vi.advanceTimersByTime(1000);
-    const nextCountdown = (overlay.value as any)?.countdown ?? 0;
+    const nextCountdown = getCountdown(overlay.value);
     // countdown should decrease by 1 or overlay advanced to next attempt
     expect(nextCountdown).toBeLessThanOrEqual(initialCountdown);
   });
@@ -149,7 +156,7 @@ describe('disconnectOverlay — cleared on reconnect success', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     _resetReconnectStateForTests();
-    (window as any).civserverport = '6001';
+    setCivserverportForTests('6001');
   });
 
   afterEach(() => {
@@ -178,7 +185,7 @@ describe('disconnectOverlay — cleared on reconnect success', () => {
 
     // Two failed reconnect cycles
     for (let i = 0; i < 2; i++) {
-      const ws = (window as any).ws as MockWebSocket;
+      const ws = getCurrentWebSocketForTests() as MockWebSocket;
       ws.onclose!(new CloseEvent('close', { code: 1006 }));
       vi.advanceTimersByTime(RECONNECT_DELAYS_MS[i]);
     }
@@ -198,7 +205,7 @@ describe('disconnectOverlay — give-up (all retries exhausted)', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     _resetReconnectStateForTests();
-    (window as any).civserverport = '6001';
+    setCivserverportForTests('6001');
   });
 
   afterEach(() => {
@@ -212,12 +219,12 @@ describe('disconnectOverlay — give-up (all retries exhausted)', () => {
     websocket_init();
 
     for (let i = 0; i < RECONNECT_DELAYS_MS.length; i++) {
-      const ws = (window as any).ws as MockWebSocket;
+      const ws = getCurrentWebSocketForTests() as MockWebSocket;
       ws.onclose!(new CloseEvent('close', { code: 1006 }));
       vi.advanceTimersByTime(RECONNECT_DELAYS_MS[i]);
     }
 
-    const finalWs = (window as any).ws as MockWebSocket;
+    const finalWs = getCurrentWebSocketForTests() as MockWebSocket;
     finalWs.onclose!(new CloseEvent('close', { code: 1006 }));
 
     expect(store.connectionState).toBe('disconnected');
@@ -233,7 +240,7 @@ describe('reconnectNow()', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     _resetReconnectStateForTests();
-    (window as any).civserverport = '6001';
+    setCivserverportForTests('6001');
   });
 
   afterEach(() => {
@@ -245,14 +252,14 @@ describe('reconnectNow()', () => {
 
   it('immediately creates a new WebSocket without waiting for delay', () => {
     websocket_init();
-    const ws1 = (window as any).ws as MockWebSocket;
+    const ws1 = getCurrentWebSocketForTests() as MockWebSocket;
 
     triggerAbnormalClose(); // starts 1s timer
     expect(store.connectionState).toBe('reconnecting');
 
     // No time has passed — reconnectNow() skips the delay
     reconnectNow();
-    const ws2 = (window as any).ws as MockWebSocket;
+    const ws2 = getCurrentWebSocketForTests() as MockWebSocket;
     expect(ws2).not.toBe(ws1);
   });
 
@@ -270,7 +277,7 @@ describe('tryAgain()', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     _resetReconnectStateForTests();
-    (window as any).civserverport = '6001';
+    setCivserverportForTests('6001');
   });
 
   afterEach(() => {
@@ -285,11 +292,11 @@ describe('tryAgain()', () => {
 
     // Exhaust all attempts
     for (let i = 0; i < RECONNECT_DELAYS_MS.length; i++) {
-      const ws = (window as any).ws as MockWebSocket;
+      const ws = getCurrentWebSocketForTests() as MockWebSocket;
       ws.onclose!(new CloseEvent('close', { code: 1006 }));
       vi.advanceTimersByTime(RECONNECT_DELAYS_MS[i]);
     }
-    const finalWs = (window as any).ws as MockWebSocket;
+    const finalWs = getCurrentWebSocketForTests() as MockWebSocket;
     finalWs.onclose!(new CloseEvent('close', { code: 1006 }));
     expect(overlay.value?.phase).toBe('disconnected');
 
@@ -304,11 +311,11 @@ describe('tryAgain()', () => {
     // Exhaust and enter disconnected state
     websocket_init();
     for (let i = 0; i < RECONNECT_DELAYS_MS.length; i++) {
-      const ws = (window as any).ws as MockWebSocket;
+      const ws = getCurrentWebSocketForTests() as MockWebSocket;
       ws.onclose!(new CloseEvent('close', { code: 1006 }));
       vi.advanceTimersByTime(RECONNECT_DELAYS_MS[i]);
     }
-    (window as any).ws.onclose!(new CloseEvent('close', { code: 1006 }));
+    (getCurrentWebSocketForTests() as MockWebSocket).onclose!(new CloseEvent('close', { code: 1006 }));
 
     tryAgain();
     // After tryAgain, startReconnect() runs synchronously and sets reconnecting state

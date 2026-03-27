@@ -59,8 +59,14 @@ import {
 
 import { DIVIDE } from '@/utils/helpers';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-const win = window as any;
+type RegressionExtraWindow = Window & {
+  game_init?: (() => void) | undefined;
+  map_allocate?: (() => void) | undefined;
+  BitVector?: (new (raw?: unknown) => { data?: Uint8Array }) | undefined;
+  update_unit_position?: unknown;
+};
+
+const win = window as RegressionExtraWindow;
 
 // ---------------------------------------------------------------------------
 // VUT_* constant value regression
@@ -186,14 +192,8 @@ describe('Pitfall #5: Init functions must not overwrite Legacy', () => {
   });
 
   it('map_allocate should NOT be overwritten by TS (Pitfall #5)', () => {
-    // map_allocate is a critical init function that must remain Legacy
-    // TS version was missing init_overview() call
     const fn = win.map_allocate;
-    // In test env, it may not exist. The key assertion is that
-    // if map.ts exposes it, the test environment would have the TS version.
-    // We import map.ts and check it didn't overwrite.
-    // For now, just verify the constant is documented.
-    expect(true).toBe(true); // placeholder - the real protection is code review
+    expect(fn).toBeUndefined();
   });
 });
 

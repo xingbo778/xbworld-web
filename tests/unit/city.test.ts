@@ -46,12 +46,9 @@ import {
   CAPITAL_PRIMARY,
   FC_INFINITY,
 } from '@/data/fcTypes';
-import type { Tile } from '@/data/types';
+import type { GameInfo, Improvement, Player, Tile, UnitType } from '@/data/types';
 import { universalBuildShieldCost } from '@/data/requirements';
 import { store } from '@/data/store';
-
-/* eslint-disable @typescript-eslint/no-explicit-any */
-const win = window as any;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -92,6 +89,82 @@ function makeBitVector(setBits: number[]): any {
     isSet(bit: number): boolean {
       return setBits.includes(bit);
     },
+  };
+}
+
+function makeStorePlayer(playerno: number, name: string): Player {
+  return {
+    playerno,
+    name,
+    username: name.toLowerCase(),
+    nation: 0,
+    is_alive: true,
+    is_ready: false,
+    ai_skill_level: 0,
+    gold: 0,
+    tax: 0,
+    luxury: 0,
+    science: 0,
+    expected_income: 0,
+    team: 0,
+    embassy_txt: '',
+  };
+}
+
+function makeUnitType(id: number, name: string, extra: Partial<UnitType> = {}): UnitType {
+  return {
+    id,
+    name,
+    rule_name: name.toLowerCase(),
+    graphic_str: '',
+    attack_strength: 0,
+    defense_strength: 0,
+    move_rate: 0,
+    hp: 1,
+    firepower: 1,
+    build_cost: 10,
+    vision_radius_sq: 0,
+    flags: [],
+    ...extra,
+  };
+}
+
+function makeImprovement(id: number, name: string, extra: Partial<Improvement> = {}): Improvement {
+  return {
+    id,
+    name,
+    rule_name: name.toLowerCase(),
+    genus: 0,
+    build_cost: 10,
+    graphic_str: '',
+    graphic_alt: '',
+    ...extra,
+  };
+}
+
+function makeGameInfo(turn: number): GameInfo {
+  return {
+    turn,
+    year: 0,
+    timeout: 0,
+    first_timeout: 0,
+    phase: 0,
+    phase_mode: 0,
+  };
+}
+
+function makeTileFixture(index: number, x: number, y: number): Tile {
+  return {
+    index,
+    x,
+    y,
+    terrain: 0,
+    known: 0,
+    extras: [],
+    owner: 0,
+    worked: 0,
+    resource: 0,
+    continent: 0,
   };
 }
 
@@ -143,14 +216,14 @@ describe('cityOwnerPlayerId', () => {
 
 describe('cityOwner', () => {
   beforeEach(() => {
-    (store as any).players = {
-      0: { playerno: 0, name: 'Player0' },
-      1: { playerno: 1, name: 'Player1' },
+    store.players = {
+      0: makeStorePlayer(0, 'Player0'),
+      1: makeStorePlayer(1, 'Player1'),
     };
   });
 
   afterEach(() => {
-    (store as any).players = {};
+    store.players = {};
   });
 
   it('should return the player object that owns the city', () => {
@@ -161,14 +234,13 @@ describe('cityOwner', () => {
 
 describe('cityTile', () => {
   beforeEach(() => {
-    // indexToTile reads from window.tiles via getTiles()
-    win.tiles = {
-      25: { index: 25, x: 5, y: 2 },
+    store.tiles = {
+      25: makeTileFixture(25, 5, 2),
     };
   });
 
   afterEach(() => {
-    delete win.tiles;
+    store.tiles = {};
   });
 
   it('should return the tile for a city', () => {
@@ -226,13 +298,19 @@ describe('isPrimaryCapital', () => {
 
 describe('getCityProductionType', () => {
   beforeEach(() => {
-    (store as any).unitTypes = { 1: { id: 1, name: 'Warriors' }, 2: { id: 2, name: 'Phalanx' } };
-    (store as any).improvements = { 10: { id: 10, name: 'Granary' }, 11: { id: 11, name: 'Library' } };
+    store.unitTypes = {
+      1: makeUnitType(1, 'Warriors'),
+      2: makeUnitType(2, 'Phalanx'),
+    };
+    store.improvements = {
+      10: makeImprovement(10, 'Granary'),
+      11: makeImprovement(11, 'Library'),
+    };
   });
 
   afterEach(() => {
-    (store as any).unitTypes = {};
-    (store as any).improvements = {};
+    store.unitTypes = {};
+    store.improvements = {};
   });
 
   it('should return unit type when production_kind is VUT_UTYPE', () => {
@@ -293,16 +371,16 @@ describe('cityTurnsToBuild', () => {
 
 describe('getProductionProgress', () => {
   beforeEach(() => {
-    (store as any).unitTypes = { 1: { id: 1, name: 'Warriors', build_cost: 30 } };
-    (store as any).improvements = {
-      10: { id: 10, name: 'Granary', build_cost: 60 },
-      11: { id: 11, name: 'Coinage', build_cost: 0 },
+    store.unitTypes = { 1: makeUnitType(1, 'Warriors', { build_cost: 30 }) };
+    store.improvements = {
+      10: makeImprovement(10, 'Granary', { build_cost: 60 }),
+      11: makeImprovement(11, 'Coinage', { build_cost: 0 }),
     };
   });
 
   afterEach(() => {
-    (store as any).unitTypes = {};
-    (store as any).improvements = {};
+    store.unitTypes = {};
+    store.improvements = {};
   });
 
   it('should return "stock/cost" for unit production', () => {
@@ -384,11 +462,11 @@ describe('canCityBuildNow', () => {
 
 describe('cityHasBuilding', () => {
   beforeEach(() => {
-    (store as any).rulesControl = { num_impr_types: 50 };
+    store.rulesControl = { num_impr_types: 50 };
   });
 
   afterEach(() => {
-    (store as any).rulesControl = null;
+    store.rulesControl = null;
   });
 
   it('should return true when improvement is present', () => {
@@ -414,17 +492,17 @@ describe('cityHasBuilding', () => {
 
 describe('doesCityHaveImprovement', () => {
   beforeEach(() => {
-    (store as any).rulesControl = { num_impr_types: 3 };
-    (store as any).improvements = {
-      0: { id: 0, name: 'Palace' },
-      1: { id: 1, name: 'Granary' },
-      2: { id: 2, name: 'Library' },
+    store.rulesControl = { num_impr_types: 3 };
+    store.improvements = {
+      0: makeImprovement(0, 'Palace'),
+      1: makeImprovement(1, 'Granary'),
+      2: makeImprovement(2, 'Library'),
     };
   });
 
   afterEach(() => {
-    (store as any).rulesControl = null;
-    (store as any).improvements = {};
+    store.rulesControl = null;
+    store.improvements = {};
   });
 
   it('should return true when city has the named improvement', () => {
@@ -444,12 +522,15 @@ describe('doesCityHaveImprovement', () => {
 
 describe('cityCanBuy', () => {
   beforeEach(() => {
-    (store as any).improvements = { 10: { id: 10, name: 'Granary' }, 11: { id: 11, name: 'Coinage' } };
-    store.gameInfo = { turn: 5 } as any;
+    store.improvements = {
+      10: makeImprovement(10, 'Granary'),
+      11: makeImprovement(11, 'Coinage'),
+    };
+    store.gameInfo = makeGameInfo(5);
   });
 
   afterEach(() => {
-    (store as any).improvements = {};
+    store.improvements = {};
     store.gameInfo = null;
   });
 

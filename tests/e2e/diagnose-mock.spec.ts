@@ -9,6 +9,7 @@
  *  4. Unit movement packets update positions
  */
 import { test, expect } from '@playwright/test';
+import type { XbwPageGlobals } from './helpers/pageGlobals';
 
 test('mock server: game loads and renders map with sprites', async ({ page }) => {
   test.setTimeout(120_000);
@@ -32,32 +33,31 @@ test('mock server: game loads and renders map with sprites', async ({ page }) =>
 
   // Wait for game state to reach RUNNING
   await page.waitForFunction(() => {
-    const w = window as unknown as Record<string, unknown>;
-    const store = w['__store'] as Record<string, unknown> | undefined;
-    return store?.['civclientState'] === 2;
+    const w = window as XbwPageGlobals;
+    return w.__store?.civclientState === 2;
   }, { timeout: 30_000 });
 
   // Wait for all 2770 sprites to be created from tileset images
   await page.waitForFunction(() => {
-    const w = window as unknown as Record<string, unknown>;
-    const store = w['__store'] as Record<string, unknown> | undefined;
-    const spriteCount = store?.['sprites'] ? Object.keys(store['sprites'] as object).length : 0;
-    return spriteCount > 2000;
+    const w = window as XbwPageGlobals;
+    return Object.keys(w.__store?.sprites || {}).length > 2000;
   }, { timeout: 60_000 });
 
   // Give the renderer a moment to paint
   await page.waitForTimeout(3000);
 
   const state = await page.evaluate(() => {
-    const w = window as unknown as Record<string, unknown>;
-    const store = w['__store'] as Record<string, unknown> | undefined;
+    const w = window as XbwPageGlobals;
+    const store = w.__store;
     const canvas = document.getElementById('canvas') as HTMLCanvasElement | null;
     const overview = document.getElementById('overview_map') as HTMLCanvasElement | null;
+    const tiles = store?.tiles;
+    const units = store?.units;
     return {
-      civclientState: store?.['civclientState'],
-      tileCount: w['tiles'] ? Object.keys(w['tiles'] as object).length : 0,
-      unitCount: w['units'] ? Object.keys(w['units'] as object).length : 0,
-      spriteCount: store?.['sprites'] ? Object.keys(store['sprites'] as object).length : 0,
+      civclientState: store?.civclientState,
+      tileCount: tiles ? Object.keys(tiles).length : 0,
+      unitCount: units ? Object.keys(units).length : 0,
+      spriteCount: Object.keys(store?.sprites || {}).length,
       canvasSize: canvas ? `${canvas.width}x${canvas.height}` : 'none',
       overviewVisible: overview?.offsetParent !== null,
       overviewSize: overview ? `${overview.width}x${overview.height}` : 'none',
@@ -92,8 +92,8 @@ test('mock server: game loads and renders map with sprites', async ({ page }) =>
 
   // Check that unit tile positions have changed
   const unitPositions = await page.evaluate(() => {
-    const w = window as unknown as Record<string, unknown>;
-    const units = w['units'] as Record<string, { id: number; tile: number }> | undefined;
+    const w = window as XbwPageGlobals;
+    const units = w.__store?.units as Record<string, { id: number; tile: number }> | undefined;
     if (!units) return [];
     return Object.values(units).map(u => ({ id: u.id, tile: u.tile }));
   });

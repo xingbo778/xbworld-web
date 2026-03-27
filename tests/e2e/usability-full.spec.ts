@@ -35,6 +35,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import * as fs from 'fs';
 import * as path from 'path';
+import type { XbwPageGlobals } from './helpers/pageGlobals';
 
 // ---------------------------------------------------------------------------
 // Config
@@ -103,7 +104,9 @@ async function measureFPS(page: Page, durationMs = 1500): Promise<number> {
 
 async function heapMB(page: Page): Promise<number | null> {
   return page.evaluate(() => {
-    const m = (performance as any).memory;
+    const m = (performance as Performance & {
+      memory?: { usedJSHeapSize: number };
+    }).memory;
     return m ? Math.round(m.usedJSHeapSize / 1024 / 1024) : null;
   });
 }
@@ -125,15 +128,15 @@ async function connect(page: Page, username = 'UsabilityFull'): Promise<void> {
 /** Try to open CityDialog for the first city in store. */
 async function openFirstCity(page: Page): Promise<boolean> {
   return page.evaluate(() => {
-    const s = (window as any).store;
+    const w = window as XbwPageGlobals;
+    const s = w.__store;
     if (!s) return false;
     const ids = Object.keys(s.cities ?? {});
     if (!ids.length) return false;
-    const city = s.cities[ids[0]];
-    const fn = (window as any).showCityDialogPreact
-      ?? (window as any).city_dialog?.show;
+    const city = s.cities?.[ids[0]];
+    const fn = w.showCityDialogPreact ?? w.city_dialog?.show;
     if (fn) { fn(city); return true; }
-    const sig = (window as any).cityDialogSignal;
+    const sig = w.cityDialogSignal;
     if (sig) { sig.value = city; return true; }
     return false;
   });
@@ -295,7 +298,8 @@ test('Full usability: 12-step observer session', async ({ page }) => {
     if (!opened) {
       // Also try JS bridge
       const jsOpened = await page.evaluate(() => {
-        const fn = (window as any).showIntelDialog ?? (window as any).intel_dialog?.show;
+        const w = window as XbwPageGlobals;
+        const fn = w.showIntelDialog ?? w.intel_dialog?.show;
         if (fn) { fn(); return true; }
         return false;
       });
@@ -384,7 +388,7 @@ test('Full usability: 12-step observer session', async ({ page }) => {
     const sequence: string[] = ['light', 'fantasy', 'dark'];
     let switched = 0;
     for (const theme of sequence) {
-      await page.evaluate((t: string) => (window as any).setTheme?.(t), theme);
+      await page.evaluate((t: string) => (window as XbwPageGlobals).setTheme?.(t), theme);
       await page.waitForTimeout(200);
       const active = await page.evaluate(() => document.documentElement.dataset['theme'] ?? '');
       await shot(page, `08_theme_${theme}`);

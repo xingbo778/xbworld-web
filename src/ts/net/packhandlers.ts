@@ -13,6 +13,7 @@ import { handle_web_info_text_message } from '../renderer/mapctrl';
 import { update_goto_path } from '../core/control/gotoPath';
 import { goto_active } from '../core/control/controlState';
 import type { BasePacket, WebGotoPathPacket } from './handlers/packetTypes';
+import { incrementDebugBucket } from '../utils/debugGlobals';
 
 // Re-export all handlers from sub-modules
 export {
@@ -364,8 +365,7 @@ export function client_handle_packet(packets: (BasePacket & { pid: number })[] |
       if (packets[i] != null) {
         const pid = packets[i].pid;
         // Track received pids for debugging
-        const pids = (window as any).__xbwReceivedPids || ((window as any).__xbwReceivedPids = {});
-        pids[pid] = (pids[pid] || 0) + 1;
+        incrementDebugBucket('__xbwReceivedPids', pid);
         const handler = packet_hand_table[pid];
         if (handler) {
           handler(packets[i]);

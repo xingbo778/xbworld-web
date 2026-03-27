@@ -2,6 +2,9 @@ import { init_game_unit_panel } from '../core/control/unitFocus';
 import { init_chatbox } from '../core/messages';
 import { setKeyboardInput } from '../core/control/controlState';
 import { invalidateTerrainNearCache, clearTerrainNearCache } from '../data/terrain';
+import { setDebugValue } from '../utils/debugGlobals';
+import { mapview } from './mapViewState';
+export { mapview } from './mapViewState';
 
 // --- Coordinate functions (extracted to mapCoords.ts) ---
 import {
@@ -33,16 +36,6 @@ export {
   base_set_mapview_origin,
 } from './mapCoords';
 
-
-export const mapview: {
-  width: number;
-  height: number;
-  gui_x0: number;
-  gui_y0: number;
-  store_width: number;
-  store_height: number;
-  [key: string]: unknown;
-} = { width: 0, height: 0, gui_x0: 0, gui_y0: 0, store_width: 0, store_height: 0 };
 export let mapdeco_highlight_table: Record<string, boolean> = {};
 export let mapdeco_crosshair_table: Record<string, boolean> = {};
 export const last_redraw_time: number = 0;
@@ -57,7 +50,7 @@ export const DIRTY_FULL_THRESHOLD: number = 64;
 _setMapviewRef(mapview);
 _setDirtyAllSetter((val: boolean) => { dirty_all = val; });
 // Expose mapview origin for diagnostic tests
-(window as any).__xbwMapview = { get x0() { return mapview.gui_x0; }, get y0() { return mapview.gui_y0; } };
+setDebugValue('__xbwMapview', { get x0() { return mapview.gui_x0; }, get y0() { return mapview.gui_y0; } });
 
 export function mark_tile_dirty(tile_id: number): void {
   invalidateTerrainNearCache(tile_id);

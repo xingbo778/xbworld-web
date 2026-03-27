@@ -20,7 +20,7 @@ describe('handle_city_nationalities', () => {
     const { handle_city_nationalities } = await import('@/net/handlers/city');
     store.cities[10] = { id: 10, owner: 0, tile: 5 } as never;
     handle_city_nationalities({ id: 10, nationality_citizens: [5, 3] } as never);
-    expect((store.cities[10] as Record<string, unknown>)['nationality_citizens']).toEqual([5, 3]);
+    expect(store.cities[10]?.['nationality_citizens']).toEqual([5, 3]);
   });
 
   it('is a no-op when city does not exist', async () => {
@@ -35,7 +35,7 @@ describe('handle_city_rally_point', () => {
     const { handle_city_rally_point } = await import('@/net/handlers/city');
     store.cities[20] = { id: 20, owner: 1, tile: 10 } as never;
     handle_city_rally_point({ id: 20, rally_point_x: 5, rally_point_y: 3 } as never);
-    expect((store.cities[20] as Record<string, unknown>)['rally_point_x']).toBe(5);
+    expect(store.cities[20]?.['rally_point_x']).toBe(5);
   });
 
   it('is a no-op when city does not exist', async () => {
@@ -49,7 +49,7 @@ describe('handle_web_city_info_addition', () => {
     const { handle_web_city_info_addition } = await import('@/net/handlers/city');
     store.cities[30] = { id: 30, owner: 0, tile: 15 } as never;
     handle_web_city_info_addition({ id: 30, output_gold: 50 } as never);
-    expect((store.cities[30] as Record<string, unknown>)['output_gold']).toBe(50);
+    expect(store.cities[30]?.['output_gold']).toBe(50);
   });
 
   it('is a no-op when city does not exist', async () => {
@@ -63,7 +63,7 @@ describe('handle_city_update_counters', () => {
     const { handle_city_update_counters } = await import('@/net/handlers/city');
     store.cities[40] = { id: 40, owner: 0, tile: 20 } as never;
     handle_city_update_counters({ id: 40, counters: [1, 2, 3] } as never);
-    expect((store.cities[40] as Record<string, unknown>)['counters']).toEqual([1, 2, 3]);
+    expect(store.cities[40]?.['counters']).toEqual([1, 2, 3]);
   });
 
   it('is a no-op when city does not exist', async () => {

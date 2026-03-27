@@ -29,7 +29,7 @@ const improvements_name_index: Record<string, number> = {};
  */
 export function improvements_init(): void {
   const improvements = store.improvements;
-  Object.keys(improvements).forEach((k) => delete (improvements as Record<string, unknown>)[k]);
+  Object.keys(improvements).forEach((k) => delete improvements[Number(k)]);
   Object.keys(improvements_name_index).forEach(
     (k) => delete improvements_name_index[k]
   );
@@ -80,14 +80,16 @@ export function get_improvement_requirements(improvementId: number): number[] {
   const improvements = store.improvements;
   const result: number[] = [];
   const improvement = improvements[improvementId];
-  const reqs = improvement != null ? improvement['reqs'] as Record<string, unknown>[] | undefined : undefined;
+  const reqs = improvement != null
+    ? improvement['reqs'] as Array<{ kind?: number; present?: boolean; value?: number }> | undefined
+    : undefined;
   if (reqs != null) {
     for (let i = 0; i < reqs.length; i++) {
       if (
-        reqs[i]['kind'] == VUT_ADVANCE &&
-        reqs[i]['present']
+        reqs[i].kind == VUT_ADVANCE &&
+        reqs[i].present
       ) {
-        result.push(reqs[i]['value'] as number);
+        result.push(reqs[i].value as number);
       }
     }
   }

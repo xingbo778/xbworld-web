@@ -20,14 +20,12 @@
  */
 
 import { send_message } from '../net/connection';
+import { clientIsObserver } from './clientState';
 import { store } from '../data/store';
 import { PlayerFlag } from '../data/player';
 import { BitVector } from '../utils/bitvector';
-
-// ---------------------------------------------------------------------------
-// Helpers — read legacy globals
-// ---------------------------------------------------------------------------
-const win = window as unknown as Record<string, unknown>;
+import { getDebugWebSocket } from '../utils/debugGlobals';
+import { getWindowValue } from '../utils/windowBridge';
 
 // ---------------------------------------------------------------------------
 // Game type queries
@@ -37,7 +35,7 @@ const win = window as unknown as Record<string, unknown>;
  * Returns TRUE if this is a LongTurn (one-turn-per-day) game.
  */
 export function isLongturn(): boolean {
-  return win.game_type === 'longturn';
+  return store.gameType === 'longturn';
 }
 
 /**
@@ -55,7 +53,7 @@ export function isServer(): boolean {
  * Records the start time of the current phase.
  */
 export function setPhaseStart(): void {
-  win.phase_start_time = Date.now();
+  store.phaseStartTime = Date.now();
 }
 
 // ---------------------------------------------------------------------------
@@ -112,10 +110,9 @@ export function requestObserveGame(): void {
  * and the WebSocket is open.
  */
 export function sendSurrenderGame(): void {
-  const isObserver = typeof win.client_is_observer === 'function' ? (win.client_is_observer as () => boolean)() : true;
-  const ws = win.ws as WebSocket | null;
+  const ws = getDebugWebSocket();
 
-  if (!isObserver && ws != null && ws.readyState === WebSocket.OPEN) {
+  if (!clientIsObserver() && ws != null && ws.readyState === WebSocket.OPEN) {
     send_message('/surrender ');
   }
 }
@@ -165,8 +162,8 @@ export function getInvalidUsernameReason(name: string | null): string | null {
   }
   // check_text_with_banlist_exact returns TRUE = valid, FALSE = banned
   if (
-    typeof win.check_text_with_banlist_exact === 'function' &&
-    !(win.check_text_with_banlist_exact as (s: string) => boolean)(lower)
+    typeof getWindowValue<(s: string) => boolean>('check_text_with_banlist_exact') === 'function' &&
+    !getWindowValue<(s: string) => boolean>('check_text_with_banlist_exact')!(lower)
   ) {
     return 'banned';
   }
@@ -184,7 +181,7 @@ export function getInvalidUsernameReason(name: string | null): string | null {
  * Migrated from civclient.js show_fullscreen_window().
  */
 export function showFullscreenWindow(): void {
-  const bigScreen = win.BigScreen as Record<string, unknown> | undefined;
+  const bigScreen = getWindowValue<Record<string, unknown>>('BigScreen');
   if (bigScreen && bigScreen.enabled) {
     (bigScreen.toggle as () => void)();
   } else {

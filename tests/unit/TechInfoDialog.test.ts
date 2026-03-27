@@ -91,7 +91,7 @@ describe('showTechInfoDialogPreact', () => {
   });
 
   afterEach(() => {
-    delete (store.unitTypes as Record<number, unknown>)[7];
+    delete store.unitTypes[7];
     techInfoDialogSignal.value = null;
   });
 
@@ -194,8 +194,8 @@ describe('TechInfoDialog component', () => {
   });
 
   afterEach(() => {
-    delete (store.unitTypes as Record<number, unknown>)[9];
-    delete (store.improvements as Record<number, unknown>)[2];
+    delete store.unitTypes[9];
+    delete store.improvements[2];
     techInfoDialogSignal.value = null;
   });
 

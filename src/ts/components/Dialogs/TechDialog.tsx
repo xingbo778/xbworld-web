@@ -20,7 +20,7 @@ import {
   buildTechInfoDialogData,
 } from '../../ui/techLogic';
 import type { WikiDialogData, TechInfoDialogData, WikiDoc } from '../../ui/techLogic';
-import type { Tech } from '../../data/types';
+import type { Nation, Player, Tech } from '../../data/types';
 
 // ── Signals ───────────────────────────────────────────────────────────────────
 export const techDialogOpen = signal(false);
@@ -77,22 +77,22 @@ function ResearchList() {
         const bulbs: number = (pr['bulbs_researched'] as number) ?? 0;
         const cost: number = ((pr['researching_cost'] as number) ?? 1) || 1;
         const pct = Math.min(100, Math.round((bulbs / cost) * 100));
-        const nation = store.nations[(pplayer as Record<string, unknown>)['nation'] as number];
-        const color: string = (nation as Record<string, unknown> | undefined)?.['color'] as string ?? 'var(--xb-accent-blue, #58a6ff)';
+        const nation = store.nations[pplayer.nation] as (Nation & { color?: string }) | undefined;
+        const color = nation?.color ?? 'var(--xb-accent-blue, #58a6ff)';
         const hasResearch = researching > 0;
         return (
           <div
-            key={(pplayer as Record<string, unknown>)['playerno'] as number}
+            key={pplayer.playerno}
             class="xb-research-card"
             style={{ borderLeft: `3px solid ${color}` }}
           >
             <div class="xb-research-card-header" style={{ marginBottom: hasResearch ? 4 : 0 }}>
               {/* color is dynamic player color — kept inline */}
               <span class="xb-research-card-name" style={{ color }}>
-                {(pplayer as Record<string, unknown>)['name'] as string}
+                {pplayer.name}
               </span>
               <span class="xb-research-card-detail">
-                {hasResearch ? `${techData ? techData['name'] as string : `Tech #${researching}`} (${bulbs}/${cost})` : '—'}
+                {hasResearch ? `${techData?.name ?? `Tech #${researching}`} (${bulbs}/${cost})` : '—'}
               </span>
             </div>
             {hasResearch && <ProgressBar value={pct} max={100} color={color} />}
@@ -122,8 +122,8 @@ function computeTechStatus(): Map<number, TechStatus> {
     for (const pplayer of players) {
       const pr = research_get(pplayer);
       if (!pr) continue;
-      const nation = store.nations[(pplayer as Record<string, unknown>)['nation'] as number];
-      const color = (nation as Record<string, unknown> | undefined)?.['color'] as string ?? '#58a6ff';
+      const nation = store.nations[pplayer.nation] as (Nation & { color?: string }) | undefined;
+      const color = nation?.color ?? '#58a6ff';
 
       const techArr = pr['techs'] as Record<string, number> | undefined;
       if (techArr && techArr[techId] === TECH_KNOWN) {

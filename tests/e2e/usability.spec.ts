@@ -26,6 +26,7 @@
 import { test, expect, Page, CDPSession } from '@playwright/test';
 import * as fs from 'fs';
 import * as path from 'path';
+import type { XbwPageGlobals } from './helpers/pageGlobals';
 
 // ---------------------------------------------------------------------------
 // Config
@@ -123,16 +124,16 @@ async function heapMB(page: Page): Promise<number | null> {
 /** Open City dialog for the first city in store via JS bridge. */
 async function openFirstCityDialog(page: Page): Promise<boolean> {
   return page.evaluate(() => {
-    const s = (window as any).store;
+    const w = window as XbwPageGlobals;
+    const s = w.__store;
     if (!s) return false;
-    const cityIds = Object.keys(s.cities);
+    const cityIds = Object.keys(s.cities || {});
     if (!cityIds.length) return false;
-    const pcity = s.cities[cityIds[0]];
-    const fn = (window as any).showCityDialogPreact
-      ?? (window as any).city_dialog?.show;
+    const pcity = s.cities?.[cityIds[0]];
+    const fn = w.showCityDialogPreact ?? w.city_dialog?.show;
     if (fn) { fn(pcity); return true; }
     // Fallback: set the Preact signal directly
-    const sig = (window as any).cityDialogSignal;
+    const sig = w.cityDialogSignal;
     if (sig) { sig.value = pcity; return true; }
     return false;
   });
@@ -223,7 +224,7 @@ test.describe('Usability: Full Observer Session', () => {
     for (const theme of themes) {
       const t0 = Date.now();
       await page.evaluate((t: string) => {
-        (window as any).setTheme?.(t);
+        (window as XbwPageGlobals).setTheme?.(t);
       }, theme);
       await page.waitForTimeout(200);
       const elapsed = Date.now() - t0;
@@ -248,7 +249,7 @@ test.describe('Usability: Full Observer Session', () => {
     }
 
     // Restore dark
-    await page.evaluate(() => (window as any).setTheme?.('dark'));
+    await page.evaluate(() => (window as XbwPageGlobals).setTheme?.('dark'));
   });
 
   // ── 4. Map Interactions ─────────────────────────────────────────────────────

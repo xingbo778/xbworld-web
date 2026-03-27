@@ -14,8 +14,6 @@ import { store } from '@/data/store';
 import { PlayerFlag } from '@/data/player';
 import type { Player } from '@/data/types';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
@@ -107,7 +105,7 @@ describe('colLove', () => {
     store.client = {
       conn: {
         id: 0,
-        playing: { playerno: 0 } as any,
+        playing: { playerno: 0 } as unknown as Player,
       },
     };
   });

@@ -36,6 +36,8 @@ import { IDENTITY_NUMBER_ZERO } from '../core/constants';
 import { center_tile_mapcanvas } from '../core/control';
 import { showTileInfoDialog } from '../components/Dialogs/TileInfoDialog';
 import type { TileInfoLine } from '../components/Dialogs/TileInfoDialog';
+import { escapeHtml } from '../utils/safeHtml';
+import { getMapCanvas, getMapCanvasContainer, dispatchMapContextMenu, setMapContextMenuOpen } from './mapCanvas';
 
 export { mouse_x, mouse_y };
 export let touch_start_x: number;
@@ -61,13 +63,12 @@ export function setTouchStart(x: number, y: number): void { touch_start_x = x; t
  * Called after PixiRenderer.init() resolves so the canvas element exists.
  */
 export function mapctrl_init_pixi(): void {
-  const container = document.getElementById('canvas_div');
+  const container = getMapCanvasContainer();
   if (!container) {
     console.warn('mapctrl_init_pixi: #canvas_div not found');
     return;
   }
-  // Pixi appends its <canvas> as the last child of canvas_div
-  const canvas = container.querySelector('canvas') as HTMLCanvasElement | null;
+  const canvas = getMapCanvas();
   if (!canvas) {
     console.warn('mapctrl_init_pixi: no <canvas> found inside #canvas_div');
     return;
@@ -185,7 +186,8 @@ function mapview_window_mouse_up(): void {
 export function mapview_touch_start(e: TouchEvent): void {
   e.preventDefault();
 
-  const canvasEl = document.getElementById('canvas')!;
+  const canvasEl = getMapCanvas();
+  if (!canvasEl) return;
   const rect = canvasEl.getBoundingClientRect();
   touch_start_x = e.touches[0].pageX - (rect.left + window.scrollX);
   touch_start_y = e.touches[0].pageY - (rect.top + window.scrollY);
@@ -205,7 +207,8 @@ export function mapview_touch_end(e: TouchEvent): void {
   This function is triggered on a touch move event on a touch device.
 ****************************************************************************/
 export function mapview_touch_move(e: TouchEvent): void {
-  const canvasEl = document.getElementById('canvas')!;
+  const canvasEl = getMapCanvas();
+  if (!canvasEl) return;
   const rect = canvasEl.getBoundingClientRect();
   setMouseX(e.touches[0].pageX - (rect.left + window.scrollX));
   setMouseY(e.touches[0].pageY - (rect.top + window.scrollY));
@@ -357,12 +360,10 @@ export function recenter_button_pressed(canvas_x: number, canvas_y: number): voi
         && sunit['owner'] == clientPlaying()!.playerno) {
       /* the user right-clicked on own unit, show context menu instead of recenter. */
       if (current_focus.length <= 1) set_unit_focus(sunit);
-      const canvasEl = document.getElementById('canvas')!;
-      (canvasEl as unknown as { contextMenu?: (arg: boolean) => void }).contextMenu?.(true);
-      canvasEl.dispatchEvent(new Event('contextmenu'));
+      setMapContextMenuOpen(true);
+      dispatchMapContextMenu();
     } else {
-      const canvasEl = document.getElementById('canvas')!;
-      (canvasEl as unknown as { contextMenu?: (arg: boolean) => void }).contextMenu?.(false);
+      setMapContextMenuOpen(false);
       /* FIXME: Some actions here will need to check can_client_issue_orders.
        * But all we can check is the lowest common requirement. */
       center_tile_mapcanvas(ptile);
@@ -410,4 +411,3 @@ export function handle_web_info_text_message(packet: { message: string; [key: st
 
   showTileInfoDialog(lines);
 }
-

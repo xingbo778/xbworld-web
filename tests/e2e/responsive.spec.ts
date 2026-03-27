@@ -6,7 +6,7 @@ async function dismissDialogAndShowGame(page: import('@playwright/test').Page) {
   await page.evaluate(() => {
     // Remove all dialog types: Preact xb-dialog, jQuery UI shim, native dialog
     document.querySelectorAll('.xb-dialog, .xb-dialog-overlay, .ui-dialog, #xb-ui-dialog-overlay, dialog').forEach((d) => {
-      if ('close' in d && typeof (d as any).close === 'function') (d as any).close();
+      if (d instanceof HTMLDialogElement) d.close();
       d.remove();
     });
     // Switch to game page

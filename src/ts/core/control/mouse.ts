@@ -22,6 +22,7 @@ import { find_visible_unit, set_unit_focus, update_active_units_dialog } from '.
 import { activate_goto } from './gotoPath';
 import { mark_overview_dirty, mark_overview_viewport_dirty } from '../overview';
 import type { Tile } from '../../data/types';
+import { getMapInputRect, setMapCursor } from '../../renderer/mapCanvas';
 
 
 // ---------------------------------------------------------------------------
@@ -46,9 +47,9 @@ export function mouse_moved_cb(e: MouseEvent): void {
     }
   }
 
-  const canvasDiv = document.getElementById('canvas_div');
-  if (active_city == null && canvasDiv) {
-    const canvasRect = canvasDiv.getBoundingClientRect();
+  const mapInputRect = getMapInputRect();
+  if (active_city == null && mapInputRect) {
+    const canvasRect = mapInputRect;
     S.setMouseX(S.mouse_x - canvasRect.left);
     S.setMouseY(S.mouse_y - canvasRect.top);
 
@@ -105,21 +106,21 @@ export function update_mouse_cursor(): void {
   const punit = find_visible_unit(ptile);
   const pcity = tile_city(ptile);
 
-  const canvasDiv = document.getElementById('canvas_div');
-  if (!canvasDiv) return;
+  const mapInputRect = getMapInputRect();
+  if (!mapInputRect) return;
 
   if (S.mapview_mouse_movement && !S.goto_active) {
-    canvasDiv.style.cursor = "move";
+    setMapCursor("move");
   } else if (S.goto_active && S.current_goto_turns != null) {
-    canvasDiv.style.cursor = "crosshair";
+    setMapCursor("crosshair");
   } else if (S.goto_active && S.current_goto_turns == null) {
-    canvasDiv.style.cursor = "not-allowed";
+    setMapCursor("not-allowed");
   } else if (pcity != null && clientPlaying() != null && city_owner_player_id(pcity) == clientPlaying()!.playerno) {
-    canvasDiv.style.cursor = "pointer";
+    setMapCursor("pointer");
   } else if (punit != null && clientPlaying() != null && punit['owner'] == clientPlaying()!.playerno) {
-    canvasDiv.style.cursor = "pointer";
+    setMapCursor("pointer");
   } else {
-    canvasDiv.style.cursor = "default";
+    setMapCursor("default");
   }
 }
 

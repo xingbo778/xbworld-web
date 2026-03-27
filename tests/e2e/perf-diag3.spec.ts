@@ -5,6 +5,7 @@
 import { test } from '@playwright/test';
 import { chromium } from '@playwright/test';
 import * as fs from 'fs';
+import type { XbwPageGlobals } from './helpers/pageGlobals';
 
 const BASE = process.env.TEST_BASE_URL || 'http://localhost:8080';
 const RND = Math.random().toString(36).slice(2, 6).toUpperCase();
@@ -17,7 +18,10 @@ test('CDP trace + sprite state', async ({ page }) => {
 
   // Wait for game running
   await page.waitForFunction(
-    () => (window as any).__store?.civclientState === 2,
+    () => {
+      const w = window as XbwPageGlobals;
+      return w.__store?.civclientState === 2;
+    },
     { timeout: 60_000 }
   );
 
@@ -26,7 +30,8 @@ test('CDP trace + sprite state', async ({ page }) => {
 
   // Check sprite state via JS
   const spriteState = await page.evaluate(() => {
-    const store = (window as any).__store;
+    const w = window as XbwPageGlobals;
+    const store = w.__store;
 
     // Try to access module-level variables exposed via window (may not work with IIFE)
     return {
@@ -35,8 +40,8 @@ test('CDP trace + sprite state', async ({ page }) => {
       renderer: store?.renderer,
       civclientState: store?.civclientState,
       // Check window-level tileset
-      tilesetDefined: typeof (window as any).tileset !== 'undefined',
-      tilesetKeys: (window as any).tileset ? Object.keys((window as any).tileset).length : 0,
+      tilesetDefined: typeof w.tileset !== 'undefined',
+      tilesetKeys: w.tileset ? Object.keys(w.tileset).length : 0,
       // Check if blockUI overlay is present
       blockUIVisible: !!document.querySelector('#block-ui, #jGrowl, .ui-widget-overlay, [id*="block"]'),
       // Check canvas_div
@@ -71,7 +76,7 @@ test('CDP trace + sprite state', async ({ page }) => {
 
     // Patch setTimeout to detect heavy callbacks
     const origST = window.setTimeout;
-    (window as any).setTimeout = (fn: (...args: unknown[]) => void, delay: number, ...args: unknown[]) => {
+    (window as XbwPageGlobals).setTimeout = (fn: (...args: unknown[]) => void, delay: number, ...args: unknown[]) => {
       return origST(() => {
         const t0 = performance.now();
         fn(...args);

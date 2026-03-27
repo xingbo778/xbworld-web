@@ -114,8 +114,8 @@ describe('observer-mode scenario', () => {
     expect(Object.keys(cities)).toHaveLength(10);
 
     // Update one
-    (store.cities[5] as Record<string, unknown>)['name'] = 'Updated';
-    expect((cities[5] as Record<string, unknown>)['name']).toBe('Updated');
+    store.cities[5].name = 'Updated';
+    expect(cities[5].name).toBe('Updated');
   });
 });
 

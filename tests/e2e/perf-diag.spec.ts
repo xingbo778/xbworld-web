@@ -2,6 +2,7 @@
  * Performance diagnostic — understand what's blocking the main thread.
  */
 import { test, expect } from '@playwright/test';
+import type { XbwPageGlobals } from './helpers/pageGlobals';
 
 const BASE = process.env.TEST_BASE_URL || 'http://localhost:8080';
 const RND = Math.random().toString(36).slice(2, 6).toUpperCase();
@@ -19,7 +20,10 @@ test('diagnose rendering bottleneck', async ({ page }) => {
 
   // Wait for game to be running
   await page.waitForFunction(
-    () => (window as any).__store?.civclientState === 2,
+    () => {
+      const w = window as XbwPageGlobals;
+      return w.__store?.civclientState === 2;
+    },
     { timeout: 60_000 }
   );
 
@@ -29,7 +33,8 @@ test('diagnose rendering bottleneck', async ({ page }) => {
 
   // Snapshot renderer state
   const state = await page.evaluate(() => {
-    const store = (window as any).__store;
+    const w = window as XbwPageGlobals;
+    const store = w.__store;
     const tiles = store?.tiles;
     const tileCount = tiles ? Object.keys(tiles).length : -1;
     const sprites = store?.sprites;
@@ -63,7 +68,7 @@ test('diagnose rendering bottleneck', async ({ page }) => {
       canvases: canvasInfo,
       canvasHasContent,
       mapInfo: store?.mapInfo ? `${store.mapInfo.xsize}x${store.mapInfo.ysize}` : 'none',
-      packetCount: (window as any).__xbwPacketCount,
+      packetCount: w.__xbwPacketCount,
       // Check for pixi app
       pixiAttached: !!document.querySelector('#canvas_div canvas:not(#canvas)'),
     };

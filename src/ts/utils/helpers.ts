@@ -11,6 +11,7 @@
 
 // NOTE: No imports from core/control or data/map here — helpers must be
 // a leaf module with no heavy transitive dependencies.
+import { getSeededRandom } from './runtimeGlobals';
 
 /** Deep clone a plain object (no circular refs). */
 export function clone<T>(obj: T): T {
@@ -73,10 +74,9 @@ export function isSmallScreen(): boolean {
 }
 
 export function isTouchDevice(): boolean {
-  return ('ontouchstart' in window
+  return 'ontouchstart' in window
     || 'onmsgesturechange' in window
-    || ('DocumentTouch' in globalThis && document instanceof ((globalThis as unknown as Record<string, { new(): Document }>).DocumentTouch)))
-    ? true : false;
+    || navigator.maxTouchPoints > 0;
 }
 
 export function supportsMp3(): boolean {
@@ -93,8 +93,7 @@ export function getTilesetFileExtension(): string {
  * Falls back to Math.random if fc_seedrandom is not available.
  */
 export function getRandomInt(min: number, max: number): number {
-  const rng = (globalThis as unknown as Record<string, unknown>).fc_seedrandom;
-  const rand = typeof rng === 'function' ? rng() : Math.random();
+  const rand = getSeededRandom()?.() ?? Math.random();
   return Math.floor(rand * (max - min)) + min;
 }
 
@@ -138,14 +137,6 @@ export async function civclient_benchmark(frame: number): Promise<void> {
     swal('Redraw time: ' + time);
   }
 }
-
-// benchmark_start is read by pregame.js at runtime
-Object.defineProperty(window, 'benchmark_start', {
-  get: () => benchmark_start,
-  set: (v: number) => { benchmark_start = v; },
-  configurable: true,
-  enumerable: true,
-});
 
 export function blur_input_on_touchdevice(): void {
   if ((document.activeElement as HTMLElement)?.blur) {

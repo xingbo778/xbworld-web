@@ -33,7 +33,6 @@ const OVERVIEW_TABS = [
   { id: 'cities',  label: 'Cities'  },
   { id: 'units',   label: 'Units'   },
 ];
-
 // ── root component ────────────────────────────────────────────────────────────
 
 export function NationOverview() {

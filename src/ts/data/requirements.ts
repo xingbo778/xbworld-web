@@ -103,6 +103,38 @@ import { store } from './store';
 import { tileHasExtra } from './tile';
 import type { Player, Tile } from './types';
 
+type RequirementBitSet = { isSet(n: number): boolean };
+type RequirementCity = {
+  size?: number;
+  improvements?: RequirementBitSet;
+  tile?: number;
+  culture?: number;
+  turn_founded?: number;
+};
+type RequirementTile = Tile & {
+  terrain?: number;
+  index?: number;
+  worked?: number;
+};
+type RequirementUnit = {
+  id?: number;
+  flags?: RequirementBitSet;
+  unit_class?: number;
+  veteran?: number;
+  movesleft?: number;
+  hp?: number;
+  activity?: number;
+  transported_by?: number;
+  homecity?: number;
+};
+type RequirementPlayer = Player & {
+  culture?: number;
+  turns_alive?: number;
+  diplstates?: Record<number, { state: number }> | Array<{ state?: number }>;
+};
+type RequirementTerrain = { flags?: RequirementBitSet | number; tclass?: number };
+type RequirementImprovementLike = { flags?: RequirementBitSet | number };
+
 export interface Requirement {
   kind: number;
   range: number;
@@ -192,7 +224,7 @@ export function isReqActive(
 
     // ── Implemented: map topology ─────────────────────────────────────────────
     case VUT_TOPO: {
-      const topoId = (store.mapInfo as Record<string, unknown> | null)?.['topology_id'];
+      const topoId = store.mapInfo?.topology_id;
       if (topoId == null) { result = TRI_MAYBE; break; }
       result = topoId === req['value'] ? TRI_YES : TRI_NO;
       break;
@@ -214,18 +246,18 @@ export function isReqActive(
     // require iterating cities we don't have fully client-side → TRI_MAYBE.
     case VUT_MINSIZE: {
       if (targetCity == null || req['range'] !== REQ_RANGE_CITY) { result = TRI_MAYBE; break; }
-      const citySize = (targetCity as Record<string, unknown>)['size'];
+      const citySize = (targetCity as RequirementCity).size;
       if (citySize == null) { result = TRI_MAYBE; break; }
-      result = (citySize as number) >= req['value'] ? TRI_YES : TRI_NO;
+      result = citySize >= req['value'] ? TRI_YES : TRI_NO;
       break;
     }
 
     // ── Implemented: minimum game year ───────────────────────────────────────
     // Uses store.gameInfo.year; TRI_MAYBE before game info is loaded.
     case VUT_MINYEAR: {
-      const year = (store.gameInfo as Record<string, unknown> | null)?.['year'];
+      const year = store.gameInfo?.year;
       if (year == null) { result = TRI_MAYBE; break; }
-      result = (year as number) >= req['value'] ? TRI_YES : TRI_NO;
+      result = year >= req['value'] ? TRI_YES : TRI_NO;
       break;
     }
 
@@ -233,11 +265,11 @@ export function isReqActive(
     // Only REQ_RANGE_CITY evaluated; traderoute/player/world ranges → TRI_MAYBE.
     case VUT_IMPROVEMENT: {
       if (targetCity == null || req['range'] !== REQ_RANGE_CITY) { result = TRI_MAYBE; break; }
-      const imprBv = (targetCity as Record<string, unknown>)['improvements'];
-      if (imprBv == null || typeof (imprBv as Record<string, unknown>)['isSet'] !== 'function') {
+      const imprBv = (targetCity as RequirementCity).improvements;
+      if (imprBv == null || typeof imprBv.isSet !== 'function') {
         result = TRI_MAYBE; break;
       }
-      result = (imprBv as { isSet(n: number): boolean }).isSet(req['value']) ? TRI_YES : TRI_NO;
+      result = imprBv.isSet(req['value']) ? TRI_YES : TRI_NO;
       break;
     }
 
@@ -245,7 +277,7 @@ export function isReqActive(
     // Checks targetTile.terrain; TRI_MAYBE when no tile context provided.
     case VUT_TERRAIN: {
       if (targetTile == null) { result = TRI_MAYBE; break; }
-      const tileTerrain = (targetTile as Record<string, unknown>)['terrain'];
+      const tileTerrain = (targetTile as RequirementTile).terrain;
       if (tileTerrain == null) { result = TRI_MAYBE; break; }
       result = tileTerrain === req['value'] ? TRI_YES : TRI_NO;
       break;
@@ -256,11 +288,11 @@ export function isReqActive(
     // by handle_ruleset_unit). TRI_MAYBE if no unit type or no flags field.
     case VUT_UTFLAG: {
       if (targetUnittype == null) { result = TRI_MAYBE; break; }
-      const utFlags = (targetUnittype as Record<string, unknown>)['flags'];
-      if (utFlags == null || typeof (utFlags as Record<string, unknown>)['isSet'] !== 'function') {
+      const utFlags = (targetUnittype as RequirementUnit).flags;
+      if (utFlags == null || typeof utFlags.isSet !== 'function') {
         result = TRI_MAYBE; break;
       }
-      result = (utFlags as { isSet(n: number): boolean }).isSet(req['value']) ? TRI_YES : TRI_NO;
+      result = utFlags.isSet(req['value']) ? TRI_YES : TRI_NO;
       break;
     }
 
@@ -269,7 +301,7 @@ export function isReqActive(
     // TRI_MAYBE when the field is absent (old protocol or unit type not loaded).
     case VUT_UCLASS: {
       if (targetUnittype == null) { result = TRI_MAYBE; break; }
-      const classId = (targetUnittype as Record<string, unknown>)['unit_class'];
+      const classId = (targetUnittype as RequirementUnit).unit_class;
       if (classId == null) { result = TRI_MAYBE; break; }
       result = classId === req['value'] ? TRI_YES : TRI_NO;
       break;
@@ -280,9 +312,9 @@ export function isReqActive(
     // Unit types have no veteran level → TRI_MAYBE when no 'veteran' field.
     case VUT_MINVETERAN: {
       if (targetUnittype == null) { result = TRI_MAYBE; break; }
-      const vet = (targetUnittype as Record<string, unknown>)['veteran'];
+      const vet = (targetUnittype as RequirementUnit).veteran;
       if (vet == null) { result = TRI_MAYBE; break; }
-      result = (vet as number) >= req['value'] ? TRI_YES : TRI_NO;
+      result = vet >= req['value'] ? TRI_YES : TRI_NO;
       break;
     }
 
@@ -291,9 +323,9 @@ export function isReqActive(
     // Unit types have 'move_rate' (max), not 'movesleft' (current) → TRI_MAYBE.
     case VUT_MINMOVES: {
       if (targetUnittype == null) { result = TRI_MAYBE; break; }
-      const moves = (targetUnittype as Record<string, unknown>)['movesleft'];
+      const moves = (targetUnittype as RequirementUnit).movesleft;
       if (moves == null) { result = TRI_MAYBE; break; }
-      result = (moves as number) >= req['value'] ? TRI_YES : TRI_NO;
+      result = moves >= req['value'] ? TRI_YES : TRI_NO;
       break;
     }
 
@@ -302,10 +334,10 @@ export function isReqActive(
     // Discriminant: unit instances always have 'movesleft'; types do not.
     case VUT_MINHP: {
       if (targetUnittype == null) { result = TRI_MAYBE; break; }
-      const rec = targetUnittype as Record<string, unknown>;
+      const rec = targetUnittype as RequirementUnit;
       // Unit instances have 'movesleft'; unit types only have 'move_rate'.
-      if (rec['movesleft'] == null) { result = TRI_MAYBE; break; }
-      result = (rec['hp'] as number) >= req['value'] ? TRI_YES : TRI_NO;
+      if (rec.movesleft == null || rec.hp == null) { result = TRI_MAYBE; break; }
+      result = rec.hp >= req['value'] ? TRI_YES : TRI_NO;
       break;
     }
 
@@ -320,16 +352,15 @@ export function isReqActive(
     // Must iterate city buildings — NOT check the target improvement's own genus.
     case VUT_IMPR_GENUS: {
       if (targetCity == null) { result = TRI_MAYBE; break; }
-      const imprBvG = (targetCity as Record<string, unknown>)['improvements'];
-      if (imprBvG == null || typeof (imprBvG as Record<string, unknown>)['isSet'] !== 'function') {
+      const imprBvG = (targetCity as RequirementCity).improvements;
+      if (imprBvG == null || typeof imprBvG.isSet !== 'function') {
         result = TRI_MAYBE; break;
       }
-      const bvG = imprBvG as { isSet(n: number): boolean };
       let genusFound = false;
       for (const imprId in store.improvements) {
         const n = Number(imprId);
-        if (!bvG.isSet(n)) continue;
-        const g = (store.improvements[n] as Record<string, unknown>)['genus'] as number | undefined;
+        if (!imprBvG.isSet(n)) continue;
+        const g = store.improvements[n]?.genus;
         if (g === req['value']) { genusFound = true; break; }
       }
       result = genusFound ? TRI_YES : TRI_NO;
@@ -359,15 +390,15 @@ export function isReqActive(
     // are unavailable (graceful degradation: RPT_POSSIBLE callers still pass).
     case VUT_UCFLAG: {
       if (targetUnittype == null) { result = TRI_MAYBE; break; }
-      const classId = (targetUnittype as Record<string, unknown>)['unit_class'];
+      const classId = (targetUnittype as RequirementUnit).unit_class;
       if (classId == null) { result = TRI_MAYBE; break; }
       const uclass = store.unitClasses[classId as number];
       if (uclass == null) { result = TRI_MAYBE; break; }
-      const ucFlags = uclass['flags'];
-      if (ucFlags == null || typeof (ucFlags as unknown as Record<string, unknown>)['isSet'] !== 'function') {
+      const ucFlags = uclass['flags'] as { isSet?: (n: number) => boolean } | null | undefined;
+      if (ucFlags == null || typeof ucFlags.isSet !== 'function') {
         result = TRI_MAYBE; break;
       }
-      result = (ucFlags as unknown as { isSet(n: number): boolean }).isSet(req['value']) ? TRI_YES : TRI_NO;
+      result = ucFlags.isSet(req['value']) ? TRI_YES : TRI_NO;
       break;
     }
 
@@ -387,15 +418,15 @@ export function isReqActive(
     // Reads terrain.flags (raw number or BitVector — not converted in packet handler).
     case VUT_TERRFLAG: {
       if (targetTile == null) { result = TRI_MAYBE; break; }
-      const terrainId = (targetTile as Record<string, unknown>)['terrain'];
+      const terrainId = (targetTile as RequirementTile).terrain;
       if (terrainId == null) { result = TRI_MAYBE; break; }
-      const terrain = store.terrains[terrainId as number];
+      const terrain = store.terrains[terrainId] as RequirementTerrain | undefined;
       if (terrain == null) { result = TRI_MAYBE; break; }
-      const tflags = (terrain as Record<string, unknown>)['flags'];
+      const tflags = terrain.flags;
       if (tflags == null) { result = TRI_MAYBE; break; }
       let tfHas: boolean;
-      if (typeof (tflags as Record<string, unknown>)['isSet'] === 'function') {
-        tfHas = (tflags as { isSet(n: number): boolean }).isSet(req['value']);
+      if (typeof (tflags as RequirementBitSet).isSet === 'function') {
+        tfHas = (tflags as RequirementBitSet).isSet(req['value']);
       } else if (typeof tflags === 'number') {
         tfHas = Boolean((tflags >> req['value']) & 1);
       } else { result = TRI_MAYBE; break; }
@@ -409,11 +440,11 @@ export function isReqActive(
     case VUT_IMPR_FLAG: {
       const imprTarget = targetBuilding ?? targetOutput;
       if (imprTarget == null) { result = TRI_MAYBE; break; }
-      const iflags = (imprTarget as Record<string, unknown>)['flags'];
+      const iflags = (imprTarget as RequirementImprovementLike).flags;
       if (iflags == null) { result = TRI_MAYBE; break; }
       let ifHas: boolean;
-      if (typeof (iflags as Record<string, unknown>)['isSet'] === 'function') {
-        ifHas = (iflags as { isSet(n: number): boolean }).isSet(req['value']);
+      if (typeof (iflags as RequirementBitSet).isSet === 'function') {
+        ifHas = (iflags as RequirementBitSet).isSet(req['value']);
       } else if (typeof iflags === 'number') {
         ifHas = Boolean((iflags >> req['value']) & 1);
       } else { result = TRI_MAYBE; break; }
@@ -434,9 +465,9 @@ export function isReqActive(
     // Only unit INSTANCES have 'activity'; unit types have no such field → TRI_MAYBE.
     case VUT_ACTIVITY: {
       if (targetUnittype == null) { result = TRI_MAYBE; break; }
-      const actVal = (targetUnittype as Record<string, unknown>)['activity'];
+      const actVal = (targetUnittype as RequirementUnit).activity;
       if (actVal == null) { result = TRI_MAYBE; break; }
-      result = (actVal as number) === req['value'] ? TRI_YES : TRI_NO;
+      result = actVal === req['value'] ? TRI_YES : TRI_NO;
       break;
     }
 
@@ -446,15 +477,15 @@ export function isReqActive(
     // All other unit-state values require server-side context → TRI_MAYBE.
     case VUT_UNITSTATE: {
       if (targetUnittype == null) { result = TRI_MAYBE; break; }
-      const uRec = targetUnittype as Record<string, unknown>;
+      const uRec = targetUnittype as RequirementUnit;
       switch (req['value']) {
         case US_TRANSPORTED: {
-          const tb = uRec['transported_by'] as number | undefined;
+          const tb = uRec.transported_by;
           result = (tb != null && tb !== -1) ? TRI_YES : TRI_NO;
           break;
         }
         case US_HAS_HOME_CITY: {
-          const hc = uRec['homecity'] as number | undefined;
+          const hc = uRec.homecity;
           result = (hc != null && hc !== 0) ? TRI_YES : TRI_NO;
           break;
         }
@@ -472,12 +503,10 @@ export function isReqActive(
       if (targetPlayer == null) { result = TRI_MAYBE; break; }
       if (req['value'] < 0 || req['value'] >= 7) { result = TRI_MAYBE; break; }
       if (req['range'] === REQ_RANGE_LOCAL) { result = TRI_MAYBE; break; }
-      const ds = (targetPlayer as Record<string, unknown>)['diplstates'];
+      const ds = (targetPlayer as RequirementPlayer).diplstates;
       if (ds == null) { result = TRI_MAYBE; break; }
-      const dsRec = ds as Record<number, { state: number }>;
       let dsFound = false;
-      for (const otherId in dsRec) {
-        const entry = dsRec[Number(otherId)];
+      for (const entry of Array.isArray(ds) ? ds : Object.values(ds)) {
         if (entry != null && entry.state === req['value']) { dsFound = true; break; }
       }
       result = dsFound ? TRI_YES : TRI_NO;
@@ -490,16 +519,16 @@ export function isReqActive(
     // CITYT_CLAIMED (2): TRI_MAYBE — client has no city-radius data.
     case VUT_CITYTILE: {
       if (targetTile == null) { result = TRI_MAYBE; break; }
-      const ctRec = targetTile as Record<string, unknown>;
+      const ctRec = targetTile as RequirementTile;
       switch (req['value']) {
         case CITYT_CENTER: {
           if (targetCity == null) { result = TRI_MAYBE; break; }
-          const cTileIdx = (targetCity as Record<string, unknown>)['tile'];
-          result = (ctRec['index'] != null && ctRec['index'] === cTileIdx) ? TRI_YES : TRI_NO;
+          const cTileIdx = (targetCity as RequirementCity).tile;
+          result = (ctRec.index != null && ctRec.index === cTileIdx) ? TRI_YES : TRI_NO;
           break;
         }
         case CITYT_WORKER: {
-          const worked = ctRec['worked'] as number | undefined;
+          const worked = ctRec.worked;
           result = (worked != null && worked !== 0) ? TRI_YES : TRI_NO;
           break;
         }
@@ -516,10 +545,10 @@ export function isReqActive(
       let cultureVal: number | null = null;
       if (req['range'] === REQ_RANGE_CITY) {
         if (targetCity == null) { result = TRI_MAYBE; break; }
-        cultureVal = ((targetCity as Record<string, unknown>)['culture'] as number | undefined) ?? null;
+        cultureVal = (targetCity as RequirementCity).culture ?? null;
       } else if (req['range'] === REQ_RANGE_PLAYER) {
         if (targetPlayer == null) { result = TRI_MAYBE; break; }
-        cultureVal = ((targetPlayer as Record<string, unknown>)['culture'] as number | undefined) ?? null;
+        cultureVal = (targetPlayer as RequirementPlayer).culture ?? null;
       }
       if (cultureVal == null) { result = TRI_MAYBE; break; }
       result = cultureVal >= req['value'] ? TRI_YES : TRI_NO;
@@ -531,13 +560,13 @@ export function isReqActive(
     // Falls back to TRI_MAYBE if the server does not send the tclass field.
     case VUT_TERRAINCLASS: {
       if (targetTile == null) { result = TRI_MAYBE; break; }
-      const tcTerrainId = (targetTile as Record<string, unknown>)['terrain'];
+      const tcTerrainId = (targetTile as RequirementTile).terrain;
       if (tcTerrainId == null) { result = TRI_MAYBE; break; }
-      const tcTerrain = store.terrains[tcTerrainId as number];
+      const tcTerrain = store.terrains[tcTerrainId] as RequirementTerrain | undefined;
       if (tcTerrain == null) { result = TRI_MAYBE; break; }
-      const tclass = (tcTerrain as Record<string, unknown>)['tclass'];
+      const tclass = tcTerrain.tclass;
       if (tclass == null) { result = TRI_MAYBE; break; }
-      result = (tclass as number) === req['value'] ? TRI_YES : TRI_NO;
+      result = tclass === req['value'] ? TRI_YES : TRI_NO;
       break;
     }
 
@@ -555,18 +584,18 @@ export function isReqActive(
     // REQ_RANGE_PLAYER: player.turns_alive                    >= req.value
     // Falls back to TRI_MAYBE when the needed field is absent.
     case VUT_AGE: {
-      const gameTurn = (store.gameInfo as Record<string, unknown> | null)?.['turn'] as number | undefined;
+      const gameTurn = store.gameInfo?.turn;
       if (gameTurn == null) { result = TRI_MAYBE; break; }
       if (req['range'] === REQ_RANGE_CITY) {
         if (targetCity == null) { result = TRI_MAYBE; break; }
-        const founded = (targetCity as Record<string, unknown>)['turn_founded'] as number | undefined;
+        const founded = (targetCity as RequirementCity).turn_founded;
         if (founded == null) { result = TRI_MAYBE; break; }
         result = (gameTurn - founded) >= req['value'] ? TRI_YES : TRI_NO;
       } else if (req['range'] === REQ_RANGE_PLAYER) {
         if (targetPlayer == null) { result = TRI_MAYBE; break; }
-        const alive = (targetPlayer as Record<string, unknown>)['turns_alive'] as number | undefined;
+        const alive = (targetPlayer as RequirementPlayer).turns_alive;
         if (alive == null) { result = TRI_MAYBE; break; }
-        result = (alive as number) >= req['value'] ? TRI_YES : TRI_NO;
+        result = alive >= req['value'] ? TRI_YES : TRI_NO;
       } else {
         result = TRI_MAYBE;
       }
@@ -674,4 +703,3 @@ export function universalBuildShieldCost(_pcity: unknown, target: { build_cost: 
 // ---------------------------------------------------------------------------
 // Expose to legacy
 // ---------------------------------------------------------------------------
-

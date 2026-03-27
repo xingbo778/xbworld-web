@@ -31,7 +31,7 @@ describe('assign_nation_color', () => {
     const { assign_nation_color } = await import('@/renderer/nationColor');
     store.nations[2] = { playerno: -1, name: 'Greeks', graphic_str: 'greeks', color: 'rgb(0,0,255)' } as never;
     assign_nation_color(2);
-    expect((store.nations[2] as Record<string, unknown>)['color']).toBe('rgb(0,0,255)');
+    expect(store.nations[2]?.['color']).toBe('rgb(0,0,255)');
   });
 });
 

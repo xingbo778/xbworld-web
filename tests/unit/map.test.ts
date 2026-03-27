@@ -25,33 +25,32 @@ import {
   clearGotoTiles,
   Direction,
 } from '@/data/map';
+import { store } from '@/data/store';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-const win = window as any;
 
 describe('Map', () => {
   beforeEach(() => {
-    // Set up legacy globals that map.ts reads directly
-    win.map = {
+    store.mapInfo = {
       xsize: 10,
       ysize: 10,
       topology_id: 0,
       wrap_id: 0,
-    };
-    win.tiles = {};
+    } as any;
+    store.tiles = {};
     mapAllocate();
   });
 
   it('should allocate tiles for the map', () => {
-    expect(Object.keys(win.tiles)).toHaveLength(100);
-    expect(win.tiles[0]?.x).toBe(0);
-    expect(win.tiles[0]?.y).toBe(0);
-    expect(win.tiles[99]?.x).toBe(9);
-    expect(win.tiles[99]?.y).toBe(9);
+    expect(Object.keys(store.tiles)).toHaveLength(100);
+    expect(store.tiles[0]?.x).toBe(0);
+    expect(store.tiles[0]?.y).toBe(0);
+    expect(store.tiles[99]?.x).toBe(9);
+    expect(store.tiles[99]?.y).toBe(9);
   });
 
   it('should allocate tiles with correct default values (matching legacy)', () => {
-    const tile = win.tiles[0];
+    const tile = store.tiles[0];
     expect(tile.known).toBeNull();
     expect(tile.seen).toEqual({});
     expect(tile.specials).toEqual([]);
@@ -95,7 +94,7 @@ describe('Map', () => {
   });
 
   it('should step to adjacent tiles', () => {
-    const center = win.tiles[55]; // (5, 5)
+    const center = store.tiles[55]; // (5, 5)
     expect(center).toBeDefined();
     const north = mapstep(center!, Direction.NORTH);
     expect(north?.y).toBe(4);
@@ -103,8 +102,8 @@ describe('Map', () => {
   });
 
   it('should find direction between adjacent tiles', () => {
-    const t1 = win.tiles[55]!; // (5, 5)
-    const t2 = win.tiles[56]!; // (6, 5)
+    const t1 = store.tiles[55]!; // (5, 5)
+    const t2 = store.tiles[56]!; // (6, 5)
     const dir = getDirectionForStep(t1, t2);
     expect(dir).toBe(Direction.EAST);
   });

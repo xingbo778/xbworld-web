@@ -44,8 +44,8 @@ describe('handle_set_topology', () => {
 
     handle_set_topology({ topology_id: 4, wrap_id: 1 } as never);
 
-    expect((store.mapInfo as Record<string, unknown>)['topology_id']).toBe(4);
-    expect((store.mapInfo as Record<string, unknown>)['wrap_id']).toBe(1);
+    expect(store.mapInfo?.topology_id).toBe(4);
+    expect(store.mapInfo?.wrap_id).toBe(1);
   });
 
   it('does not throw if store.mapInfo is null (no map yet)', async () => {
@@ -126,24 +126,21 @@ describe('handle_vote_update / handle_vote_remove / handle_vote_resolve', () => 
   it('handle_vote_update stores vote by vote_no', async () => {
     const { handle_vote_update } = await import('@/net/handlers/server');
     handle_vote_update({ vote_no: 1, yes: 2, no: 0, abstain: 1 } as never);
-    const votes = (store as unknown as Record<string, unknown>)['votes'] as Record<number, unknown>;
-    expect(votes[1]).toBeDefined();
+    expect(store.votes[1]).toBeDefined();
   });
 
   it('handle_vote_remove deletes vote by vote_no', async () => {
     const { handle_vote_update, handle_vote_remove } = await import('@/net/handlers/server');
     handle_vote_update({ vote_no: 2, yes: 1, no: 0, abstain: 0 } as never);
     handle_vote_remove({ vote_no: 2 } as never);
-    const votes = (store as unknown as Record<string, unknown>)['votes'] as Record<number, unknown>;
-    expect(votes[2]).toBeUndefined();
+    expect(store.votes[2]).toBeUndefined();
   });
 
   it('handle_vote_resolve deletes vote by vote_no', async () => {
     const { handle_vote_update, handle_vote_resolve } = await import('@/net/handlers/server');
     handle_vote_update({ vote_no: 3, yes: 3, no: 0, abstain: 0 } as never);
     handle_vote_resolve({ vote_no: 3 } as never);
-    const votes = (store as unknown as Record<string, unknown>)['votes'] as Record<number, unknown>;
-    expect(votes[3]).toBeUndefined();
+    expect(store.votes[3]).toBeUndefined();
   });
 
   it('handle_vote_remove does not throw when no votes exist', async () => {

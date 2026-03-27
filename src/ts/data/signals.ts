@@ -143,7 +143,9 @@ globalEvents.on('game:calendar', () => { calendarInfo.value = store.calendarInfo
 // tile:updated fires for every tile; no signal update needed (PixiRenderer
 // handles dirty-marking directly via globalEvents.on in its own listener).
 globalEvents.on('city:updated', (data: unknown) => {
-  const id = (data as Record<string, unknown>)?.['id'];
+  const id = (typeof data === 'object' && data !== null && 'id' in data)
+    ? (data as { id?: unknown }).id
+    : undefined;
   if (typeof id === 'number') {
     // Fast path: O(1) Set lookup — only update signal if this is a new city.
     if (!_knownCityIds.has(id)) {
@@ -164,7 +166,9 @@ globalEvents.on('city:updated', (data: unknown) => {
 globalEvents.on('city:removed', (data: unknown) => {
   // city:removed payload is the city ID (number) or an object with city_id.
   const id = typeof data === 'number' ? data
-    : (data as Record<string, unknown>)?.['city_id'] as number | undefined;
+    : ((typeof data === 'object' && data !== null && 'city_id' in data)
+      ? (data as { city_id?: unknown }).city_id as number | undefined
+      : undefined);
   if (typeof id === 'number' && _knownCityIds.has(id)) {
     _knownCityIds.delete(id);
     cityCount.value = _knownCityIds.size;

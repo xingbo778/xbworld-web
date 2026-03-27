@@ -25,6 +25,8 @@ import { game_init, update_game_status_panel } from '../data/game';
 import { initTilesetSprites } from '../renderer/mapview';
 import { PixiRenderer } from '../renderer/PixiRenderer';
 import { mapctrl_init_pixi } from '../renderer/mapctrl';
+import { setActiveRenderer } from '../renderer/rendererRegistry';
+import { getMapCanvasContainer } from '../renderer/mapCanvas';
 import { send_request } from '../net/connection';
 import { packet_authentication_reply } from '../net/packetConstants';
 import { showMessageDialog, closeMessageDialog } from '../components/Dialogs/MessageDialog';
@@ -32,6 +34,7 @@ import { showAuthDialog as showAuthDialogPreact } from '../components/Dialogs/Au
 import { store } from '../data/store';
 import { setupWindowSize } from './clientMain';
 import { music_list, audio, setAudio, supports_mp3 } from '../audio/audioState';
+import { isVitestRuntime } from '../utils/runtimeGlobals';
 
 // ---------------------------------------------------------------------------
 // Global state guards
@@ -66,10 +69,10 @@ export function civClientInit(): void {
   }
 
   initTilesetSprites();
-  const container = document.getElementById('canvas_div') ?? document.body;
+  const container = getMapCanvasContainer() ?? document.body;
   const pixi = new PixiRenderer({ container });
   pixi.init().then(() => {
-    (store as unknown as Record<string, unknown>)['pixiRenderer'] = pixi;
+    setActiveRenderer(pixi);
     // Wire mouse/touch events to the Pixi canvas after it's created
     mapctrl_init_pixi();
     setupWindowSize();
@@ -240,7 +243,7 @@ export function switchRenderer(): void {
 // ---------------------------------------------------------------------------
 // Auto-init on DOMContentLoaded (replaces jQuery $(document).ready)
 // Skip in test environment to prevent side-effects during module import.
-if (!(globalThis as unknown as Record<string, unknown>).__VITEST__) {
+if (!isVitestRuntime()) {
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
       if (!store.civclientState) {

@@ -2,6 +2,7 @@
  * Diagnostic 4 — find the EXACT source of 2.5s blocks using PerformanceObserver.
  */
 import { test } from '@playwright/test';
+import type { XbwPageGlobals } from './helpers/pageGlobals';
 
 const BASE = process.env.TEST_BASE_URL || 'http://localhost:8080';
 const RND = Math.random().toString(36).slice(2, 6).toUpperCase();
@@ -12,18 +13,29 @@ test('find 2.5s block source', async ({ page }) => {
 
   // Inject hooks before page load
   await page.addInitScript(() => {
+    type TaskAttributionLike = {
+      name?: string;
+      containerType?: string;
+      containerSrc?: string;
+      containerId?: string;
+    };
+    type LongTaskLike = PerformanceEntry & {
+      attribution?: TaskAttributionLike[];
+    };
+
     // Track all long tasks with attribution
-    (window as any).__longTaskDetails = [];
+    const w = window as XbwPageGlobals;
+    w.__longTaskDetails = [];
     const obs = new PerformanceObserver(list => {
       for (const entry of list.getEntries()) {
-        const lt = entry as PerformanceLongTaskTiming;
-        const attrib = lt.attribution?.map((a: TaskAttributionTiming) => ({
+        const lt = entry as LongTaskLike;
+        const attrib = lt.attribution?.map((a: TaskAttributionLike) => ({
           name: a.name,
           containerType: a.containerType,
           containerSrc: a.containerSrc,
           containerId: a.containerId,
         }));
-        (window as any).__longTaskDetails.push({
+        w.__longTaskDetails?.push({
           startTime: +entry.startTime.toFixed(0),
           duration: +entry.duration.toFixed(0),
           attrib,
@@ -36,14 +48,14 @@ test('find 2.5s block source', async ({ page }) => {
 
     // Override requestAnimationFrame to measure each callback
     const origRAF = window.requestAnimationFrame.bind(window);
-    (window as any).__rafCallbacks = [];
+    w.__rafCallbacks = [];
     window.requestAnimationFrame = (cb: FrameRequestCallback): number => {
       return origRAF((time: DOMHighResTimeStamp) => {
         const t0 = performance.now();
         cb(time);
         const elapsed = performance.now() - t0;
         if (elapsed > 10) {
-          (window as any).__rafCallbacks.push({
+          w.__rafCallbacks?.push({
             t: +t0.toFixed(0),
             elapsed: +elapsed.toFixed(0),
           });
@@ -53,15 +65,15 @@ test('find 2.5s block source', async ({ page }) => {
 
     // Override setInterval to find heavy callbacks
     const origSI = window.setInterval.bind(window);
-    (window as any).__intervalCallbacks = [];
-    window.setInterval = (fn: TimerHandler, delay?: number, ...args: unknown[]) => {
+    w.__intervalCallbacks = [];
+    const patchedSetInterval = ((fn: TimerHandler, delay?: number, ...args: any[]) => {
       if (typeof fn === 'function') {
-        const wrapped = (...a: unknown[]) => {
+        const wrapped = (...a: any[]) => {
           const t0 = performance.now();
-          (fn as (...args: unknown[]) => void)(...a);
+          fn(...a);
           const elapsed = performance.now() - t0;
           if (elapsed > 50) {
-            (window as any).__intervalCallbacks.push({
+            w.__intervalCallbacks?.push({
               delay,
               elapsed: +elapsed.toFixed(0),
               t: +t0.toFixed(0),
@@ -71,25 +83,32 @@ test('find 2.5s block source', async ({ page }) => {
         return origSI(wrapped, delay, ...args);
       }
       return origSI(fn, delay, ...args);
-    };
+    }) as typeof window.setInterval;
+    window.setInterval = patchedSetInterval;
   });
 
   await page.goto(PAGE_URL, { waitUntil: 'domcontentloaded' });
 
   // Wait for game + 10 more seconds to collect data
   await page.waitForFunction(
-    () => (window as any).__store?.civclientState === 2,
+    () => {
+      const w = window as XbwPageGlobals;
+      return w.__store?.civclientState === 2;
+    },
     { timeout: 60_000 }
   );
   await page.waitForTimeout(10_000);
 
-  const diag = await page.evaluate(() => ({
-    longTaskDetails: (window as any).__longTaskDetails,
-    rafCallbacks: (window as any).__rafCallbacks,
-    intervalCallbacks: (window as any).__intervalCallbacks,
-    spriteCount: Object.keys((window as any).__store?.sprites || {}).length,
-    blockOverlay: !!document.querySelector('.xb-block-overlay'),
-  }));
+  const diag = await page.evaluate(() => {
+    const w = window as XbwPageGlobals;
+    return {
+      longTaskDetails: w.__longTaskDetails ?? [],
+      rafCallbacks: w.__rafCallbacks ?? [],
+      intervalCallbacks: w.__intervalCallbacks ?? [],
+      spriteCount: Object.keys(w.__store?.sprites || {}).length,
+      blockOverlay: !!document.querySelector('.xb-block-overlay'),
+    };
+  });
 
   console.log('\n=== Long tasks ===');
   for (const t of diag.longTaskDetails) {

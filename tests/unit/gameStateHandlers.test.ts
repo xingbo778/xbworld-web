@@ -17,7 +17,7 @@ describe('handle_game_info', () => {
   it('stores game info in store', async () => {
     const { handle_game_info } = await import('@/net/handlers/gameState');
     handle_game_info({ turn: 5, year: -3000 } as never);
-    expect((store.gameInfo as Record<string, unknown>)?.['turn']).toBe(5);
+    expect(store.gameInfo?.turn).toBe(5);
   });
 });
 
@@ -25,7 +25,7 @@ describe('handle_calendar_info', () => {
   it('stores calendar info', async () => {
     const { handle_calendar_info } = await import('@/net/handlers/gameState');
     handle_calendar_info({ positive_label: 'AD', negative_label: 'BC', fragments: 1 } as never);
-    expect((store.calendarInfo as Record<string, unknown>)?.['positive_label']).toBe('AD');
+    expect(store.calendarInfo?.['positive_label']).toBe('AD');
   });
 
   it('emits game:calendar event', async () => {
@@ -42,7 +42,7 @@ describe('handle_calendar_info', () => {
     const { handle_calendar_info } = await import('@/net/handlers/gameState');
     const { calendarInfo } = await import('@/data/signals');
     handle_calendar_info({ positive_year_label: 'CE', negative_year_label: 'BCE' } as never);
-    expect((calendarInfo.value as Record<string, unknown>)?.['positive_year_label']).toBe('CE');
+    expect(calendarInfo.value?.positive_year_label).toBe('CE');
   });
 });
 
@@ -64,7 +64,7 @@ describe('handle_new_year', () => {
     const { handle_game_info, handle_new_year } = await import('@/net/handlers/gameState');
     handle_game_info({ turn: 1, year: -4000 } as never);
     handle_new_year({ year: -3950, fragments: 0, turn: 2 } as never);
-    expect((store.gameInfo as Record<string, unknown>)?.['year']).toBe(-3950);
+    expect(store.gameInfo?.year).toBe(-3950);
   });
 });
 
@@ -125,7 +125,7 @@ describe('handle_scenario_info', () => {
   it('stores scenario info', async () => {
     const { handle_scenario_info } = await import('@/net/handlers/gameState');
     handle_scenario_info({ name: 'Test Scenario', authors: '' } as never);
-    expect((store.scenarioInfo as Record<string, unknown>)?.['name']).toBe('Test Scenario');
+    expect(store.scenarioInfo?.['name']).toBe('Test Scenario');
   });
 });
 

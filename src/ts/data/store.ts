@@ -70,16 +70,34 @@ class GameStore {
   resources: Record<number, Record<string, unknown> & { id: number }> = {};
   gameRules: Record<string, unknown> | null = null;
   specialists: Record<number, Record<string, unknown> & { id: number }> = {};
+  techClasses: Record<number, Record<string, unknown>> = {};
+  techFlags: Record<number, Record<string, unknown>> = {};
   nationGroups: unknown[] = [];
   cityRules: Record<number, Record<string, unknown> & { style_id: number }> = {};
   actions: Record<number, Record<string, unknown> & { id: number; enablers: unknown[] }> = {};
   goods: Record<number, Record<string, unknown> & { id: number }> = {};
   clauseInfos: Record<number, Record<string, unknown> & { type: number }> = {};
+  disasters: Record<number, Record<string, unknown>> = {};
   effects: Record<string, (Record<string, unknown> & { effect_type: number })[]> = {};
   unitClasses: Record<number, Record<string, unknown> & { id: number; flags: number[] }> = {};
+  unitFlags: Record<number, Record<string, unknown>> = {};
+  unitClassFlags: Record<number, Record<string, unknown>> = {};
   terrainControl: Record<string, unknown> & { move_fragments?: number } = {};
+  terrainFlags: Record<number, Record<string, unknown>> = {};
+  imprFlags: Record<number, Record<string, unknown>> = {};
+  extraFlags: Record<number, Record<string, unknown>> = {};
   singleMove: number | undefined = undefined;
   extraIds: Record<string, number> = {};  // EXTRA_ROAD, EXTRA_RAIL, etc.
+  counters: Record<number, Record<string, unknown>> = {};
+  styles: Record<number, Record<string, unknown>> = {};
+  multipliers: Record<number, Record<string, unknown>> = {};
+  actionAutos: Record<number, Record<string, unknown>> = {};
+  achievements: Record<number, Record<string, unknown>> = {};
+  achievementInfo: Record<number, Record<number, Record<string, unknown>>> = {};
+  teamNames: Record<number, string> = {};
+  tradeRules: Record<string, unknown> | null = null;
+  nationSets: Record<string, unknown> | unknown[] | null = null;
+  nationAvailability: Record<string, unknown> | null = null;
 
   // Rendering/runtime state (previously window globals)
   renderer: number = 0;  // RENDERER_2DCANVAS etc.
@@ -114,6 +132,7 @@ class GameStore {
   pingLast: number = 0;
   connPingInfo: Record<string, unknown> | null = null;
   debugPingList: number[] = [];
+  votes: Record<number, Record<string, unknown>> = {};
   savedThisTurn: boolean = false;
   endgamePlayerInfo: Record<string, unknown>[] = [];
   benchmarkStart: number = 0;
@@ -154,6 +173,25 @@ class GameStore {
     this.players = {};
     this.techs = {};
     this.connections = {};
+    this.votes = {};
+    this.techClasses = {};
+    this.techFlags = {};
+    this.disasters = {};
+    this.unitFlags = {};
+    this.unitClassFlags = {};
+    this.terrainFlags = {};
+    this.imprFlags = {};
+    this.extraFlags = {};
+    this.counters = {};
+    this.styles = {};
+    this.multipliers = {};
+    this.actionAutos = {};
+    this.achievements = {};
+    this.achievementInfo = {};
+    this.teamNames = {};
+    this.tradeRules = null;
+    this.nationSets = null;
+    this.nationAvailability = null;
     this.client.conn = { id: 0, playing: null };
     globalEvents.emit('store:reset');
   }
