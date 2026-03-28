@@ -88,6 +88,7 @@ export function getCurrentWebSocketForTests(): WebSocket | null {
 
 export function setCurrentWebSocketForTests(value: WebSocket | null): void {
   ws = value;
+  Reflect.set(window, 'ws', value);
 }
 
 export function getCivserverportForTests(): string | null {
@@ -96,6 +97,7 @@ export function getCivserverportForTests(): string | null {
 
 export function setCivserverportForTests(value: string | null): void {
   civserverport = value;
+  Reflect.set(window, 'civserverport', value);
   store.civserverport = value ?? '';
 }
 
@@ -295,7 +297,9 @@ export function websocket_init(): void {
   const port = window.location.port ? ':' + window.location.port : '';
   const wsUrl = ws_protocol + window.location.hostname + port + '/civsocket/' + proxyport;
   console.log('[xbw] websocket_init: connecting to', wsUrl);
-  ws = new WebSocket(wsUrl);
+  setCurrentWebSocketForTests(new WebSocket(wsUrl));
+  const currentWs = ws;
+  if (currentWs == null) return;
 
   // Try to use Web Worker for JSON.parse; fall back to main-thread parsing.
   const worker = getPacketWorker();
@@ -356,7 +360,7 @@ export function websocket_init(): void {
       }
       pendingMessages.length = 0;
     };
-    ws.onmessage = function (event: MessageEvent) {
+    currentWs.onmessage = function (event: MessageEvent) {
       if (!workerReady && _packetWorker) {
         pendingMessages.push(event.data);
       }
@@ -367,10 +371,10 @@ export function websocket_init(): void {
       }
     };
   } else {
-    ws.onmessage = mainThreadParse;
+    currentWs.onmessage = mainThreadParse;
   }
 
-  ws.onopen = (e) => {
+  currentWs.onopen = (e) => {
     console.log('[xbw] WebSocket onopen fired, readyState:', ws?.readyState, 'event:', e.type);
     // Successful (re)connection — reset reconnect state
     stopReconnectTimers();
@@ -382,7 +386,7 @@ export function websocket_init(): void {
     check_websocket_ready();
   };
 
-  ws.onclose = function (event: CloseEvent) {
+  currentWs.onclose = function (event: CloseEvent) {
     console.info(`[xbw] WebSocket closed code=${event.code} reason="${event.reason}"`);
 
     if (ping_timer) { clearInterval(ping_timer); ping_timer = null; }
@@ -418,7 +422,7 @@ export function websocket_init(): void {
     startReconnect();
   };
 
-  ws.onerror = function (evt: Event) {
+  currentWs.onerror = function (evt: Event) {
     // onclose always fires after onerror — let it handle reconnect
     console.error('[xbw] WebSocket error:', evt);
   };
@@ -483,7 +487,7 @@ export function network_stop(): void {
   // Terminate packet worker (prevents detached worker running after page nav)
   if (_packetWorker != null) { _packetWorker.terminate(); _packetWorker = null; }
   if (ws != null) ws.close();
-  ws = null;
+  setCurrentWebSocketForTests(null);
 }
 
 /**

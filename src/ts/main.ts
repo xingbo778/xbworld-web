@@ -88,7 +88,7 @@ import './ui/options';
 import './utils/eventDelegation';
 
 // ---------------------------------------------------------------------------
-// Step 4: Initialize testing/debug bridges.
+// Step 4: Initialize legacy/testing bridges.
 // ---------------------------------------------------------------------------
 import { store } from './data/store';
 import { set_client_state } from './client/clientState';
@@ -96,6 +96,51 @@ import { mark_all_dirty } from './renderer/mapviewCommon';
 import { _terrainBlendStats, resetTerrainBlendStats } from './renderer/tilespecTerrain';
 import { redraw_overview } from './core/overview';
 import { mapAllocate, mapInitTopology } from './data/map';
+
+function syncStoreWithWindow(): void {
+  const storeRec = store as unknown as Record<string, unknown>;
+  const syncProps: Array<[string, string]> = [
+    ['tiles', 'tiles'],
+    ['units', 'units'],
+    ['cities', 'cities'],
+    ['players', 'players'],
+    ['terrains', 'terrains'],
+    ['techs', 'techs'],
+    ['nations', 'nations'],
+    ['governments', 'governments'],
+    ['improvements', 'improvements'],
+    ['extras', 'extras'],
+    ['connections', 'connections'],
+    ['map', 'mapInfo'],
+    ['unit_types', 'unitTypes'],
+    ['game_info', 'gameInfo'],
+    ['calendar_info', 'calendarInfo'],
+    ['server_settings', 'serverSettings'],
+    ['ruleset_control', 'rulesControl'],
+    ['ruleset_summary', 'rulesSummary'],
+    ['ruleset_description', 'rulesDescription'],
+    ['civclient_state', 'civclientState'],
+  ];
+
+  for (const [globalName, storeProp] of syncProps) {
+    const existing = Reflect.get(window, globalName) as unknown;
+    if (existing !== undefined && existing !== null) {
+      storeRec[storeProp] = existing;
+    }
+    try {
+      Object.defineProperty(window, globalName, {
+        get: () => storeRec[storeProp],
+        set: (value: unknown) => {
+          storeRec[storeProp] = value;
+        },
+        configurable: true,
+        enumerable: true,
+      });
+    } catch {
+      // Some environments may reject redefining window props.
+    }
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Step 5: Initialize.
@@ -113,6 +158,7 @@ import {
   getCivserverportForTests,
   forceCurrentWebSocketCloseForTests,
   getNetworkDebugState,
+  _resetReconnectStateForTests,
 } from './net/connection';
 
 function init(): void {
@@ -131,6 +177,8 @@ function init(): void {
   registerAction('center-tile', (el) => center_tile_id(Number(el.dataset['tileid'])));
   registerAction('wiki-dialog', (el) => show_wikipedia_dialog(el.dataset['techname'] ?? ''));
   registerAction('show-tax-rates', () => showTaxRatesDialog());
+
+  syncStoreWithWindow();
 
   // Expose rendering helpers for E2E testing
   setWindowValue('set_client_state', set_client_state);
@@ -156,6 +204,9 @@ function init(): void {
     get state() { return getNetworkDebugState(); },
     forceClose(code: number, reason = '', wasClean = false) {
       return forceCurrentWebSocketCloseForTests(code, reason, wasClean);
+    },
+    resetReconnectState() {
+      return _resetReconnectStateForTests();
     },
   });
 

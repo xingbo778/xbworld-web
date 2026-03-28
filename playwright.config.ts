@@ -21,7 +21,7 @@ export default defineConfig({
   ],
   webServer: {
     command: 'BACKEND_URL=http://127.0.0.1:8080 npx vite --config vite.config.dev.ts --port 3000 --host 127.0.0.1',
-    url: 'http://127.0.0.1:3000/webclient/index.html',
+    url: 'http://127.0.0.1:3000/webclient/',
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,
   },

@@ -17,5 +17,7 @@ export function setDebugValue(name: string, value: unknown): void {
 }
 
 export function getDebugWebSocket(): WebSocket | null {
+  const networkDebug = Reflect.get(window, '__networkDebug') as { ws?: WebSocket | null } | undefined;
+  if (networkDebug?.ws != null) return networkDebug.ws;
   return (Reflect.get(window, 'ws') as WebSocket | null | undefined) ?? null;
 }

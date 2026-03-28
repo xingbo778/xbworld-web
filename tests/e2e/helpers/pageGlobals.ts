@@ -75,6 +75,7 @@ export interface XbwNetworkDebug {
   };
   ws?: WebSocket | null;
   forceClose?: (code: number, reason?: string, wasClean?: boolean) => { ok: boolean };
+  resetReconnectState?: () => void;
 }
 
 export interface XbwMapDebug {

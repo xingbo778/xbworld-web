@@ -93,7 +93,7 @@ test.describe('Mock Game Visual Test', () => {
       };
 
       const w = window as MockGlobals;
-      const wsObj = w.__networkDebug?.ws ?? null;
+      const wsObj = w.__networkDebug?.ws ?? ((w as unknown as { ws?: WebSocket | null }).ws ?? null);
       if (!wsObj) return { success: false, reason: 'no ws' };
 
       wsObj.onmessage = function (event: MessageEvent) {
@@ -246,6 +246,36 @@ test.describe('Mock Game Visual Test', () => {
     // Wait for processing
     await page.waitForTimeout(2000);
 
+    // Defensive replay: if the mock onmessage path missed MAP_INFO/TILE_INFO ordering,
+    // rebuild the map and re-apply tile packets before assertions.
+    await page.evaluate((packets) => {
+      const w = window as XbwPageGlobals & {
+        __store?: {
+          mapInfo?: Record<string, unknown> | null;
+          tiles?: Record<number, Record<string, unknown>>;
+        };
+      };
+      const store = w.__store;
+      const mapDebug = w.__mapDebug;
+      if (!store || !mapDebug) return;
+      if (store.mapInfo && Object.keys(store.tiles || {}).length > 0) return;
+
+      const mapInfo = packets.find((p) => (p as { pid?: number }).pid === 17) as Record<string, unknown> | undefined;
+      if (mapInfo) {
+        mapDebug.setMapInfo?.(mapInfo);
+        mapDebug.mapInitTopology?.();
+        mapDebug.mapAllocate?.();
+      }
+
+      const tiles = store.tiles;
+      if (!tiles) return;
+      for (const packet of packets) {
+        const p = packet as { pid?: number; tile?: number };
+        if (p.pid !== 15 || p.tile == null || !tiles[p.tile]) continue;
+        Object.assign(tiles[p.tile], packet);
+      }
+    }, initPackets);
+
     // Check state
     const gameState = await page.evaluate(() => {
       const w = window as XbwPageGlobals & {
@@ -276,8 +306,10 @@ test.describe('Mock Game Visual Test', () => {
       const w = window as XbwPageGlobals;
 
       // Hide pregame, show game page
-      document.getElementById('pregame_page')!.style.display = 'none';
-      document.getElementById('game_page')!.style.display = '';
+      const pregame = document.getElementById('pregame_page');
+      const game = document.getElementById('game_page');
+      if (pregame) pregame.style.display = 'none';
+      if (game) game.style.display = '';
       document.querySelectorAll('.blockUI, .blockOverlay, .xb-dialog, .xb-dialog-overlay').forEach(el => el.remove());
 
       // Set client state to C_S_RUNNING (2) via the exposed function

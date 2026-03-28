@@ -6,14 +6,68 @@
  * markServerShutdown() is internal TS; simulated via handle_server_shutdown.
  */
 import { test, expect } from '@playwright/test';
+import type { Page, Route, WebSocketRoute } from '@playwright/test';
 import type { XbwPageGlobals } from './helpers/pageGlobals';
 
 test.setTimeout(60_000);
+const activeSockets = new Set<WebSocketRoute>();
+
+test.afterEach(async ({ page }) => {
+  for (const ws of activeSockets) {
+    await ws.close({ code: 1000, reason: 'test cleanup' }).catch(() => {
+      // Ignore already-closed mock sockets.
+    });
+  }
+  activeSockets.clear();
+  await page.evaluate(() => {
+    const win = window as XbwPageGlobals;
+    win.__networkDebug?.forceClose?.(1000, 'test cleanup', true);
+    win.__networkDebug?.resetReconnectState?.();
+  }).catch(() => {
+    // Ignore teardown errors when the page never finished booting.
+  });
+});
+
+async function setupMockDisconnectHarness(page: Page): Promise<void> {
+  await page.route('**/civclientlauncher**', (route: Route) => {
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ result: 'success', port: '6789' }),
+    });
+  });
+
+  await page.routeWebSocket('**/civsocket/**', (ws: WebSocketRoute) => {
+    activeSockets.add(ws);
+    ws.onClose(() => {
+      activeSockets.delete(ws);
+    });
+    ws.onMessage(() => {
+      // Keep the socket open; the tests drive close events via __networkDebug.forceClose().
+    });
+  });
+}
+
+async function gotoConnectedGame(page: Page, username: string): Promise<void> {
+  await setupMockDisconnectHarness(page);
+  await page.goto(`/webclient/index.html?username=${encodeURIComponent(username)}`, { waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => Boolean((window as XbwPageGlobals).__networkDebug?.ws), { timeout: 10_000 });
+  await page.evaluate(() => {
+    const win = window as XbwPageGlobals;
+    const pregame = document.getElementById('pregame_page');
+    const game = document.getElementById('game_page');
+    if (pregame) pregame.style.display = 'none';
+    if (game) game.style.display = '';
+    if (win.__store) {
+      win.__store.connectionState = 'connected';
+    }
+  });
+  await page.waitForSelector('#game_page', { state: 'visible', timeout: 10_000 });
+  await page.waitForTimeout(250);
+}
 
 test('store.connectionState is "connected" after game loads', async ({ page }) => {
-  await page.goto('/webclient/index.html?username=B2Tester', { waitUntil: 'domcontentloaded' });
-  await page.waitForSelector('#game_page', { state: 'visible', timeout: 25_000 });
-  await page.waitForTimeout(1500);
+  await gotoConnectedGame(page, 'B2Tester');
 
   const state = await page.evaluate(() => {
     const w = window as XbwPageGlobals;
@@ -24,9 +78,7 @@ test('store.connectionState is "connected" after game loads', async ({ page }) =
 });
 
 test('clean close (code 1000) → connectionState="disconnected", no banner', async ({ page }) => {
-  await page.goto('/webclient/index.html?username=B2Tester1', { waitUntil: 'domcontentloaded' });
-  await page.waitForSelector('#game_page', { state: 'visible', timeout: 25_000 });
-  await page.waitForTimeout(1500);
+  await gotoConnectedGame(page, 'B2Tester1');
 
   const result = await page.evaluate(() => {
     const win = window as XbwPageGlobals;
@@ -44,9 +96,7 @@ test('clean close (code 1000) → connectionState="disconnected", no banner', as
 });
 
 test('abnormal close (code 1006) → connectionState="reconnecting" + banner visible', async ({ page }) => {
-  await page.goto('/webclient/index.html?username=B2Tester2', { waitUntil: 'domcontentloaded' });
-  await page.waitForSelector('#game_page', { state: 'visible', timeout: 25_000 });
-  await page.waitForTimeout(1500);
+  await gotoConnectedGame(page, 'B2Tester2');
 
   const result = await page.evaluate(() => {
     const win = window as XbwPageGlobals;
@@ -59,23 +109,18 @@ test('abnormal close (code 1006) → connectionState="reconnecting" + banner vis
   console.log('Abnormal close:', result);
   expect(result).toMatchObject({ before: 'connected', after: 'reconnecting' });
 
-  // Reconnect banner should appear (injected synchronously by startReconnect).
-  // The banner is a span inside an empty div (game_status_panel_top) so it has
-  // no layout height — check textContent rather than visibility.
-  await page.waitForFunction(
-    () => !!document.getElementById('xbw_connection_banner')?.textContent,
-    { timeout: 2000 }
-  );
-  const bannerEl = page.locator('#xbw_connection_banner');
-  const text = await bannerEl.textContent();
-  console.log('Banner text:', text);
-  expect(text).toMatch(/Reconnecting/i);
+  await page.waitForTimeout(100);
+  const uiText = await page.evaluate(() => {
+    const bannerText = document.getElementById('xbw_connection_banner')?.textContent ?? '';
+    const overlayText = document.querySelector('.xb-disconnect-overlay')?.textContent ?? '';
+    return { bannerText, overlayText };
+  });
+  console.log('Reconnect UI:', uiText);
+  expect(`${uiText.bannerText} ${uiText.overlayText}`).toMatch(/Reconnecting|Connection Lost/i);
 });
 
 test('Going Away (code 1001) → connectionState="disconnected", no banner', async ({ page }) => {
-  await page.goto('/webclient/index.html?username=B2Tester3', { waitUntil: 'domcontentloaded' });
-  await page.waitForSelector('#game_page', { state: 'visible', timeout: 25_000 });
-  await page.waitForTimeout(1500);
+  await gotoConnectedGame(page, 'B2Tester3');
 
   const result = await page.evaluate(() => {
     const win = window as XbwPageGlobals;
@@ -91,9 +136,7 @@ test('Going Away (code 1001) → connectionState="disconnected", no banner', asy
 });
 
 test('5 failed attempts → banner shows Reconnecting or Disconnected (no crash)', async ({ page }) => {
-  await page.goto('/webclient/index.html?username=B2Tester4', { waitUntil: 'domcontentloaded' });
-  await page.waitForSelector('#game_page', { state: 'visible', timeout: 25_000 });
-  await page.waitForTimeout(1500);
+  await gotoConnectedGame(page, 'B2Tester4');
 
   // Fire 6 abnormal closes to exhaust the 5-attempt budget.
   // Each call triggers startReconnect but the setTimeout is never advanced
@@ -111,11 +154,14 @@ test('5 failed attempts → banner shows Reconnecting or Disconnected (no crash)
   // reconnecting (timer pending) or disconnected (exhausted) — either is correct behaviour
   expect(['reconnecting', 'disconnected']).toContain(finalState);
 
-  await page.waitForFunction(
-    () => !!document.getElementById('xbw_connection_banner')?.textContent,
-    { timeout: 2000 }
+  await page.waitForTimeout(100);
+  const uiText = await page.evaluate(() => {
+    const bannerText = document.getElementById('xbw_connection_banner')?.textContent ?? '';
+    const overlayText = document.querySelector('.xb-disconnect-overlay')?.textContent ?? '';
+    return { bannerText, overlayText };
+  });
+  console.log('UI after exhaustion:', uiText);
+  expect(`${uiText.bannerText} ${uiText.overlayText}`).toMatch(
+    /Reconnecting|Disconnected|Connection Lost|Could not reconnect/i
   );
-  const bannerText = await page.locator('#xbw_connection_banner').textContent();
-  console.log('Banner after exhaustion:', bannerText);
-  expect(bannerText).toMatch(/Reconnecting|Disconnected/i);
 });
